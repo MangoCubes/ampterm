@@ -1,0 +1,7 @@
+{
+  "keybindings": {
+    "Home": {
+      "<Ctrl-c>": "Quit", // Yet another way to quit
+    },
+  }
+}

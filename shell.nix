@@ -10,6 +10,7 @@ pkgs.mkShell {
     [
       rust-analyzer
       lldb
+      rustup
     ]
   );
   buildInputs = (

@@ -1,3 +1,4 @@
+use crate::action::loginaction::LoginAction;
 use color_eyre::Result;
 use crossterm::event::KeyCode;
 use ratatui::{
@@ -7,8 +8,9 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
+use sunk::Client;
 use tokio::sync::mpsc::UnboundedSender;
-use tui_textarea::{CursorMove, Input, TextArea};
+use tui_textarea::{CursorMove, TextArea};
 
 use super::Component;
 use crate::action::Action;
@@ -28,7 +30,6 @@ enum Mode {
 }
 
 pub struct Login {
-    input: Input,
     username: TextArea<'static>,
     password: TextArea<'static>,
     url: TextArea<'static>,
@@ -36,6 +37,12 @@ pub struct Login {
     action_tx: UnboundedSender<Action>,
     mode: Mode,
     status: Status,
+}
+
+fn attempt_login(site: String, username: String, password: String) -> Result<(), sunk::Error> {
+    let client = Client::new(site.as_str(), username.as_str(), password.as_str())?;
+    client.ping()?;
+    Ok(())
 }
 
 impl Login {
@@ -98,6 +105,7 @@ impl Login {
         Ok(())
     }
     // Submit current form to the server
+    // This function never fails and handles errors from attempt_login
     fn submit(&mut self) -> Result<()> {
         let site = self.url.lines()[0].clone();
         let username = self.username.lines()[0].clone();
@@ -105,13 +113,18 @@ impl Login {
         self.status = Status::Pending;
         self.status_msg = Some(vec!["Logging in...".to_string()]);
         self.update_style();
-        // let client = sunk::Client::new(site.as_str(), username.as_str(), password.as_str())?;
-        // client.ping()?;
+        match attempt_login(site.clone(), username.clone(), password.clone()) {
+            Ok(()) => {
+                self.action_tx.send(Action::Login(LoginAction::Success(
+                    site, username, password,
+                )))?;
+            }
+            Err(e) => println!("{}", e),
+        };
         Ok(())
     }
     pub fn new(action_tx: UnboundedSender<Action>) -> Self {
         let mut res = Self {
-            input: Input::default(),
             username: TextArea::default(),
             password: TextArea::default(),
             url: TextArea::new(vec!["https://".to_string()]),

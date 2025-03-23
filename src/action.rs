@@ -1,3 +1,5 @@
+pub mod loginaction;
+use loginaction::LoginAction;
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
@@ -12,5 +14,5 @@ pub enum Action {
     ClearScreen,
     Error(String),
     Help,
-    Login(String, String, String),
+    Login(LoginAction),
 }

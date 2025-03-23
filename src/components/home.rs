@@ -1,4 +1,4 @@
-mod login;
+pub mod login;
 
 use color_eyre::Result;
 use login::Login;

@@ -1,9 +1,10 @@
 local function run_cargo()
 	vim.cmd('silent !kitty sh -c "cargo run || read" &')
 end
-
+-- Disable mouse
+vim.opt.mouse = ""
+-- Alt+s runs cargo
 vim.keymap.set('n', '<M-s>', run_cargo, { noremap = true, silent = true })
-
 vim.fn.sign_define("DapBreakpoint", { text = "🔴" })
 
 local dap = require("dap")

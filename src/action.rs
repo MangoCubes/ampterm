@@ -1,8 +1,16 @@
-pub mod loginaction;
-use loginaction::LoginAction;
+pub mod login;
+use login::{LoginQuery, LoginResponse};
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
+#[derive(Debug, Clone, PartialEq, Eq, Display, Serialize, Deserialize)]
+pub enum Query {
+    Login(LoginQuery),
+}
+#[derive(Debug, Clone, PartialEq, Eq, Display, Serialize, Deserialize)]
+pub enum Response {
+    Login(LoginResponse),
+}
 #[derive(Debug, Clone, PartialEq, Eq, Display, Serialize, Deserialize)]
 pub enum Action {
     Tick,
@@ -14,5 +22,7 @@ pub enum Action {
     ClearScreen,
     Error(String),
     Help,
-    Login(LoginAction),
+
+    Query(Query),
+    Response(Response),
 }

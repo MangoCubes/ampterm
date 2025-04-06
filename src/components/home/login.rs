@@ -1,5 +1,4 @@
-use crate::action::loginaction::LoginAction;
-use color_eyre::Result;
+use color_eyre::{eyre::Context, Result};
 use crossterm::event::KeyCode;
 use ratatui::{
     layout::{Constraint, Flex, Layout, Rect},
@@ -8,12 +7,14 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
-use sunk::Client;
 use tokio::sync::mpsc::UnboundedSender;
 use tui_textarea::{CursorMove, TextArea};
 
 use super::Component;
-use crate::action::Action;
+use crate::action::{
+    login::{Credentials, LoginQuery, LoginResponse},
+    Action, Query, Response,
+};
 #[derive(Default, PartialEq)]
 enum Status {
     #[default]
@@ -39,13 +40,10 @@ pub struct Login {
     status: Status,
 }
 
-fn attempt_login(site: String, username: String, password: String) -> Result<(), sunk::Error> {
-    let client = Client::new(site.as_str(), username.as_str(), password.as_str())?;
-    client.ping()?;
-    Ok(())
-}
-
 impl Login {
+    fn set_error(&mut self, msg: String) {
+        self.status_msg = Some(vec![msg]);
+    }
     fn update_style(&mut self) {
         fn change_style(textarea: &mut TextArea<'_>, enable: bool, title: &'static str) {
             if enable {
@@ -113,15 +111,12 @@ impl Login {
         self.status = Status::Pending;
         self.status_msg = Some(vec!["Logging in...".to_string()]);
         self.update_style();
-        match attempt_login(site.clone(), username.clone(), password.clone()) {
-            Ok(()) => {
-                self.action_tx.send(Action::Login(LoginAction::Success(
-                    site, username, password,
-                )))?;
-            }
-            Err(e) => println!("{}", e),
-        };
-        Ok(())
+        let action = Action::Query(Query::Login(LoginQuery::Login(Credentials::new(
+            site, username, password,
+        ))));
+        self.action_tx
+            .send(action)
+            .wrap_err("Action transmission failed from Login component.")
     }
     pub fn new(action_tx: UnboundedSender<Action>) -> Self {
         let mut res = Self {
@@ -141,6 +136,21 @@ impl Login {
 }
 
 impl Component for Login {
+    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+        if let Action::Response(r) = action {
+            if let Response::Login(l) = r {
+                match l {
+                    LoginResponse::InvalidURL => self.set_error("Invalid URL. Please check if this endpoint is running OpenSubsonic-compatible music server.".to_string()),
+                    LoginResponse::InvalidCredentials => self.set_error("Your login is invalid. Please check your username or password.".to_string()),
+                    LoginResponse::Other(err) => self.set_error(format!("Connection failed: {}", err)),
+                    LoginResponse::Success => todo!(),
+                };
+            };
+        };
+        // if let LoginResponse(a) = action {
+        // };
+        Ok(None)
+    }
     fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Result<Option<Action>> {
         let _ = match key.code {
             KeyCode::Up => self.navigate(true),

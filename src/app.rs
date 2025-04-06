@@ -1,4 +1,5 @@
 use color_eyre::Result;
+
 use crossterm::event::KeyEvent;
 use ratatui::prelude::Rect;
 use serde::{Deserialize, Serialize};
@@ -6,10 +7,11 @@ use tokio::sync::mpsc;
 use tracing::{debug, info};
 
 use crate::{
-    action::Action,
+    action::{login::LoginQuery, Action},
     components::{home::Home, Component},
     config::Config,
     tui::{Event, Tui},
+    worker::Worker,
 };
 
 pub struct App {
@@ -23,6 +25,7 @@ pub struct App {
     last_tick_key_events: Vec<KeyEvent>,
     action_tx: mpsc::UnboundedSender<Action>,
     action_rx: mpsc::UnboundedReceiver<Action>,
+    worker: Worker,
 }
 
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -46,6 +49,7 @@ impl App {
             last_tick_key_events: Vec::new(),
             action_tx,
             action_rx,
+            worker: Worker::default(),
         })
     }
 
@@ -125,7 +129,7 @@ impl App {
         while let Ok(action) = self.action_rx.try_recv() {
             if action != Action::Tick && action != Action::Render {
                 debug!("{action:?}");
-            }
+            };
             match action {
                 Action::Tick => {
                     self.last_tick_key_events.drain(..);
@@ -137,9 +141,15 @@ impl App {
                 Action::Resize(w, h) => self.handle_resize(tui, w, h)?,
                 Action::Render => self.render(tui)?,
                 _ => {}
-            }
-            if let Some(action) = self.component.update(action.clone())? {
-                self.action_tx.send(action)?
+            };
+            // This matcher handles queries and their results
+            match action {
+                LoginQuery(q) => self.send_login_query(q),
+                _ => {
+                    if let Some(action) = self.component.update(action.clone())? {
+                        self.action_tx.send(action)?
+                    }
+                }
             };
         }
         Ok(())
@@ -160,5 +170,12 @@ impl App {
             }
         })?;
         Ok(())
+    }
+
+    fn send_login_query(&mut self, q: LoginQuery) -> () {
+        let tx = self.action_tx.clone();
+        tokio::task::spawn(async move {
+            let result = self.worker.login(q);
+        });
     }
 }

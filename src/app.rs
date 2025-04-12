@@ -3,15 +3,15 @@ use color_eyre::Result;
 use crossterm::event::KeyEvent;
 use ratatui::prelude::Rect;
 use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc;
+use tokio::sync::mpsc::{self, UnboundedSender};
 use tracing::{debug, info};
 
 use crate::{
-    action::{login::LoginQuery, Action},
+    action::Action,
     components::{home::Home, Component},
     config::Config,
+    queryworker::{query::Query, QueryWorker},
     tui::{Event, Tui},
-    worker::Worker,
 };
 
 pub struct App {
@@ -25,7 +25,6 @@ pub struct App {
     last_tick_key_events: Vec<KeyEvent>,
     action_tx: mpsc::UnboundedSender<Action>,
     action_rx: mpsc::UnboundedReceiver<Action>,
-    worker: Worker,
 }
 
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -49,7 +48,6 @@ impl App {
             last_tick_key_events: Vec::new(),
             action_tx,
             action_rx,
-            worker: Worker::default(),
         })
     }
 
@@ -61,11 +59,15 @@ impl App {
         tui.enter()?;
 
         self.component.init(tui.size()?)?;
-
         let action_tx = self.action_tx.clone();
+        let mut qw = QueryWorker::new(self.action_tx.clone());
+        let query_tx = qw.get_tx();
+        let qwthread = tokio::spawn(async move {
+            let _ = qw.run();
+        });
         loop {
             self.handle_events(&mut tui).await?;
-            self.handle_actions(&mut tui)?;
+            self.handle_actions(&mut tui, &query_tx)?;
             if self.should_suspend {
                 tui.suspend()?;
                 action_tx.send(Action::Resume)?;
@@ -77,6 +79,7 @@ impl App {
                 break;
             }
         }
+        let _ = tokio::join!(qwthread);
         tui.exit()?;
         Ok(())
     }
@@ -125,11 +128,14 @@ impl App {
         Ok(())
     }
 
-    fn handle_actions(&mut self, tui: &mut Tui) -> Result<()> {
+    fn handle_actions(&mut self, tui: &mut Tui, query_tx: &UnboundedSender<Query>) -> Result<()> {
         while let Ok(action) = self.action_rx.try_recv() {
             if action != Action::Tick && action != Action::Render {
                 debug!("{action:?}");
             };
+            if query_tx.is_closed() {
+                panic!("Channel got closed!");
+            }
             match action {
                 Action::Tick => {
                     self.last_tick_key_events.drain(..);
@@ -140,11 +146,7 @@ impl App {
                 Action::ClearScreen => tui.terminal.clear()?,
                 Action::Resize(w, h) => self.handle_resize(tui, w, h)?,
                 Action::Render => self.render(tui)?,
-                _ => {}
-            };
-            // This matcher handles queries and their results
-            match action {
-                LoginQuery(q) => self.send_login_query(q),
+                Action::Query(q) => query_tx.send(q)?,
                 _ => {
                     if let Some(action) = self.component.update(action.clone())? {
                         self.action_tx.send(action)?
@@ -170,12 +172,5 @@ impl App {
             }
         })?;
         Ok(())
-    }
-
-    fn send_login_query(&mut self, q: LoginQuery) -> () {
-        let tx = self.action_tx.clone();
-        tokio::task::spawn(async move {
-            let result = self.worker.login(q);
-        });
     }
 }

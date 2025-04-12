@@ -1,16 +1,8 @@
-pub mod login;
-use login::{LoginQuery, LoginResponse};
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
-#[derive(Debug, Clone, PartialEq, Eq, Display, Serialize, Deserialize)]
-pub enum Query {
-    Login(LoginQuery),
-}
-#[derive(Debug, Clone, PartialEq, Eq, Display, Serialize, Deserialize)]
-pub enum Response {
-    Login(LoginResponse),
-}
+use crate::queryworker::{query::Query, response::Response};
+
 #[derive(Debug, Clone, PartialEq, Eq, Display, Serialize, Deserialize)]
 pub enum Action {
     Tick,

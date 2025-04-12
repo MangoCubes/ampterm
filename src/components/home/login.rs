@@ -10,11 +10,18 @@ use ratatui::{
 use tokio::sync::mpsc::UnboundedSender;
 use tui_textarea::{CursorMove, TextArea};
 
-use super::Component;
-use crate::action::{
-    login::{Credentials, LoginQuery, LoginResponse},
-    Action, Query, Response,
+use crate::{
+    action::Action,
+    queryworker::{
+        query::{
+            login::{Credentials, LoginQuery},
+            Query,
+        },
+        response::{login::LoginResponse, Response},
+    },
 };
+
+use super::Component;
 #[derive(Default, PartialEq)]
 enum Status {
     #[default]
@@ -143,12 +150,15 @@ impl Component for Login {
                     LoginResponse::InvalidURL => self.set_error("Invalid URL. Please check if this endpoint is running OpenSubsonic-compatible music server.".to_string()),
                     LoginResponse::InvalidCredentials => self.set_error("Your login is invalid. Please check your username or password.".to_string()),
                     LoginResponse::Other(err) => self.set_error(format!("Connection failed: {}", err)),
-                    LoginResponse::Success => todo!(),
+                    LoginResponse::FailedPing => self.set_error("Pinging the server failed. Please double check your URL.".to_string()),
+                    LoginResponse::Success => {
+                        self.status = Status::Normal;
+                        return Ok(None);
+                    },
                 };
+                self.status = Status::Error;
             };
         };
-        // if let LoginResponse(a) = action {
-        // };
         Ok(None)
     }
     fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Result<Option<Action>> {

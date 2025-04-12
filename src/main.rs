@@ -11,8 +11,8 @@ mod components;
 mod config;
 mod errors;
 mod logging;
+mod queryworker;
 mod tui;
-mod worker;
 
 #[tokio::main]
 async fn main() -> Result<()> {

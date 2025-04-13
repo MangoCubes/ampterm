@@ -12,6 +12,7 @@ use tui_textarea::{CursorMove, TextArea};
 
 use crate::{
     action::Action,
+    config::Config,
     queryworker::{
         query::{
             login::{Credentials, LoginQuery},
@@ -46,6 +47,7 @@ pub struct Login {
     action_tx: UnboundedSender<Action>,
     mode: Mode,
     status: Status,
+    config: Config,
 }
 
 impl Login {
@@ -121,13 +123,13 @@ impl Login {
         self.status_msg = Some(vec!["Logging in...".to_string()]);
         self.update_style();
         let action = Action::Query(Query::Login(LoginQuery::Login(Credentials::new(
-            site, username, password,
+            site, username, password, true, // self.config.config.use_legacy_auth,
         ))));
         self.action_tx
             .send(action)
             .wrap_err("Action transmission failed from Login component.")
     }
-    pub fn new(action_tx: UnboundedSender<Action>) -> Self {
+    pub fn new(action_tx: UnboundedSender<Action>, config: Config) -> Self {
         let mut res = Self {
             username: TextArea::default(),
             password: TextArea::default(),
@@ -136,6 +138,7 @@ impl Login {
             mode: Mode::default(),
             status: Status::default(),
             status_msg: None,
+            config,
         };
         res.url.move_cursor(CursorMove::End);
         res.password.set_mask_char('*');

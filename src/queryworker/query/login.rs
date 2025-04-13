@@ -7,14 +7,16 @@ pub struct Credentials {
     pub url: String,
     pub username: String,
     pub password: String,
+    pub legacy: bool,
 }
 
 impl Credentials {
-    pub fn new(url: String, username: String, password: String) -> Self {
+    pub fn new(url: String, username: String, password: String, legacy: bool) -> Self {
         Self {
             url,
             username,
             password,
+            legacy,
         }
     }
 }

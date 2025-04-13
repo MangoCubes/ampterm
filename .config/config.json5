@@ -3,5 +3,8 @@
     "Home": {
       "<Ctrl-c>": "Quit", // Yet another way to quit
     },
+  },
+  "config": {
+	"use_legacy_auth": true // If you need legacy authentication, 
   }
 }

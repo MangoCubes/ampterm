@@ -1,11 +1,9 @@
-use std::sync::Arc;
-
 use color_eyre::Result;
 
 use crossterm::event::KeyEvent;
 use ratatui::prelude::Rect;
 use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc::{self, UnboundedSender};
+use tokio::sync::mpsc::{self};
 use tracing::{debug, info};
 
 use crate::{
@@ -41,7 +39,7 @@ impl App {
     pub fn new(tick_rate: f64, frame_rate: f64) -> Result<Self> {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
         let config = Config::new()?;
-        let mut qw = QueryWorker::new(action_tx.clone());
+        let mut qw = QueryWorker::new(action_tx.clone(), config.clone());
         let query_tx = qw.get_tx();
         let _ = tokio::spawn(async move { qw.run().await });
         let v = format!("Is channel closed?: {}", query_tx.is_closed());

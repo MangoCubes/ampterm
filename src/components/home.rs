@@ -15,10 +15,10 @@ pub struct Home {
 
 impl Home {
     pub fn new(action_tx: UnboundedSender<Action>, config: Config) -> Self {
-        let auth = config.auth;
+        let auth = config.clone().auth;
         let comp = match auth {
             Some(creds) => todo!(),
-            None => Login::new(action_tx.clone()),
+            None => Login::new(action_tx.clone(), config.clone()),
         };
         Self {
             action_tx,

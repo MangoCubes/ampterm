@@ -8,6 +8,7 @@ use sunk::Client;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
 use crate::action::Action;
+use crate::config::Config;
 use crate::queryworker::{query::login::LoginQuery, response::login::LoginResponse};
 use crate::trace_dbg;
 
@@ -17,6 +18,7 @@ pub struct QueryWorker {
     req_rx: UnboundedReceiver<Query>,
     action_tx: UnboundedSender<Action>,
     should_quit: bool,
+    config: Config,
 }
 
 impl QueryWorker {
@@ -28,11 +30,18 @@ impl QueryWorker {
                     credentials.username.as_str(),
                     credentials.password.as_str(),
                 );
+
                 match client {
-                    Ok(c) => match c.ping() {
-                        Ok(_) => LoginResponse::Success,
-                        Err(_) => LoginResponse::FailedPing,
-                    },
+                    Ok(mut c) => {
+                        if credentials.legacy {
+                            c.target_ver = "1.12.0".into();
+                            // c = c.with_target("1.12.0".into());
+                        }
+                        match c.ping() {
+                            Ok(_) => LoginResponse::Success,
+                            Err(_) => LoginResponse::FailedPing,
+                        }
+                    }
                     Err(_) => LoginResponse::Other("Login failed!".to_string()),
                 }
             }
@@ -73,7 +82,7 @@ impl QueryWorker {
 }
 
 impl QueryWorker {
-    pub fn new(sender: UnboundedSender<Action>) -> Self {
+    pub fn new(sender: UnboundedSender<Action>, config: Config) -> Self {
         let (req_tx, req_rx) = mpsc::unbounded_channel();
         Self {
             client: None,
@@ -81,6 +90,7 @@ impl QueryWorker {
             req_rx,
             action_tx: sender,
             should_quit: false,
+            config,
         }
     }
     pub fn get_tx(&self) -> UnboundedSender<Query> {

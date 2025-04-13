@@ -31,6 +31,8 @@ pub struct AppConfig {
     pub data_dir: PathBuf,
     #[serde(default)]
     pub config_dir: PathBuf,
+    #[serde(default)]
+    pub use_legacy_auth: bool,
 }
 
 #[derive(Clone, Debug, Default, Deserialize)]

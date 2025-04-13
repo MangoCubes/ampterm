@@ -4,7 +4,7 @@ use ratatui::{
     layout::{Constraint, Flex, Layout, Rect},
     style::{Color, Modifier, Style},
     text::Line,
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Block, Borders, Paragraph, Wrap},
     Frame,
 };
 use tokio::sync::mpsc::UnboundedSender;
@@ -19,6 +19,7 @@ use crate::{
         },
         response::{login::LoginResponse, Response},
     },
+    trace_dbg,
 };
 
 use super::Component;
@@ -50,6 +51,7 @@ pub struct Login {
 impl Login {
     fn set_error(&mut self, msg: String) {
         self.status_msg = Some(vec![msg]);
+        self.update_style();
     }
     fn update_style(&mut self) {
         fn change_style(textarea: &mut TextArea<'_>, enable: bool, title: &'static str) {
@@ -146,17 +148,20 @@ impl Component for Login {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         if let Action::Response(r) = action {
             if let Response::Login(l) = r {
+                trace_dbg!("Received Login response!");
                 match l {
                     LoginResponse::InvalidURL => self.set_error("Invalid URL. Please check if this endpoint is running OpenSubsonic-compatible music server.".to_string()),
                     LoginResponse::InvalidCredentials => self.set_error("Your login is invalid. Please check your username or password.".to_string()),
                     LoginResponse::Other(err) => self.set_error(format!("Connection failed: {}", err)),
-                    LoginResponse::FailedPing => self.set_error("Pinging the server failed. Please double check your URL.".to_string()),
+                    LoginResponse::FailedPing => self.set_error("Failed to ping the server. Please double check your URL.".to_string()),
                     LoginResponse::Success => {
                         self.status = Status::Normal;
+                        self.update_style();
                         return Ok(None);
                     },
                 };
                 self.status = Status::Error;
+                self.update_style();
             };
         };
         Ok(None)
@@ -213,7 +218,10 @@ impl Component for Login {
         );
         if let Some(msg) = &self.status_msg {
             let text: Vec<Line> = msg.iter().map(|l| Line::raw(l)).collect();
-            frame.render_widget(Paragraph::new(text).centered(), areas[4]);
+            frame.render_widget(
+                Paragraph::new(text).centered().wrap(Wrap { trim: false }),
+                areas[4],
+            );
         }
         Ok(())
     }

@@ -29,16 +29,18 @@ impl Home {
 
 impl Component for Home {
     fn handle_events(&mut self, event: Event) -> Result<Option<Action>> {
-        let action = match event {
-            Event::Key(key_event) => self.handle_key_event(key_event)?,
-            Event::Mouse(mouse_event) => self.handle_mouse_event(mouse_event)?,
-            _ => None,
-        };
         if let Some(action) = self.component.handle_events(event.clone())? {
             self.action_tx.send(action)?;
         }
-        Ok(action)
+        Ok(None)
     }
+    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+        if let Some(action) = self.component.update(action.clone())? {
+            self.action_tx.send(action)?;
+        }
+        Ok(None)
+    }
+
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         if let Err(err) = self.component.draw(frame, area) {
             self.action_tx.send(Action::Error(err.to_string()))?;

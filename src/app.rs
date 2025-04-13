@@ -43,9 +43,7 @@ impl App {
         let config = Config::new()?;
         let mut qw = QueryWorker::new(action_tx.clone());
         let query_tx = qw.get_tx();
-        let _ = tokio::spawn(async move {
-            let _ = qw.run().await;
-        });
+        let _ = tokio::spawn(async move { qw.run().await });
         let v = format!("Is channel closed?: {}", query_tx.is_closed());
         trace_dbg!(v);
         Ok(Self {

@@ -39,6 +39,7 @@ impl QueryWorker {
         }
     }
     pub async fn run(&mut self) -> Result<()> {
+        trace_dbg!("Starting QueryWorker...");
         loop {
             let Some(event) = self.req_rx.recv().await else {
                 break;

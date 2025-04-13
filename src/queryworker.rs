@@ -35,7 +35,6 @@ impl QueryWorker {
                     Ok(mut c) => {
                         if credentials.legacy {
                             c.target_ver = "1.12.0".into();
-                            // c = c.with_target("1.12.0".into());
                         }
                         match c.ping() {
                             Ok(_) => LoginResponse::Success,

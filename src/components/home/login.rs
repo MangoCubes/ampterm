@@ -116,14 +116,17 @@ impl Login {
     // Submit current form to the server
     // This function never fails and handles errors from attempt_login
     fn submit(&mut self) -> Result<()> {
-        let site = self.url.lines()[0].clone();
+        let url = self.url.lines()[0].clone();
         let username = self.username.lines()[0].clone();
         let password = self.password.lines()[0].clone();
         self.status = Status::Pending;
         self.status_msg = Some(vec!["Logging in...".to_string()]);
         self.update_style();
         let action = Action::Query(Query::Login(LoginQuery::Login(Credentials::new(
-            site, username, password, true, // self.config.config.use_legacy_auth,
+            url,
+            username,
+            password,
+            self.config.config.use_legacy_auth,
         ))));
         self.action_tx
             .send(action)

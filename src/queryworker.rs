@@ -9,6 +9,7 @@ use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
 use crate::action::Action;
 use crate::queryworker::{query::login::LoginQuery, response::login::LoginResponse};
+use crate::trace_dbg;
 
 pub struct QueryWorker {
     client: Option<Client>,
@@ -42,7 +43,6 @@ impl QueryWorker {
             let Some(event) = self.req_rx.recv().await else {
                 break;
             };
-            println!("Received event!");
             match event {
                 Query::Stop => self.should_quit = true,
                 Query::SetCredentials(creds) => {

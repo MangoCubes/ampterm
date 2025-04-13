@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use color_eyre::Result;
 
 use crossterm::event::KeyEvent;
@@ -11,6 +13,7 @@ use crate::{
     components::{home::Home, Component},
     config::Config,
     queryworker::{query::Query, QueryWorker},
+    trace_dbg,
     tui::{Event, Tui},
 };
 
@@ -25,6 +28,7 @@ pub struct App {
     last_tick_key_events: Vec<KeyEvent>,
     action_tx: mpsc::UnboundedSender<Action>,
     action_rx: mpsc::UnboundedReceiver<Action>,
+    query_tx: mpsc::UnboundedSender<Query>,
 }
 
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -37,6 +41,13 @@ impl App {
     pub fn new(tick_rate: f64, frame_rate: f64) -> Result<Self> {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
         let config = Config::new()?;
+        let mut qw = QueryWorker::new(action_tx.clone());
+        let query_tx = qw.get_tx();
+        let _ = tokio::spawn(async move {
+            let _ = qw.run().await;
+        });
+        let v = format!("Is channel closed?: {}", query_tx.is_closed());
+        trace_dbg!(v);
         Ok(Self {
             tick_rate,
             frame_rate,
@@ -48,6 +59,7 @@ impl App {
             last_tick_key_events: Vec::new(),
             action_tx,
             action_rx,
+            query_tx,
         })
     }
 
@@ -60,14 +72,9 @@ impl App {
 
         self.component.init(tui.size()?)?;
         let action_tx = self.action_tx.clone();
-        let mut qw = QueryWorker::new(self.action_tx.clone());
-        let query_tx = qw.get_tx();
-        let qwthread = tokio::spawn(async move {
-            let _ = qw.run();
-        });
         loop {
             self.handle_events(&mut tui).await?;
-            self.handle_actions(&mut tui, &query_tx)?;
+            self.handle_actions(&mut tui)?;
             if self.should_suspend {
                 tui.suspend()?;
                 action_tx.send(Action::Resume)?;
@@ -79,7 +86,7 @@ impl App {
                 break;
             }
         }
-        let _ = tokio::join!(qwthread);
+        // let _ = tokio::join!(self.query_thread);
         tui.exit()?;
         Ok(())
     }
@@ -128,14 +135,12 @@ impl App {
         Ok(())
     }
 
-    fn handle_actions(&mut self, tui: &mut Tui, query_tx: &UnboundedSender<Query>) -> Result<()> {
+    fn handle_actions(&mut self, tui: &mut Tui) -> Result<()> {
         while let Ok(action) = self.action_rx.try_recv() {
             if action != Action::Tick && action != Action::Render {
                 debug!("{action:?}");
             };
-            if query_tx.is_closed() {
-                panic!("Channel got closed!");
-            }
+
             match action {
                 Action::Tick => {
                     self.last_tick_key_events.drain(..);
@@ -146,7 +151,7 @@ impl App {
                 Action::ClearScreen => tui.terminal.clear()?,
                 Action::Resize(w, h) => self.handle_resize(tui, w, h)?,
                 Action::Render => self.render(tui)?,
-                Action::Query(q) => query_tx.send(q)?,
+                Action::Query(q) => self.query_tx.send(q)?,
                 _ => {
                     if let Some(action) = self.component.update(action.clone())? {
                         self.action_tx.send(action)?

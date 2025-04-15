@@ -2,7 +2,7 @@ use color_eyre::Result;
 use ratatui::{
     layout::{Constraint, Flex, Layout, Rect},
     text::Line,
-    widgets::{Block, Paragraph},
+    widgets::{Block, Paragraph, Wrap},
     Frame,
 };
 
@@ -21,10 +21,10 @@ impl Loading {
 
 impl Component for Loading {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        let [horizontal] = Layout::horizontal([Constraint::Percentage(50)])
+        let [horizontal] = Layout::horizontal([Constraint::Percentage(100)])
             .flex(Flex::Center)
             .areas(area);
-        let [centered] = Layout::vertical([Constraint::Percentage(50)])
+        let [centered] = Layout::vertical([Constraint::Percentage(100)])
             .flex(Flex::Center)
             .areas(horizontal);
         frame.render_widget(
@@ -34,7 +34,8 @@ impl Component for Loading {
                 Line::raw(format!("Username: {}", self.username)),
             ])
             .centered()
-            .block(Block::bordered()),
+            .block(Block::bordered())
+            .wrap(Wrap { trim: false }),
             centered,
         );
         Ok(())

@@ -1,12 +1,23 @@
-pub mod login;
+mod login;
+// mod mainscreen;
+mod loading;
 
 use color_eyre::Result;
+use loading::Loading;
 use login::Login;
 use ratatui::{layout::Rect, Frame};
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::Component;
-use crate::{action::Action, config::Config, queryworker::query::login::Credentials, tui::Event};
+use crate::{
+    action::Action,
+    config::Config,
+    queryworker::query::{
+        login::{Credentials, LoginQuery},
+        Query,
+    },
+    tui::Event,
+};
 
 pub struct Home {
     action_tx: UnboundedSender<Action>,
@@ -34,13 +45,25 @@ impl Home {
                 None => None,
             }
         };
-        let comp = match config_creds {
-            Some(creds) => todo!(),
-            None => Login::new(action_tx.clone(), config),
+        let comp: Box<dyn Component> = match config_creds {
+            Some(creds) => {
+                let query_creds = creds.clone();
+                let action = Action::Query(Query::Login(LoginQuery::Login(Credentials::new(
+                    query_creds.url,
+                    query_creds.username,
+                    query_creds.password,
+                    config.config.use_legacy_auth,
+                ))));
+                match action_tx.send(action) {
+                    Ok(_) => Box::new(Loading::new(creds.url, creds.username)),
+                    Err(_) => Box::new(Login::new(action_tx.clone(), config)),
+                }
+            }
+            None => Box::new(Login::new(action_tx.clone(), config)),
         };
         Self {
             action_tx,
-            component: Box::new(comp),
+            component: comp,
         }
     }
 }

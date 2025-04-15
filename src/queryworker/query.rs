@@ -6,6 +6,7 @@ use strum::Display;
 
 #[derive(Debug, Clone, PartialEq, Eq, Display, Serialize, Deserialize)]
 pub enum Query {
+    // Stop query task
     Stop,
     SetCredentials(Credentials),
     Login(LoginQuery),

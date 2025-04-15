@@ -128,9 +128,8 @@ impl Login {
             password,
             self.config.config.use_legacy_auth,
         ))));
-        self.action_tx
-            .send(action)
-            .wrap_err("Action transmission failed from Login component.")
+        self.action_tx.send(action)?;
+        Ok(())
     }
     pub fn new(action_tx: UnboundedSender<Action>, config: Config) -> Self {
         let mut res = Self {
@@ -173,7 +172,7 @@ impl Component for Login {
         Ok(None)
     }
     fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Result<Option<Action>> {
-        let _ = match key.code {
+        match key.code {
             KeyCode::Up => self.navigate(true),
             KeyCode::Down => self.navigate(false),
             KeyCode::Enter => self.submit(),
@@ -193,7 +192,7 @@ impl Component for Login {
                     Ok(())
                 }
             },
-        };
+        }?;
         Ok(None)
     }
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {

@@ -11,7 +11,6 @@ use crate::{
     components::{home::Home, Component},
     config::Config,
     queryworker::{query::Query, QueryWorker},
-    trace_dbg,
     tui::{Event, Tui},
 };
 

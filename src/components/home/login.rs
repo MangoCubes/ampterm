@@ -1,4 +1,4 @@
-use color_eyre::{eyre::Context, Result};
+use color_eyre::Result;
 use crossterm::event::KeyCode;
 use ratatui::{
     layout::{Constraint, Flex, Layout, Rect},

@@ -25,6 +25,17 @@ pub struct AuthConfig {
     pub password_command: String,
 }
 
+// Unsafe settings, but in case you need these
+#[derive(Clone, Debug, Deserialize, Default)]
+pub struct UnsafeAuthConfig {
+    #[serde(default)]
+    pub url: String,
+    #[serde(default)]
+    pub username: String,
+    #[serde(default)]
+    pub password: String,
+}
+
 #[derive(Clone, Debug, Deserialize, Default)]
 pub struct AppConfig {
     #[serde(default)]
@@ -45,6 +56,8 @@ pub struct Config {
     pub styles: Styles,
     #[serde(default)]
     pub auth: Option<AuthConfig>,
+    #[serde(default)]
+    pub unsafe_auth: Option<UnsafeAuthConfig>,
 }
 
 lazy_static! {

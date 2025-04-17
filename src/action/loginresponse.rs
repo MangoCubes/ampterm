@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
-
 use strum::Display;
+
 #[derive(Debug, Clone, PartialEq, Eq, Display, Serialize, Deserialize)]
-pub(crate) enum LoginResponse {
+pub enum LoginResponse {
     // Login was successful
     Success,
     // Login fails due to invalid host

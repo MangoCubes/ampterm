@@ -11,14 +11,11 @@ use tokio::sync::mpsc::UnboundedSender;
 use tui_textarea::{CursorMove, TextArea};
 
 use crate::{
-    action::Action,
+    action::{loginresponse::LoginResponse, Action},
     config::Config,
-    queryworker::{
-        query::{
-            login::{Credentials, LoginQuery},
-            Query,
-        },
-        response::{login::LoginResponse, Response},
+    queryworker::query::{
+        login::{Credentials, LoginQuery},
+        Query,
     },
     trace_dbg,
 };

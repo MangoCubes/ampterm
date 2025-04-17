@@ -1,15 +1,14 @@
 pub mod query;
-pub mod response;
 
 use color_eyre::{eyre, Result};
 use query::Query;
-use response::Response;
 use sunk::Client;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
+use crate::action::loginresponse::LoginResponse;
 use crate::action::Action;
 use crate::config::Config;
-use crate::queryworker::{query::login::LoginQuery, response::login::LoginResponse};
+use crate::queryworker::query::login::LoginQuery;
 use crate::trace_dbg;
 
 pub struct QueryWorker {

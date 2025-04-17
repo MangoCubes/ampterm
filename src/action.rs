@@ -1,7 +1,10 @@
+pub mod loginresponse;
+
+use loginresponse::LoginResponse;
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
-use crate::queryworker::{query::Query, response::login::LoginResponse};
+use crate::queryworker::query::Query;
 
 #[derive(Debug, Clone, PartialEq, Eq, Display, Serialize, Deserialize)]
 pub enum Action {

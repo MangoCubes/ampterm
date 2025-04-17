@@ -11,14 +11,11 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use super::Component;
 use crate::{
-    action::Action,
+    action::{loginresponse::LoginResponse, Action},
     config::Config,
-    queryworker::{
-        query::{
-            login::{Credentials, LoginQuery},
-            Query,
-        },
-        response::login::LoginResponse,
+    queryworker::query::{
+        login::{Credentials, LoginQuery},
+        Query,
     },
     tui::Event,
 };

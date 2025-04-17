@@ -2,6 +2,8 @@ mod login;
 // mod mainscreen;
 mod loading;
 
+use std::sync::Mutex;
+
 use color_eyre::Result;
 use loading::Loading;
 use login::Login;
@@ -12,16 +14,29 @@ use super::Component;
 use crate::{
     action::Action,
     config::Config,
-    queryworker::query::{
-        login::{Credentials, LoginQuery},
-        Query,
+    queryworker::{
+        query::{
+            login::{Credentials, LoginQuery},
+            Query,
+        },
+        response::{login::LoginResponse, Response},
     },
     tui::Event,
 };
 
+enum State {
+    // Credentials have been loaded from the config, and the home component is showing Loading component
+    ConfigLogin,
+    // Either the config credentials have been valid, or not found. Currently showing Login component
+    Login,
+    // Login has been successful
+    Main,
+}
+
 pub struct Home {
     action_tx: UnboundedSender<Action>,
     component: Box<dyn Component>,
+    state: Mutex<State>,
 }
 
 impl Home {
@@ -45,8 +60,10 @@ impl Home {
                 None => None,
             }
         };
+        let config_has_creds;
         let comp: Box<dyn Component> = match config_creds {
             Some(creds) => {
+                config_has_creds = true;
                 let query_creds = creds.clone();
                 let action = Action::Query(Query::Login(LoginQuery::Login(Credentials::new(
                     query_creds.url,
@@ -59,11 +76,19 @@ impl Home {
                     Err(_) => Box::new(Login::new(action_tx.clone(), config)),
                 }
             }
-            None => Box::new(Login::new(action_tx.clone(), config)),
+            None => {
+                config_has_creds = false;
+                Box::new(Login::new(action_tx.clone(), config))
+            }
         };
         Self {
             action_tx,
             component: comp,
+            state: Mutex::new(if config_has_creds {
+                State::ConfigLogin
+            } else {
+                State::Login
+            }),
         }
     }
 }

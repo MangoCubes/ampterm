@@ -160,6 +160,7 @@ impl Component for Login {
                     LoginResponse::Other(err) => self.set_error(format!("Connection failed: {}", err)),
                     LoginResponse::FailedPing => self.set_error("Failed to ping the server. Please double check your URL.".to_string()),
                     LoginResponse::Success => {
+                        // The code should never reach here though
                         self.status = Status::Normal;
                         self.update_style();
                         return Ok(None);

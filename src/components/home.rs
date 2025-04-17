@@ -1,12 +1,11 @@
-mod login;
-// mod mainscreen;
 mod loading;
-
-use std::sync::Mutex;
+mod login;
+mod mainscreen;
 
 use color_eyre::Result;
 use loading::Loading;
 use login::Login;
+use mainscreen::MainScreen;
 use ratatui::{layout::Rect, Frame};
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -19,24 +18,16 @@ use crate::{
             login::{Credentials, LoginQuery},
             Query,
         },
-        response::{login::LoginResponse, Response},
+        response::login::LoginResponse,
     },
     tui::Event,
 };
 
-enum State {
-    // Credentials have been loaded from the config, and the home component is showing Loading component
-    ConfigLogin,
-    // Either the config credentials have been valid, or not found. Currently showing Login component
-    Login,
-    // Login has been successful
-    Main,
-}
-
 pub struct Home {
     action_tx: UnboundedSender<Action>,
     component: Box<dyn Component>,
-    state: Mutex<State>,
+    config_has_creds: bool,
+    config: Config,
 }
 
 impl Home {
@@ -73,35 +64,53 @@ impl Home {
                 ))));
                 match action_tx.send(action) {
                     Ok(_) => Box::new(Loading::new(creds.url, creds.username)),
-                    Err(_) => Box::new(Login::new(action_tx.clone(), config)),
+                    Err(_) => Box::new(Login::new(action_tx.clone(), config.clone())),
                 }
             }
             None => {
                 config_has_creds = false;
-                Box::new(Login::new(action_tx.clone(), config))
+                Box::new(Login::new(action_tx.clone(), config.clone()))
             }
         };
         Self {
             action_tx,
             component: comp,
-            state: Mutex::new(if config_has_creds {
-                State::ConfigLogin
-            } else {
-                State::Login
-            }),
+            config_has_creds,
+            config,
         }
     }
 }
 
 impl Component for Home {
     fn handle_events(&mut self, event: Event) -> Result<Option<Action>> {
-        if let Some(action) = self.component.handle_events(event.clone())? {
+        if let Some(action) = self.component.handle_events(event)? {
             self.action_tx.send(action)?;
         }
         Ok(None)
     }
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        if let Some(action) = self.component.update(action.clone())? {
+        // Child component can change in two cases:
+        // 1. Login is successful regardless of the current child component
+        // 2. Login with the config credentials fails
+        if let Action::Login(l) = &action {
+            match l {
+                LoginResponse::Success => {
+                    // Switch child component to MainScreen
+                    self.component = Box::new(MainScreen::new());
+                    return Ok(None);
+                }
+                _ => {
+                    if self.config_has_creds {
+                        self.config_has_creds = false;
+                        // Switch child component to Login
+                        self.component =
+                            Box::new(Login::new(self.action_tx.clone(), self.config.clone()));
+                        return Ok(None);
+                    }
+                }
+            };
+        };
+        if let Some(action) = self.component.update(action)? {
             self.action_tx.send(action)?;
         }
         Ok(None)

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
-use crate::queryworker::{query::Query, response::Response};
+use crate::queryworker::{query::Query, response::login::LoginResponse};
 
 #[derive(Debug, Clone, PartialEq, Eq, Display, Serialize, Deserialize)]
 pub enum Action {
@@ -16,5 +16,7 @@ pub enum Action {
     Help,
 
     Query(Query),
-    Response(Response),
+
+    Login(LoginResponse),
+    GetPlaylist,
 }

@@ -151,10 +151,9 @@ impl Login {
 
 impl Component for Login {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        if let Action::Response(r) = action {
-            if let Response::Login(l) = r {
-                trace_dbg!("Received Login response!");
-                match l {
+        if let Action::Login(l) = action {
+            trace_dbg!("Received Login response!");
+            match l {
                     LoginResponse::InvalidURL => self.set_error("Invalid URL. Please check if this endpoint is running OpenSubsonic-compatible music server.".to_string()),
                     LoginResponse::InvalidCredentials => self.set_error("Your login is invalid. Please check your username or password.".to_string()),
                     LoginResponse::Other(err) => self.set_error(format!("Connection failed: {}", err)),
@@ -166,9 +165,8 @@ impl Component for Login {
                         return Ok(None);
                     },
                 };
-                self.status = Status::Error;
-                self.update_style();
-            };
+            self.status = Status::Error;
+            self.update_style();
         };
         Ok(None)
     }

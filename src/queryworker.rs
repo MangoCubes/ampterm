@@ -68,7 +68,7 @@ impl QueryWorker {
                     let tx = self.action_tx.clone();
                     tokio::spawn(async move {
                         let res = QueryWorker::login(login_query).await;
-                        tx.send(Action::Response(Response::Login(res)))
+                        tx.send(Action::Login(res))
                     });
                 }
             };

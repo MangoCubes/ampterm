@@ -1,6 +1,13 @@
+mod playlist_list;
+
 use crate::{action::Action, components::Component};
 use color_eyre::Result;
-use ratatui::{layout::Rect, Frame};
+use playlist_list::PlayListList;
+use ratatui::{
+    layout::{Constraint, Layout, Rect},
+    Frame,
+};
+use tokio::sync::mpsc::UnboundedSender;
 
 enum CurrentlySelected {
     CurrentlyPlaying,
@@ -9,12 +16,16 @@ enum CurrentlySelected {
 
 pub struct MainScreen {
     state: CurrentlySelected,
+    pl_list: PlayListList,
+    action_tx: UnboundedSender<Action>,
 }
 
 impl MainScreen {
-    pub fn new() -> Self {
+    pub fn new(action_tx: UnboundedSender<Action>) -> Self {
         Self {
             state: CurrentlySelected::CurrentlyPlaying,
+            pl_list: PlayListList::new(action_tx.clone()),
+            action_tx,
         }
     }
 }
@@ -27,6 +38,16 @@ impl Component for MainScreen {
         Ok(None)
     }
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+        let layout = Layout::horizontal([
+            Constraint::Percentage(25),
+            Constraint::Percentage(50),
+            Constraint::Percentage(25),
+        ]);
+        let areas = layout.split(area);
+
+        if let Err(err) = self.pl_list.draw(frame, areas[0]) {
+            self.action_tx.send(Action::Error(err.to_string()))?;
+        }
         Ok(())
     }
 }

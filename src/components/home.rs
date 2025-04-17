@@ -96,7 +96,7 @@ impl Component for Home {
             match l {
                 LoginResponse::Success => {
                     // Switch child component to MainScreen
-                    self.component = Box::new(MainScreen::new());
+                    self.component = Box::new(MainScreen::new(self.action_tx.clone()));
                     return Ok(None);
                 }
                 _ => {

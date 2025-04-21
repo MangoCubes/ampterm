@@ -1,5 +1,7 @@
 pub mod login;
+pub mod playlists;
 use login::{Credentials, LoginQuery};
+use playlists::PlaylistsQuery;
 use serde::{Deserialize, Serialize};
 
 use strum::Display;
@@ -10,4 +12,5 @@ pub enum Query {
     Stop,
     SetCredentials(Credentials),
     Login(LoginQuery),
+    Playlists(PlaylistsQuery),
 }

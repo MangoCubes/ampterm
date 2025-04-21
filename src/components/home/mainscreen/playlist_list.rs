@@ -1,10 +1,6 @@
 use crate::{action::Action, components::Component};
 use color_eyre::Result;
-use ratatui::{
-    layout::{Constraint, Layout, Rect},
-    widgets::Block,
-    Frame,
-};
+use ratatui::{layout::Rect, widgets::Block, Frame};
 use tokio::sync::mpsc::UnboundedSender;
 
 pub struct PlayListList {
@@ -13,6 +9,7 @@ pub struct PlayListList {
 
 impl PlayListList {
     pub fn new(action_tx: UnboundedSender<Action>) -> Self {
+        // action_tx.send(
         Self { action_tx }
     }
 }

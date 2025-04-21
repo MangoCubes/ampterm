@@ -1,18 +1,22 @@
 pub mod query;
 
+use std::sync::Arc;
+
 use color_eyre::{eyre, Result};
+use query::playlists::PlaylistsQuery;
 use query::Query;
 use sunk::Client;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
 use crate::action::loginresponse::LoginResponse;
+use crate::action::playlistsresponse::PlaylistsResponse;
 use crate::action::Action;
 use crate::config::Config;
 use crate::queryworker::query::login::LoginQuery;
 use crate::trace_dbg;
 
 pub struct QueryWorker {
-    client: Option<Client>,
+    client: Option<Arc<Client>>,
     req_tx: UnboundedSender<Query>,
     req_rx: UnboundedReceiver<Query>,
     action_tx: UnboundedSender<Action>,
@@ -45,6 +49,13 @@ impl QueryWorker {
             }
         }
     }
+    pub async fn playlists(c: Arc<Client>, q: PlaylistsQuery) -> PlaylistsResponse {
+        match q {
+            PlaylistsQuery::GetPlaylists => {
+                todo!()
+            }
+        }
+    }
     pub async fn run(&mut self) -> Result<()> {
         trace_dbg!("Starting QueryWorker...");
         loop {
@@ -54,14 +65,14 @@ impl QueryWorker {
             match event {
                 Query::Stop => self.should_quit = true,
                 Query::SetCredentials(creds) => {
-                    self.client = Some(
+                    self.client = Some(Arc::new(
                         Client::new(
                             creds.url.as_str(),
                             creds.username.as_str(),
                             creds.password.as_str(),
                         )
                         .map_err(|e| eyre::eyre!(e))?,
-                    );
+                    ));
                 }
                 Query::Login(login_query) => {
                     let tx = self.action_tx.clone();
@@ -69,6 +80,21 @@ impl QueryWorker {
                         let res = QueryWorker::login(login_query).await;
                         tx.send(Action::Login(res))
                     });
+                }
+                Query::Playlists(playlists_query) => {
+                    let tx = self.action_tx.clone();
+                    match &self.client {
+                        Some(c) => {
+                            let cc = c.clone();
+                            tokio::spawn(async move {
+                                let res = QueryWorker::playlists(cc, playlists_query).await;
+                                tx.send(Action::Playlists(res))
+                            });
+                        }
+                        None => tracing::error!(
+                            "Invalid state: Tried querying, but client does not exist!"
+                        ),
+                    };
                 }
             };
             if self.should_quit {

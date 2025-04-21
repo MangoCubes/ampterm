@@ -1,6 +1,8 @@
 pub mod loginresponse;
+pub mod playlistsresponse;
 
 use loginresponse::LoginResponse;
+use playlistsresponse::PlaylistsResponse;
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
@@ -21,5 +23,5 @@ pub enum Action {
     Query(Query),
 
     Login(LoginResponse),
-    GetPlaylist,
+    Playlists(PlaylistsResponse),
 }

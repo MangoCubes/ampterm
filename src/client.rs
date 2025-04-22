@@ -5,8 +5,8 @@ enum Credential {
     // Use your password to log in
     // If the second parameter is true, then legacy authentication (send password as-is instead of
     // hash) is used
-    Password(String, bool),
-    APIKey(String),
+    Password { password: String, legacy: bool },
+    APIKey { apikey: String },
 }
 
 pub struct Client {
@@ -41,7 +41,7 @@ impl Client {
         Self {
             url,
             username,
-            auth: Credential::APIKey(apikey),
+            auth: Credential::APIKey { apikey },
         }
     }
     // Use password to create a client
@@ -50,7 +50,7 @@ impl Client {
         Self {
             url,
             username,
-            auth: Credential::Password(password, legacy),
+            auth: Credential::Password { password, legacy },
         }
     }
 }

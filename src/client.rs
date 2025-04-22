@@ -1,17 +1,26 @@
 use error::createclienterror::CreateClientError;
+use serde::{Deserialize, Serialize};
+use strum::Display;
 
 mod error;
-enum Credential {
+#[derive(Debug, Clone, PartialEq, Eq, Display, Serialize, Deserialize)]
+pub enum Credential {
     // Use your password to log in
-    // If the second parameter is true, then legacy authentication (send password as-is instead of
-    // hash) is used
-    Password { password: String, legacy: bool },
-    APIKey { apikey: String },
+    Password {
+        url: String,
+        username: String,
+        password: String,
+        legacy: bool,
+    },
+    // Use API key to log in
+    APIKey {
+        url: String,
+        username: String,
+        apikey: String,
+    },
 }
 
 pub struct Client {
-    url: String,
-    username: String,
     auth: Credential,
 }
 
@@ -39,18 +48,23 @@ impl Client {
     // This bypasses the credentials check, and will always return Client
     pub fn use_token(url: String, username: String, apikey: String) -> Self {
         Self {
-            url,
-            username,
-            auth: Credential::APIKey { apikey },
+            auth: Credential::APIKey {
+                url,
+                username,
+                apikey,
+            },
         }
     }
     // Use password to create a client
     // This bypasses the credentials check, and will always return Client
     pub fn use_password(url: String, username: String, password: String, legacy: bool) -> Self {
         Self {
-            url,
-            username,
-            auth: Credential::Password { password, legacy },
+            auth: Credential::Password {
+                url,
+                username,
+                password,
+                legacy,
+            },
         }
     }
 }

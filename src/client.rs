@@ -1,6 +1,6 @@
-use createclienterror::CreateClientError;
+use error::createclienterror::CreateClientError;
 
-mod createclienterror;
+mod error;
 enum Credential {
     // Use your password to log in
     // If the second parameter is true, then legacy authentication (send password as-is instead of

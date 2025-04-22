@@ -55,6 +55,13 @@ impl Client {
             },
         }
     }
+    pub fn credentials(auth: Credential) -> Result<Self, CreateClientError> {
+        let client = Client::use_credentials(auth);
+        Ok(client)
+    }
+    pub fn use_credentials(auth: Credential) -> Self {
+        Self { auth }
+    }
     // Use password to create a client
     // This bypasses the credentials check, and will always return Client
     pub fn use_password(url: String, username: String, password: String, legacy: bool) -> Self {

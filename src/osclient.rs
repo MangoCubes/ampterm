@@ -1,5 +1,5 @@
 use error::{createclienterror::CreateClientError, generalerror::GeneralError};
-use reqwest::{Client, Method, Url};
+use reqwest::{Client, Method, Response, Url};
 use response::generalresponse::GeneralResponse;
 
 pub mod error;
@@ -30,15 +30,20 @@ pub struct OSClient {
 }
 
 impl OSClient {
-    fn get_path(url: &Url, name: &str, secure: bool) -> Url {
-        let path = &format!("api/{}", name);
-        let mut ret = url.clone();
-        ret.set_path(path);
-        ret.set_scheme(if secure { "https" } else { "http" });
-        ret
-    }
-    async fn ping(&self) -> Result<GeneralResponse, GeneralError> {
-        let _ = match &self.auth {
+    // Make a request to an arbitrary endpoint and get its result
+    async fn query_auth(
+        &self,
+        method: Method,
+        path: &str,
+    ) -> Result<reqwest::Response, reqwest::Error> {
+        fn get_path(url: &Url, name: &str, secure: bool) -> Url {
+            let path = &format!("api/{}", name);
+            let mut ret = url.clone();
+            ret.set_path(path);
+            ret.set_scheme(if secure { "https" } else { "http" });
+            ret
+        }
+        match &self.auth {
             Credential::Password {
                 url,
                 secure,
@@ -47,12 +52,25 @@ impl OSClient {
                 legacy,
             } => {
                 let params: Vec<(&str, &str)> = if *legacy {
-                    vec![("u", &username), ("p", &password)]
+                    vec![
+                        ("u", &username),
+                        ("p", &password),
+                        ("v", "1.16.1"),
+                        ("c", "ampterm-client"),
+                        ("f", "json"),
+                    ]
                 } else {
-                    vec![("u", &username), ("t", todo!()), ("s", todo!())]
+                    vec![
+                        ("u", &username),
+                        ("t", todo!()),
+                        ("s", todo!()),
+                        ("v", "1.16.1"),
+                        ("c", "ampterm-client"),
+                        ("f", "json"),
+                    ]
                 };
                 self.client
-                    .request(Method::GET, Self::get_path(&url, "ping", *secure))
+                    .request(method, get_path(&url, path, *secure))
                     .query(&params)
                     .send()
                     .await
@@ -65,8 +83,7 @@ impl OSClient {
             } => {
                 todo!()
             }
-        };
-        Ok(GeneralResponse)
+        }
     }
     // Use token to create a client
     // A ping request is sent with the credentials to verify it

@@ -9,18 +9,18 @@ enum ErrType {
 // In other words, if this error is shown to the user, it means that the media server has not been
 // involved.
 #[derive(Debug)]
-pub struct GeneralError {
+pub struct ExternalError {
     errtype: ErrType,
 }
 
-impl Error for GeneralError {}
-impl Display for GeneralError {
+impl Error for ExternalError {}
+impl Display for ExternalError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         todo!()
     }
 }
-impl GeneralError {
-    pub fn new(e: reqwest::Error) -> GeneralError {
+impl ExternalError {
+    pub fn new(e: reqwest::Error) -> ExternalError {
         Self {
             errtype: ErrType::Request(e),
         }

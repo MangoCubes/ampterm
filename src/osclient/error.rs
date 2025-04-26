@@ -1,2 +1,2 @@
 pub mod createclienterror;
-pub mod generalerror;
+pub mod externalerror;

@@ -1,2 +1,8 @@
+use serde::Deserialize;
+
 // Represents empty body response from the server
-pub struct GeneralResponse;
+#[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct GeneralResponse<T> {
+    subsonic_response: T,
+}

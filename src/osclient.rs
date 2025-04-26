@@ -1,6 +1,7 @@
-use error::{createclienterror::CreateClientError, generalerror::GeneralError};
+use error::{createclienterror::CreateClientError, externalerror::ExternalError};
 use reqwest::{Client, Method, Response, Url};
 use response::generalresponse::GeneralResponse;
+use serde::{de::DeserializeOwned, Deserialize};
 
 pub mod error;
 pub mod response;
@@ -29,6 +30,7 @@ pub struct OSClient {
     client: Client,
 }
 
+
 impl OSClient {
     async fn ping(&self) {
         match self.query_auth(Method::GET, "ping").await {
@@ -37,11 +39,11 @@ impl OSClient {
         };
     }
     // Make a request to an arbitrary endpoint and get its result
-    async fn query_auth(
+    async fn query_auth<T: DeserializeOwned>(
         &self,
         method: Method,
         path: &str,
-    ) -> Result<reqwest::Response, GeneralError> {
+    ) -> Result<T, ExternalError> {
         fn get_path(url: &Url, name: &str, secure: bool) -> Url {
             let path = &format!("api/{}", name);
             let mut ret = url.clone();
@@ -90,10 +92,8 @@ impl OSClient {
                 todo!()
             }
         };
-        match r {
-            Ok(_) => todo!(),
-            Err(e) => Err(GeneralError::new(e)),
-        }
+        let handler = |e: reqwest::Error| ExternalError::new(e);
+        Ok(r.map_err(handler)?.json::<T>().await.map_err(handler)?)
     }
     // Use token to create a client
     // A ping request is sent with the credentials to verify it

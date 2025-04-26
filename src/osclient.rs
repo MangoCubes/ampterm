@@ -2,7 +2,7 @@ use error::createclienterror::CreateClientError;
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
-mod error;
+pub mod error;
 #[derive(Debug, Clone, PartialEq, Eq, Display, Serialize, Deserialize)]
 pub enum Credential {
     // Use your password to log in
@@ -20,28 +20,33 @@ pub enum Credential {
     },
 }
 
-pub struct Client {
+pub struct OSClient {
     auth: Credential,
 }
 
-impl Client {
+impl OSClient {
+    async fn ping() {}
     // Use token to create a client
     // A ping request is sent with the credentials to verify it
     // Will fail if the credentials is wrong
-    pub fn password(
+    pub async fn password(
         url: String,
         username: String,
         password: String,
         legacy: bool,
-    ) -> Result<Client, CreateClientError> {
-        let client = Client::use_password(url, username, password, legacy);
+    ) -> Result<OSClient, CreateClientError> {
+        let client = OSClient::use_password(url, username, password, legacy);
         Ok(client)
     }
     // Use token to create a client
     // A ping request is sent with the credentials to verify it
     // Will fail if the credentials is wrong
-    pub fn token(url: String, username: String, apikey: String) -> Result<Self, CreateClientError> {
-        let client = Client::use_token(url, username, apikey);
+    pub async fn token(
+        url: String,
+        username: String,
+        apikey: String,
+    ) -> Result<Self, CreateClientError> {
+        let client = OSClient::use_token(url, username, apikey);
         Ok(client)
     }
     // Use token to create a client
@@ -55,8 +60,8 @@ impl Client {
             },
         }
     }
-    pub fn credentials(auth: Credential) -> Result<Self, CreateClientError> {
-        let client = Client::use_credentials(auth);
+    pub async fn credentials(auth: Credential) -> Result<Self, CreateClientError> {
+        let client = OSClient::use_credentials(auth);
         Ok(client)
     }
     pub fn use_credentials(auth: Credential) -> Self {

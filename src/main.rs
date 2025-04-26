@@ -7,11 +7,11 @@ use crate::app::App;
 mod action;
 mod app;
 mod cli;
-mod client;
 mod components;
 mod config;
 mod errors;
 mod logging;
+mod osclient;
 mod queryworker;
 mod tui;
 

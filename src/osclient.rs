@@ -30,12 +30,18 @@ pub struct OSClient {
 }
 
 impl OSClient {
+    async fn ping(&self) {
+        match self.query_auth(Method::GET, "ping").await {
+            Ok(r) => r.,
+            Err(_) => todo!(),
+        };
+    }
     // Make a request to an arbitrary endpoint and get its result
     async fn query_auth(
         &self,
         method: Method,
         path: &str,
-    ) -> Result<reqwest::Response, reqwest::Error> {
+    ) -> Result<reqwest::Response, GeneralError> {
         fn get_path(url: &Url, name: &str, secure: bool) -> Url {
             let path = &format!("api/{}", name);
             let mut ret = url.clone();
@@ -43,7 +49,7 @@ impl OSClient {
             ret.set_scheme(if secure { "https" } else { "http" });
             ret
         }
-        match &self.auth {
+        let r = match &self.auth {
             Credential::Password {
                 url,
                 secure,
@@ -83,6 +89,10 @@ impl OSClient {
             } => {
                 todo!()
             }
+        };
+        match r {
+            Ok(_) => todo!(),
+            Err(e) => Err(GeneralError::new(e)),
         }
     }
     // Use token to create a client

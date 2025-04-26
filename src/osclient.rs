@@ -1,20 +1,19 @@
 use error::createclienterror::CreateClientError;
-use serde::{Deserialize, Serialize};
-use strum::Display;
+use reqwest::{Client, Url};
 
 pub mod error;
-#[derive(Debug, Clone, PartialEq, Eq, Display, Serialize, Deserialize)]
+#[derive(Debug)]
 pub enum Credential {
     // Use your password to log in
     Password {
-        url: String,
+        url: Url,
         username: String,
         password: String,
         legacy: bool,
     },
     // Use API key to log in
     APIKey {
-        url: String,
+        url: Url,
         username: String,
         apikey: String,
     },
@@ -22,6 +21,7 @@ pub enum Credential {
 
 pub struct OSClient {
     auth: Credential,
+    client: Client,
 }
 
 impl OSClient {
@@ -54,10 +54,13 @@ impl OSClient {
     pub fn use_token(url: String, username: String, apikey: String) -> Self {
         Self {
             auth: Credential::APIKey {
-                url,
+                url: OSClient::parse_url(&url),
                 username,
                 apikey,
             },
+            client: Client::builder()
+                .build()
+                .expect("Failed to create reqwest client."),
         }
     }
     pub async fn credentials(auth: Credential) -> Result<Self, CreateClientError> {
@@ -65,18 +68,31 @@ impl OSClient {
         Ok(client)
     }
     pub fn use_credentials(auth: Credential) -> Self {
-        Self { auth }
+        Self {
+            auth,
+            client: Client::builder()
+                .build()
+                .expect("Failed to create reqwest client."),
+        }
     }
     // Use password to create a client
     // This bypasses the credentials check, and will always return Client
     pub fn use_password(url: String, username: String, password: String, legacy: bool) -> Self {
         Self {
             auth: Credential::Password {
-                url,
+                url: OSClient::parse_url(&url),
                 username,
                 password,
                 legacy,
             },
+            client: Client::builder()
+                .build()
+                .expect("Failed to create reqwest client."),
         }
+    }
+    fn parse_url(url: &str) -> Url {
+        let mut url = Url::parse(url).expect("Failed to parse the URL.");
+        url.set_scheme("https");
+        url
     }
 }

@@ -7,6 +7,7 @@ pub enum Credential {
     // Use your password to log in
     Password {
         url: Url,
+        secure: bool,
         username: String,
         password: String,
         legacy: bool,
@@ -14,6 +15,7 @@ pub enum Credential {
     // Use API key to log in
     APIKey {
         url: Url,
+        secure: bool,
         username: String,
         apikey: String,
     },
@@ -34,8 +36,16 @@ impl OSClient {
         username: String,
         password: String,
         legacy: bool,
+        secure: bool,
     ) -> Result<OSClient, CreateClientError> {
-        let client = OSClient::use_password(url, username, password, legacy);
+        let client = OSClient::credentials(Credential::Password {
+            url: Self::parse_url(&url, secure),
+            secure,
+            username,
+            password,
+            legacy,
+        })
+        .await?;
         Ok(client)
     }
     // Use token to create a client
@@ -45,23 +55,16 @@ impl OSClient {
         url: String,
         username: String,
         apikey: String,
+        secure: bool,
     ) -> Result<Self, CreateClientError> {
-        let client = OSClient::use_token(url, username, apikey);
+        let client = OSClient::credentials(Credential::APIKey {
+            url: Self::parse_url(&url, secure),
+            secure,
+            username,
+            apikey,
+        })
+        .await?;
         Ok(client)
-    }
-    // Use token to create a client
-    // This bypasses the credentials check, and will always return Client
-    pub fn use_token(url: String, username: String, apikey: String) -> Self {
-        Self {
-            auth: Credential::APIKey {
-                url: OSClient::parse_url(&url),
-                username,
-                apikey,
-            },
-            client: Client::builder()
-                .build()
-                .expect("Failed to create reqwest client."),
-        }
     }
     pub async fn credentials(auth: Credential) -> Result<Self, CreateClientError> {
         let client = OSClient::use_credentials(auth);
@@ -75,24 +78,9 @@ impl OSClient {
                 .expect("Failed to create reqwest client."),
         }
     }
-    // Use password to create a client
-    // This bypasses the credentials check, and will always return Client
-    pub fn use_password(url: String, username: String, password: String, legacy: bool) -> Self {
-        Self {
-            auth: Credential::Password {
-                url: OSClient::parse_url(&url),
-                username,
-                password,
-                legacy,
-            },
-            client: Client::builder()
-                .build()
-                .expect("Failed to create reqwest client."),
-        }
-    }
-    fn parse_url(url: &str) -> Url {
+    fn parse_url(url: &str, secure: bool) -> Url {
         let mut url = Url::parse(url).expect("Failed to parse the URL.");
-        url.set_scheme("https");
+        url.set_scheme(if secure { "https" } else { "http" });
         url
     }
 }

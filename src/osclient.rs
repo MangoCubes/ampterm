@@ -2,6 +2,7 @@ use error::{createclienterror::CreateClientError, externalerror::ExternalError};
 use reqwest::Method;
 use reqwest::{Client, Url};
 use response::empty::Empty;
+use response::wrapper::Wrapper;
 use serde::de::DeserializeOwned;
 
 pub mod error;

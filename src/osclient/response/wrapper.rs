@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-// Represents empty body response from the server
+// Response has a layer of JSON around it, this represents that
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Wrapper<T> {

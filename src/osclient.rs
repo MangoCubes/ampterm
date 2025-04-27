@@ -1,6 +1,7 @@
 use error::{createclienterror::CreateClientError, externalerror::ExternalError};
-use reqwest::{Client, Method, Url};
-use response::wrapper::Wrapper;
+use reqwest::Method;
+use reqwest::{Client, Url};
+use response::empty::Empty;
 use serde::de::DeserializeOwned;
 
 pub mod error;
@@ -31,11 +32,8 @@ pub struct OSClient {
 }
 
 impl OSClient {
-    async fn ping(&self) -> Result<, ExternalError> {
-        match self.query_auth(Method::GET, "ping").await {
-            Ok(r) => r.,
-            Err(_) => todo!(),
-        };
+    async fn ping(&self) -> Result<Empty, ExternalError> {
+        self.query_auth::<Empty>(Method::GET, "ping").await
     }
     // Make a request to an arbitrary endpoint and get its result
     async fn query_auth<T: DeserializeOwned>(
@@ -92,7 +90,11 @@ impl OSClient {
             }
         };
         let handler = |e: reqwest::Error| ExternalError::new(e);
-        let data = r.map_err(handler)?.json::<Wrapper<T>>().await.map_err(handler)?;
+        let data = r
+            .map_err(handler)?
+            .json::<Wrapper<T>>()
+            .await
+            .map_err(handler)?;
         Ok(data.subsonic_response)
     }
     // Use token to create a client

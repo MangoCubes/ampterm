@@ -32,6 +32,23 @@ pub struct OSClient {
     client: Client,
 }
 
+// For every API request, the return value is as follows:
+// Result<Result<Success, Failure>, ExternalError>
+// If ExternalError is received, it means that the library this library is depending on has failed.
+// Examples include invalid hostname, infinite redirect, etc
+// If Result<Success, Failure> is received, the server has responded.
+// If Success, the data is in the response if the API returns them
+// If Failure, the server has decided not to give the client the information requested for various
+// reasons, which can be found within the response.
+//
+// Currently, there is only one exception to this rule, which is client creation
+// It returns Result<Client, CreateClientError>
+// This one always return client if
+//   A. The library has worked successfully
+//   B. The ping is successful
+// If any of these condition is not met, then CreateClientError is returned
+// In other words, the Failure is bundled with ExternalError instead of with Success
+
 impl OSClient {
     async fn ping(&self) -> Result<Empty, ExternalError> {
         self.query_auth::<Empty>(Method::GET, "ping").await

@@ -10,7 +10,7 @@ enum ErrType {
 // involved.
 #[derive(Debug)]
 pub struct ExternalError {
-    errtype: ErrType,
+    reason: ErrType,
 }
 
 impl Error for ExternalError {}
@@ -22,7 +22,7 @@ impl Display for ExternalError {
 impl ExternalError {
     pub fn new(e: reqwest::Error) -> ExternalError {
         Self {
-            errtype: ErrType::Request(e),
+            reason: ErrType::Request(e),
         }
     }
 }

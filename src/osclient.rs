@@ -138,7 +138,14 @@ impl OSClient {
     }
     pub async fn credentials(auth: Credential) -> Result<Self, CreateClientError> {
         let client = OSClient::use_credentials(auth);
-        Ok(client)
+        let ping_result = client
+            .ping()
+            .await
+            .map_err(|e| CreateClientError::external(e))?;
+        match ping_result {
+            Empty::Ok => Ok(client),
+            Empty::Failed { error } => Err(CreateClientError::internal(error)),
+        }
     }
     pub fn use_credentials(auth: Credential) -> Self {
         Self {

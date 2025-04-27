@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum OSErrorCode {
     Generic = 0,
     MissingRequiredParam = 10,
@@ -16,7 +16,7 @@ pub enum OSErrorCode {
     NotFound = 70,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ErrorData {
     pub code: OSErrorCode,

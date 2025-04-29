@@ -129,7 +129,7 @@ impl OSClient {
         Ok(data.subsonic_response)
     }
     // Use password to create a client without verifying if the credentials are valid
-    pub async fn use_password(
+    pub fn use_password(
         url: String,
         username: String,
         password: String,
@@ -144,8 +144,8 @@ impl OSClient {
             legacy,
         })
     }
-    // Use token to create a client without verifying if the credentials are valid
-    pub async fn use_token(url: String, username: String, apikey: String, secure: bool) -> Self {
+    // Use API key to create a client without verifying if the credentials are valid
+    pub fn use_apikey(url: String, username: String, apikey: String, secure: bool) -> Self {
         OSClient::use_credentials(Credential::APIKey {
             url: Url::parse(&url).expect("Failed to parse the URL."),
             secure,
@@ -173,10 +173,10 @@ impl OSClient {
         .await?;
         Ok(client)
     }
-    // Use token to create a client
+    // Use API key to create a client
     // A ping request is sent with the credentials to verify it
     // Will fail if the credentials is wrong
-    pub async fn token(
+    pub async fn apikey(
         url: String,
         username: String,
         apikey: String,

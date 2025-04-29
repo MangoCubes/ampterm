@@ -9,7 +9,7 @@ pub mod error;
 pub mod response;
 
 #[derive(Debug)]
-pub enum Credential {
+enum Credential {
     // Use your password to log in
     Password {
         url: Url,
@@ -52,7 +52,7 @@ pub struct OSClient {
 // response.
 
 impl OSClient {
-    async fn ping(&self) -> Result<Empty, ExternalError> {
+    pub async fn ping(&self) -> Result<Empty, ExternalError> {
         self.query_auth::<Empty>(Method::GET, "ping").await
     }
     // Make a request to an arbitrary endpoint and get its result
@@ -127,6 +127,31 @@ impl OSClient {
             .await
             .map_err(handler)?;
         Ok(data.subsonic_response)
+    }
+    // Use password to create a client without verifying if the credentials are valid
+    pub async fn use_password(
+        url: String,
+        username: String,
+        password: String,
+        legacy: bool,
+        secure: bool,
+    ) -> Self {
+        OSClient::use_credentials(Credential::Password {
+            url: Url::parse(&url).expect("Failed to parse the URL."),
+            secure,
+            username,
+            password,
+            legacy,
+        })
+    }
+    // Use token to create a client without verifying if the credentials are valid
+    pub async fn use_token(url: String, username: String, apikey: String, secure: bool) -> Self {
+        OSClient::use_credentials(Credential::APIKey {
+            url: Url::parse(&url).expect("Failed to parse the URL."),
+            secure,
+            username,
+            apikey,
+        })
     }
     // Use password to create a client
     // A ping request is sent with the credentials to verify it

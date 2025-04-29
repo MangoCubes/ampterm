@@ -11,12 +11,9 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use super::Component;
 use crate::{
-    action::{loginresponse::LoginResponse, Action},
+    action::{ping::PingResponse, Action},
     config::Config,
-    queryworker::query::{
-        login::{Credentials, LoginQuery},
-        Query,
-    },
+    queryworker::query::{setcredential::Credential, Query},
     tui::Event,
 };
 
@@ -31,19 +28,21 @@ impl Home {
     pub fn new(action_tx: UnboundedSender<Action>, config: Config) -> Self {
         let auth = config.clone().auth;
         let config_creds = if let Some(creds) = auth {
-            Some(Credentials {
+            Some(Credential::Password {
                 url: todo!(),
+                secure: todo!(),
                 username: todo!(),
                 password: todo!(),
-                legacy: config.config.use_legacy_auth,
+                legacy: todo!(),
             })
         } else {
             match config.clone().unsafe_auth {
-                Some(unsafe_creds) => Some(Credentials {
+                Some(unsafe_creds) => Some(Credential::Password {
                     url: unsafe_creds.url,
                     username: unsafe_creds.username,
                     password: unsafe_creds.password,
                     legacy: config.config.use_legacy_auth,
+                    secure: true,
                 }),
                 None => None,
             }
@@ -52,17 +51,12 @@ impl Home {
         let comp: Box<dyn Component> = match config_creds {
             Some(creds) => {
                 config_has_creds = true;
-                let query_creds = creds.clone();
-                let action = Action::Query(Query::Login(LoginQuery::Login(Credentials::new(
-                    query_creds.url,
-                    query_creds.username,
-                    query_creds.password,
-                    config.config.use_legacy_auth,
-                ))));
-                match action_tx.send(action) {
-                    Ok(_) => Box::new(Loading::new(creds.url, creds.username)),
-                    Err(_) => Box::new(Login::new(action_tx.clone(), config.clone())),
-                }
+                let url = creds.get_url();
+                let username = creds.get_username();
+                let action = Action::Query(Query::SetCredential(creds));
+                action_tx.send(action);
+                action_tx.send(Action::Query(Query::Ping));
+                Box::new(Loading::new(url, username))
             }
             None => {
                 config_has_creds = false;
@@ -89,14 +83,14 @@ impl Component for Home {
         // Child component can change in two cases:
         // 1. Login is successful regardless of the current child component
         // 2. Login with the config credentials fails
-        if let Action::Login(l) = &action {
-            match l {
-                LoginResponse::Success => {
+        if let Action::Ping(res) = &action {
+            match res {
+                PingResponse::Success => {
                     // Switch child component to MainScreen
                     self.component = Box::new(MainScreen::new(self.action_tx.clone()));
                     return Ok(None);
                 }
-                _ => {
+                PingResponse::Failure(_) => {
                     if self.config_has_creds {
                         self.config_has_creds = false;
                         // Switch child component to Login

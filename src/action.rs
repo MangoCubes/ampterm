@@ -1,8 +1,8 @@
-pub mod loginresponse;
-pub mod playlistsresponse;
+pub mod ping;
+pub mod playlists;
 
-use loginresponse::LoginResponse;
-use playlistsresponse::PlaylistsResponse;
+use ping::PingResponse;
+use playlists::PlaylistsResponse;
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
@@ -22,6 +22,6 @@ pub enum Action {
 
     Query(Query),
 
-    Login(LoginResponse),
+    Ping(PingResponse),
     Playlists(PlaylistsResponse),
 }

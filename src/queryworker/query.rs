@@ -1,16 +1,16 @@
-pub mod login;
 pub mod playlists;
-use login::{Credentials, LoginQuery};
+pub mod setcredential;
 use playlists::PlaylistsQuery;
 use serde::{Deserialize, Serialize};
 
+use setcredential::Credential;
 use strum::Display;
 
 #[derive(Debug, Clone, PartialEq, Eq, Display, Serialize, Deserialize)]
 pub enum Query {
     // Stop query task
     Stop,
-    SetCredentials(Credentials),
-    Login(LoginQuery),
+    SetCredential(Credential),
     Playlists(PlaylistsQuery),
+    Ping,
 }

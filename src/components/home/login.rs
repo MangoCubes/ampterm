@@ -11,12 +11,9 @@ use tokio::sync::mpsc::UnboundedSender;
 use tui_textarea::{CursorMove, TextArea};
 
 use crate::{
-    action::{loginresponse::LoginResponse, Action},
+    action::{ping::PingResponse, Action},
     config::Config,
-    queryworker::query::{
-        login::{Credentials, LoginQuery},
-        Query,
-    },
+    queryworker::query::{setcredential::Credential, Query},
     trace_dbg,
 };
 
@@ -119,13 +116,15 @@ impl Login {
         self.status = Status::Pending;
         self.status_msg = Some(vec!["Logging in...".to_string()]);
         self.update_style();
-        let action = Action::Query(Query::Login(LoginQuery::Login(Credentials::new(
+        let action = Action::Query(Query::SetCredential(Credential::Password {
             url,
+            secure: true,
             username,
             password,
-            self.config.config.use_legacy_auth,
-        ))));
+            legacy: self.config.config.use_legacy_auth,
+        }));
         self.action_tx.send(action)?;
+        self.action_tx.send(Action::Query(Query::Ping))?;
         Ok(())
     }
     pub fn new(action_tx: UnboundedSender<Action>, config: Config) -> Self {
@@ -148,23 +147,20 @@ impl Login {
 
 impl Component for Login {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        if let Action::Login(l) = action {
-            trace_dbg!("Received Login response!");
-            match l {
-                    LoginResponse::InvalidURL => self.set_error("Invalid URL. Please check if this endpoint is running OpenSubsonic-compatible music server.".to_string()),
-                    LoginResponse::InvalidCredentials => self.set_error("Your login is invalid. Please check your username or password.".to_string()),
-                    LoginResponse::Other(err) => self.set_error(format!("Connection failed: {}", err)),
-                    LoginResponse::FailedPing => self.set_error("Failed to ping the server. Please double check your URL.".to_string()),
-                    LoginResponse::Success => {
-                        // The code should never reach here though
-                        self.status = Status::Normal;
-                        self.update_style();
-                        return Ok(None);
-                    },
-                };
-            self.status = Status::Error;
-            self.update_style();
-        };
+        if let Action::Ping(res) = action {
+            match res {
+                PingResponse::Success => {
+                    // The code should never reach here though
+                    self.status = Status::Normal;
+                    self.update_style();
+                }
+                PingResponse::Failure(msg) => {
+                    self.set_error(msg);
+                    self.status = Status::Error;
+                    self.update_style();
+                }
+            };
+        }
         Ok(None)
     }
     fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Result<Option<Action>> {

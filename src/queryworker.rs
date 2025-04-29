@@ -4,19 +4,20 @@ use std::sync::Arc;
 
 use color_eyre::{eyre, Result};
 use query::playlists::PlaylistsQuery;
+use query::setcredential::Credential;
 use query::Query;
-use sunk::Client;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
-use crate::action::loginresponse::LoginResponse;
-use crate::action::playlistsresponse::PlaylistsResponse;
+use crate::action::ping::PingResponse;
+use crate::action::playlists::PlaylistsResponse;
 use crate::action::Action;
 use crate::config::Config;
-use crate::queryworker::query::login::LoginQuery;
+use crate::osclient::response::empty::Empty;
+use crate::osclient::OSClient;
 use crate::trace_dbg;
 
 pub struct QueryWorker {
-    client: Option<Arc<Client>>,
+    client: Option<Arc<OSClient>>,
     req_tx: UnboundedSender<Query>,
     req_rx: UnboundedReceiver<Query>,
     action_tx: UnboundedSender<Action>,
@@ -25,31 +26,7 @@ pub struct QueryWorker {
 }
 
 impl QueryWorker {
-    pub async fn login(q: LoginQuery) -> LoginResponse {
-        match q {
-            LoginQuery::Login(credentials) => {
-                let client = Client::new(
-                    credentials.url.as_str(),
-                    credentials.username.as_str(),
-                    credentials.password.as_str(),
-                );
-
-                match client {
-                    Ok(mut c) => {
-                        if credentials.legacy {
-                            c.target_ver = "1.12.0".into();
-                        }
-                        match c.ping() {
-                            Ok(_) => LoginResponse::Success,
-                            Err(_) => LoginResponse::FailedPing,
-                        }
-                    }
-                    Err(_) => LoginResponse::Other("Login failed!".to_string()),
-                }
-            }
-        }
-    }
-    pub async fn playlists(c: Arc<Client>, q: PlaylistsQuery) -> PlaylistsResponse {
+    pub async fn playlists(c: Arc<OSClient>, q: PlaylistsQuery) -> PlaylistsResponse {
         match q {
             PlaylistsQuery::GetPlaylists => {
                 todo!()
@@ -64,22 +41,22 @@ impl QueryWorker {
             };
             match event {
                 Query::Stop => self.should_quit = true,
-                Query::SetCredentials(creds) => {
-                    self.client = Some(Arc::new(
-                        Client::new(
-                            creds.url.as_str(),
-                            creds.username.as_str(),
-                            creds.password.as_str(),
-                        )
-                        .map_err(|e| eyre::eyre!(e))?,
-                    ));
-                }
-                Query::Login(login_query) => {
-                    let tx = self.action_tx.clone();
-                    tokio::spawn(async move {
-                        let res = QueryWorker::login(login_query).await;
-                        tx.send(Action::Login(res))
-                    });
+                Query::SetCredential(creds) => {
+                    self.client = Some(Arc::from(match creds {
+                        Credential::Password {
+                            url,
+                            secure,
+                            username,
+                            password,
+                            legacy,
+                        } => OSClient::use_password(url, username, password, legacy, secure),
+                        Credential::APIKey {
+                            url,
+                            secure,
+                            username,
+                            apikey,
+                        } => OSClient::use_apikey(url, username, apikey, secure),
+                    }));
                 }
                 Query::Playlists(playlists_query) => {
                     let tx = self.action_tx.clone();
@@ -95,6 +72,31 @@ impl QueryWorker {
                             "Invalid state: Tried querying, but client does not exist!"
                         ),
                     };
+                }
+                Query::Ping => {
+                    let tx = self.action_tx.clone();
+                    match &self.client {
+                        Some(client) => {
+                            let c = client.clone();
+                            tokio::spawn(async move {
+                                let ping = c.ping().await;
+                                match ping {
+                                    Ok(c) => match c {
+                                        Empty::Ok => tx.send(Action::Ping(PingResponse::Success)),
+                                        Empty::Failed { error } => tx.send(Action::Ping(
+                                            PingResponse::Failure(error.to_string()),
+                                        )),
+                                    },
+                                    Err(e) => tx.send(Action::Ping(PingResponse::Failure(
+                                        format!("{}", e),
+                                    ))),
+                                }
+                            });
+                        }
+                        None => tracing::error!(
+                            "Invalid state: Tried querying, but client does not exist!"
+                        ),
+                    }
                 }
             };
             if self.should_quit {

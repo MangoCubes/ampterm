@@ -15,11 +15,6 @@ pub enum OSErrorCode {
     TrialExpired = 60,
     NotFound = 70,
 }
-impl OSErrorCode {
-    pub fn to_number(&self) -> u32 {
-        *self as u32
-    }
-}
 impl ToString for OSErrorCode {
     fn to_string(&self) -> String {
         match self {
@@ -49,8 +44,8 @@ pub struct ErrorData {
 
 impl ToString for ErrorData {
     fn to_string(&self) -> String {
-        match self.message {
-            Some(m) => format!("{} ({})", m, self.code.to_number()),
+        match self.message.clone() {
+            Some(m) => format!("{}", m),
             None => self.code.to_string(),
         }
     }

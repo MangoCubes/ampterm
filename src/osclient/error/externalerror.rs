@@ -1,5 +1,7 @@
 use std::{error::Error, fmt::Display};
 
+use crate::trace_dbg;
+
 #[derive(Debug)]
 enum ErrType {
     Request(reqwest::Error),
@@ -21,6 +23,7 @@ impl Display for ExternalError {
 }
 impl ExternalError {
     pub fn new(e: reqwest::Error) -> ExternalError {
+        trace_dbg!(e.to_string());
         Self {
             reason: ErrType::Request(e),
         }

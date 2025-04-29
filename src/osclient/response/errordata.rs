@@ -15,6 +15,29 @@ pub enum OSErrorCode {
     TrialExpired = 60,
     NotFound = 70,
 }
+impl OSErrorCode {
+    pub fn to_number(&self) -> u32 {
+        *self as u32
+    }
+}
+impl ToString for OSErrorCode {
+    fn to_string(&self) -> String {
+        match self {
+            OSErrorCode::Generic => String::from("Generic error."),
+            OSErrorCode::MissingRequiredParam => String::from("Required parameter is missing."),
+            OSErrorCode::ClientMustUpgrade => String::from("Incompatible Subsonic REST protocol version. Client must upgrade."),
+            OSErrorCode::ServerMustUpgrade => String::from("Incompatible Subsonic REST protocol version. Server must upgrade."),
+            OSErrorCode::WrongUsernameOrPassword => String::from("Wrong username or password."),
+            OSErrorCode::TokenNotSupportedForLDAP => String::from("Token authentication not supported for LDAP users."),
+            OSErrorCode::AuthNotSupported => String::from("Provided authentication mechanism not supported."),
+            OSErrorCode::AuthConflict => String::from("Multiple conflicting authentication mechanisms provided."),
+            OSErrorCode::InvalidAPIKey => String::from("Invalid API key."),
+            OSErrorCode::NotAuthorised => String::from("User is not authorized for the given operation."),
+            OSErrorCode::TrialExpired => String::from("The trial period for the Subsonic server is over. Please upgrade to Subsonic Premium. Visit subsonic.org for details."),
+            OSErrorCode::NotFound => String::from("The requested data was not found."),
+        }
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -22,4 +45,13 @@ pub struct ErrorData {
     pub code: OSErrorCode,
     pub message: Option<String>,
     pub help_url: Option<String>,
+}
+
+impl ToString for ErrorData {
+    fn to_string(&self) -> String {
+        match self.message {
+            Some(m) => format!("{} ({})", m, self.code.to_number()),
+            None => self.code.to_string(),
+        }
+    }
 }

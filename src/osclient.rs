@@ -48,6 +48,8 @@ pub struct OSClient {
 //   B. The ping is successful
 // If any of these condition is not met, then CreateClientError is returned
 // In other words, the Failure is bundled with ExternalError instead of with Success
+// This is because I would expect client creating function to return the client, and not a Ping
+// response.
 
 impl OSClient {
     async fn ping(&self) -> Result<Empty, ExternalError> {
@@ -100,11 +102,22 @@ impl OSClient {
             }
             Credential::APIKey {
                 url,
-                secure,
                 username,
                 apikey,
+                secure,
             } => {
-                todo!()
+                let params: Vec<(&str, &str)> = vec![
+                    ("u", &username),
+                    ("apiKey", &apikey),
+                    ("v", "1.16.1"),
+                    ("c", "ampterm-client"),
+                    ("f", "json"),
+                ];
+                self.client
+                    .request(method, get_path(&url, path, *secure))
+                    .query(&params)
+                    .send()
+                    .await
             }
         };
         let handler = |e: reqwest::Error| ExternalError::new(e);
@@ -115,7 +128,7 @@ impl OSClient {
             .map_err(handler)?;
         Ok(data.subsonic_response)
     }
-    // Use token to create a client
+    // Use password to create a client
     // A ping request is sent with the credentials to verify it
     // Will fail if the credentials is wrong
     pub async fn password(
@@ -153,6 +166,7 @@ impl OSClient {
         .await?;
         Ok(client)
     }
+    // Create a client using the given credentials, then ping the server to verify the result
     pub async fn credentials(auth: Credential) -> Result<Self, CreateClientError> {
         let client = OSClient::use_credentials(auth);
         let ping_result = client
@@ -164,6 +178,8 @@ impl OSClient {
             Empty::Failed { error } => Err(CreateClientError::internal(error)),
         }
     }
+    // Create a client using the given credentials
+    // Unlike OSClient::credentials, this one does not verify if the credentials are valid
     pub fn use_credentials(auth: Credential) -> Self {
         Self {
             auth,

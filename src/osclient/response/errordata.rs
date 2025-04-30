@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
+use serde_repr::{Deserialize_repr, Serialize_repr};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize_repr, Deserialize_repr)]
+#[repr(u8)]
 pub enum OSErrorCode {
     Generic = 0,
     MissingRequiredParam = 10,
@@ -35,10 +37,10 @@ impl ToString for OSErrorCode {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct ErrorData {
     pub code: OSErrorCode,
     pub message: Option<String>,
+    #[serde(alias = "helpUrl")]
     pub help_url: Option<String>,
 }
 

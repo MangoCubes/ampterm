@@ -123,6 +123,10 @@ impl OSClient {
             }
         };
         let handler = |e: reqwest::Error| ExternalError::new(e);
+        // if let Ok(d) = r {
+        //     trace_dbg!(d.text().await.unwrap());
+        // }
+        // todo!();
         let data = r
             .map_err(handler)?
             .json::<Wrapper<T>>()

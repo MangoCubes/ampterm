@@ -1,9 +1,11 @@
+use crate::trace_dbg;
 use error::{createclienterror::CreateClientError, externalerror::ExternalError};
 use reqwest::Method;
 use reqwest::{Client, Url};
 use response::empty::Empty;
 use response::wrapper::Wrapper;
 use serde::de::DeserializeOwned;
+use std::fmt::Debug;
 
 pub mod error;
 pub mod response;
@@ -56,16 +58,16 @@ impl OSClient {
         self.query_auth::<Empty>(Method::GET, "ping").await
     }
     // Make a request to an arbitrary endpoint and get its result
-    async fn query_auth<T: DeserializeOwned>(
+    async fn query_auth<T: DeserializeOwned + Debug>(
         &self,
         method: Method,
         path: &str,
     ) -> Result<T, ExternalError> {
         fn get_path(url: &Url, name: &str, secure: bool) -> Url {
-            let path = &format!("api/{}", name);
+            let path = &format!("rest/{}", name);
             let mut ret = url.clone();
             ret.set_path(path);
-            ret.set_scheme(if secure { "https" } else { "http" });
+            let _ = ret.set_scheme(if secure { "https" } else { "http" });
             ret
         }
         let r = match &self.auth {

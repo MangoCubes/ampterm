@@ -1,10 +1,15 @@
 use std::{error::Error, fmt::Display};
 
-use crate::trace_dbg;
-
 #[derive(Debug)]
 enum ErrType {
     Request(reqwest::Error),
+}
+impl Display for ErrType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrType::Request(e) => write!(f, "Request Error: {}", e),
+        }
+    }
 }
 
 // This error is given when the error occurs during the querying
@@ -18,12 +23,11 @@ pub struct ExternalError {
 impl Error for ExternalError {}
 impl Display for ExternalError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        self.reason.fmt(f)
     }
 }
 impl ExternalError {
     pub fn new(e: reqwest::Error) -> ExternalError {
-        trace_dbg!(e.to_string());
         Self {
             reason: ErrType::Request(e),
         }

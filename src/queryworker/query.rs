@@ -1,6 +1,4 @@
-pub mod playlists;
 pub mod setcredential;
-use playlists::PlaylistsQuery;
 use serde::{Deserialize, Serialize};
 
 use setcredential::Credential;
@@ -11,6 +9,6 @@ pub enum Query {
     // Stop query task
     Stop,
     SetCredential(Credential),
-    Playlists(PlaylistsQuery),
+    GetPlaylists,
     Ping,
 }

@@ -1,6 +1,11 @@
 mod playlist_list;
 
-use crate::{action::Action, components::Component};
+use crate::{
+    action::{getplaylists::GetPlaylistsResponse, Action},
+    components::Component,
+    queryworker::query::Query,
+    trace_dbg,
+};
 use color_eyre::Result;
 use playlist_list::PlayListList;
 use ratatui::{
@@ -10,6 +15,7 @@ use ratatui::{
 use tokio::sync::mpsc::UnboundedSender;
 
 enum CurrentlySelected {
+    Playlists,
     CurrentlyPlaying,
     Queue,
 }
@@ -22,8 +28,9 @@ pub struct MainScreen {
 
 impl MainScreen {
     pub fn new(action_tx: UnboundedSender<Action>) -> Self {
+        let _ = action_tx.send(Action::Query(Query::GetPlaylists));
         Self {
-            state: CurrentlySelected::CurrentlyPlaying,
+            state: CurrentlySelected::Playlists,
             pl_list: PlayListList::new(action_tx.clone()),
             action_tx,
         }
@@ -32,6 +39,16 @@ impl MainScreen {
 
 impl Component for MainScreen {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
+        if let Action::GetPlaylists(r) = action {
+            match r {
+                GetPlaylistsResponse::Success(p) => {
+                    trace_dbg!(p);
+                }
+                GetPlaylistsResponse::Failure(e) => {
+                    trace_dbg!(e);
+                }
+            };
+        };
         Ok(None)
     }
     fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Result<Option<Action>> {

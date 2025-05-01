@@ -1,8 +1,8 @@
+pub mod getplaylists;
 pub mod ping;
-pub mod playlists;
 
+use getplaylists::GetPlaylistsResponse;
 use ping::PingResponse;
-use playlists::PlaylistsResponse;
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
@@ -23,5 +23,5 @@ pub enum Action {
     Query(Query),
 
     Ping(PingResponse),
-    Playlists(PlaylistsResponse),
+    GetPlaylists(GetPlaylistsResponse),
 }

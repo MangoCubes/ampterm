@@ -14,7 +14,6 @@ use crate::{
     action::{ping::PingResponse, Action},
     config::Config,
     queryworker::query::{setcredential::Credential, Query},
-    trace_dbg,
 };
 
 use super::Component;

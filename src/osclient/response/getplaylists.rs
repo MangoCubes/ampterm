@@ -4,15 +4,15 @@ use super::errordata::ErrorData;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SimplePlaylist {
-    id: String,
-    name: String,
-    owner: String,
-    public: bool,
-    created: String,
-    changed: String,
+    pub id: String,
+    pub name: String,
+    pub owner: String,
+    pub public: bool,
+    pub created: String,
+    pub changed: String,
     #[serde(alias = "songCount")]
-    song_count: u32,
-    duration: u32,
+    pub song_count: u32,
+    pub duration: u32,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

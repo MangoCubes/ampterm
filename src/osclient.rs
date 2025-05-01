@@ -3,6 +3,7 @@ use error::{createclienterror::CreateClientError, externalerror::ExternalError};
 use reqwest::Method;
 use reqwest::{Client, Url};
 use response::empty::Empty;
+use response::getplaylists::GetPlaylists;
 use response::wrapper::Wrapper;
 use serde::de::DeserializeOwned;
 use std::fmt::Debug;
@@ -54,8 +55,31 @@ pub struct OSClient {
 // response.
 
 impl OSClient {
+    pub async fn get_playlists(&self) -> Result<GetPlaylists, ExternalError> {
+        let q = self
+            .query_auth::<GetPlaylists>(Method::GET, "getPlaylists")
+            .await;
+        match &q {
+            Ok(r) => {
+                trace_dbg!(r);
+            }
+            Err(e) => {
+                trace_dbg!(e);
+            }
+        };
+        q
+    }
     pub async fn ping(&self) -> Result<Empty, ExternalError> {
-        self.query_auth::<Empty>(Method::GET, "ping").await
+        let q = self.query_auth::<Empty>(Method::GET, "ping").await;
+        match &q {
+            Ok(r) => {
+                trace_dbg!(r);
+            }
+            Err(e) => {
+                trace_dbg!(e);
+            }
+        };
+        q
     }
     // Make a request to an arbitrary endpoint and get its result
     async fn query_auth<T: DeserializeOwned + Debug>(

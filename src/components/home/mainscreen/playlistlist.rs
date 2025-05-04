@@ -14,13 +14,13 @@ use ratatui::{
 };
 use tokio::sync::mpsc::UnboundedSender;
 
-pub struct PlayListList {
+pub struct PlaylistList {
     action_tx: UnboundedSender<Action>,
     list: List<'static>,
     playlists: Option<Vec<SimplePlaylist>>,
 }
 
-impl PlayListList {
+impl PlaylistList {
     fn gen_list(list: &Option<Vec<SimplePlaylist>>) -> List<'static> {
         let items: Vec<String> = match list {
             Some(ps) => ps.iter().map(|p| p.name.clone()).collect(),
@@ -35,19 +35,19 @@ impl PlayListList {
         // action_tx.send(
         Self {
             action_tx,
-            list: PlayListList::gen_list(&None),
+            list: PlaylistList::gen_list(&None),
             playlists: None,
         }
     }
 }
 
-impl Component for PlayListList {
+impl Component for PlaylistList {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         if let Action::GetPlaylists(res) = action {
             match res {
                 GetPlaylistsResponse::Success(simple_playlists) => {
                     self.playlists = Some(simple_playlists);
-                    self.list = PlayListList::gen_list(&self.playlists);
+                    self.list = PlaylistList::gen_list(&self.playlists);
                 }
                 GetPlaylistsResponse::Failure(_) => todo!(),
             }

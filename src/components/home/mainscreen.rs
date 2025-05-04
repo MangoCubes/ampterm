@@ -1,4 +1,4 @@
-mod playlist_list;
+mod playlistlist;
 
 use crate::{
     action::{getplaylists::GetPlaylistsResponse, Action},
@@ -7,7 +7,7 @@ use crate::{
     trace_dbg,
 };
 use color_eyre::Result;
-use playlist_list::PlayListList;
+use playlistlist::PlaylistList;
 use ratatui::{
     layout::{Constraint, Layout, Rect},
     Frame,
@@ -22,7 +22,7 @@ enum CurrentlySelected {
 
 pub struct MainScreen {
     state: CurrentlySelected,
-    pl_list: PlayListList,
+    pl_list: PlaylistList,
     action_tx: UnboundedSender<Action>,
 }
 
@@ -31,7 +31,7 @@ impl MainScreen {
         let _ = action_tx.send(Action::Query(Query::GetPlaylists));
         Self {
             state: CurrentlySelected::Playlists,
-            pl_list: PlayListList::new(action_tx.clone()),
+            pl_list: PlaylistList::new(action_tx.clone()),
             action_tx,
         }
     }

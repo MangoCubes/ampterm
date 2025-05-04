@@ -2,6 +2,10 @@
   "keybindings": {
     "Home": {
       "<Ctrl-c>": "Quit", // Yet another way to quit
+	  "<Up>": "Up",
+	  "<Down>": "Down",
+	  "<Left>": "Left",
+	  "<Right>": "Right",
     },
   },
   // Use legacy authentication that sends the password instead of token and salt

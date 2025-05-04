@@ -21,6 +21,7 @@ enum CompState {
     Loaded {
         comp: List<'static>,
         list: Vec<SimplePlaylist>,
+        state: ListState,
     },
 }
 
@@ -30,6 +31,20 @@ pub struct PlaylistList {
 }
 
 impl PlaylistList {
+    fn change_item(&mut self, down: bool) {
+        if let CompState::Loaded {
+            comp: _,
+            list: _,
+            state,
+        } = &mut self.state
+        {
+            if down {
+                state.select_next()
+            } else {
+                state.select_previous()
+            };
+        }
+    }
     fn gen_list(list: &Vec<SimplePlaylist>) -> List<'static> {
         let items: Vec<String> = list.iter().map(|p| p.name.clone()).collect();
         List::new(items)
@@ -47,24 +62,28 @@ impl PlaylistList {
 
 impl Component for PlaylistList {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        if let Action::GetPlaylists(res) = action {
-            match res {
+        match action {
+            Action::Up => self.change_item(false),
+            Action::Down => self.change_item(true),
+            // TODO: Add horizontal text scrolling
+            // Action::Left => todo!(),
+            // Action::Right => todo!(),
+            Action::GetPlaylists(res) => match res {
                 GetPlaylistsResponse::Success(simple_playlists) => {
                     self.state = CompState::Loaded {
                         comp: PlaylistList::gen_list(&simple_playlists),
                         list: simple_playlists,
+                        state: ListState::default().with_selected(Some(0)),
                     };
                 }
                 GetPlaylistsResponse::Failure(e) => self.state = CompState::Error(e),
-            }
-        };
-        Ok(None)
-    }
-    fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Result<Option<Action>> {
+            },
+            _ => {}
+        }
         Ok(None)
     }
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        match &self.state {
+        match &mut self.state {
             CompState::Loading => frame.render_widget(
                 Paragraph::new("Loading...")
                     .block(Block::bordered().title("Playlist").padding(Padding::new(
@@ -89,11 +108,14 @@ impl Component for PlaylistList {
                     (area.height / 2) - 1,
                     0,
                 )))
-                .alignment(Alignment::Center)
-                .wrap(Wrap { trim: false }),
+                .alignment(Alignment::Center),
                 area,
             ),
-            CompState::Loaded { comp, list: _ } => frame.render_widget(comp, area),
+            CompState::Loaded {
+                comp,
+                list: _,
+                state,
+            } => frame.render_stateful_widget(&*comp, area, state),
         };
         Ok(())
     }

@@ -20,6 +20,11 @@ pub enum Action {
     Error(String),
     Help,
 
+    Up,
+    Down,
+    Left,
+    Right,
+
     Query(Query),
 
     Ping(PingResponse),

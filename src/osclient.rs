@@ -56,30 +56,11 @@ pub struct OSClient {
 
 impl OSClient {
     pub async fn get_playlists(&self) -> Result<GetPlaylists, ExternalError> {
-        let q = self
-            .query_auth::<GetPlaylists>(Method::GET, "getPlaylists")
-            .await;
-        match &q {
-            Ok(r) => {
-                trace_dbg!(r);
-            }
-            Err(e) => {
-                trace_dbg!(e);
-            }
-        };
-        q
+        self.query_auth::<GetPlaylists>(Method::GET, "getPlaylists")
+            .await
     }
     pub async fn ping(&self) -> Result<Empty, ExternalError> {
-        let q = self.query_auth::<Empty>(Method::GET, "ping").await;
-        match &q {
-            Ok(r) => {
-                trace_dbg!(r);
-            }
-            Err(e) => {
-                trace_dbg!(e);
-            }
-        };
-        q
+        self.query_auth::<Empty>(Method::GET, "ping").await
     }
     // Make a request to an arbitrary endpoint and get its result
     async fn query_auth<T: DeserializeOwned + Debug>(
@@ -147,16 +128,12 @@ impl OSClient {
             }
         };
         let handler = |e: reqwest::Error| ExternalError::new(e);
-        // if let Ok(d) = r {
-        //     trace_dbg!(d.text().await.unwrap());
-        // }
-        // todo!();
         let data = r
             .map_err(handler)?
             .json::<Wrapper<T>>()
             .await
             .map_err(handler)?;
-        Ok(data.subsonic_response)
+        Ok(trace_dbg!(data.subsonic_response))
     }
     // Use password to create a client without verifying if the credentials are valid
     pub fn use_password(

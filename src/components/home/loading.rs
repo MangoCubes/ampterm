@@ -2,7 +2,7 @@ use color_eyre::Result;
 use ratatui::{
     layout::{Constraint, Flex, Layout, Rect},
     text::Line,
-    widgets::{Block, Paragraph, Wrap},
+    widgets::{Block, Padding, Paragraph, Wrap},
     Frame,
 };
 
@@ -34,7 +34,7 @@ impl Component for Loading {
                 Line::raw(format!("Username: {}", self.username)),
             ])
             .centered()
-            .block(Block::bordered())
+            .block(Block::bordered().padding(Padding::new(0, 0, (area.height / 2) - 1, 0)))
             .wrap(Wrap { trim: false }),
             centered,
         );

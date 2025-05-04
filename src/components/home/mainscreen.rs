@@ -42,16 +42,6 @@ impl Component for MainScreen {
         if let Some(action) = self.pl_list.update(action)? {
             self.action_tx.send(action)?;
         }
-        // if let Action::GetPlaylists(r) = action {
-        //     match r {
-        //         GetPlaylistsResponse::Success(p) => {
-        //             trace_dbg!(p);
-        //         }
-        //         GetPlaylistsResponse::Failure(e) => {
-        //             trace_dbg!(e);
-        //         }
-        //     };
-        // };
         Ok(None)
     }
     fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Result<Option<Action>> {

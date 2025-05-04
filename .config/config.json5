@@ -5,6 +5,7 @@
 	  "<Down>": "Down",
 	  "<Left>": "Left",
 	  "<Right>": "Right",
+	  "<Enter>": "Confirm",
     },
   },
   // Use legacy authentication that sends the password instead of token and salt

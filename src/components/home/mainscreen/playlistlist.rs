@@ -31,6 +31,19 @@ pub struct PlaylistList {
 }
 
 impl PlaylistList {
+    fn select_playlist(&self) {
+        if let CompState::Loaded {
+            comp: _,
+            list,
+            state,
+        } = &self.state
+        {
+            if let Some(pos) = state.selected() {
+                let key = (&list[pos].id).to_string();
+                let _ = self.action_tx.send(Action::SelectPlaylist { key });
+            };
+        }
+    }
     fn change_item(&mut self, down: bool) {
         if let CompState::Loaded {
             comp: _,
@@ -65,6 +78,7 @@ impl Component for PlaylistList {
         match action {
             Action::Up => self.change_item(false),
             Action::Down => self.change_item(true),
+            Action::Confirm => self.select_playlist(),
             // TODO: Add horizontal text scrolling
             // Action::Left => todo!(),
             // Action::Right => todo!(),

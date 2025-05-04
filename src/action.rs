@@ -24,6 +24,9 @@ pub enum Action {
     Down,
     Left,
     Right,
+    Confirm,
+
+    SelectPlaylist { key: String },
 
     Query(Query),
 

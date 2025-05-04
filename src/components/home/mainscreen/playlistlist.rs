@@ -7,36 +7,40 @@ use crate::{
 };
 use color_eyre::Result;
 use ratatui::{
-    layout::Rect,
+    layout::{Alignment, Rect},
     style::{Style, Stylize},
-    widgets::{Block, List, ListState},
+    text::Line,
+    widgets::{Block, List, ListState, Padding, Paragraph, Wrap},
     Frame,
 };
 use tokio::sync::mpsc::UnboundedSender;
 
+enum DisplayedComponent {
+    Loading,
+    Error(String),
+    Loaded {
+        comp: List<'static>,
+        list: Vec<SimplePlaylist>,
+    },
+}
+
 pub struct PlaylistList {
     action_tx: UnboundedSender<Action>,
-    list: List<'static>,
-    playlists: Option<Vec<SimplePlaylist>>,
+    state: DisplayedComponent,
 }
 
 impl PlaylistList {
-    fn gen_list(list: &Option<Vec<SimplePlaylist>>) -> List<'static> {
-        let items: Vec<String> = match list {
-            Some(ps) => ps.iter().map(|p| p.name.clone()).collect(),
-            None => ["<Loading...>".to_owned()].to_vec(),
-        };
+    fn gen_list(list: &Vec<SimplePlaylist>) -> List<'static> {
+        let items: Vec<String> = list.iter().map(|p| p.name.clone()).collect();
         List::new(items)
             .block(Block::bordered().title("Playlist"))
             .highlight_style(Style::new().reversed())
             .highlight_symbol(">")
     }
     pub fn new(action_tx: UnboundedSender<Action>) -> Self {
-        // action_tx.send(
         Self {
             action_tx,
-            list: PlaylistList::gen_list(&None),
-            playlists: None,
+            state: DisplayedComponent::Loading,
         }
     }
 }
@@ -46,8 +50,10 @@ impl Component for PlaylistList {
         if let Action::GetPlaylists(res) = action {
             match res {
                 GetPlaylistsResponse::Success(simple_playlists) => {
-                    self.playlists = Some(simple_playlists);
-                    self.list = PlaylistList::gen_list(&self.playlists);
+                    self.state = DisplayedComponent::Loaded {
+                        comp: PlaylistList::gen_list(&simple_playlists),
+                        list: simple_playlists,
+                    };
                 }
                 GetPlaylistsResponse::Failure(_) => todo!(),
             }
@@ -58,7 +64,37 @@ impl Component for PlaylistList {
         Ok(None)
     }
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        frame.render_widget(&self.list, area);
+        match &self.state {
+            DisplayedComponent::Loading => frame.render_widget(
+                Paragraph::new("Loading...")
+                    .block(Block::bordered().title("Playlist").padding(Padding::new(
+                        0,
+                        0,
+                        area.height / 2,
+                        0,
+                    )))
+                    .alignment(Alignment::Center)
+                    .wrap(Wrap { trim: false }),
+                area,
+            ),
+            DisplayedComponent::Error(e) => frame.render_widget(
+                Paragraph::new(vec![
+                    Line::raw("Error!"),
+                    Line::raw(format!("{}", e)),
+                    Line::raw(format!("Reload with 'R'")),
+                ])
+                .block(Block::bordered().title("Playlist").padding(Padding::new(
+                    0,
+                    0,
+                    (area.height / 2) - 1,
+                    0,
+                )))
+                .alignment(Alignment::Center)
+                .wrap(Wrap { trim: false }),
+                area,
+            ),
+            DisplayedComponent::Loaded { comp, list: _ } => frame.render_widget(comp, area),
+        };
         Ok(())
     }
 }

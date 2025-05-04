@@ -10,5 +10,6 @@ pub enum Query {
     Stop,
     SetCredential(Credential),
     GetPlaylists,
+    GetPlaylist(String),
     Ping,
 }

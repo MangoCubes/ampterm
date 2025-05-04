@@ -3,6 +3,7 @@ use error::{createclienterror::CreateClientError, externalerror::ExternalError};
 use reqwest::Method;
 use reqwest::{Client, Url};
 use response::empty::Empty;
+use response::getplaylist::GetPlaylist;
 use response::getplaylists::GetPlaylists;
 use response::wrapper::Wrapper;
 use serde::de::DeserializeOwned;
@@ -55,18 +56,23 @@ pub struct OSClient {
 // response.
 
 impl OSClient {
+    pub async fn get_playlist(&self, id: String) -> Result<GetPlaylist, ExternalError> {
+        self.query_auth::<GetPlaylist>(Method::GET, "getPlaylist", Some(vec![("id", &id)]))
+            .await
+    }
     pub async fn get_playlists(&self) -> Result<GetPlaylists, ExternalError> {
-        self.query_auth::<GetPlaylists>(Method::GET, "getPlaylists")
+        self.query_auth::<GetPlaylists>(Method::GET, "getPlaylists", None)
             .await
     }
     pub async fn ping(&self) -> Result<Empty, ExternalError> {
-        self.query_auth::<Empty>(Method::GET, "ping").await
+        self.query_auth::<Empty>(Method::GET, "ping", None).await
     }
     // Make a request to an arbitrary endpoint and get its result
     async fn query_auth<T: DeserializeOwned + Debug>(
         &self,
         method: Method,
         path: &str,
+        query: Option<Vec<(&str, &str)>>,
     ) -> Result<T, ExternalError> {
         fn get_path(url: &Url, name: &str, secure: bool) -> Url {
             let path = &format!("rest/{}", name);
@@ -83,7 +89,7 @@ impl OSClient {
                 password,
                 legacy,
             } => {
-                let params: Vec<(&str, &str)> = if *legacy {
+                let mut params: Vec<(&str, &str)> = if *legacy {
                     vec![
                         ("u", &username),
                         ("p", &password),
@@ -100,6 +106,9 @@ impl OSClient {
                         ("c", "ampterm-client"),
                         ("f", "json"),
                     ]
+                };
+                if let Some(a) = query {
+                    params.extend(a);
                 };
                 self.client
                     .request(method, get_path(&url, path, *secure))

@@ -1,7 +1,6 @@
 {
   "keybindings": {
-    "Home": {
-      "<Ctrl-c>": "Quit", // Yet another way to quit
+    "Common": {
 	  "<Up>": "Up",
 	  "<Down>": "Down",
 	  "<Left>": "Left",

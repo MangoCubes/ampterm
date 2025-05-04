@@ -31,7 +31,7 @@ pub struct App {
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Mode {
     #[default]
-    Home,
+    Common,
 }
 
 impl App {
@@ -49,7 +49,7 @@ impl App {
             should_quit: false,
             should_suspend: false,
             config,
-            mode: Mode::Home,
+            mode: Mode::Common,
             last_tick_key_events: Vec::new(),
             action_tx,
             action_rx,

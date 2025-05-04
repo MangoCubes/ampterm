@@ -16,7 +16,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 enum CurrentlySelected {
     Playlists,
-    CurrentlyPlaying,
+    Playlist,
     Queue,
 }
 
@@ -27,6 +27,7 @@ pub struct MainScreen {
 }
 
 impl MainScreen {
+    fn select_playlist(&self) {}
     pub fn new(action_tx: UnboundedSender<Action>) -> Self {
         let _ = action_tx.send(Action::Query(Query::GetPlaylists));
         Self {
@@ -39,6 +40,10 @@ impl MainScreen {
 
 impl Component for MainScreen {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
+        match &action {
+            Action::SelectPlaylist { key } => self.select_playlist(),
+            _ => {}
+        };
         if let Some(action) = self.pl_list.update(action)? {
             self.action_tx.send(action)?;
         }

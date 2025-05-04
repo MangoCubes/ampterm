@@ -4,6 +4,7 @@ use crate::{
         Action,
     },
     components::Component,
+    queryworker::query::Query,
 };
 use color_eyre::Result;
 use ratatui::{
@@ -40,7 +41,7 @@ impl PlaylistList {
         {
             if let Some(pos) = state.selected() {
                 let key = (&list[pos].id).to_string();
-                let _ = self.action_tx.send(Action::SelectPlaylist { key });
+                let _ = self.action_tx.send(Action::Query(Query::GetPlaylist(key)));
             };
         }
     }

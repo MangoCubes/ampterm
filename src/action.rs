@@ -1,6 +1,8 @@
+pub mod getplaylist;
 pub mod getplaylists;
 pub mod ping;
 
+use getplaylist::GetPlaylistResponse;
 use getplaylists::GetPlaylistsResponse;
 use ping::PingResponse;
 use serde::{Deserialize, Serialize};
@@ -32,4 +34,5 @@ pub enum Action {
 
     Ping(PingResponse),
     GetPlaylists(GetPlaylistsResponse),
+    GetPlaylist(GetPlaylistResponse),
 }

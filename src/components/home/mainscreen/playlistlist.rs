@@ -15,7 +15,7 @@ use ratatui::{
 };
 use tokio::sync::mpsc::UnboundedSender;
 
-enum DisplayedComponent {
+enum CompState {
     Loading,
     Error(String),
     Loaded {
@@ -26,7 +26,7 @@ enum DisplayedComponent {
 
 pub struct PlaylistList {
     action_tx: UnboundedSender<Action>,
-    state: DisplayedComponent,
+    state: CompState,
 }
 
 impl PlaylistList {
@@ -40,7 +40,7 @@ impl PlaylistList {
     pub fn new(action_tx: UnboundedSender<Action>) -> Self {
         Self {
             action_tx,
-            state: DisplayedComponent::Loading,
+            state: CompState::Loading,
         }
     }
 }
@@ -50,12 +50,12 @@ impl Component for PlaylistList {
         if let Action::GetPlaylists(res) = action {
             match res {
                 GetPlaylistsResponse::Success(simple_playlists) => {
-                    self.state = DisplayedComponent::Loaded {
+                    self.state = CompState::Loaded {
                         comp: PlaylistList::gen_list(&simple_playlists),
                         list: simple_playlists,
                     };
                 }
-                GetPlaylistsResponse::Failure(_) => todo!(),
+                GetPlaylistsResponse::Failure(e) => self.state = CompState::Error(e),
             }
         };
         Ok(None)
@@ -65,7 +65,7 @@ impl Component for PlaylistList {
     }
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         match &self.state {
-            DisplayedComponent::Loading => frame.render_widget(
+            CompState::Loading => frame.render_widget(
                 Paragraph::new("Loading...")
                     .block(Block::bordered().title("Playlist").padding(Padding::new(
                         0,
@@ -77,7 +77,7 @@ impl Component for PlaylistList {
                     .wrap(Wrap { trim: false }),
                 area,
             ),
-            DisplayedComponent::Error(e) => frame.render_widget(
+            CompState::Error(e) => frame.render_widget(
                 Paragraph::new(vec![
                     Line::raw("Error!"),
                     Line::raw(format!("{}", e)),
@@ -93,7 +93,7 @@ impl Component for PlaylistList {
                 .wrap(Wrap { trim: false }),
                 area,
             ),
-            DisplayedComponent::Loaded { comp, list: _ } => frame.render_widget(comp, area),
+            CompState::Loaded { comp, list: _ } => frame.render_widget(comp, area),
         };
         Ok(())
     }

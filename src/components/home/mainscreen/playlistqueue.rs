@@ -1,5 +1,6 @@
 use crate::{
     action::{
+        getplaylist::{FullPlaylist, GetPlaylistResponse},
         getplaylists::{GetPlaylistsResponse, SimplePlaylist},
         Action,
     },
@@ -16,38 +17,32 @@ use ratatui::{
 use tokio::sync::mpsc::UnboundedSender;
 
 enum CompState {
-    Loading,
-    Error(String),
+    Loading(String),
+    NotSelected,
+    Error {
+        name: String,
+        error: String,
+    },
     Loaded {
+        name: String,
         comp: List<'static>,
-        list: Vec<SimplePlaylist>,
+        list: FullPlaylist,
         state: ListState,
     },
 }
 
-pub struct PlaylistList {
+pub struct PlaylistQueue {
     action_tx: UnboundedSender<Action>,
     state: CompState,
 }
 
-impl PlaylistList {
-    fn select_playlist(&self) {
-        if let CompState::Loaded {
-            comp: _,
-            list,
-            state,
-        } = &self.state
-        {
-            if let Some(pos) = state.selected() {
-                let key = (&list[pos].id).to_string();
-                let _ = self.action_tx.send(Action::SelectPlaylist { key });
-            };
-        }
-    }
+impl PlaylistQueue {
+    fn select_playlist(&self) {}
     fn change_item(&mut self, down: bool) {
         if let CompState::Loaded {
             comp: _,
             list: _,
+            name: _,
             state,
         } = &mut self.state
         {
@@ -58,22 +53,22 @@ impl PlaylistList {
             };
         }
     }
-    fn gen_list(list: &Vec<SimplePlaylist>) -> List<'static> {
-        let items: Vec<String> = list.iter().map(|p| p.name.clone()).collect();
+    fn gen_list(list: &FullPlaylist) -> List<'static> {
+        let items: Vec<String> = list.entry.iter().map(|p| p.title.clone()).collect();
         List::new(items)
-            .block(Block::bordered().title("Playlist"))
+            .block(Block::bordered().title(list.name.clone()))
             .highlight_style(Style::new().reversed())
             .highlight_symbol(">")
     }
     pub fn new(action_tx: UnboundedSender<Action>) -> Self {
         Self {
             action_tx,
-            state: CompState::Loading,
+            state: CompState::NotSelected,
         }
     }
 }
 
-impl Component for PlaylistList {
+impl Component for PlaylistQueue {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::Up => self.change_item(false),
@@ -82,15 +77,21 @@ impl Component for PlaylistList {
             // TODO: Add horizontal text scrolling
             // Action::Left => todo!(),
             // Action::Right => todo!(),
-            Action::GetPlaylists(res) => match res {
-                GetPlaylistsResponse::Success(simple_playlists) => {
+            Action::GetPlaylist(res) => match res {
+                GetPlaylistResponse::Success(full_playlist) => {
                     self.state = CompState::Loaded {
-                        comp: PlaylistList::gen_list(&simple_playlists),
-                        list: simple_playlists,
+                        comp: PlaylistQueue::gen_list(&full_playlist),
+                        name: full_playlist.name.clone(),
+                        list: full_playlist,
                         state: ListState::default().with_selected(Some(0)),
+                    }
+                }
+                GetPlaylistResponse::Failure { name, msg } => {
+                    self.state = CompState::Error {
+                        name: name.unwrap_or("Playlist Queue".to_string()),
+                        error: msg,
                     };
                 }
-                GetPlaylistsResponse::Failure(e) => self.state = CompState::Error(e),
             },
             _ => {}
         }
@@ -98,9 +99,20 @@ impl Component for PlaylistList {
     }
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         match &mut self.state {
-            CompState::Loading => frame.render_widget(
+            CompState::NotSelected => frame.render_widget(
+                Paragraph::new("Choose a playlist!")
+                    .block(
+                        Block::bordered()
+                            .title("Playlist Queue")
+                            .padding(Padding::new(0, 0, area.height / 2, 0)),
+                    )
+                    .alignment(Alignment::Center)
+                    .wrap(Wrap { trim: false }),
+                area,
+            ),
+            CompState::Loading(name) => frame.render_widget(
                 Paragraph::new("Loading...")
-                    .block(Block::bordered().title("Playlist").padding(Padding::new(
+                    .block(Block::bordered().title(name.clone()).padding(Padding::new(
                         0,
                         0,
                         area.height / 2,
@@ -110,13 +122,13 @@ impl Component for PlaylistList {
                     .wrap(Wrap { trim: false }),
                 area,
             ),
-            CompState::Error(e) => frame.render_widget(
+            CompState::Error { name, error } => frame.render_widget(
                 Paragraph::new(vec![
                     Line::raw("Error!"),
-                    Line::raw(format!("{}", e)),
+                    Line::raw(format!("{}", error)),
                     Line::raw(format!("Reload with 'R'")),
                 ])
-                .block(Block::bordered().title("Playlist").padding(Padding::new(
+                .block(Block::bordered().title(name.clone()).padding(Padding::new(
                     0,
                     0,
                     (area.height / 2) - 1,
@@ -129,6 +141,7 @@ impl Component for PlaylistList {
                 comp,
                 list: _,
                 state,
+                name,
             } => frame.render_stateful_widget(&*comp, area, state),
         };
         Ok(())

@@ -1,4 +1,5 @@
 mod playlistlist;
+mod playlistqueue;
 
 use crate::{
     action::{getplaylists::GetPlaylistsResponse, Action},
@@ -8,6 +9,7 @@ use crate::{
 };
 use color_eyre::Result;
 use playlistlist::PlaylistList;
+use playlistqueue::PlaylistQueue;
 use ratatui::{
     layout::{Constraint, Layout, Rect},
     Frame,
@@ -24,6 +26,7 @@ pub struct MainScreen {
     state: CurrentlySelected,
     pl_list: PlaylistList,
     action_tx: UnboundedSender<Action>,
+    pl_queue: PlaylistQueue,
 }
 
 impl MainScreen {
@@ -33,6 +36,7 @@ impl MainScreen {
         Self {
             state: CurrentlySelected::Playlists,
             pl_list: PlaylistList::new(action_tx.clone()),
+            pl_queue: PlaylistQueue::new(action_tx.clone()),
             action_tx,
         }
     }
@@ -44,7 +48,10 @@ impl Component for MainScreen {
             Action::SelectPlaylist { key } => self.select_playlist(),
             _ => {}
         };
-        if let Some(action) = self.pl_list.update(action)? {
+        if let Some(action) = self.pl_list.update(action.clone())? {
+            self.action_tx.send(action)?;
+        }
+        if let Some(action) = self.pl_queue.update(action)? {
             self.action_tx.send(action)?;
         }
         Ok(None)
@@ -61,6 +68,9 @@ impl Component for MainScreen {
         let areas = layout.split(area);
 
         if let Err(err) = self.pl_list.draw(frame, areas[0]) {
+            self.action_tx.send(Action::Error(err.to_string()))?;
+        }
+        if let Err(err) = self.pl_queue.draw(frame, areas[1]) {
             self.action_tx.send(Action::Error(err.to_string()))?;
         }
         Ok(())

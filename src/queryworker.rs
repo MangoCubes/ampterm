@@ -127,7 +127,7 @@ impl QueryWorker {
                         ),
                     }
                 }
-                Query::GetPlaylist { name: _, id } => {
+                Query::GetPlaylist { name, id } => {
                     let idc = id.clone();
                     match &self.client {
                         Some(c) => {
@@ -207,15 +207,19 @@ impl QueryWorker {
                                             ))
                                         }
 
-                                        GetPlaylist::Failed { error } => {
-                                            tx.send(Action::GetPlaylist(
-                                                GetPlaylistResponse::Failure(error.to_string()),
-                                            ))
-                                        }
+                                        GetPlaylist::Failed { error } => tx.send(
+                                            Action::GetPlaylist(GetPlaylistResponse::Failure {
+                                                msg: error.to_string(),
+                                                name,
+                                            }),
+                                        ),
                                     },
-                                    Err(e) => tx.send(Action::GetPlaylist(
-                                        GetPlaylistResponse::Failure(e.to_string()),
-                                    )),
+                                    Err(e) => {
+                                        tx.send(Action::GetPlaylist(GetPlaylistResponse::Failure {
+                                            msg: e.to_string(),
+                                            name,
+                                        }))
+                                    }
                                 }
                             });
                         }

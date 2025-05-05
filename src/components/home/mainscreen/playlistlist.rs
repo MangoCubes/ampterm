@@ -40,8 +40,12 @@ impl PlaylistList {
         } = &self.state
         {
             if let Some(pos) = state.selected() {
-                let key = (&list[pos].id).to_string();
-                let _ = self.action_tx.send(Action::Query(Query::GetPlaylist(key)));
+                let key = list[pos].id.clone();
+                let name = list[pos].name.clone();
+                let _ = self.action_tx.send(Action::Query(Query::GetPlaylist {
+                    name: Some(name),
+                    id: key,
+                }));
             };
         }
     }

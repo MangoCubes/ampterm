@@ -127,7 +127,7 @@ impl QueryWorker {
                         ),
                     }
                 }
-                Query::GetPlaylist(id) => {
+                Query::GetPlaylist { name: _, id } => {
                     let idc = id.clone();
                     match &self.client {
                         Some(c) => {

@@ -3,11 +3,13 @@ use std::{error::Error, fmt::Display};
 #[derive(Debug)]
 enum ErrType {
     Request(reqwest::Error),
+    Decode(serde_json::Error),
 }
 impl Display for ErrType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ErrType::Request(e) => write!(f, "Request Error: {}", e),
+            ErrType::Decode(e) => write!(f, "Decode Error: {}", e),
         }
     }
 }
@@ -27,9 +29,14 @@ impl Display for ExternalError {
     }
 }
 impl ExternalError {
-    pub fn new(e: reqwest::Error) -> ExternalError {
+    pub fn req(e: reqwest::Error) -> ExternalError {
         Self {
             reason: ErrType::Request(e),
+        }
+    }
+    pub fn decode(e: serde_json::Error) -> ExternalError {
+        Self {
+            reason: ErrType::Decode(e),
         }
     }
 }

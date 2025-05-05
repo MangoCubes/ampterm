@@ -25,18 +25,18 @@ pub struct PlaylistEntry {
     #[serde(alias = "bitRate")]
     pub bit_rate: u32,
     #[serde(alias = "bitDepth")]
-    pub bit_depth: u32,
+    pub bit_depth: Option<u32>,
     #[serde(alias = "samplingRate")]
-    pub sampling_rate: u32,
+    pub sampling_rate: Option<u32>,
     #[serde(alias = "channelCount")]
-    pub channel_count: u32,
+    pub channel_count: Option<u32>,
     #[serde(alias = "userRating")]
-    pub user_rating: u32,
+    pub user_rating: Option<u32>,
     #[serde(alias = "averageRating")]
-    pub average_rating: u32,
+    pub average_rating: Option<u32>,
     pub track: u32,
     pub year: u32,
-    pub genre: String,
+    pub genre: Option<String>,
     pub size: u32,
     #[serde(alias = "discNumber")]
     pub disc_number: u32,
@@ -56,6 +56,8 @@ pub struct FullPlaylist {
     #[serde(alias = "songCount")]
     pub song_count: u32,
     pub duration: u32,
+    #[serde(alias = "coverArt")]
+    pub cover_art: u32,
     pub entry: Vec<PlaylistEntry>,
 }
 

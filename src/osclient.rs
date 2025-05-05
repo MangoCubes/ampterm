@@ -7,6 +7,7 @@ use response::getplaylist::GetPlaylist;
 use response::getplaylists::GetPlaylists;
 use response::wrapper::Wrapper;
 use serde::de::DeserializeOwned;
+use serde_json::from_str;
 use std::fmt::Debug;
 
 pub mod error;
@@ -136,13 +137,16 @@ impl OSClient {
                     .await
             }
         };
-        let handler = |e: reqwest::Error| ExternalError::new(e);
-        let data = r
-            .map_err(handler)?
-            .json::<Wrapper<T>>()
-            .await
-            .map_err(handler)?;
+        let handler = |e: reqwest::Error| ExternalError::req(e);
+        let response = r.map_err(handler)?.text().await.map_err(handler)?;
+        let data = from_str::<Wrapper<T>>(&response).map_err(|e| ExternalError::decode(e))?;
         Ok(trace_dbg!(data.subsonic_response))
+        // let data = r
+        //     .map_err(handler)?
+        //     .json::<Wrapper<T>>()
+        //     .await
+        //     .map_err(handler)?;
+        // Ok(trace_dbg!(data.subsonic_response))
     }
     // Use password to create a client without verifying if the credentials are valid
     pub fn use_password(

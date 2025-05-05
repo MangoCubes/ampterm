@@ -7,7 +7,7 @@ use query::setcredential::Credential;
 use query::Query;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
-use crate::action::getplaylist::{FullPlaylist, GetPlaylistResponse, PlaylistEntry};
+use crate::action::getplaylist::{FullPlaylist, GetPlaylistResponse, Media};
 use crate::action::getplaylists::{GetPlaylistsResponse, SimplePlaylist};
 use crate::action::ping::PingResponse;
 use crate::action::Action;
@@ -140,46 +140,69 @@ impl QueryWorker {
                                         GetPlaylist::Ok { playlist } => {
                                             tx.send(Action::GetPlaylist(
                                                 GetPlaylistResponse::Success(FullPlaylist {
-                                                    id: playlist.id,
-                                                    name: playlist.name,
-                                                    owner: playlist.owner,
-                                                    public: playlist.public,
-                                                    created: playlist.created,
-                                                    changed: playlist.changed,
-                                                    song_count: playlist.song_count,
-                                                    duration: playlist.duration,
                                                     entry: playlist
                                                         .entry
                                                         .into_iter()
-                                                        .map(|e| PlaylistEntry {
+                                                        .map(|e| Media {
                                                             id: e.id,
                                                             parent: e.parent,
-                                                            title: e.title,
                                                             is_dir: e.is_dir,
-                                                            is_video: e.is_video,
-                                                            entry_type: e.entry_type,
-                                                            album_id: e.album_id,
+                                                            title: e.title,
                                                             album: e.album,
-                                                            artist_id: e.artist_id,
                                                             artist: e.artist,
+                                                            track: e.track,
+                                                            year: e.year,
+                                                            genre: e.genre,
                                                             cover_art: e.cover_art,
+                                                            size: e.size,
+                                                            content_type: e.content_type,
+                                                            suffix: e.suffix,
+                                                            transcoded_content_type: e
+                                                                .transcoded_content_type,
+                                                            transcoded_suffix: e.transcoded_suffix,
                                                             duration: e.duration,
                                                             bit_rate: e.bit_rate,
                                                             bit_depth: e.bit_depth,
                                                             sampling_rate: e.sampling_rate,
                                                             channel_count: e.channel_count,
+                                                            path: e.path,
+                                                            is_video: e.is_video,
                                                             user_rating: e.user_rating,
                                                             average_rating: e.average_rating,
-                                                            track: e.track,
-                                                            year: e.year,
-                                                            genre: e.genre,
-                                                            size: e.size,
+                                                            play_count: e.play_count,
                                                             disc_number: e.disc_number,
-                                                            suffix: e.suffix,
-                                                            content_type: e.content_type,
-                                                            path: e.path,
+                                                            created: e.created,
+                                                            starred: e.starred,
+                                                            album_id: e.album_id,
+                                                            artist_id: e.artist_id,
+                                                            media_type: e.media_type,
+                                                            bookmark_position: e.bookmark_position,
+                                                            original_width: e.original_width,
+                                                            original_height: e.original_height,
+                                                            played: e.played,
+                                                            bpm: e.bpm,
+                                                            comment: e.comment,
+                                                            sort_name: e.sort_name,
+                                                            music_brainz_id: e.music_brainz_id,
+                                                            display_artist: e.display_artist,
+                                                            display_album_artist: e
+                                                                .display_album_artist,
+                                                            display_composer: e.display_composer,
+                                                            moods: e.moods,
+                                                            explicit_status: e.explicit_status,
                                                         })
                                                         .collect(),
+                                                    id,
+                                                    name: playlist.name,
+                                                    comment: playlist.comment,
+                                                    owner: playlist.owner,
+                                                    public: playlist.public,
+                                                    song_count: playlist.song_count,
+                                                    duration: playlist.duration,
+                                                    created: playlist.created,
+                                                    changed: playlist.changed,
+                                                    cover_art: playlist.cover_art,
+                                                    allowed_users: playlist.allowed_users,
                                                 }),
                                             ))
                                         }

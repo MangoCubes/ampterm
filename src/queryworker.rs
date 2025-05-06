@@ -69,7 +69,7 @@ impl QueryWorker {
                 break;
             };
             match event {
-                Query::Stop => self.should_quit = true,
+                Query::Kill => self.should_quit = true,
                 Query::SetCredential(creds) => {
                     self.client = Some(Arc::from(match creds {
                         Credential::Password {

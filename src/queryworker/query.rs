@@ -4,10 +4,10 @@ use serde::{Deserialize, Serialize};
 use setcredential::Credential;
 use strum::Display;
 
-#[derive(Debug, Clone, PartialEq, Eq, Display, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
 pub enum Query {
     // Stop query task
-    Stop,
+    Kill,
     SetCredential(Credential),
     GetPlaylists,
     GetPlaylist { name: Option<String>, id: String },

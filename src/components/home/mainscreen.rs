@@ -18,7 +18,6 @@ use tokio::sync::mpsc::UnboundedSender;
 
 enum CurrentlySelected {
     Playlists,
-    Playlist,
     Queue,
 }
 
@@ -48,12 +47,28 @@ impl Component for MainScreen {
             Action::SelectPlaylist { key } => self.select_playlist(),
             _ => {}
         };
-        if let Some(action) = self.pl_list.update(action.clone())? {
-            self.action_tx.send(action)?;
-        }
-        if let Some(action) = self.pl_queue.update(action)? {
-            self.action_tx.send(action)?;
-        }
+        match &action {
+            Action::Local(_) => match self.state {
+                CurrentlySelected::Playlists => {
+                    if let Some(action) = self.pl_list.update(action.clone())? {
+                        self.action_tx.send(action)?;
+                    }
+                }
+                CurrentlySelected::Queue => {
+                    if let Some(action) = self.pl_queue.update(action)? {
+                        self.action_tx.send(action)?;
+                    }
+                }
+            },
+            _ => {
+                if let Some(action) = self.pl_list.update(action.clone())? {
+                    self.action_tx.send(action)?;
+                }
+                if let Some(action) = self.pl_queue.update(action)? {
+                    self.action_tx.send(action)?;
+                }
+            }
+        };
         Ok(None)
     }
     fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Result<Option<Action>> {

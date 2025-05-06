@@ -49,20 +49,6 @@ impl PlaylistList {
             };
         }
     }
-    fn change_item(&mut self, down: bool) {
-        if let CompState::Loaded {
-            comp: _,
-            list: _,
-            state,
-        } = &mut self.state
-        {
-            if down {
-                state.select_next()
-            } else {
-                state.select_previous()
-            };
-        }
-    }
     fn gen_list(list: &Vec<SimplePlaylist>) -> List<'static> {
         let items: Vec<String> = list.iter().map(|p| p.name.clone()).collect();
         List::new(items)
@@ -81,13 +67,24 @@ impl PlaylistList {
 impl Component for PlaylistList {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
-            Action::Local(l) => match l {
-                LocalAction::Up => self.change_item(false),
-                LocalAction::Down => self.change_item(true),
-                LocalAction::Confirm => self.select_playlist(),
-                // TODO: Add horizontal text scrolling
-                _ => {}
-            },
+            Action::Local(l) => {
+                if let CompState::Loaded {
+                    comp: _,
+                    list: _,
+                    state,
+                } = &mut self.state
+                {
+                    match l {
+                        LocalAction::Up => state.select_previous(),
+                        LocalAction::Down => state.select_next(),
+                        LocalAction::Confirm => self.select_playlist(),
+                        LocalAction::Top => state.select_first(),
+                        LocalAction::Bottom => state.select_last(),
+                        // TODO: Add horizontal text scrolling
+                        _ => {}
+                    }
+                }
+            }
             Action::GetPlaylists(res) => match res {
                 GetPlaylistsResponse::Success(simple_playlists) => {
                     self.state = CompState::Loaded {

@@ -5,6 +5,12 @@
 	  "<Ctrl-w><Right>": "MoveRight",
 	  "<Ctrl-w><Up>": "MoveUp",
 	  "<Ctrl-w><Down>": "MoveDown",
+	  "<Shift-g>": {
+		  "Local": "Bottom"
+	  },
+	  "<g><g>": {
+		  "Local": "Top"
+	  },
 	  "<Up>": {
 		  "Local": "Up"
 	  },

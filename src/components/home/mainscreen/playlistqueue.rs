@@ -5,6 +5,7 @@ use crate::{
         Action, LocalAction,
     },
     components::Component,
+    queryworker::query::Query,
 };
 use color_eyre::Result;
 use ratatui::{
@@ -37,7 +38,7 @@ pub struct PlaylistQueue {
 }
 
 impl PlaylistQueue {
-    fn select_playlist(&self) {}
+    fn select_music(&self) {}
     fn change_item(&mut self, down: bool) {
         if let CompState::Loaded {
             comp: _,
@@ -74,10 +75,15 @@ impl Component for PlaylistQueue {
             Action::Local(l) => match l {
                 LocalAction::Up => self.change_item(false),
                 LocalAction::Down => self.change_item(true),
-                LocalAction::Confirm => self.select_playlist(),
+                LocalAction::Confirm => self.select_music(),
                 // TODO: Add horizontal text scrolling
                 _ => {}
             },
+            Action::Query(q) => {
+                if let Query::GetPlaylist { name, id } = q {
+                    self.state = CompState::Loading(name.unwrap_or(id));
+                }
+            }
             Action::GetPlaylist(res) => match res {
                 GetPlaylistResponse::Success(full_playlist) => {
                     self.state = CompState::Loaded {

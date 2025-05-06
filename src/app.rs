@@ -130,7 +130,7 @@ impl App {
                 debug!("{action:?}");
             };
 
-            match action {
+            match &action {
                 Action::EndKeySeq => {
                     self.key_stack.drain(..);
                 }
@@ -138,12 +138,17 @@ impl App {
                 Action::Suspend => self.should_suspend = true,
                 Action::Resume => self.should_suspend = false,
                 Action::ClearScreen => tui.terminal.clear()?,
-                Action::Resize(w, h) => self.handle_resize(tui, w, h)?,
+                Action::Resize(w, h) => self.handle_resize(tui, *w, *h)?,
                 Action::Render => self.render(tui)?,
-                Action::Query(q) => self.query_tx.send(q)?,
+                Action::Query(q) => {
+                    self.query_tx.send(q.clone())?;
+                    if let Some(ret) = self.component.update(action)? {
+                        self.action_tx.send(ret)?
+                    }
+                }
                 _ => {
-                    if let Some(action) = self.component.update(action.clone())? {
-                        self.action_tx.send(action)?
+                    if let Some(ret) = self.component.update(action)? {
+                        self.action_tx.send(ret)?
                     }
                 }
             };

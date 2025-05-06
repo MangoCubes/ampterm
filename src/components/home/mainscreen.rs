@@ -87,17 +87,23 @@ impl Component for MainScreen {
         Ok(None)
     }
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        let layout = Layout::horizontal([
+        let vertical = Layout::vertical([
+            Constraint::Min(0),
+            Constraint::Length(5),
+            Constraint::Length(1),
+        ]);
+        let horizontal = Layout::horizontal([
             Constraint::Percentage(25),
             Constraint::Percentage(50),
             Constraint::Percentage(25),
         ]);
-        let areas = layout.split(area);
+        let areas = vertical.split(area);
+        let listareas = horizontal.split(areas[0]);
 
-        if let Err(err) = self.pl_list.draw(frame, areas[0]) {
+        if let Err(err) = self.pl_list.draw(frame, listareas[0]) {
             self.action_tx.send(Action::Error(err.to_string()))?;
         }
-        if let Err(err) = self.pl_queue.draw(frame, areas[1]) {
+        if let Err(err) = self.pl_queue.draw(frame, listareas[1]) {
             self.action_tx.send(Action::Error(err.to_string()))?;
         }
         Ok(())

@@ -2,7 +2,7 @@ pub mod query;
 
 use std::sync::Arc;
 
-use color_eyre::{eyre, Result};
+use color_eyre::Result;
 use query::setcredential::Credential;
 use query::Query;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};

@@ -1,7 +1,7 @@
 use crate::trace_dbg;
 use error::{createclienterror::CreateClientError, externalerror::ExternalError};
-use reqwest::Method;
 use reqwest::{Client, Url};
+use reqwest::{Method, Response};
 use response::empty::Empty;
 use response::getplaylist::GetPlaylist;
 use response::getplaylists::GetPlaylists;
@@ -9,6 +9,9 @@ use response::wrapper::Wrapper;
 use serde::de::DeserializeOwned;
 use serde_json::from_str;
 use std::fmt::Debug;
+use stream_download::http::HttpStream;
+use stream_download::storage::temp::TempStorageProvider;
+use stream_download::{Settings, StreamDownload};
 
 pub mod error;
 pub mod response;
@@ -57,6 +60,9 @@ pub struct OSClient {
 // response.
 
 impl OSClient {
+    pub async fn stream(&self, id: String) -> Result<(), ExternalError> {
+        Ok(())
+    }
     pub async fn get_playlist(&self, id: String) -> Result<GetPlaylist, ExternalError> {
         self.query_auth::<GetPlaylist>(Method::GET, "getPlaylist", Some(vec![("id", &id)]))
             .await
@@ -68,21 +74,8 @@ impl OSClient {
     pub async fn ping(&self) -> Result<Empty, ExternalError> {
         self.query_auth::<Empty>(Method::GET, "ping", None).await
     }
-    // Make a request to an arbitrary endpoint and get its result
-    async fn query_auth<T: DeserializeOwned + Debug>(
-        &self,
-        method: Method,
-        path: &str,
-        query: Option<Vec<(&str, &str)>>,
-    ) -> Result<T, ExternalError> {
-        fn get_path(url: &Url, name: &str, secure: bool) -> Url {
-            let path = &format!("rest/{}", name);
-            let mut ret = url.clone();
-            ret.set_path(path);
-            let _ = ret.set_scheme(if secure { "https" } else { "http" });
-            ret
-        }
-        let r = match &self.auth {
+    fn get_path(&self, path: &str, query: Option<Vec<(&str, &str)>>) -> Url {
+        let (mut params, mut url): (Vec<(&str, &str)>, Url) = match &self.auth {
             Credential::Password {
                 url,
                 secure,
@@ -90,32 +83,29 @@ impl OSClient {
                 password,
                 legacy,
             } => {
-                let mut params: Vec<(&str, &str)> = if *legacy {
-                    vec![
-                        ("u", &username),
-                        ("p", &password),
-                        ("v", "1.16.1"),
-                        ("c", "ampterm-client"),
-                        ("f", "json"),
-                    ]
-                } else {
-                    vec![
-                        ("u", &username),
-                        ("t", todo!()),
-                        ("s", todo!()),
-                        ("v", "1.16.1"),
-                        ("c", "ampterm-client"),
-                        ("f", "json"),
-                    ]
-                };
-                if let Some(a) = query {
-                    params.extend(a);
-                };
-                self.client
-                    .request(method, get_path(&url, path, *secure))
-                    .query(&params)
-                    .send()
-                    .await
+                let mut ret = url.clone();
+                let _ = ret.set_scheme(if *secure { "https" } else { "http" });
+                (
+                    if *legacy {
+                        vec![
+                            ("u", &username),
+                            ("p", &password),
+                            ("v", "1.16.1"),
+                            ("c", "ampterm-client"),
+                            ("f", "json"),
+                        ]
+                    } else {
+                        vec![
+                            ("u", &username),
+                            ("t", todo!()),
+                            ("s", todo!()),
+                            ("v", "1.16.1"),
+                            ("c", "ampterm-client"),
+                            ("f", "json"),
+                        ]
+                    },
+                    ret,
+                )
             }
             Credential::APIKey {
                 url,
@@ -123,20 +113,49 @@ impl OSClient {
                 apikey,
                 secure,
             } => {
-                let params: Vec<(&str, &str)> = vec![
-                    ("u", &username),
-                    ("apiKey", &apikey),
-                    ("v", "1.16.1"),
-                    ("c", "ampterm-client"),
-                    ("f", "json"),
-                ];
-                self.client
-                    .request(method, get_path(&url, path, *secure))
-                    .query(&params)
-                    .send()
-                    .await
+                let mut ret = url.clone();
+                let _ = ret.set_scheme(if *secure { "https" } else { "http" });
+                (
+                    vec![
+                        ("u", &username),
+                        ("apiKey", &apikey),
+                        ("v", "1.16.1"),
+                        ("c", "ampterm-client"),
+                        ("f", "json"),
+                    ],
+                    ret,
+                )
             }
         };
+        if let Some(a) = query {
+            params.extend(a);
+        };
+        let path = &format!("rest/{}", path);
+        url.set_path(path);
+        params.into_iter().for_each(|(k, v)| {
+            url.query_pairs_mut().append_pair(k, v);
+        });
+        url
+    }
+    async fn query(
+        &self,
+        method: Method,
+        path: &str,
+        query: Option<Vec<(&str, &str)>>,
+    ) -> Result<Response, reqwest::Error> {
+        self.client
+            .request(method, self.get_path(path, query))
+            .send()
+            .await
+    }
+    // Make a request to an arbitrary endpoint and get its result
+    async fn query_auth<T: DeserializeOwned + Debug>(
+        &self,
+        method: Method,
+        path: &str,
+        query: Option<Vec<(&str, &str)>>,
+    ) -> Result<T, ExternalError> {
+        let r = self.query(method, path, query).await;
         let handler = |e: reqwest::Error| ExternalError::req(e);
         let response = r.map_err(handler)?.text().await.map_err(handler)?;
         let data = from_str::<Wrapper<T>>(&response).map_err(|e| ExternalError::decode(e))?;

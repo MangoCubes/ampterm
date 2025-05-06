@@ -2,7 +2,7 @@ use crate::{
     action::{
         getplaylist::{FullPlaylist, GetPlaylistResponse},
         getplaylists::{GetPlaylistsResponse, SimplePlaylist},
-        Action,
+        Action, LocalAction,
     },
     components::Component,
 };
@@ -71,12 +71,13 @@ impl PlaylistQueue {
 impl Component for PlaylistQueue {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
-            Action::Up => self.change_item(false),
-            Action::Down => self.change_item(true),
-            Action::Confirm => self.select_playlist(),
-            // TODO: Add horizontal text scrolling
-            // Action::Left => todo!(),
-            // Action::Right => todo!(),
+            Action::Local(l) => match l {
+                LocalAction::Up => self.change_item(false),
+                LocalAction::Down => self.change_item(true),
+                LocalAction::Confirm => self.select_playlist(),
+                // TODO: Add horizontal text scrolling
+                _ => {}
+            },
             Action::GetPlaylist(res) => match res {
                 GetPlaylistResponse::Success(full_playlist) => {
                     self.state = CompState::Loaded {

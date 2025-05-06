@@ -1,11 +1,24 @@
 {
   "keybindings": {
     "Common": {
-	  "<Up>": "Up",
-	  "<Down>": "Down",
-	  "<Left>": "Left",
-	  "<Right>": "Right",
-	  "<Enter>": "Confirm",
+	  "<Up>": {
+		  "Local": "Up"
+	  },
+	  "<Down>":{
+		  "Local": "Down"
+	  },
+	  "<Left>":{
+		  "Local": "Left"
+	  },
+	  "<Right>":{
+		  "Local": "Right"
+	  },
+	  "<Enter>":{
+		  "Local": "Confirm"
+	  },
+	  "<Escape>":{
+		  "Local": "Cancel"
+	  },
     },
   },
   // Use legacy authentication that sends the password instead of token and salt

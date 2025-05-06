@@ -9,7 +9,15 @@ use serde::{Deserialize, Serialize};
 use strum::Display;
 
 use crate::queryworker::query::Query;
-
+#[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
+pub enum LocalAction {
+    Up,
+    Down,
+    Left,
+    Right,
+    Confirm,
+    Cancel,
+}
 #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
 pub enum Action {
     Tick,
@@ -22,11 +30,7 @@ pub enum Action {
     Error(String),
     Help,
 
-    Up,
-    Down,
-    Left,
-    Right,
-    Confirm,
+    Local(LocalAction),
 
     SelectPlaylist { key: String },
 

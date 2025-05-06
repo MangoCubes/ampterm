@@ -1,7 +1,7 @@
 use crate::{
     action::{
         getplaylists::{GetPlaylistsResponse, SimplePlaylist},
-        Action,
+        Action, LocalAction,
     },
     components::Component,
     queryworker::query::Query,
@@ -81,12 +81,13 @@ impl PlaylistList {
 impl Component for PlaylistList {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
-            Action::Up => self.change_item(false),
-            Action::Down => self.change_item(true),
-            Action::Confirm => self.select_playlist(),
-            // TODO: Add horizontal text scrolling
-            // Action::Left => todo!(),
-            // Action::Right => todo!(),
+            Action::Local(l) => match l {
+                LocalAction::Up => self.change_item(false),
+                LocalAction::Down => self.change_item(true),
+                LocalAction::Confirm => self.select_playlist(),
+                // TODO: Add horizontal text scrolling
+                _ => {}
+            },
             Action::GetPlaylists(res) => match res {
                 GetPlaylistsResponse::Success(simple_playlists) => {
                     self.state = CompState::Loaded {

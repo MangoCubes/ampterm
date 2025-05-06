@@ -37,6 +37,8 @@ pub enum Action {
     MoveUp,
     MoveDown,
 
+    EndKeySeq,
+
     SelectPlaylist { key: String },
 
     Query(Query),

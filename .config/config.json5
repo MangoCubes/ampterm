@@ -1,10 +1,10 @@
 {
   "keybindings": {
     "Common": {
-	  "<Shift-Left>": "MoveLeft",
-	  "<Shift-Right>": "MoveRight",
-	  "<Shift-Up>": "MoveUp",
-	  "<Shift-Down>": "MoveDown",
+	  "<Ctrl-w><Left>": "MoveLeft",
+	  "<Ctrl-w><Right>": "MoveRight",
+	  "<Ctrl-w><Up>": "MoveUp",
+	  "<Ctrl-w><Down>": "MoveDown",
 	  "<Up>": {
 		  "Local": "Up"
 	  },
@@ -20,9 +20,10 @@
 	  "<Enter>":{
 		  "Local": "Confirm"
 	  },
-	  "<Esc>":{
+	  "<Q>":{
 		  "Local": "Cancel"
 	  },
+	  "<Esc>":"EndKeySeq",
     },
   },
   // Use legacy authentication that sends the password instead of token and salt

@@ -22,7 +22,7 @@ pub struct App {
     should_quit: bool,
     should_suspend: bool,
     mode: Mode,
-    last_tick_key_events: Vec<KeyEvent>,
+    key_stack: Vec<KeyEvent>,
     action_tx: mpsc::UnboundedSender<Action>,
     action_rx: mpsc::UnboundedReceiver<Action>,
     query_tx: mpsc::UnboundedSender<Query>,
@@ -50,7 +50,7 @@ impl App {
             should_suspend: false,
             config,
             mode: Mode::Common,
-            last_tick_key_events: Vec::new(),
+            key_stack: Vec::new(),
             action_tx,
             action_rx,
             query_tx,
@@ -109,22 +109,17 @@ impl App {
         let Some(keymap) = self.config.keybindings.get(&self.mode) else {
             return Ok(());
         };
-        match keymap.get(&vec![key]) {
-            Some(action) => {
-                info!("Got action: {action:?}");
-                action_tx.send(action.clone())?;
-            }
-            _ => {
-                // If the key was not handled as a single key action,
-                // then consider it for multi-key combinations.
-                self.last_tick_key_events.push(key);
 
-                // Check for multi-key combinations
-                if let Some(action) = keymap.get(&self.last_tick_key_events) {
-                    info!("Got action: {action:?}");
-                    action_tx.send(action.clone())?;
-                }
-            }
+        self.key_stack.push(key);
+
+        if let Some(action) = keymap.get(&self.key_stack) {
+            info!("Got action: {action:?}");
+            action_tx.send(action.clone())?;
+            self.key_stack.drain(..);
+        } else if let Some(action) = keymap.get(&vec![key]) {
+            info!("Got action: {action:?}");
+            action_tx.send(action.clone())?;
+            self.key_stack.drain(..);
         }
         Ok(())
     }
@@ -136,8 +131,8 @@ impl App {
             };
 
             match action {
-                Action::Tick => {
-                    self.last_tick_key_events.drain(..);
+                Action::EndKeySeq => {
+                    self.key_stack.drain(..);
                 }
                 Action::Quit => self.should_quit = true,
                 Action::Suspend => self.should_suspend = true,

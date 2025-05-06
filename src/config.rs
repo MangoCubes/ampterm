@@ -11,7 +11,7 @@ use ratatui::style::{Color, Modifier, Style};
 use serde::{de::Deserializer, Deserialize};
 use tracing::error;
 
-use crate::{action::Action, app::Mode};
+use crate::{action::Action, app::Mode, trace_dbg};
 
 const CONFIG: &str = include_str!("../.config/config.json5");
 
@@ -170,7 +170,7 @@ impl<'de> Deserialize<'de> for KeyBindings {
             })
             .collect();
 
-        Ok(KeyBindings(keybindings))
+        Ok(KeyBindings(trace_dbg!(keybindings)))
     }
 }
 

@@ -70,5 +70,9 @@ pub struct FullPlaylist {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum GetPlaylistResponse {
     Success(FullPlaylist),
-    Failure { name: Option<String>, msg: String },
+    Failure {
+        id: String,
+        name: Option<String>,
+        msg: String,
+    },
 }

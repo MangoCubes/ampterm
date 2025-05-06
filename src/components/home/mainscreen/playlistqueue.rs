@@ -18,9 +18,13 @@ use ratatui::{
 use tokio::sync::mpsc::UnboundedSender;
 
 enum CompState {
-    Loading(String),
+    Loading {
+        id: String,
+        name: String,
+    },
     NotSelected,
     Error {
+        id: String,
         name: String,
         error: String,
     },
@@ -59,9 +63,9 @@ impl Component for PlaylistQueue {
         match action {
             Action::Local(l) => {
                 if let CompState::Loaded {
-                    name: _,
+                    name,
                     comp: _,
-                    list: _,
+                    list,
                     state,
                 } = &mut self.state
                 {
@@ -71,14 +75,30 @@ impl Component for PlaylistQueue {
                         LocalAction::Confirm => self.select_music(),
                         LocalAction::Top => state.select_first(),
                         LocalAction::Bottom => state.select_last(),
+                        LocalAction::Refresh => {
+                            let _ = self.action_tx.send(Action::Query(Query::GetPlaylist {
+                                name: Some(name.to_string()),
+                                id: list.id.clone(),
+                            }));
+                        }
                         // TODO: Add horizontal text scrolling
                         _ => {}
+                    }
+                } else if let CompState::Error { id, name, error: _ } = &self.state {
+                    if let LocalAction::Refresh = l {
+                        let _ = self.action_tx.send(Action::Query(Query::GetPlaylist {
+                            name: Some(name.to_string()),
+                            id: id.to_string(),
+                        }));
                     }
                 }
             }
             Action::Query(q) => {
                 if let Query::GetPlaylist { name, id } = q {
-                    self.state = CompState::Loading(name.unwrap_or(id));
+                    self.state = CompState::Loading {
+                        id: id.clone(),
+                        name: name.unwrap_or(id),
+                    }
                 }
             }
             Action::GetPlaylist(res) => match res {
@@ -90,8 +110,9 @@ impl Component for PlaylistQueue {
                         state: ListState::default().with_selected(Some(0)),
                     }
                 }
-                GetPlaylistResponse::Failure { name, msg } => {
+                GetPlaylistResponse::Failure { id, name, msg } => {
                     self.state = CompState::Error {
+                        id,
                         name: name.unwrap_or("Playlist Queue".to_string()),
                         error: msg,
                     };
@@ -114,7 +135,7 @@ impl Component for PlaylistQueue {
                     .wrap(Wrap { trim: false }),
                 area,
             ),
-            CompState::Loading(name) => frame.render_widget(
+            CompState::Loading { id: _, name } => frame.render_widget(
                 Paragraph::new("Loading...")
                     .block(Block::bordered().title(name.clone()).padding(Padding::new(
                         0,
@@ -126,7 +147,7 @@ impl Component for PlaylistQueue {
                     .wrap(Wrap { trim: false }),
                 area,
             ),
-            CompState::Error { name, error } => frame.render_widget(
+            CompState::Error { id: _, name, error } => frame.render_widget(
                 Paragraph::new(vec![
                     Line::raw("Error!"),
                     Line::raw(format!("{}", error)),

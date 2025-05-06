@@ -19,6 +19,7 @@ pub enum LocalAction {
     Cancel,
     Top,
     Bottom,
+    Refresh,
 }
 #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
 pub enum Action {

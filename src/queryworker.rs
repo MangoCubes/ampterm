@@ -209,6 +209,7 @@ impl QueryWorker {
 
                                         GetPlaylist::Failed { error } => tx.send(
                                             Action::GetPlaylist(GetPlaylistResponse::Failure {
+                                                id,
                                                 msg: error.to_string(),
                                                 name,
                                             }),
@@ -216,6 +217,7 @@ impl QueryWorker {
                                     },
                                     Err(e) => {
                                         tx.send(Action::GetPlaylist(GetPlaylistResponse::Failure {
+                                            id,
                                             msg: e.to_string(),
                                             name,
                                         }))

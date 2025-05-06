@@ -11,6 +11,9 @@
 	  "<g><g>": {
 		  "Local": "Top"
 	  },
+	  "<Shift-r>": {
+		  "Local": "Refresh"
+	  },
 	  "<Up>": {
 		  "Local": "Up"
 	  },

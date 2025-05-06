@@ -45,6 +45,18 @@ impl Component for MainScreen {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match &action {
             Action::SelectPlaylist { key } => self.select_playlist(),
+            Action::MoveLeft => {
+                self.state = match self.state {
+                    CurrentlySelected::Playlists => CurrentlySelected::Queue,
+                    CurrentlySelected::Queue => CurrentlySelected::Playlists,
+                }
+            }
+            Action::MoveRight => {
+                self.state = match self.state {
+                    CurrentlySelected::Playlists => CurrentlySelected::Queue,
+                    CurrentlySelected::Queue => CurrentlySelected::Playlists,
+                }
+            }
             _ => {}
         };
         match &action {

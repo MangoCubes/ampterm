@@ -32,6 +32,11 @@ pub enum Action {
 
     Local(LocalAction),
 
+    MoveLeft,
+    MoveRight,
+    MoveUp,
+    MoveDown,
+
     SelectPlaylist { key: String },
 
     Query(Query),

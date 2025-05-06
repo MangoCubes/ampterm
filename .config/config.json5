@@ -1,6 +1,10 @@
 {
   "keybindings": {
     "Common": {
+	  "<Shift-Left>": "MoveLeft",
+	  "<Shift-Right>": "MoveRight",
+	  "<Shift-Up>": "MoveUp",
+	  "<Shift-Down>": "MoveDown",
 	  "<Up>": {
 		  "Local": "Up"
 	  },
@@ -16,7 +20,7 @@
 	  "<Enter>":{
 		  "Local": "Confirm"
 	  },
-	  "<Escape>":{
+	  "<Esc>":{
 		  "Local": "Cancel"
 	  },
     },

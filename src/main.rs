@@ -12,6 +12,7 @@ mod config;
 mod errors;
 mod logging;
 mod osclient;
+mod playerworker;
 mod queryworker;
 mod tui;
 

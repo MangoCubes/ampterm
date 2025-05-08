@@ -9,9 +9,6 @@ use response::wrapper::Wrapper;
 use serde::de::DeserializeOwned;
 use serde_json::from_str;
 use std::fmt::Debug;
-use stream_download::http::HttpStream;
-use stream_download::storage::temp::TempStorageProvider;
-use stream_download::{Settings, StreamDownload};
 
 pub mod error;
 pub mod response;
@@ -49,8 +46,8 @@ pub struct OSClient {
 // If Failure, the server has decided not to give the client the information requested for various
 // reasons, which can be found within the response.
 //
-// Currently, there is only one exception to this rule, which is client creation
-// It returns Result<Client, CreateClientError>
+// Currently, there are two exception to this rule,
+// 1. Client creation: Returns Result<Client, CreateClientError>
 // This one always return client if
 //   A. The library has worked successfully
 //   B. The ping is successful
@@ -58,10 +55,13 @@ pub struct OSClient {
 // In other words, the Failure is bundled with ExternalError instead of with Success
 // This is because I would expect client creating function to return the client, and not a Ping
 // response.
+//
+// 2. Any queries that do not require queries
+// stream_link is an example of this. It returns a link from which a client can stream data
 
 impl OSClient {
-    pub async fn stream(&self, id: String) -> Result<(), ExternalError> {
-        Ok(())
+    pub fn stream_link(&self, id: String) -> Url {
+        self.get_path("stream", Some(vec![("id", &id)]))
     }
     pub async fn get_playlist(&self, id: String) -> Result<GetPlaylist, ExternalError> {
         self.query_auth::<GetPlaylist>(Method::GET, "getPlaylist", Some(vec![("id", &id)]))

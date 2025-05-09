@@ -21,6 +21,7 @@ use stream_download::{Settings, StreamDownload};
 
 enum WorkerState {
     Playing {
+        paused: bool,
         token: CancellationToken,
         sink: Arc<Sink>,
     },
@@ -37,7 +38,30 @@ pub struct PlayerWorker {
 }
 
 impl PlayerWorker {
-    pub async fn start_stream(&mut self, url: String) -> Result<(), StreamError> {
+    fn continue_stream(&mut self) -> Result<(), StreamError> {
+        if let WorkerState::Playing {
+            paused,
+            token: _,
+            sink: _,
+        } = &mut self.state
+        {
+            *paused = false;
+        }
+        Ok(())
+    }
+
+    fn pause_stream(&mut self) -> Result<(), StreamError> {
+        if let WorkerState::Playing {
+            paused,
+            token: _,
+            sink: _,
+        } = &mut self.state
+        {
+            *paused = true;
+        }
+        Ok(())
+    }
+    async fn start_stream(&mut self, url: String) -> Result<(), StreamError> {
         let url = url.parse::<Url>().map_err(|_| StreamError::parse(url))?;
         let stream = HttpStream::<stream_download::http::reqwest::Client>::create(url)
             .await
@@ -60,16 +84,17 @@ impl PlayerWorker {
             }
             tokio::select! {
                 _ = token.cancelled() => {
-                    chan.send(PlayerAction::Stop);
+                    let _ = chan.send(PlayerAction::Stop);
                 }
                 _ = start(sink_ref) => {
-                    chan.send(PlayerAction::Stop);
+                    let _ = chan.send(PlayerAction::Stop);
                 }
             }
         });
         self.state = WorkerState::Playing {
             token: token_clone,
             sink,
+            paused: false,
         };
         Ok(())
     }
@@ -81,9 +106,9 @@ impl PlayerWorker {
             };
             match event {
                 PlayerAction::Stop => todo!(),
-                PlayerAction::Pause => todo!(),
+                PlayerAction::Pause => self.pause_stream(),
                 PlayerAction::Play { url } => self.start_stream(url).await,
-                PlayerAction::Continue => todo!(),
+                PlayerAction::Continue => self.continue_stream(),
                 PlayerAction::Kill => todo!(),
             };
             if self.should_quit {

@@ -54,4 +54,5 @@ pub enum Action {
     Ping(PingResponse),
     GetPlaylists(GetPlaylistsResponse),
     GetPlaylist(GetPlaylistResponse),
+    NowPlaying,
 }

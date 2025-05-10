@@ -18,7 +18,7 @@ use stream_download::source::SourceStream;
 use stream_download::storage::temp::TempStorageProvider;
 use stream_download::{Settings, StreamDownload};
 
-struct PlayState {
+pub struct PlayState {
     url: String,
 }
 
@@ -92,11 +92,13 @@ impl PlayerWorker {
                     tokio::spawn(async move {
                         match PlayerWorker::start_stream(sink, url).await {
                             Ok(_) => {
+                                let _ = action_tx.send(Action::NowPlaying);
                                 let _ = player_tx.send(PlayerAction::Playing);
                             }
 
                             Err(e) => {
                                 let _ = action_tx.send(Action::StreamError(e.to_string()));
+                                let _ = player_tx.send(PlayerAction::Cancel);
                             }
                         }
                     });
@@ -111,6 +113,9 @@ impl PlayerWorker {
                             "Stream was cancelled whilst fetching.".to_string(),
                         ));
                     }
+                }
+                PlayerAction::Cancel => {
+                    self.state = WorkerState::Stopped;
                 }
             };
             if self.should_quit {

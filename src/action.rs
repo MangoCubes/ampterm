@@ -8,7 +8,7 @@ use ping::PingResponse;
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
-use crate::queryworker::query::Query;
+use crate::{playerworker::player::PlayerAction, queryworker::query::Query};
 #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
 pub enum LocalAction {
     Up,
@@ -45,6 +45,8 @@ pub enum Action {
     SelectPlaylist { key: String },
 
     Query(Query),
+
+    Player(PlayerAction),
 
     Ping(PingResponse),
     GetPlaylists(GetPlaylistsResponse),

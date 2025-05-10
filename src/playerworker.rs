@@ -6,7 +6,7 @@ use std::sync::Arc;
 use color_eyre::{eyre, Result};
 use player::PlayerAction;
 use reqwest::{Client, Url};
-use rodio::Sink;
+use rodio::{OutputStream, OutputStreamHandle, Sink};
 use stream_download::http::HttpStream;
 use streamerror::StreamError;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
@@ -23,9 +23,13 @@ enum WorkerState {
     Playing {
         paused: bool,
         token: CancellationToken,
-        sink: Arc<Sink>,
     },
     Stopped,
+}
+
+struct OutputDevice {
+    stream: OutputStream,
+    handle: OutputStreamHandle,
 }
 
 pub struct PlayerWorker {
@@ -35,33 +39,24 @@ pub struct PlayerWorker {
     action_tx: UnboundedSender<Action>,
     should_quit: bool,
     config: Config,
+    handle: Arc<OutputStreamHandle>,
 }
 
 impl PlayerWorker {
     fn continue_stream(&mut self) -> Result<(), StreamError> {
-        if let WorkerState::Playing {
-            paused,
-            token: _,
-            sink: _,
-        } = &mut self.state
-        {
+        if let WorkerState::Playing { paused, token: _ } = &mut self.state {
             *paused = false;
         }
         Ok(())
     }
 
     fn pause_stream(&mut self) -> Result<(), StreamError> {
-        if let WorkerState::Playing {
-            paused,
-            token: _,
-            sink: _,
-        } = &mut self.state
-        {
+        if let WorkerState::Playing { paused, token: _ } = &mut self.state {
             *paused = true;
         }
         Ok(())
     }
-    async fn start_stream(&mut self, url: String) -> Result<(), StreamError> {
+    async fn start_stream(handle: Arc<OutputStreamHandle>, url: String) -> Result<(), StreamError> {
         let url = url.parse::<Url>().map_err(|_| StreamError::parse(url))?;
         let stream = HttpStream::<stream_download::http::reqwest::Client>::create(url)
             .await
@@ -70,32 +65,12 @@ impl PlayerWorker {
             StreamDownload::from_stream(stream, TempStorageProvider::new(), Settings::default())
                 .await
                 .map_err(|e| StreamError::stream_init(e))?;
-        let token = CancellationToken::new();
-        let token_clone = token.clone();
-        let chan = self.player_tx.clone();
-        let (_stream, handle) =
-            rodio::OutputStream::try_default().map_err(|e| StreamError::rodio(e))?;
-        let sink = Arc::new(rodio::Sink::try_new(&handle).map_err(|e| StreamError::play(e))?);
-        sink.append(rodio::Decoder::new(reader).map_err(|e| StreamError::decode(e))?);
-        let sink_ref = sink.clone();
-        tokio::spawn(async move {
-            async fn start(sink: Arc<Sink>) {
-                sink.sleep_until_end();
-            }
-            tokio::select! {
-                _ = token.cancelled() => {
-                    let _ = chan.send(PlayerAction::Stop);
-                }
-                _ = start(sink_ref) => {
-                    let _ = chan.send(PlayerAction::Stop);
-                }
-            }
+        let sink = Arc::from(rodio::Sink::try_new(&handle).unwrap());
+        let handle = tokio::task::spawn_blocking(move || {
+            sink.append(rodio::Decoder::new(reader).unwrap());
+            sink.sleep_until_end();
         });
-        self.state = WorkerState::Playing {
-            token: token_clone,
-            sink,
-            paused: false,
-        };
+        handle.await;
         Ok(())
     }
     pub async fn run(&mut self) -> Result<()> {
@@ -104,10 +79,23 @@ impl PlayerWorker {
             let Some(event) = self.player_rx.recv().await else {
                 break;
             };
-            match event {
+            let a = match event {
                 PlayerAction::Stop => todo!(),
                 PlayerAction::Pause => self.pause_stream(),
-                PlayerAction::Play { url } => self.start_stream(url).await,
+                PlayerAction::Play { url } => {
+                    let token = CancellationToken::new();
+                    let token_clone = token.clone();
+
+                    self.state = WorkerState::Playing {
+                        token: token_clone,
+                        paused: false,
+                    };
+
+                    let handle = self.handle.clone();
+
+                    tokio::spawn(async move { PlayerWorker::start_stream(handle, url).await });
+                    Ok(())
+                }
                 PlayerAction::Continue => self.continue_stream(),
                 PlayerAction::Kill => todo!(),
             };
@@ -120,7 +108,11 @@ impl PlayerWorker {
 }
 
 impl PlayerWorker {
-    pub fn new(sender: UnboundedSender<Action>, config: Config) -> Self {
+    pub fn new(
+        handle: OutputStreamHandle,
+        sender: UnboundedSender<Action>,
+        config: Config,
+    ) -> Self {
         let (player_tx, player_rx) = mpsc::unbounded_channel();
         Self {
             player_tx,
@@ -128,6 +120,7 @@ impl PlayerWorker {
             action_tx: sender,
             should_quit: false,
             config,
+            handle: Arc::from(handle),
             state: WorkerState::Stopped,
         }
     }

@@ -11,5 +11,6 @@ pub enum Query {
     SetCredential(Credential),
     GetPlaylists,
     GetPlaylist { name: Option<String>, id: String },
+    PlayId { id: String },
     Ping,
 }

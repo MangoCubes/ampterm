@@ -1,10 +1,10 @@
 use crate::{
     action::{
         getplaylist::{FullPlaylist, GetPlaylistResponse},
-        getplaylists::{GetPlaylistsResponse, SimplePlaylist},
         Action, LocalAction,
     },
     components::Component,
+    playerworker::player::PlayerAction,
     queryworker::query::Query,
 };
 use color_eyre::Result;
@@ -42,7 +42,20 @@ pub struct PlaylistQueue {
 }
 
 impl PlaylistQueue {
-    fn select_music(&self) {}
+    fn select_music(&self) {
+        if let CompState::Loaded {
+            name: _,
+            comp: _,
+            list,
+            state,
+        } = &self.state
+        {
+            if let Some(pos) = state.selected() {
+                let id = list.entry[pos].id.clone();
+                let _ = self.action_tx.send(Action::Query(Query::PlayId { id }));
+            }
+        }
+    }
     fn gen_list(list: &FullPlaylist) -> List<'static> {
         let items: Vec<String> = list.entry.iter().map(|p| p.title.clone()).collect();
         List::new(items)

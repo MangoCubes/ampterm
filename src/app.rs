@@ -10,6 +10,7 @@ use crate::{
     action::Action,
     components::{home::Home, Component},
     config::Config,
+    playerworker::{player::PlayerAction, PlayerWorker},
     queryworker::{query::Query, QueryWorker},
     tui::{Event, Tui},
 };
@@ -26,6 +27,8 @@ pub struct App {
     action_tx: mpsc::UnboundedSender<Action>,
     action_rx: mpsc::UnboundedReceiver<Action>,
     query_tx: mpsc::UnboundedSender<Query>,
+    player_tx: mpsc::UnboundedSender<PlayerAction>,
+    stream: rodio::OutputStream,
 }
 
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -42,6 +45,12 @@ impl App {
         let query_tx = qw.get_tx();
         // Start query worker
         tokio::spawn(async move { qw.run().await });
+
+        let (stream, handle) = rodio::OutputStream::try_default().unwrap();
+        let mut pw = PlayerWorker::new(handle, action_tx.clone(), config.clone());
+        let player_tx = pw.get_tx();
+        // Start query worker
+        tokio::spawn(async move { pw.run().await });
         Ok(Self {
             tick_rate,
             frame_rate,
@@ -54,6 +63,8 @@ impl App {
             action_tx,
             action_rx,
             query_tx,
+            player_tx,
+            stream,
         })
     }
 
@@ -142,6 +153,12 @@ impl App {
                 Action::Render => self.render(tui)?,
                 Action::Query(q) => {
                     self.query_tx.send(q.clone())?;
+                    if let Some(ret) = self.component.update(action)? {
+                        self.action_tx.send(ret)?
+                    }
+                }
+                Action::Player(a) => {
+                    self.player_tx.send(a.clone())?;
                     if let Some(ret) = self.component.update(action)? {
                         self.action_tx.send(ret)?
                     }

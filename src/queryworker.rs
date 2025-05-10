@@ -236,7 +236,7 @@ impl QueryWorker {
                         Some(c) => {
                             let url = c.stream_link(id).to_string();
                             self.action_tx
-                                .send(Action::Player(PlayerAction::Play { url }));
+                                .send(Action::Player(PlayerAction::TryPlay { url }));
                         }
                         None => tracing::error!(
                             "Invalid state: Tried querying, but client does not exist!"

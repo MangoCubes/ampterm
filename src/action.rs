@@ -44,6 +44,9 @@ pub enum Action {
 
     SelectPlaylist { key: String },
 
+    PlayerError(String),
+    StreamError(String),
+
     Query(Query),
 
     Player(PlayerAction),

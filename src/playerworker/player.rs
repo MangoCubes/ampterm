@@ -5,7 +5,8 @@ use strum::Display;
 pub enum PlayerAction {
     Stop,
     Pause,
-    Play { url: String },
+    TryPlay { url: String },
     Continue,
     Kill,
+    Playing,
 }

@@ -48,15 +48,11 @@ pub struct PlayerWorker {
 
 impl PlayerWorker {
     fn continue_stream(&mut self) {
-        // if let WorkerState::TryPlay { paused } = &mut self.state {
-        //     *paused = false;
-        // }
+        self.sink.play();
     }
 
     fn pause_stream(&mut self) {
-        // if let WorkerState::TryPlay { paused } = &mut self.state {
-        //     *paused = true;
-        // }
+        self.sink.pause();
     }
     async fn start_stream(sink: Arc<Sink>, url: String) -> Result<(), StreamError> {
         let url = url.parse::<Url>().map_err(|_| StreamError::parse(url))?;
@@ -104,7 +100,7 @@ impl PlayerWorker {
                     });
                 }
                 PlayerAction::Continue => self.continue_stream(),
-                PlayerAction::Kill => todo!(),
+                PlayerAction::Kill => self.should_quit = true,
                 PlayerAction::Playing => {
                     if let WorkerState::TryPlay(s) = &self.state {
                         self.state = WorkerState::Playing(s.clone());

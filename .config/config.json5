@@ -33,6 +33,8 @@
 		  "Local": "Cancel"
 	  },
 	  "<Esc>":"EndKeySeq",
+	  "<s>": "Play",
+	  "<Shift-s>": "Pause"
     },
   },
   // Use legacy authentication that sends the password instead of token and salt

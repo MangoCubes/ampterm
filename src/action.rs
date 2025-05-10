@@ -21,6 +21,7 @@ pub enum LocalAction {
     Bottom,
     Refresh,
 }
+
 #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
 pub enum Action {
     Tick,
@@ -55,4 +56,7 @@ pub enum Action {
     GetPlaylists(GetPlaylistsResponse),
     GetPlaylist(GetPlaylistResponse),
     NowPlaying,
+
+    Pause,
+    Play,
 }

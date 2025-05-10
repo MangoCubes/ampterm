@@ -145,6 +145,18 @@ impl App {
                 Action::EndKeySeq => {
                     self.key_stack.drain(..);
                 }
+                Action::Play => {
+                    self.player_tx.send(PlayerAction::Continue)?;
+                    if let Some(ret) = self.component.update(action)? {
+                        self.action_tx.send(ret)?
+                    }
+                }
+                Action::Pause => {
+                    self.player_tx.send(PlayerAction::Pause)?;
+                    if let Some(ret) = self.component.update(action)? {
+                        self.action_tx.send(ret)?
+                    }
+                }
                 Action::Quit => self.should_quit = true,
                 Action::Suspend => self.should_suspend = true,
                 Action::Resume => self.should_suspend = false,

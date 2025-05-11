@@ -1,0 +1,9 @@
+* ampterm: OpenSubsonic-Compatible TUI Music Player
+TUI music player for your self-hosted music servers that provides OpenSubsonic API
+** How to build
+#+BEGIN_SRC shell
+cargo build --release
+#+END_SRC
+** Notes
+- Name is subject to change
+- I might take out the =OSClient= part of this project to a separate library

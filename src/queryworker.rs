@@ -17,6 +17,7 @@ use crate::osclient::response::getplaylist::GetPlaylist;
 use crate::osclient::response::getplaylists::GetPlaylists;
 use crate::osclient::OSClient;
 use crate::playerworker::player::PlayerAction;
+use crate::playerworker::queueitem::QueueItem;
 use crate::trace_dbg;
 
 pub struct QueryWorker {
@@ -231,12 +232,15 @@ impl QueryWorker {
                         ),
                     };
                 }
-                Query::PlayId { id } => {
+                Query::AddToQueueId { pos, id } => {
                     match &self.client {
                         Some(c) => {
                             let url = c.stream_link(id).to_string();
                             self.action_tx
-                                .send(Action::Player(PlayerAction::TryPlay { url }));
+                                .send(Action::Player(PlayerAction::AddToQueue {
+                                    pos,
+                                    music: QueueItem { url },
+                                }));
                         }
                         None => tracing::error!(
                             "Invalid state: Tried querying, but client does not exist!"

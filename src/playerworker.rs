@@ -120,7 +120,6 @@ impl PlayerWorker {
             match event {
                 PlayerAction::Stop => todo!(),
                 PlayerAction::Pause => self.pause_stream(),
-                PlayerAction::TryPlay { url } => self.play_from_url(url),
                 PlayerAction::Continue => self.continue_stream(),
                 PlayerAction::Kill => self.should_quit = true,
                 PlayerAction::Playing => {
@@ -144,6 +143,9 @@ impl PlayerWorker {
                         // If the queue is empty, then skip should put the player into idle mode.
                         None => self.state = WorkerState::Idle,
                     };
+                }
+                PlayerAction::AddToQueue { music, pos } => {
+                    self.play_from_url(music.url);
                 }
             };
             if self.should_quit {

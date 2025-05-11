@@ -15,6 +15,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 enum CurrentlySelected {
     Playlists,
+    PlaylistQueue,
     Queue,
 }
 
@@ -46,13 +47,15 @@ impl Component for MainScreen {
             Action::SelectPlaylist { key } => self.select_playlist(),
             Action::MoveLeft => {
                 self.state = match self.state {
-                    CurrentlySelected::Playlists => CurrentlySelected::Queue,
+                    CurrentlySelected::Playlists => CurrentlySelected::PlaylistQueue,
+                    CurrentlySelected::PlaylistQueue => CurrentlySelected::Queue,
                     CurrentlySelected::Queue => CurrentlySelected::Playlists,
                 }
             }
             Action::MoveRight => {
                 self.state = match self.state {
-                    CurrentlySelected::Playlists => CurrentlySelected::Queue,
+                    CurrentlySelected::Playlists => CurrentlySelected::PlaylistQueue,
+                    CurrentlySelected::PlaylistQueue => CurrentlySelected::Queue,
                     CurrentlySelected::Queue => CurrentlySelected::Playlists,
                 }
             }
@@ -61,12 +64,17 @@ impl Component for MainScreen {
         match &action {
             Action::Local(_) => match self.state {
                 CurrentlySelected::Playlists => {
-                    if let Some(action) = self.pl_list.update(action.clone())? {
+                    if let Some(action) = self.pl_list.update(action)? {
+                        self.action_tx.send(action)?;
+                    }
+                }
+                CurrentlySelected::PlaylistQueue => {
+                    if let Some(action) = self.pl_queue.update(action)? {
                         self.action_tx.send(action)?;
                     }
                 }
                 CurrentlySelected::Queue => {
-                    if let Some(action) = self.pl_queue.update(action)? {
+                    if let Some(action) = self.queuelist.update(action)? {
                         self.action_tx.send(action)?;
                     }
                 }
@@ -75,7 +83,10 @@ impl Component for MainScreen {
                 if let Some(action) = self.pl_list.update(action.clone())? {
                     self.action_tx.send(action)?;
                 }
-                if let Some(action) = self.pl_queue.update(action)? {
+                if let Some(action) = self.pl_queue.update(action.clone())? {
+                    self.action_tx.send(action)?;
+                }
+                if let Some(action) = self.queuelist.update(action)? {
                     self.action_tx.send(action)?;
                 }
             }

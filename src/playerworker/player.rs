@@ -21,6 +21,6 @@ pub enum PlayerAction {
     Continue,
     Skip,
     AddToQueue { music: Media, pos: QueueLocation },
-    PlayURL { url: String },
+    PlayURL { music: Media, url: String },
     Kill,
 }

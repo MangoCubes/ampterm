@@ -28,7 +28,6 @@ enum WorkerState {
     Playing {
         token: CancellationToken,
         item: Media,
-        url: Url,
     },
     // Nothing is in the queue, and there are no items being played right now
     Idle,
@@ -79,8 +78,7 @@ impl PlayerWorker {
         });
         Ok(())
     }
-    fn play_from_url(&self, url: String) {
-        let c = url.clone();
+    fn play_from_url(&self, url: String) -> CancellationToken {
         let sink = self.sink.clone();
         let action_tx = self.action_tx.clone();
         let player_tx = self.player_tx.clone();
@@ -108,23 +106,19 @@ impl PlayerWorker {
                 }
             }
         });
+        token
     }
     fn skip(&mut self) {
         match self.queue.pop_front() {
             Some(item) => {
                 // If the player was in the process of fetching an item, cancel it
-                if let WorkerState::Playing {
-                    token,
-                    item: _,
-                    url: _,
-                } = &self.state
-                {
+                if let WorkerState::Playing { token, item: _ } = &self.state {
                     token.cancel();
                 }
                 self.sink.stop();
                 let _ = self
                     .action_tx
-                    .send(Action::Query(Query::GetUrlById { id: item.id }));
+                    .send(Action::Query(Query::GetUrlByMedia { media: item }));
             }
             // If the queue is empty, then skip should put the player into idle mode.
             None => self.state = WorkerState::Idle,
@@ -153,9 +147,16 @@ impl PlayerWorker {
                         if was_empty {
                             self.skip();
                         }
+                    } else {
+                        let _ = self
+                            .action_tx
+                            .send(Action::InQueue(Vec::from(self.queue.clone())));
                     }
                 }
-                PlayerAction::PlayURL { url } => self.play_from_url(url),
+                PlayerAction::PlayURL { music, url } => {
+                    let token = self.play_from_url(url);
+                    self.state = WorkerState::Playing { token, item: music };
+                }
             };
             if self.should_quit {
                 break;

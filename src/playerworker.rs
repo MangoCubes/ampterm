@@ -10,7 +10,9 @@ use reqwest::Url;
 use rodio::{OutputStreamHandle, Sink};
 use stream_download::http::HttpStream;
 use streamerror::StreamError;
+use tokio::select;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
+use tokio_util::sync::CancellationToken;
 
 use crate::action::Action;
 use crate::config::Config;
@@ -32,9 +34,15 @@ impl Clone for QueueItem {
 }
 
 enum WorkerState {
-    TryPlay(QueueItem),
+    // The queue item is queried, and the file is fetched from the server
+    TryPlay {
+        token: CancellationToken,
+        item: QueueItem,
+    },
+    // The fetched file is played
     Playing(QueueItem),
-    Stopped,
+    // Nothing is in the queue, and there are no items being played right now
+    Idle,
 }
 
 pub struct PlayerWorker {
@@ -48,11 +56,6 @@ pub struct PlayerWorker {
     queue: VecDeque<QueueItem>,
 }
 
-// Three actions are available to adding items to the queue
-// 1. Add next
-// 2. Play now
-// 3. Add last
-
 impl PlayerWorker {
     fn continue_stream(&mut self) {
         self.sink.play();
@@ -61,20 +64,62 @@ impl PlayerWorker {
     fn pause_stream(&mut self) {
         self.sink.pause();
     }
-    async fn start_stream(sink: Arc<Sink>, url: String) -> Result<(), StreamError> {
+    async fn load_from_url(
+        url: String,
+    ) -> Result<StreamDownload<TempStorageProvider>, StreamError> {
         let url = url.parse::<Url>().map_err(|_| StreamError::parse(url))?;
         let stream = HttpStream::<stream_download::http::reqwest::Client>::create(url)
             .await
             .map_err(|e| StreamError::stream(e))?;
-        let reader =
+        Ok(
             StreamDownload::from_stream(stream, TempStorageProvider::new(), Settings::default())
                 .await
-                .map_err(|e| StreamError::stream_init(e))?;
+                .map_err(|e| StreamError::stream_init(e))?,
+        )
+    }
+    async fn start_stream(sink: Arc<Sink>, url: String) -> Result<(), StreamError> {
+        let reader = PlayerWorker::load_from_url(url).await?;
         tokio::task::spawn_blocking(move || {
             sink.append(rodio::Decoder::new(reader).unwrap());
             sink.sleep_until_end();
         });
         Ok(())
+    }
+    fn play_from_url(&mut self, url: String) {
+        let c = url.clone();
+        let sink = self.sink.clone();
+        let action_tx = self.action_tx.clone();
+        let player_tx = self.player_tx.clone();
+        let token = CancellationToken::new();
+        let cloned_token = token.clone();
+
+        tokio::spawn(async move {
+            select! {
+                _ = cloned_token.cancelled() => {
+                    let _ = action_tx.send(Action::StreamError("Stream cancelled by user.".to_string()));
+                    // Player does not need to do anything more, as cancellation
+                    // happens only when the stream is stopped or skipped
+                }
+                result = PlayerWorker::start_stream(sink, url) => {
+                    match result {
+                        Ok(_) => {
+                            let _ = action_tx.send(Action::NowPlaying);
+                            let _ = player_tx.send(PlayerAction::Playing);
+                        }
+
+                        Err(e) => {
+                            let _ = action_tx.send(Action::StreamError(e.to_string()));
+                            let _ = player_tx.send(PlayerAction::Skip);
+                        }
+                    }
+                }
+            }
+        });
+
+        self.state = WorkerState::TryPlay {
+            token,
+            item: QueueItem { url: c },
+        };
     }
     pub async fn run(&mut self) -> Result<()> {
         trace_dbg!("Starting PlayerWorker...");
@@ -85,41 +130,30 @@ impl PlayerWorker {
             match event {
                 PlayerAction::Stop => todo!(),
                 PlayerAction::Pause => self.pause_stream(),
-                PlayerAction::TryPlay { url } => {
-                    let c = url.clone();
-                    let sink = self.sink.clone();
-                    let action_tx = self.action_tx.clone();
-                    let player_tx = self.player_tx.clone();
-
-                    tokio::spawn(async move {
-                        match PlayerWorker::start_stream(sink, url).await {
-                            Ok(_) => {
-                                let _ = action_tx.send(Action::NowPlaying);
-                                let _ = player_tx.send(PlayerAction::Playing);
-                            }
-
-                            Err(e) => {
-                                let _ = action_tx.send(Action::StreamError(e.to_string()));
-                                let _ = player_tx.send(PlayerAction::Cancel);
-                            }
-                        }
-                    });
-
-                    self.state = WorkerState::TryPlay(QueueItem { url: c });
-                }
+                PlayerAction::TryPlay { url } => self.play_from_url(url),
                 PlayerAction::Continue => self.continue_stream(),
                 PlayerAction::Kill => self.should_quit = true,
                 PlayerAction::Playing => {
-                    if let WorkerState::TryPlay(s) = &self.state {
-                        self.state = WorkerState::Playing(s.clone());
+                    if let WorkerState::TryPlay { token, item } = &self.state {
+                        self.state = WorkerState::Playing(item.clone());
                     } else {
                         let _ = self.action_tx.send(Action::PlayerError(
-                            "Stream was cancelled whilst fetching.".to_string(),
+                            "Invalid state transition to Playing.".to_string(),
                         ));
                     }
                 }
-                PlayerAction::Cancel => {
-                    self.state = WorkerState::Stopped;
+                PlayerAction::Skip => {
+                    match self.queue.pop_front() {
+                        Some(item) => {
+                            // If the player was in the process of fetching an item, cancel it
+                            if let WorkerState::TryPlay { token, item: _ } = &self.state {
+                                token.cancel();
+                            }
+                            self.sink.stop();
+                        }
+                        // If the queue is empty, then skip should put the player into idle mode.
+                        None => self.state = WorkerState::Idle,
+                    };
                 }
             };
             if self.should_quit {
@@ -145,7 +179,7 @@ impl PlayerWorker {
             should_quit: false,
             config,
             sink,
-            state: WorkerState::Stopped,
+            state: WorkerState::Idle,
             queue: VecDeque::new(),
         }
     }

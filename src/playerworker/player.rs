@@ -9,5 +9,5 @@ pub enum PlayerAction {
     Continue,
     Kill,
     Playing,
-    Cancel,
+    Skip,
 }

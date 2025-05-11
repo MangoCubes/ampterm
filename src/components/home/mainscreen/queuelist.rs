@@ -23,7 +23,7 @@ impl QueueList {
     fn gen_list(list: &Vec<Media>) -> List<'static> {
         let items: Vec<String> = list.iter().map(|p| p.title.clone()).collect();
         List::new(items)
-            .block(Block::bordered().title("Queue"))
+            .block(Block::bordered().title("Next Up"))
             .highlight_style(Style::new().reversed())
             .highlight_symbol(">")
     }

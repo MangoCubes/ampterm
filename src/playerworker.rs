@@ -129,6 +129,9 @@ impl PlayerWorker {
             // If the queue is empty, then skip should put the player into idle mode.
             None => self.state = WorkerState::Idle,
         };
+        let _ = self
+            .action_tx
+            .send(Action::InQueue(Vec::from(self.queue.clone())));
     }
     pub async fn run(&mut self) -> Result<()> {
         trace_dbg!("Starting PlayerWorker...");

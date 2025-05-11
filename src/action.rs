@@ -2,7 +2,7 @@ pub mod getplaylist;
 pub mod getplaylists;
 pub mod ping;
 
-use getplaylist::GetPlaylistResponse;
+use getplaylist::{GetPlaylistResponse, Media};
 use getplaylists::GetPlaylistsResponse;
 use ping::PingResponse;
 use serde::{Deserialize, Serialize};
@@ -64,4 +64,7 @@ pub enum Action {
     // These are actions sent to the components, and are then sent to the PlayerWorker
     Pause,
     Play,
+
+    // This action is used to synchronise the state of PlayerWorker with the components
+    InQueue(Vec<Media>),
 }

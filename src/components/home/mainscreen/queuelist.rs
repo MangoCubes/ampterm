@@ -20,8 +20,8 @@ pub struct QueueList {
 }
 
 impl QueueList {
-    fn gen_list(list: &Vec<Media>) -> List<'static> {
-        let items: Vec<String> = list.iter().map(|p| p.title.clone()).collect();
+    fn gen_list(&self) -> List<'static> {
+        let items: Vec<String> = self.list.iter().map(|p| p.title.clone()).collect();
         List::new(items)
             .block(Block::bordered().title("Next Up"))
             .highlight_style(Style::new().reversed())
@@ -31,7 +31,10 @@ impl QueueList {
         let empty = vec![];
         Self {
             state: ListState::default(),
-            comp: QueueList::gen_list(&empty),
+            comp: List::default()
+                .block(Block::bordered().title("Next Up"))
+                .highlight_style(Style::new().reversed())
+                .highlight_symbol(">"),
             list: empty,
             action_tx,
         }
@@ -40,6 +43,10 @@ impl QueueList {
 
 impl Component for QueueList {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
+        if let Action::InQueue(q) = action {
+            self.list = q;
+            self.comp = self.gen_list()
+        }
         Ok(None)
     }
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {

@@ -1,5 +1,4 @@
 pub mod player;
-pub mod queueitem;
 pub mod streamerror;
 
 use std::collections::VecDeque;
@@ -7,7 +6,6 @@ use std::sync::Arc;
 
 use color_eyre::Result;
 use player::PlayerAction;
-use queueitem::QueueItem;
 use reqwest::Url;
 use rodio::{OutputStreamHandle, Sink};
 use stream_download::http::HttpStream;
@@ -16,21 +14,22 @@ use tokio::select;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use tokio_util::sync::CancellationToken;
 
+use crate::action::getplaylist::Media;
 use crate::action::Action;
 use crate::config::Config;
+use crate::queryworker::query::Query;
 use crate::trace_dbg;
 use stream_download::source::SourceStream;
 use stream_download::storage::temp::TempStorageProvider;
 use stream_download::{Settings, StreamDownload};
 
 enum WorkerState {
-    // The queue item is queried, and the file is fetched from the server
-    TryPlay {
-        token: CancellationToken,
-        item: QueueItem,
-    },
     // The fetched file is played
-    Playing(QueueItem),
+    Playing {
+        token: CancellationToken,
+        item: Media,
+        url: Url,
+    },
     // Nothing is in the queue, and there are no items being played right now
     Idle,
 }
@@ -43,7 +42,7 @@ pub struct PlayerWorker {
     should_quit: bool,
     config: Config,
     sink: Arc<Sink>,
-    queue: VecDeque<QueueItem>,
+    queue: VecDeque<Media>,
 }
 
 impl PlayerWorker {
@@ -67,15 +66,20 @@ impl PlayerWorker {
                 .map_err(|e| StreamError::stream_init(e))?,
         )
     }
-    async fn start_stream(sink: Arc<Sink>, url: String) -> Result<(), StreamError> {
+    async fn start_stream(
+        sink: Arc<Sink>,
+        player_tx: UnboundedSender<PlayerAction>,
+        url: String,
+    ) -> Result<(), StreamError> {
         let reader = PlayerWorker::load_from_url(url).await?;
         tokio::task::spawn_blocking(move || {
             sink.append(rodio::Decoder::new(reader).unwrap());
             sink.sleep_until_end();
+            let _ = player_tx.send(PlayerAction::Skip);
         });
         Ok(())
     }
-    fn play_from_url(&mut self, url: String) {
+    fn play_from_url(&self, url: String) {
         let c = url.clone();
         let sink = self.sink.clone();
         let action_tx = self.action_tx.clone();
@@ -90,11 +94,10 @@ impl PlayerWorker {
                     // Player does not need to do anything more, as cancellation
                     // happens only when the stream is stopped or skipped
                 }
-                result = PlayerWorker::start_stream(sink, url) => {
+                result = PlayerWorker::start_stream(sink, player_tx.clone(), url) => {
                     match result {
                         Ok(_) => {
-                            let _ = action_tx.send(Action::NowPlaying);
-                            let _ = player_tx.send(PlayerAction::Playing);
+                            // let _ = action_tx.send(Action::NowPlaying);
                         }
 
                         Err(e) => {
@@ -105,10 +108,26 @@ impl PlayerWorker {
                 }
             }
         });
-
-        self.state = WorkerState::TryPlay {
-            token,
-            item: QueueItem { url: c },
+    }
+    fn skip(&mut self) {
+        match self.queue.pop_front() {
+            Some(item) => {
+                // If the player was in the process of fetching an item, cancel it
+                if let WorkerState::Playing {
+                    token,
+                    item: _,
+                    url: _,
+                } = &self.state
+                {
+                    token.cancel();
+                }
+                self.sink.stop();
+                let _ = self
+                    .action_tx
+                    .send(Action::Query(Query::GetUrlById { id: item.id }));
+            }
+            // If the queue is empty, then skip should put the player into idle mode.
+            None => self.state = WorkerState::Idle,
         };
     }
     pub async fn run(&mut self) -> Result<()> {
@@ -122,31 +141,18 @@ impl PlayerWorker {
                 PlayerAction::Pause => self.pause_stream(),
                 PlayerAction::Continue => self.continue_stream(),
                 PlayerAction::Kill => self.should_quit = true,
-                PlayerAction::Playing => {
-                    if let WorkerState::TryPlay { token, item } = &self.state {
-                        self.state = WorkerState::Playing(item.clone());
-                    } else {
-                        let _ = self.action_tx.send(Action::PlayerError(
-                            "Invalid state transition to Playing.".to_string(),
-                        ));
+                PlayerAction::Skip => self.skip(),
+                PlayerAction::AddToQueue { music, pos } => {
+                    // TODO: Change add location based on pos
+                    let was_empty = self.queue.is_empty();
+                    self.queue.push_back(music);
+                    if let WorkerState::Idle = self.state {
+                        if was_empty {
+                            self.skip();
+                        }
                     }
                 }
-                PlayerAction::Skip => {
-                    match self.queue.pop_front() {
-                        Some(item) => {
-                            // If the player was in the process of fetching an item, cancel it
-                            if let WorkerState::TryPlay { token, item: _ } = &self.state {
-                                token.cancel();
-                            }
-                            self.sink.stop();
-                        }
-                        // If the queue is empty, then skip should put the player into idle mode.
-                        None => self.state = WorkerState::Idle,
-                    };
-                }
-                PlayerAction::AddToQueue { music, pos } => {
-                    self.play_from_url(music.url);
-                }
+                PlayerAction::PlayURL { url } => self.play_from_url(url),
             };
             if self.should_quit {
                 break;

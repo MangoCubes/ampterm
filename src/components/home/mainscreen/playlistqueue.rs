@@ -4,7 +4,7 @@ use crate::{
         Action, LocalAction,
     },
     components::Component,
-    playerworker::player::QueueLocation,
+    playerworker::player::{PlayerAction, QueueLocation},
     queryworker::query::Query,
 };
 use color_eyre::Result;
@@ -51,11 +51,12 @@ impl PlaylistQueue {
         } = &self.state
         {
             if let Some(pos) = state.selected() {
-                let id = list.entry[pos].id.clone();
-                let _ = self.action_tx.send(Action::Query(Query::AddToQueueId {
-                    pos: QueueLocation::Start,
-                    id,
-                }));
+                let _ = self
+                    .action_tx
+                    .send(Action::Player(PlayerAction::AddToQueue {
+                        pos: QueueLocation::Start,
+                        music: list.entry[pos].clone(),
+                    }));
             }
         }
     }

@@ -33,30 +33,35 @@ pub enum Action {
     ClearScreen,
     Error(String),
     Help,
-
+    // These actions are limited to a certain focused component only
     Local(LocalAction),
-
+    // Action for moving between boxes
     MoveLeft,
     MoveRight,
     MoveUp,
     MoveDown,
-
+    // Action for deleting all key sequences currently stored
+    // It's like escape in Vim, and Ctrl+G in Emacs
     EndKeySeq,
 
+    // Action sent from the components to the components when a playlist is selected
     SelectPlaylist { key: String },
 
+    // Error sent out from the player to the components
     PlayerError(String),
+    // Error sent out from the player to the components regarding data streaming
     StreamError(String),
 
+    // Query sent from the components to the QueryWorker
     Query(Query),
-
-    Player(PlayerAction),
-
+    // Responses from the queries
     Ping(PingResponse),
     GetPlaylists(GetPlaylistsResponse),
     GetPlaylist(GetPlaylistResponse),
-    NowPlaying,
 
+    // Actions sent from the components to the PlayerWorker
+    Player(PlayerAction),
+    // These are actions sent to the components, and are then sent to the PlayerWorker
     Pause,
     Play,
 }

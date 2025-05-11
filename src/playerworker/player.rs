@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
-use super::queueitem::QueueItem;
+use crate::action::getplaylist::Media;
+
 #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
 pub enum QueueLocation {
     // Music is added before the first element in the queue
@@ -19,11 +20,7 @@ pub enum PlayerAction {
     Pause,
     Continue,
     Skip,
-    AddToQueue {
-        music: QueueItem,
-        pos: QueueLocation,
-    },
-
+    AddToQueue { music: Media, pos: QueueLocation },
+    PlayURL { url: String },
     Kill,
-    Playing,
 }

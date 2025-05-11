@@ -47,9 +47,9 @@ impl Component for MainScreen {
             Action::SelectPlaylist { key } => self.select_playlist(),
             Action::MoveLeft => {
                 self.state = match self.state {
-                    CurrentlySelected::Playlists => CurrentlySelected::PlaylistQueue,
-                    CurrentlySelected::PlaylistQueue => CurrentlySelected::Queue,
-                    CurrentlySelected::Queue => CurrentlySelected::Playlists,
+                    CurrentlySelected::Playlists => CurrentlySelected::Queue,
+                    CurrentlySelected::Queue => CurrentlySelected::PlaylistQueue,
+                    CurrentlySelected::PlaylistQueue => CurrentlySelected::Playlists,
                 }
             }
             Action::MoveRight => {
@@ -99,7 +99,7 @@ impl Component for MainScreen {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let vertical = Layout::vertical([
             Constraint::Min(0),
-            Constraint::Length(5),
+            Constraint::Length(10),
             Constraint::Length(1),
         ]);
         let horizontal = Layout::horizontal([

@@ -1,0 +1,5 @@
+* Architecture
+- This is mostly for me to keep my thoughts in order.
+** When a music item is selected
+- Initially, we have Music struct available
+- When a request is broadcasted, the Music struct is added to the PlayerWorker's queue

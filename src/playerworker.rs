@@ -1,4 +1,5 @@
 pub mod player;
+pub mod queueitem;
 pub mod streamerror;
 
 use std::collections::VecDeque;
@@ -6,6 +7,7 @@ use std::sync::Arc;
 
 use color_eyre::Result;
 use player::PlayerAction;
+use queueitem::QueueItem;
 use reqwest::Url;
 use rodio::{OutputStreamHandle, Sink};
 use stream_download::http::HttpStream;
@@ -20,18 +22,6 @@ use crate::trace_dbg;
 use stream_download::source::SourceStream;
 use stream_download::storage::temp::TempStorageProvider;
 use stream_download::{Settings, StreamDownload};
-
-pub struct QueueItem {
-    url: String,
-}
-
-impl Clone for QueueItem {
-    fn clone(&self) -> Self {
-        Self {
-            url: self.url.clone(),
-        }
-    }
-}
 
 enum WorkerState {
     // The queue item is queried, and the file is fetched from the server

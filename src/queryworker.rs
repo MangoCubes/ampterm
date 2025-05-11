@@ -236,7 +236,8 @@ impl QueryWorker {
                     match &self.client {
                         Some(c) => {
                             let url = c.stream_link(id).to_string();
-                            self.action_tx
+                            let _ = self
+                                .action_tx
                                 .send(Action::Player(PlayerAction::AddToQueue {
                                     pos,
                                     music: QueueItem { url },

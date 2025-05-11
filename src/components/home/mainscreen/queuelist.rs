@@ -1,0 +1,49 @@
+use ratatui::{
+    layout::Rect,
+    style::{Style, Stylize},
+    widgets::{Block, List, ListState},
+    Frame,
+};
+use tokio::sync::mpsc::UnboundedSender;
+
+use crate::{
+    action::{getplaylist::Media, Action},
+    components::Component,
+};
+use color_eyre::Result;
+
+pub struct QueueList {
+    comp: List<'static>,
+    list: Vec<Media>,
+    state: ListState,
+    action_tx: UnboundedSender<Action>,
+}
+
+impl QueueList {
+    fn gen_list(list: &Vec<Media>) -> List<'static> {
+        let items: Vec<String> = list.iter().map(|p| p.title.clone()).collect();
+        List::new(items)
+            .block(Block::bordered().title("Queue"))
+            .highlight_style(Style::new().reversed())
+            .highlight_symbol(">")
+    }
+    pub fn new(action_tx: UnboundedSender<Action>) -> Self {
+        let empty = vec![];
+        Self {
+            state: ListState::default(),
+            comp: QueueList::gen_list(&empty),
+            list: empty,
+            action_tx,
+        }
+    }
+}
+
+impl Component for QueueList {
+    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+        Ok(None)
+    }
+    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+        frame.render_stateful_widget(&self.comp, area, &mut self.state);
+        Ok(())
+    }
+}

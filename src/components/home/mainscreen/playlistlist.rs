@@ -5,6 +5,7 @@ use crate::{
     },
     components::Component,
     queryworker::query::Query,
+    stateless::Stateless,
 };
 use color_eyre::Result;
 use ratatui::{
@@ -99,6 +100,9 @@ impl Component for PlaylistList {
         }
         Ok(None)
     }
+}
+
+impl Stateless for PlaylistList {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         match &mut self.state {
             CompState::Loading => frame.render_widget(

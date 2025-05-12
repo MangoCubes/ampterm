@@ -9,6 +9,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use crate::{
     action::{getplaylist::Media, Action},
     components::Component,
+    stateless::Stateless,
 };
 use color_eyre::Result;
 
@@ -49,6 +50,9 @@ impl Component for QueueList {
         }
         Ok(None)
     }
+}
+
+impl Stateless for QueueList {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         frame.render_stateful_widget(&self.comp, area, &mut self.state);
         Ok(())

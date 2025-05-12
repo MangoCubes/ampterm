@@ -2,7 +2,9 @@ mod playlistlist;
 mod playlistqueue;
 mod queuelist;
 
-use crate::{action::Action, components::Component, queryworker::query::Query};
+use crate::{
+    action::Action, components::Component, queryworker::query::Query, stateless::Stateless,
+};
 use color_eyre::Result;
 use playlistlist::PlaylistList;
 use playlistqueue::PlaylistQueue;
@@ -96,6 +98,9 @@ impl Component for MainScreen {
     fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Result<Option<Action>> {
         Ok(None)
     }
+}
+
+impl Stateless for MainScreen {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let vertical = Layout::vertical([
             Constraint::Min(0),

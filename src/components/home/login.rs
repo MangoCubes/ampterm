@@ -14,6 +14,7 @@ use crate::{
     action::{ping::PingResponse, Action},
     config::Config,
     queryworker::query::{setcredential::Credential, Query},
+    stateless::Stateless,
 };
 
 use super::Component;
@@ -186,6 +187,9 @@ impl Component for Login {
         }?;
         Ok(None)
     }
+}
+
+impl Stateless for Login {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let [horizontal] = Layout::horizontal([Constraint::Percentage(50)])
             .flex(Flex::Center)

@@ -6,6 +6,7 @@ use crate::{
     components::Component,
     playerworker::player::{PlayerAction, QueueLocation},
     queryworker::query::Query,
+    stateless::Stateless,
 };
 use color_eyre::Result;
 use ratatui::{
@@ -139,6 +140,9 @@ impl Component for PlaylistQueue {
         }
         Ok(None)
     }
+}
+
+impl Stateless for PlaylistQueue {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         match &mut self.state {
             CompState::NotSelected => frame.render_widget(

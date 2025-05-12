@@ -5,6 +5,7 @@ use crate::{
     },
     components::Component,
     queryworker::query::Query,
+    stateful::Stateful,
     stateless::Stateless,
 };
 use color_eyre::Result;
@@ -102,8 +103,8 @@ impl Component for PlaylistList {
     }
 }
 
-impl Stateless for PlaylistList {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+impl Stateful<bool> for PlaylistList {
+    fn draw_state(&mut self, frame: &mut Frame, area: Rect, state: bool) -> Result<()> {
         match &mut self.state {
             CompState::Loading => frame.render_widget(
                 Paragraph::new("Loading...")

@@ -3,7 +3,8 @@ mod playlistqueue;
 mod queuelist;
 
 use crate::{
-    action::Action, components::Component, queryworker::query::Query, stateless::Stateless,
+    action::Action, components::Component, queryworker::query::Query, stateful::Stateful,
+    stateless::Stateless,
 };
 use color_eyre::Result;
 use playlistlist::PlaylistList;
@@ -15,6 +16,7 @@ use ratatui::{
 };
 use tokio::sync::mpsc::UnboundedSender;
 
+#[derive(PartialEq)]
 enum CurrentlySelected {
     Playlists,
     PlaylistQueue,
@@ -115,13 +117,24 @@ impl Stateless for MainScreen {
         let areas = vertical.split(area);
         let listareas = horizontal.split(areas[0]);
 
-        if let Err(err) = self.pl_list.draw(frame, listareas[0]) {
+        if let Err(err) = self.pl_list.draw_state(
+            frame,
+            listareas[0],
+            self.state == CurrentlySelected::Playlists,
+        ) {
             self.action_tx.send(Action::Error(err.to_string()))?;
         }
-        if let Err(err) = self.pl_queue.draw(frame, listareas[1]) {
+        if let Err(err) = self.pl_queue.draw_state(
+            frame,
+            listareas[1],
+            self.state == CurrentlySelected::PlaylistQueue,
+        ) {
             self.action_tx.send(Action::Error(err.to_string()))?;
         }
-        if let Err(err) = self.queuelist.draw(frame, listareas[2]) {
+        if let Err(err) =
+            self.queuelist
+                .draw_state(frame, listareas[2], self.state == CurrentlySelected::Queue)
+        {
             self.action_tx.send(Action::Error(err.to_string()))?;
         }
         Ok(())

@@ -6,6 +6,7 @@ use crate::{
     components::Component,
     playerworker::player::{PlayerAction, QueueLocation},
     queryworker::query::Query,
+    stateful::Stateful,
     stateless::Stateless,
 };
 use color_eyre::Result;
@@ -142,8 +143,8 @@ impl Component for PlaylistQueue {
     }
 }
 
-impl Stateless for PlaylistQueue {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+impl Stateful<bool> for PlaylistQueue {
+    fn draw_state(&mut self, frame: &mut Frame, area: Rect, state: bool) -> Result<()> {
         match &mut self.state {
             CompState::NotSelected => frame.render_widget(
                 Paragraph::new("Choose a playlist!")

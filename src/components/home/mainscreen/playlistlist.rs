@@ -15,7 +15,6 @@ use ratatui::{
     widgets::{Block, List, ListState, Padding, Paragraph, Wrap},
     Frame,
 };
-use tokio::sync::mpsc::UnboundedSender;
 
 enum CompState {
     Loading,
@@ -30,13 +29,12 @@ enum CompState {
 }
 
 pub struct PlaylistList {
-    action_tx: UnboundedSender<Action>,
     state: CompState,
     enabled: bool,
 }
 
 impl PlaylistList {
-    fn select_playlist(&self) {
+    fn select_playlist(&self) -> Option<Action> {
         if let CompState::Loaded {
             comp: _,
             list,
@@ -46,11 +44,15 @@ impl PlaylistList {
             if let Some(pos) = state.selected() {
                 let key = list[pos].id.clone();
                 let name = list[pos].name.clone();
-                let _ = self.action_tx.send(Action::Query(Query::GetPlaylist {
+                Some(Action::Query(Query::GetPlaylist {
                     name: Some(name),
                     id: key,
-                }));
-            };
+                }))
+            } else {
+                None
+            }
+        } else {
+            None
         }
     }
 
@@ -78,9 +80,8 @@ impl PlaylistList {
             .highlight_style(Style::new().reversed())
             .highlight_symbol(">")
     }
-    pub fn new(action_tx: UnboundedSender<Action>) -> Self {
+    pub fn new() -> Self {
         Self {
-            action_tx,
             state: CompState::Loading,
             enabled: false,
         }
@@ -98,14 +99,28 @@ impl Component for PlaylistList {
                 } = &mut self.state
                 {
                     match l {
-                        LocalAction::Up => state.select_previous(),
-                        LocalAction::Down => state.select_next(),
-                        LocalAction::Confirm => self.select_playlist(),
-                        LocalAction::Top => state.select_first(),
-                        LocalAction::Bottom => state.select_last(),
+                        LocalAction::Up => {
+                            state.select_previous();
+                            Ok(None)
+                        }
+                        LocalAction::Down => {
+                            state.select_next();
+                            Ok(None)
+                        }
+                        LocalAction::Confirm => Ok(self.select_playlist()),
+                        LocalAction::Top => {
+                            state.select_first();
+                            Ok(None)
+                        }
+                        LocalAction::Bottom => {
+                            state.select_last();
+                            Ok(None)
+                        }
                         // TODO: Add horizontal text scrolling
-                        _ => {}
+                        _ => Ok(None),
                     }
+                } else {
+                    Ok(None)
                 }
             }
             Action::GetPlaylists(res) => match res {
@@ -115,12 +130,15 @@ impl Component for PlaylistList {
                         list: simple_playlists,
                         state: ListState::default().with_selected(Some(0)),
                     };
+                    Ok(None)
                 }
-                GetPlaylistsResponse::Failure(error) => self.state = CompState::Error { error },
+                GetPlaylistsResponse::Failure(error) => {
+                    self.state = CompState::Error { error };
+                    Ok(None)
+                }
             },
-            _ => {}
+            _ => Ok(None),
         }
-        Ok(None)
     }
 }
 

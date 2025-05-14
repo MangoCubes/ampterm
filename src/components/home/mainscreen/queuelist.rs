@@ -18,7 +18,6 @@ pub struct QueueList {
     comp: List<'static>,
     list: Vec<Media>,
     state: ListState,
-    action_tx: UnboundedSender<Action>,
     enabled: bool,
 }
 
@@ -52,13 +51,12 @@ impl QueueList {
             .highlight_symbol(">")
     }
 
-    pub fn new(action_tx: UnboundedSender<Action>) -> Self {
+    pub fn new() -> Self {
         let empty = vec![];
         Self {
             state: ListState::default(),
             comp: Self::gen_list(false, None),
             list: empty,
-            action_tx,
             enabled: false,
         }
     }

@@ -11,14 +11,12 @@ enum CompState {
 }
 
 pub struct NowPlaying {
-    action_tx: UnboundedSender<Action>,
     state: CompState,
 }
 
 impl NowPlaying {
-    pub fn new(action_tx: UnboundedSender<Action>) -> Self {
+    pub fn new() -> Self {
         Self {
-            action_tx,
             state: CompState::Stopped {
                 comp: Stopped::new(),
             },

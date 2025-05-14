@@ -31,20 +31,17 @@ pub struct MainScreen {
     pl_queue: PlaylistQueue,
     now_playing: NowPlaying,
     queuelist: QueueList,
-    action_tx: UnboundedSender<Action>,
 }
 
 impl MainScreen {
-    fn select_playlist(&self) {}
     pub fn new(action_tx: UnboundedSender<Action>) -> Self {
         let _ = action_tx.send(Action::Query(Query::GetPlaylists));
         Self {
             state: CurrentlySelected::Playlists,
-            pl_list: PlaylistList::new(action_tx.clone()),
-            pl_queue: PlaylistQueue::new(action_tx.clone()),
-            queuelist: QueueList::new(action_tx.clone()),
-            now_playing: NowPlaying::new(action_tx.clone()),
-            action_tx,
+            pl_list: PlaylistList::new(),
+            pl_queue: PlaylistQueue::new(),
+            queuelist: QueueList::new(),
+            now_playing: NowPlaying::new(),
         }
     }
 }
@@ -52,54 +49,34 @@ impl MainScreen {
 impl Component for MainScreen {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match &action {
-            Action::SelectPlaylist { key } => self.select_playlist(),
             Action::MoveLeft => {
                 self.state = match self.state {
                     CurrentlySelected::Playlists => CurrentlySelected::Queue,
                     CurrentlySelected::Queue => CurrentlySelected::PlaylistQueue,
                     CurrentlySelected::PlaylistQueue => CurrentlySelected::Playlists,
-                }
+                };
+                Ok(None)
             }
             Action::MoveRight => {
                 self.state = match self.state {
                     CurrentlySelected::Playlists => CurrentlySelected::PlaylistQueue,
                     CurrentlySelected::PlaylistQueue => CurrentlySelected::Queue,
                     CurrentlySelected::Queue => CurrentlySelected::Playlists,
-                }
+                };
+                Ok(None)
             }
-            _ => {}
-        };
-        match &action {
             Action::Local(_) => match self.state {
-                CurrentlySelected::Playlists => {
-                    if let Some(action) = self.pl_list.update(action)? {
-                        self.action_tx.send(action)?;
-                    }
-                }
-                CurrentlySelected::PlaylistQueue => {
-                    if let Some(action) = self.pl_queue.update(action)? {
-                        self.action_tx.send(action)?;
-                    }
-                }
-                CurrentlySelected::Queue => {
-                    if let Some(action) = self.queuelist.update(action)? {
-                        self.action_tx.send(action)?;
-                    }
-                }
+                CurrentlySelected::Playlists => self.pl_list.update(action),
+                CurrentlySelected::PlaylistQueue => self.pl_queue.update(action),
+                CurrentlySelected::Queue => self.queuelist.update(action),
             },
             _ => {
-                if let Some(action) = self.pl_list.update(action.clone())? {
-                    self.action_tx.send(action)?;
-                }
-                if let Some(action) = self.pl_queue.update(action.clone())? {
-                    self.action_tx.send(action)?;
-                }
-                if let Some(action) = self.queuelist.update(action)? {
-                    self.action_tx.send(action)?;
-                }
+                self.pl_list.update(action.clone())?;
+                self.pl_queue.update(action.clone())?;
+                self.queuelist.update(action)?;
+                Ok(None)
             }
-        };
-        Ok(None)
+        }
     }
     fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Result<Option<Action>> {
         Ok(None)
@@ -121,29 +98,19 @@ impl Stateless for MainScreen {
         let areas = vertical.split(area);
         let listareas = horizontal.split(areas[0]);
 
-        if let Err(err) = self.pl_list.draw_state(
+        self.pl_list.draw_state(
             frame,
             listareas[0],
             self.state == CurrentlySelected::Playlists,
-        ) {
-            self.action_tx.send(Action::Error(err.to_string()))?;
-        }
-        if let Err(err) = self.pl_queue.draw_state(
+        )?;
+        self.pl_queue.draw_state(
             frame,
             listareas[1],
             self.state == CurrentlySelected::PlaylistQueue,
-        ) {
-            self.action_tx.send(Action::Error(err.to_string()))?;
-        }
-        if let Err(err) =
-            self.queuelist
-                .draw_state(frame, listareas[2], self.state == CurrentlySelected::Queue)
-        {
-            self.action_tx.send(Action::Error(err.to_string()))?;
-        }
-        if let Err(err) = self.now_playing.draw(frame, areas[1]) {
-            self.action_tx.send(Action::Error(err.to_string()))?;
-        }
+        )?;
+        self.queuelist
+            .draw_state(frame, listareas[2], self.state == CurrentlySelected::Queue)?;
+        self.now_playing.draw(frame, areas[1])?;
         Ok(())
     }
 }

@@ -38,7 +38,6 @@ enum CompState {
 }
 
 pub struct PlaylistQueue {
-    action_tx: UnboundedSender<Action>,
     state: CompState,
     enabled: bool,
 }
@@ -60,7 +59,7 @@ impl PlaylistQueue {
         );
         Block::bordered().title(title).border_style(style)
     }
-    fn select_music(&self) {
+    fn select_music(&self) -> Option<Action> {
         if let CompState::Loaded {
             name: _,
             comp: _,
@@ -69,13 +68,15 @@ impl PlaylistQueue {
         } = &self.state
         {
             if let Some(pos) = state.selected() {
-                let _ = self
-                    .action_tx
-                    .send(Action::Player(PlayerAction::AddToQueue {
-                        pos: QueueLocation::Start,
-                        music: list.entry[pos].clone(),
-                    }));
+                Some(Action::Player(PlayerAction::AddToQueue {
+                    pos: QueueLocation::Start,
+                    music: list.entry[pos].clone(),
+                }))
+            } else {
+                None
             }
+        } else {
+            None
         }
     }
     fn gen_list(list: &FullPlaylist, enabled: bool) -> List<'static> {
@@ -85,9 +86,8 @@ impl PlaylistQueue {
             .highlight_style(Style::new().reversed())
             .highlight_symbol(">")
     }
-    pub fn new(action_tx: UnboundedSender<Action>) -> Self {
+    pub fn new() -> Self {
         Self {
-            action_tx,
             state: CompState::NotSelected,
             enabled: false,
         }
@@ -106,27 +106,41 @@ impl Component for PlaylistQueue {
                 } = &mut self.state
                 {
                     match l {
-                        LocalAction::Up => state.select_previous(),
-                        LocalAction::Down => state.select_next(),
-                        LocalAction::Confirm => self.select_music(),
-                        LocalAction::Top => state.select_first(),
-                        LocalAction::Bottom => state.select_last(),
-                        LocalAction::Refresh => {
-                            let _ = self.action_tx.send(Action::Query(Query::GetPlaylist {
-                                name: Some(name.to_string()),
-                                id: list.id.clone(),
-                            }));
+                        LocalAction::Up => {
+                            state.select_previous();
+                            Ok(None)
                         }
+                        LocalAction::Down => {
+                            state.select_next();
+                            Ok(None)
+                        }
+                        LocalAction::Confirm => Ok(self.select_music()),
+                        LocalAction::Top => {
+                            state.select_first();
+                            Ok(None)
+                        }
+                        LocalAction::Bottom => {
+                            state.select_last();
+                            Ok(None)
+                        }
+                        LocalAction::Refresh => Ok(Some(Action::Query(Query::GetPlaylist {
+                            name: Some(name.to_string()),
+                            id: list.id.clone(),
+                        }))),
                         // TODO: Add horizontal text scrolling
-                        _ => {}
+                        _ => Ok(None),
                     }
                 } else if let CompState::Error { id, name, error: _ } = &self.state {
                     if let LocalAction::Refresh = l {
-                        let _ = self.action_tx.send(Action::Query(Query::GetPlaylist {
+                        Ok(Some(Action::Query(Query::GetPlaylist {
                             name: Some(name.to_string()),
                             id: id.to_string(),
-                        }));
+                        })))
+                    } else {
+                        Ok(None)
                     }
+                } else {
+                    Ok(None)
                 }
             }
             Action::Query(q) => {
@@ -135,7 +149,8 @@ impl Component for PlaylistQueue {
                         id: id.clone(),
                         name: name.unwrap_or(id),
                     }
-                }
+                };
+                Ok(None)
             }
             Action::GetPlaylist(res) => match res {
                 GetPlaylistResponse::Success(full_playlist) => {
@@ -144,7 +159,8 @@ impl Component for PlaylistQueue {
                         name: full_playlist.name.clone(),
                         list: full_playlist,
                         state: ListState::default().with_selected(Some(0)),
-                    }
+                    };
+                    Ok(None)
                 }
                 GetPlaylistResponse::Failure { id, name, msg } => {
                     self.state = CompState::Error {
@@ -152,11 +168,11 @@ impl Component for PlaylistQueue {
                         name: name.unwrap_or("Playlist Queue".to_string()),
                         error: msg,
                     };
+                    Ok(None)
                 }
             },
-            _ => {}
+            _ => Ok(None),
         }
-        Ok(None)
     }
 }
 

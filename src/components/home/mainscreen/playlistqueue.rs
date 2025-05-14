@@ -7,7 +7,7 @@ use crate::{
     playerworker::player::{PlayerAction, QueueLocation},
     queryworker::query::Query,
     stateful::Stateful,
-    stateless::Stateless,
+    trace_dbg,
 };
 use color_eyre::Result;
 use ratatui::{
@@ -41,9 +41,20 @@ enum CompState {
 pub struct PlaylistQueue {
     action_tx: UnboundedSender<Action>,
     state: CompState,
+    enabled: bool,
 }
 
 impl PlaylistQueue {
+    fn gen_block(enabled: bool, title: &str) -> Block<'static> {
+        let style = if enabled {
+            Style::new().white()
+        } else {
+            Style::new().dark_gray()
+        };
+        Block::bordered()
+            .title(title.to_string())
+            .border_style(style)
+    }
     fn select_music(&self) {
         if let CompState::Loaded {
             name: _,
@@ -62,10 +73,10 @@ impl PlaylistQueue {
             }
         }
     }
-    fn gen_list(list: &FullPlaylist) -> List<'static> {
+    fn gen_list(list: &FullPlaylist, enabled: bool) -> List<'static> {
         let items: Vec<String> = list.entry.iter().map(|p| p.title.clone()).collect();
         List::new(items)
-            .block(Block::bordered().title(list.name.clone()))
+            .block(Self::gen_block(enabled, &list.name))
             .highlight_style(Style::new().reversed())
             .highlight_symbol(">")
     }
@@ -73,6 +84,7 @@ impl PlaylistQueue {
         Self {
             action_tx,
             state: CompState::NotSelected,
+            enabled: false,
         }
     }
 }
@@ -123,7 +135,7 @@ impl Component for PlaylistQueue {
             Action::GetPlaylist(res) => match res {
                 GetPlaylistResponse::Success(full_playlist) => {
                     self.state = CompState::Loaded {
-                        comp: PlaylistQueue::gen_list(&full_playlist),
+                        comp: PlaylistQueue::gen_list(&full_playlist, self.enabled),
                         name: full_playlist.name.clone(),
                         list: full_playlist,
                         state: ListState::default().with_selected(Some(0)),
@@ -149,9 +161,12 @@ impl Stateful<bool> for PlaylistQueue {
             CompState::NotSelected => frame.render_widget(
                 Paragraph::new("Choose a playlist!")
                     .block(
-                        Block::bordered()
-                            .title("Playlist Queue")
-                            .padding(Padding::new(0, 0, area.height / 2, 0)),
+                        Self::gen_block(state, "Playlist Queue").padding(Padding::new(
+                            0,
+                            0,
+                            area.height / 2,
+                            0,
+                        )),
                     )
                     .alignment(Alignment::Center)
                     .wrap(Wrap { trim: false }),
@@ -159,7 +174,7 @@ impl Stateful<bool> for PlaylistQueue {
             ),
             CompState::Loading { id: _, name } => frame.render_widget(
                 Paragraph::new("Loading...")
-                    .block(Block::bordered().title(name.clone()).padding(Padding::new(
+                    .block(Self::gen_block(state, name).padding(Padding::new(
                         0,
                         0,
                         area.height / 2,
@@ -175,7 +190,7 @@ impl Stateful<bool> for PlaylistQueue {
                     Line::raw(format!("{}", error)),
                     Line::raw(format!("Reload with 'R'")),
                 ])
-                .block(Block::bordered().title(name.clone()).padding(Padding::new(
+                .block(Self::gen_block(state, name).padding(Padding::new(
                     0,
                     0,
                     (area.height / 2) - 1,
@@ -186,10 +201,16 @@ impl Stateful<bool> for PlaylistQueue {
             ),
             CompState::Loaded {
                 comp,
-                list: _,
-                state,
-                name,
-            } => frame.render_stateful_widget(&*comp, area, state),
+                list,
+                state: ls,
+                name: _,
+            } => {
+                if self.enabled != state {
+                    self.enabled = state;
+                    *comp = Self::gen_list(list, self.enabled);
+                };
+                frame.render_stateful_widget(&*comp, area, ls);
+            }
         };
         Ok(())
     }

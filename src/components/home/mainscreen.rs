@@ -1,3 +1,4 @@
+mod nowplaying;
 mod playlistlist;
 mod playlistqueue;
 mod queuelist;
@@ -7,6 +8,7 @@ use crate::{
     stateless::Stateless,
 };
 use color_eyre::Result;
+use nowplaying::NowPlaying;
 use playlistlist::PlaylistList;
 use playlistqueue::PlaylistQueue;
 use queuelist::QueueList;
@@ -27,6 +29,7 @@ pub struct MainScreen {
     state: CurrentlySelected,
     pl_list: PlaylistList,
     pl_queue: PlaylistQueue,
+    now_playing: NowPlaying,
     queuelist: QueueList,
     action_tx: UnboundedSender<Action>,
 }
@@ -40,6 +43,7 @@ impl MainScreen {
             pl_list: PlaylistList::new(action_tx.clone()),
             pl_queue: PlaylistQueue::new(action_tx.clone()),
             queuelist: QueueList::new(action_tx.clone()),
+            now_playing: NowPlaying::new(action_tx.clone()),
             action_tx,
         }
     }
@@ -135,6 +139,9 @@ impl Stateless for MainScreen {
             self.queuelist
                 .draw_state(frame, listareas[2], self.state == CurrentlySelected::Queue)
         {
+            self.action_tx.send(Action::Error(err.to_string()))?;
+        }
+        if let Err(err) = self.now_playing.draw(frame, areas[1]) {
             self.action_tx.send(Action::Error(err.to_string()))?;
         }
         Ok(())

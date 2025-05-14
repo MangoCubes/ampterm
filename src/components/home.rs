@@ -14,12 +14,13 @@ use crate::{
     action::{ping::PingResponse, Action},
     config::Config,
     queryworker::query::{setcredential::Credential, Query},
+    stateless::Stateless,
     tui::Event,
 };
 
 pub struct Home {
     action_tx: UnboundedSender<Action>,
-    component: Box<dyn Component>,
+    component: Box<dyn Stateless>,
     config_has_creds: bool,
     config: Config,
 }
@@ -48,14 +49,14 @@ impl Home {
             }
         };
         let config_has_creds;
-        let comp: Box<dyn Component> = match config_creds {
+        let comp: Box<dyn Stateless> = match config_creds {
             Some(creds) => {
                 config_has_creds = true;
                 let url = creds.get_url();
                 let username = creds.get_username();
                 let action = Action::Query(Query::SetCredential(creds));
-                action_tx.send(action);
-                action_tx.send(Action::Query(Query::Ping));
+                let _ = action_tx.send(action);
+                let _ = action_tx.send(Action::Query(Query::Ping));
                 Box::new(Loading::new(url, username))
             }
             None => {
@@ -106,7 +107,9 @@ impl Component for Home {
         }
         Ok(None)
     }
+}
 
+impl Stateless for Home {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         if let Err(err) = self.component.draw(frame, area) {
             self.action_tx.send(Action::Error(err.to_string()))?;

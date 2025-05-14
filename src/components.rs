@@ -14,32 +14,6 @@ pub mod home;
 /// Implementors of this trait can be registered with the main application loop and will be able to
 /// receive events, update state, and be rendered on the screen.
 pub trait Component {
-    /// Register an action handler that can send actions for processing if necessary.
-    ///
-    /// # Arguments
-    ///
-    /// * `tx` - An unbounded sender that can send actions.
-    ///
-    /// # Returns
-    ///
-    /// * `Result<()>` - An Ok result or an error.
-    // fn register_action_handler(&mut self, tx: UnboundedSender<Action>) -> Result<()> {
-    //     let _ = tx; // to appease clippy
-    //     Ok(())
-    // }
-    /// Register a configuration handler that provides configuration settings if necessary.
-    ///
-    /// # Arguments
-    ///
-    /// * `config` - Configuration settings.
-    ///
-    /// # Returns
-    ///
-    /// * `Result<()>` - An Ok result or an error.
-    // fn register_config_handler(&mut self, config: Config) -> Result<()> {
-    //     let _ = config; // to appease clippy
-    //     Ok(())
-    // }
     /// Initialize the component with a specified area if necessary.
     ///
     /// # Arguments
@@ -109,15 +83,4 @@ pub trait Component {
         let _ = action; // to appease clippy
         Ok(None)
     }
-    /// Render the component on the screen. (REQUIRED)
-    ///
-    /// # Arguments
-    ///
-    /// * `f` - A frame used for rendering.
-    /// * `area` - The area in which the component should be drawn.
-    ///
-    /// # Returns
-    ///
-    /// * `Result<()>` - An Ok result or an error.
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()>;
 }

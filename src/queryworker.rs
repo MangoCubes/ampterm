@@ -231,12 +231,14 @@ impl QueryWorker {
                         ),
                     };
                 }
-                Query::PlayId { id } => {
+                Query::GetUrlByMedia { media } => {
                     match &self.client {
                         Some(c) => {
+                            let id = media.id.clone();
                             let url = c.stream_link(id).to_string();
-                            self.action_tx
-                                .send(Action::Player(PlayerAction::TryPlay { url }));
+                            let _ = self
+                                .action_tx
+                                .send(Action::Player(PlayerAction::PlayURL { music: media, url }));
                         }
                         None => tracing::error!(
                             "Invalid state: Tried querying, but client does not exist!"

@@ -12,6 +12,7 @@ use crate::{
     config::Config,
     playerworker::{player::PlayerAction, PlayerWorker},
     queryworker::{query::Query, QueryWorker},
+    stateless::Stateless,
     tui::{Event, Tui},
 };
 
@@ -19,7 +20,7 @@ pub struct App {
     config: Config,
     tick_rate: f64,
     frame_rate: f64,
-    component: Box<dyn Component>,
+    component: Box<dyn Stateless>,
     should_quit: bool,
     should_suspend: bool,
     mode: Mode,

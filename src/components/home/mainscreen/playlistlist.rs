@@ -5,12 +5,13 @@ use crate::{
     },
     components::Component,
     queryworker::query::Query,
+    stateful::Stateful,
 };
 use color_eyre::Result;
 use ratatui::{
     layout::{Alignment, Rect},
-    style::{Style, Stylize},
-    text::Line,
+    style::{Modifier, Style, Stylize},
+    text::{Line, Span},
     widgets::{Block, List, ListState, Padding, Paragraph, Wrap},
     Frame,
 };
@@ -18,7 +19,9 @@ use tokio::sync::mpsc::UnboundedSender;
 
 enum CompState {
     Loading,
-    Error(String),
+    Error {
+        error: String,
+    },
     Loaded {
         comp: List<'static>,
         list: Vec<SimplePlaylist>,
@@ -29,6 +32,7 @@ enum CompState {
 pub struct PlaylistList {
     action_tx: UnboundedSender<Action>,
     state: CompState,
+    enabled: bool,
 }
 
 impl PlaylistList {
@@ -49,10 +53,28 @@ impl PlaylistList {
             };
         }
     }
-    fn gen_list(list: &Vec<SimplePlaylist>) -> List<'static> {
+
+    fn gen_block(enabled: bool, title: &str) -> Block<'static> {
+        let style = if enabled {
+            Style::new().white()
+        } else {
+            Style::new().dark_gray()
+        };
+        let title = Span::styled(
+            title.to_string(),
+            if enabled {
+                Style::default().add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().add_modifier(Modifier::DIM)
+            },
+        );
+        Block::bordered().title(title).border_style(style)
+    }
+
+    fn gen_list(enabled: bool, list: &Vec<SimplePlaylist>) -> List<'static> {
         let items: Vec<String> = list.iter().map(|p| p.name.clone()).collect();
         List::new(items)
-            .block(Block::bordered().title("Playlist"))
+            .block(Self::gen_block(enabled, "Playlist"))
             .highlight_style(Style::new().reversed())
             .highlight_symbol(">")
     }
@@ -60,6 +82,7 @@ impl PlaylistList {
         Self {
             action_tx,
             state: CompState::Loading,
+            enabled: false,
         }
     }
 }
@@ -88,51 +111,64 @@ impl Component for PlaylistList {
             Action::GetPlaylists(res) => match res {
                 GetPlaylistsResponse::Success(simple_playlists) => {
                     self.state = CompState::Loaded {
-                        comp: PlaylistList::gen_list(&simple_playlists),
+                        comp: PlaylistList::gen_list(self.enabled, &simple_playlists),
                         list: simple_playlists,
                         state: ListState::default().with_selected(Some(0)),
                     };
                 }
-                GetPlaylistsResponse::Failure(e) => self.state = CompState::Error(e),
+                GetPlaylistsResponse::Failure(error) => self.state = CompState::Error { error },
             },
             _ => {}
         }
         Ok(None)
     }
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+}
+
+impl Stateful<bool> for PlaylistList {
+    fn draw_state(&mut self, frame: &mut Frame, area: Rect, state: bool) -> Result<()> {
         match &mut self.state {
-            CompState::Loading => frame.render_widget(
-                Paragraph::new("Loading...")
-                    .block(Block::bordered().title("Playlist").padding(Padding::new(
-                        0,
-                        0,
-                        area.height / 2,
-                        0,
-                    )))
-                    .alignment(Alignment::Center)
-                    .wrap(Wrap { trim: false }),
-                area,
-            ),
-            CompState::Error(e) => frame.render_widget(
+            CompState::Loading => {
+                // Cannot be cached since the area always changes
+                frame.render_widget(
+                    Paragraph::new("Loading...")
+                        .block(
+                            PlaylistList::gen_block(self.enabled, "Playlist")
+                                .padding(Padding::new(0, 0, area.height / 2, 0)),
+                        )
+                        .alignment(Alignment::Center)
+                        .wrap(Wrap { trim: false }),
+                    area,
+                )
+            }
+            // Cannot be cached since the area always changes
+            CompState::Error { error } => frame.render_widget(
                 Paragraph::new(vec![
                     Line::raw("Error!"),
-                    Line::raw(format!("{}", e)),
+                    Line::raw(format!("{}", error)),
                     Line::raw(format!("Reload with 'R'")),
                 ])
-                .block(Block::bordered().title("Playlist").padding(Padding::new(
-                    0,
-                    0,
-                    (area.height / 2) - 1,
-                    0,
-                )))
+                .block(
+                    PlaylistList::gen_block(self.enabled, "Playlist").padding(Padding::new(
+                        0,
+                        0,
+                        (area.height / 2) - 1,
+                        0,
+                    )),
+                )
                 .alignment(Alignment::Center),
                 area,
             ),
             CompState::Loaded {
                 comp,
-                list: _,
-                state,
-            } => frame.render_stateful_widget(&*comp, area, state),
+                list,
+                state: ls,
+            } => {
+                if self.enabled != state {
+                    self.enabled = state;
+                    *comp = Self::gen_list(self.enabled, list);
+                };
+                frame.render_stateful_widget(&*comp, area, ls);
+            }
         };
         Ok(())
     }

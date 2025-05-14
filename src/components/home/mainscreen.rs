@@ -1,31 +1,34 @@
 mod playlistlist;
 mod playlistqueue;
+mod queuelist;
 
 use crate::{
-    action::{getplaylists::GetPlaylistsResponse, Action},
-    components::Component,
-    queryworker::query::Query,
-    trace_dbg,
+    action::Action, components::Component, queryworker::query::Query, stateful::Stateful,
+    stateless::Stateless,
 };
 use color_eyre::Result;
 use playlistlist::PlaylistList;
 use playlistqueue::PlaylistQueue;
+use queuelist::QueueList;
 use ratatui::{
     layout::{Constraint, Layout, Rect},
     Frame,
 };
 use tokio::sync::mpsc::UnboundedSender;
 
+#[derive(PartialEq)]
 enum CurrentlySelected {
     Playlists,
+    PlaylistQueue,
     Queue,
 }
 
 pub struct MainScreen {
     state: CurrentlySelected,
     pl_list: PlaylistList,
-    action_tx: UnboundedSender<Action>,
     pl_queue: PlaylistQueue,
+    queuelist: QueueList,
+    action_tx: UnboundedSender<Action>,
 }
 
 impl MainScreen {
@@ -36,6 +39,7 @@ impl MainScreen {
             state: CurrentlySelected::Playlists,
             pl_list: PlaylistList::new(action_tx.clone()),
             pl_queue: PlaylistQueue::new(action_tx.clone()),
+            queuelist: QueueList::new(action_tx.clone()),
             action_tx,
         }
     }
@@ -48,12 +52,14 @@ impl Component for MainScreen {
             Action::MoveLeft => {
                 self.state = match self.state {
                     CurrentlySelected::Playlists => CurrentlySelected::Queue,
-                    CurrentlySelected::Queue => CurrentlySelected::Playlists,
+                    CurrentlySelected::Queue => CurrentlySelected::PlaylistQueue,
+                    CurrentlySelected::PlaylistQueue => CurrentlySelected::Playlists,
                 }
             }
             Action::MoveRight => {
                 self.state = match self.state {
-                    CurrentlySelected::Playlists => CurrentlySelected::Queue,
+                    CurrentlySelected::Playlists => CurrentlySelected::PlaylistQueue,
+                    CurrentlySelected::PlaylistQueue => CurrentlySelected::Queue,
                     CurrentlySelected::Queue => CurrentlySelected::Playlists,
                 }
             }
@@ -62,12 +68,17 @@ impl Component for MainScreen {
         match &action {
             Action::Local(_) => match self.state {
                 CurrentlySelected::Playlists => {
-                    if let Some(action) = self.pl_list.update(action.clone())? {
+                    if let Some(action) = self.pl_list.update(action)? {
+                        self.action_tx.send(action)?;
+                    }
+                }
+                CurrentlySelected::PlaylistQueue => {
+                    if let Some(action) = self.pl_queue.update(action)? {
                         self.action_tx.send(action)?;
                     }
                 }
                 CurrentlySelected::Queue => {
-                    if let Some(action) = self.pl_queue.update(action)? {
+                    if let Some(action) = self.queuelist.update(action)? {
                         self.action_tx.send(action)?;
                     }
                 }
@@ -76,7 +87,10 @@ impl Component for MainScreen {
                 if let Some(action) = self.pl_list.update(action.clone())? {
                     self.action_tx.send(action)?;
                 }
-                if let Some(action) = self.pl_queue.update(action)? {
+                if let Some(action) = self.pl_queue.update(action.clone())? {
+                    self.action_tx.send(action)?;
+                }
+                if let Some(action) = self.queuelist.update(action)? {
                     self.action_tx.send(action)?;
                 }
             }
@@ -86,10 +100,13 @@ impl Component for MainScreen {
     fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Result<Option<Action>> {
         Ok(None)
     }
+}
+
+impl Stateless for MainScreen {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let vertical = Layout::vertical([
             Constraint::Min(0),
-            Constraint::Length(5),
+            Constraint::Length(10),
             Constraint::Length(1),
         ]);
         let horizontal = Layout::horizontal([
@@ -100,10 +117,24 @@ impl Component for MainScreen {
         let areas = vertical.split(area);
         let listareas = horizontal.split(areas[0]);
 
-        if let Err(err) = self.pl_list.draw(frame, listareas[0]) {
+        if let Err(err) = self.pl_list.draw_state(
+            frame,
+            listareas[0],
+            self.state == CurrentlySelected::Playlists,
+        ) {
             self.action_tx.send(Action::Error(err.to_string()))?;
         }
-        if let Err(err) = self.pl_queue.draw(frame, listareas[1]) {
+        if let Err(err) = self.pl_queue.draw_state(
+            frame,
+            listareas[1],
+            self.state == CurrentlySelected::PlaylistQueue,
+        ) {
+            self.action_tx.send(Action::Error(err.to_string()))?;
+        }
+        if let Err(err) =
+            self.queuelist
+                .draw_state(frame, listareas[2], self.state == CurrentlySelected::Queue)
+        {
             self.action_tx.send(Action::Error(err.to_string()))?;
         }
         Ok(())

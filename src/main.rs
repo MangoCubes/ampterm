@@ -14,6 +14,8 @@ mod logging;
 mod osclient;
 mod playerworker;
 mod queryworker;
+mod stateful;
+mod stateless;
 mod tui;
 
 #[tokio::main]

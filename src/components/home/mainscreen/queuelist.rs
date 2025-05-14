@@ -1,6 +1,7 @@
 use ratatui::{
     layout::Rect,
-    style::{Style, Stylize},
+    style::{Modifier, Style, Stylize},
+    text::Span,
     widgets::{Block, List, ListState},
     Frame,
 };
@@ -22,6 +23,22 @@ pub struct QueueList {
 }
 
 impl QueueList {
+    fn gen_block(enabled: bool, title: &str) -> Block<'static> {
+        let style = if enabled {
+            Style::new().white()
+        } else {
+            Style::new().dark_gray()
+        };
+        let title = Span::styled(
+            title.to_string(),
+            if enabled {
+                Style::default().add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().add_modifier(Modifier::DIM)
+            },
+        );
+        Block::bordered().title(title).border_style(style)
+    }
     fn gen_list(enabled: bool, list: Option<&Vec<Media>>) -> List<'static> {
         let comp = match list {
             Some(l) => {
@@ -30,12 +47,7 @@ impl QueueList {
             }
             None => List::default(),
         };
-        let style = if enabled {
-            Style::new().white()
-        } else {
-            Style::new().dark_gray()
-        };
-        comp.block(Block::bordered().border_style(style).title("Next Up"))
+        comp.block(Self::gen_block(enabled, "Next Up"))
             .highlight_style(Style::new().reversed())
             .highlight_symbol(">")
     }

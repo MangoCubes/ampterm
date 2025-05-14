@@ -10,8 +10,8 @@ use crate::{
 use color_eyre::Result;
 use ratatui::{
     layout::{Alignment, Rect},
-    style::{Style, Stylize},
-    text::Line,
+    style::{Modifier, Style, Stylize},
+    text::{Line, Span},
     widgets::{Block, List, ListState, Padding, Paragraph, Wrap},
     Frame,
 };
@@ -60,9 +60,15 @@ impl PlaylistList {
         } else {
             Style::new().dark_gray()
         };
-        Block::bordered()
-            .title(title.to_string())
-            .border_style(style)
+        let title = Span::styled(
+            title.to_string(),
+            if enabled {
+                Style::default().add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().add_modifier(Modifier::DIM)
+            },
+        );
+        Block::bordered().title(title).border_style(style)
     }
 
     fn gen_list(enabled: bool, list: &Vec<SimplePlaylist>) -> List<'static> {

@@ -4,7 +4,6 @@ use crate::{action::Action, components::Component, stateless::Stateless};
 use color_eyre::Result;
 use ratatui::{layout::Rect, Frame};
 use stopped::Stopped;
-use tokio::sync::mpsc::UnboundedSender;
 
 enum CompState {
     Stopped { comp: Stopped },

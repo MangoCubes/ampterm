@@ -1,8 +1,8 @@
 use ratatui::{
     layout::Rect,
-    style::{Modifier, Style, Stylize},
+    style::{Color, Modifier, Style, Stylize},
     text::Span,
-    widgets::{Block, List, ListState},
+    widgets::{Block, List, ListItem, ListState},
     Frame,
 };
 
@@ -40,7 +40,17 @@ impl QueueList {
     fn gen_list(enabled: bool, list: Option<&Vec<Media>>) -> List<'static> {
         let comp = match list {
             Some(l) => {
-                let items: Vec<String> = l.iter().map(|p| p.title.clone()).collect();
+                let items: Vec<ListItem> = l
+                    .iter()
+                    .enumerate()
+                    .map(|(i, p)| {
+                        if i == 0 {
+                            ListItem::from(p.title.clone()).fg(Color::Green)
+                        } else {
+                            ListItem::from(p.title.clone())
+                        }
+                    })
+                    .collect();
                 List::new(items)
             }
             None => List::default(),

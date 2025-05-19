@@ -16,7 +16,6 @@ use ratatui::{
     widgets::{Block, List, ListState, Padding, Paragraph, Wrap},
     Frame,
 };
-use tokio::sync::mpsc::UnboundedSender;
 
 enum CompState {
     Loading {

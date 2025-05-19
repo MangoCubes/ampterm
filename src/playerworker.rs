@@ -45,6 +45,13 @@ pub struct PlayerWorker {
 }
 
 impl PlayerWorker {
+    fn send_queue(&self) {
+        let mut queue = self.queue.clone();
+        if let WorkerState::Playing { token: _, item } = &self.state {
+            queue.push_front(item.clone());
+        };
+        let _ = self.action_tx.send(Action::InQueue(Vec::from(queue)));
+    }
     fn continue_stream(&mut self) {
         self.sink.play();
     }
@@ -123,9 +130,7 @@ impl PlayerWorker {
             // If the queue is empty, then skip should put the player into idle mode.
             None => self.state = WorkerState::Idle,
         };
-        let _ = self
-            .action_tx
-            .send(Action::InQueue(Vec::from(self.queue.clone())));
+        self.send_queue();
     }
     pub async fn run(&mut self) -> Result<()> {
         trace_dbg!("Starting PlayerWorker...");
@@ -148,9 +153,7 @@ impl PlayerWorker {
                             self.skip();
                         }
                     } else {
-                        let _ = self
-                            .action_tx
-                            .send(Action::InQueue(Vec::from(self.queue.clone())));
+                        self.send_queue();
                     }
                 }
                 PlayerAction::PlayURL { music, url } => {

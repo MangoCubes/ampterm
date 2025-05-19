@@ -5,7 +5,6 @@ use ratatui::{
     widgets::{Block, List, ListState},
     Frame,
 };
-use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
     action::{getplaylist::Media, Action},

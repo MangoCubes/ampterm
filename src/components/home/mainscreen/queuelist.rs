@@ -16,6 +16,7 @@ use color_eyre::Result;
 pub struct QueueList {
     comp: List<'static>,
     list: Vec<Media>,
+    current: Option<Media>,
     state: ListState,
     enabled: bool,
 }
@@ -37,20 +38,18 @@ impl QueueList {
         );
         Block::bordered().title(title).border_style(style)
     }
-    fn gen_list(enabled: bool, list: Option<&Vec<Media>>) -> List<'static> {
+    fn gen_list(
+        enabled: bool,
+        current: &Option<Media>,
+        list: Option<&Vec<Media>>,
+    ) -> List<'static> {
         let comp = match list {
             Some(l) => {
-                let items: Vec<ListItem> = l
-                    .iter()
-                    .enumerate()
-                    .map(|(i, p)| {
-                        if i == 0 {
-                            ListItem::from(p.title.clone()).fg(Color::Green)
-                        } else {
-                            ListItem::from(p.title.clone())
-                        }
-                    })
-                    .collect();
+                let mut items: Vec<ListItem> =
+                    l.iter().map(|p| ListItem::from(p.title.clone())).collect();
+                if let Some(p) = current {
+                    items.push(ListItem::from(p.title.clone()).fg(Color::Green));
+                };
                 List::new(items)
             }
             None => List::default(),
@@ -64,7 +63,8 @@ impl QueueList {
         let empty = vec![];
         Self {
             state: ListState::default(),
-            comp: Self::gen_list(false, None),
+            comp: Self::gen_list(false, &None, None),
+            current: None,
             list: empty,
             enabled: false,
         }
@@ -73,9 +73,10 @@ impl QueueList {
 
 impl Component for QueueList {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        if let Action::InQueue(q) = action {
-            self.list = q;
-            self.comp = Self::gen_list(self.enabled, Some(&self.list))
+        if let Action::InQueue { current, next } = action {
+            self.list = next;
+            self.current = current;
+            self.comp = Self::gen_list(self.enabled, &self.current, Some(&self.list))
         }
         Ok(None)
     }
@@ -85,7 +86,7 @@ impl Stateful<bool> for QueueList {
     fn draw_state(&mut self, frame: &mut Frame, area: Rect, state: bool) -> Result<()> {
         if self.enabled != state {
             self.enabled = state;
-            self.comp = Self::gen_list(self.enabled, Some(&self.list))
+            self.comp = Self::gen_list(self.enabled, &self.current, Some(&self.list))
         }
         frame.render_stateful_widget(&self.comp, area, &mut self.state);
         Ok(())

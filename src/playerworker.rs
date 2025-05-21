@@ -29,6 +29,10 @@ enum WorkerState {
         token: CancellationToken,
         item: Media,
     },
+    // The file URL is being fetched
+    Loading {
+        item: Media,
+    },
     // Nothing is in the queue, and there are no items being played right now
     Idle,
 }
@@ -46,11 +50,21 @@ pub struct PlayerWorker {
 
 impl PlayerWorker {
     fn send_queue(&self) {
-        let mut queue = self.queue.clone();
-        if let WorkerState::Playing { token: _, item } = &self.state {
-            queue.push_front(item.clone());
+        let queue = self.queue.clone();
+        match &self.state {
+            WorkerState::Playing { token: _, item } | WorkerState::Loading { item } => {
+                let _ = self.action_tx.send(Action::InQueue {
+                    next: Vec::from(queue),
+                    current: Some(item.clone()),
+                });
+            }
+            WorkerState::Idle => {
+                let _ = self.action_tx.send(Action::InQueue {
+                    next: Vec::from(queue),
+                    current: None,
+                });
+            }
         };
-        let _ = self.action_tx.send(Action::InQueue(Vec::from(queue)));
     }
     fn continue_stream(&mut self) {
         self.sink.play();
@@ -149,6 +163,7 @@ impl PlayerWorker {
                     let was_empty = self.queue.is_empty();
                     self.queue.push_back(music);
                     if let WorkerState::Idle = self.state {
+                        // If the queue was empty, then adding an item automatically starts playing
                         if was_empty {
                             self.skip();
                         }

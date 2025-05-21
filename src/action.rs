@@ -45,7 +45,9 @@ pub enum Action {
     EndKeySeq,
 
     // Action sent from the components to the components when a playlist is selected
-    SelectPlaylist { key: String },
+    SelectPlaylist {
+        key: String,
+    },
 
     // Error sent out from the player to the components
     PlayerError(String),
@@ -66,5 +68,8 @@ pub enum Action {
     Play,
 
     // This action is used to synchronise the state of PlayerWorker with the components
-    InQueue(Vec<Media>),
+    InQueue {
+        current: Option<Media>,
+        next: Vec<Media>,
+    },
 }

@@ -50,17 +50,17 @@ pub struct PlayerWorker {
 
 impl PlayerWorker {
     fn send_state(&mut self) {
-        let queue = self.queue.clone();
         match &self.state {
             WorkerState::Playing { token: _, item } | WorkerState::Loading { item } => {
+                let q = self.queue.clone().into();
                 let _ = self.action_tx.send(Action::InQueue {
-                    next: Vec::from(queue),
+                    next: q,
                     current: Some(item.clone()),
                 });
             }
             WorkerState::Idle => {
                 let _ = self.action_tx.send(Action::InQueue {
-                    next: Vec::from(queue),
+                    next: Vec::default(),
                     current: None,
                 });
             }
@@ -130,25 +130,26 @@ impl PlayerWorker {
         token
     }
     fn skip(&mut self) {
-        match self.queue.pop_front() {
-            Some(item) => {
-                // If the player was in the process of fetching an item, cancel it
-                if let WorkerState::Playing { token, item: _ } = &self.state {
-                    token.cancel();
-                }
+        match &self.state {
+            WorkerState::Playing { token, item: _ } => {
+                token.cancel();
                 self.sink.stop();
-                let _ = self.action_tx.send(Action::Query(Query::GetUrlByMedia {
-                    media: item.clone(),
-                }));
-                self.state = WorkerState::Loading { item };
-                self.send_state();
             }
-            // If the queue is empty, then skip should put the player into idle mode.
-            None => {
-                self.state = WorkerState::Idle;
-                self.send_state();
+            WorkerState::Loading { item: _ } => {
+                self.sink.stop();
             }
+            WorkerState::Idle => {}
         };
+        match self.queue.pop_front() {
+            Some(i) => {
+                let _ = self
+                    .action_tx
+                    .send(Action::Query(Query::GetUrlByMedia { media: i.clone() }));
+                self.state = WorkerState::Loading { item: i };
+            }
+            None => self.state = WorkerState::Idle,
+        };
+        self.send_state();
     }
     pub async fn run(&mut self) -> Result<()> {
         trace_dbg!("Starting PlayerWorker...");

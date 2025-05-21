@@ -49,7 +49,7 @@ pub struct PlayerWorker {
 }
 
 impl PlayerWorker {
-    fn send_queue(&self) {
+    fn send_state(&mut self) {
         let queue = self.queue.clone();
         match &self.state {
             WorkerState::Playing { token: _, item } | WorkerState::Loading { item } => {
@@ -137,14 +137,18 @@ impl PlayerWorker {
                     token.cancel();
                 }
                 self.sink.stop();
-                let _ = self
-                    .action_tx
-                    .send(Action::Query(Query::GetUrlByMedia { media: item }));
+                let _ = self.action_tx.send(Action::Query(Query::GetUrlByMedia {
+                    media: item.clone(),
+                }));
+                self.state = WorkerState::Loading { item };
+                self.send_state();
             }
             // If the queue is empty, then skip should put the player into idle mode.
-            None => self.state = WorkerState::Idle,
+            None => {
+                self.state = WorkerState::Idle;
+                self.send_state();
+            }
         };
-        self.send_queue();
     }
     pub async fn run(&mut self) -> Result<()> {
         trace_dbg!("Starting PlayerWorker...");
@@ -168,7 +172,7 @@ impl PlayerWorker {
                             self.skip();
                         }
                     } else {
-                        self.send_queue();
+                        self.send_state();
                     }
                 }
                 PlayerAction::PlayURL { music, url } => {

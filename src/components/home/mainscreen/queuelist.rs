@@ -48,7 +48,7 @@ impl QueueList {
                 let mut items: Vec<ListItem> =
                     l.iter().map(|p| ListItem::from(p.title.clone())).collect();
                 if let Some(p) = current {
-                    items.push(ListItem::from(p.title.clone()).fg(Color::Green));
+                    items.insert(0, ListItem::from(p.title.clone()).fg(Color::Green));
                 };
                 List::new(items)
             }

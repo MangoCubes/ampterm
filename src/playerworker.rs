@@ -5,7 +5,7 @@ use std::collections::VecDeque;
 use std::sync::Arc;
 
 use color_eyre::Result;
-use player::PlayerAction;
+use player::{PlayerAction, QueueLocation};
 use reqwest::Url;
 use rodio::{OutputStreamHandle, Sink};
 use stream_download::http::HttpStream;
@@ -166,7 +166,11 @@ impl PlayerWorker {
                 PlayerAction::AddToQueue { music, pos } => {
                     // TODO: Change add location based on pos
                     let was_empty = self.queue.is_empty();
-                    self.queue.push_back(music);
+                    match pos {
+                        QueueLocation::Start => todo!(),
+                        QueueLocation::Next => self.queue.push_front(music),
+                        QueueLocation::Last => self.queue.push_back(music),
+                    }
                     if let WorkerState::Idle = self.state {
                         // If the queue was empty, then adding an item automatically starts playing
                         if was_empty {

@@ -25,9 +25,16 @@ impl NowPlaying {
 
 impl Component for NowPlaying {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        Ok(None)
-    }
-    fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Result<Option<Action>> {
+        if let Action::InQueue { current, next } = action {
+            match current {
+                Some(_) => todo!(),
+                None => {
+                    self.state = CompState::Stopped {
+                        comp: Stopped::new(),
+                    }
+                }
+            };
+        };
         Ok(None)
     }
 }

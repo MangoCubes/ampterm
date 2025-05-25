@@ -168,8 +168,12 @@ impl PlayerWorker {
                     let was_empty = self.queue.is_empty();
                     match pos {
                         QueueLocation::Start => todo!(),
-                        QueueLocation::Next => self.queue.push_front(music),
-                        QueueLocation::Last => self.queue.push_back(music),
+                        QueueLocation::Next => {
+                            music.into_iter().for_each(|m| self.queue.push_front(m))
+                        }
+                        QueueLocation::Last => {
+                            music.into_iter().for_each(|m| self.queue.push_back(m))
+                        }
                     }
                     if let WorkerState::Idle = self.state {
                         // If the queue was empty, then adding an item automatically starts playing

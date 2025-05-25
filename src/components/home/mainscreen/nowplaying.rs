@@ -1,3 +1,4 @@
+mod playing;
 mod stopped;
 
 use crate::{action::Action, components::Component, stateless::Stateless};
@@ -42,10 +43,7 @@ impl Component for NowPlaying {
 impl Stateless for NowPlaying {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         match &mut self.state {
-            CompState::Stopped { comp } => {
-                let _ = comp.draw(frame, area);
-            }
-        };
-        Ok(())
+            CompState::Stopped { comp } => comp.draw(frame, area),
+        }
     }
 }

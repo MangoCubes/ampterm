@@ -69,7 +69,7 @@ impl PlaylistQueue {
             if let Some(pos) = state.selected() {
                 Some(Action::Player(PlayerAction::AddToQueue {
                     pos: QueueLocation::Start,
-                    music: list.entry[pos].clone(),
+                    music: vec![list.entry[pos].clone()],
                 }))
             } else {
                 None

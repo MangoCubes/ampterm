@@ -20,7 +20,13 @@ pub enum PlayerAction {
     Pause,
     Continue,
     Skip,
-    AddToQueue { music: Media, pos: QueueLocation },
-    PlayURL { music: Media, url: String },
+    AddToQueue {
+        music: Vec<Media>,
+        pos: QueueLocation,
+    },
+    PlayURL {
+        music: Media,
+        url: String,
+    },
     Kill,
 }

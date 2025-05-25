@@ -73,7 +73,8 @@ impl Component for MainScreen {
             _ => {
                 self.pl_list.update(action.clone())?;
                 self.pl_queue.update(action.clone())?;
-                self.queuelist.update(action)?;
+                self.queuelist.update(action.clone())?;
+                self.now_playing.update(action)?;
                 Ok(None)
             }
         }

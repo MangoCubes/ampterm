@@ -86,17 +86,17 @@ impl PlayerWorker {
                 .map_err(|e| StreamError::stream_init(e))?,
         )
     }
-    async fn start_stream(
-        sink: Arc<Sink>,
-        player_tx: UnboundedSender<PlayerAction>,
-        url: String,
-    ) -> Result<(), StreamError> {
+    async fn start_stream(sink: Arc<Sink>, url: String) -> Result<(), StreamError> {
         let reader = PlayerWorker::load_from_url(url).await?;
-        tokio::task::spawn_blocking(move || {
+        match tokio::task::spawn(async move {
             sink.append(rodio::Decoder::new(reader).unwrap());
             sink.sleep_until_end();
-        });
-        Ok(())
+        })
+        .await
+        {
+            Ok(_) => Ok(()),
+            Err(e) => Err(StreamError::join(e)),
+        }
     }
     fn play_from_url(&self, url: String) -> CancellationToken {
         let sink = self.sink.clone();
@@ -105,14 +105,14 @@ impl PlayerWorker {
         let token = CancellationToken::new();
         let cloned_token = token.clone();
 
-        tokio::spawn(async move {
+        tokio::task::spawn(async move {
             select! {
                 _ = cloned_token.cancelled() => {
                     let _ = action_tx.send(Action::StreamError("Stream cancelled by user.".to_string()));
                     // Player does not need to do anything more, as cancellation
                     // happens only when the stream is stopped or skipped
                 }
-                result = PlayerWorker::start_stream(sink, player_tx.clone(), url) => {
+                result = PlayerWorker::start_stream(sink, url) => {
                     match result {
                         Ok(_) => {
                             // let _ = action_tx.send(Action::NowPlaying);
@@ -192,13 +192,18 @@ impl PlayerWorker {
                             self.skip();
                         }
                     }
-                    self.send_state();
                 }
                 PlayerAction::PlayURL { music, url } => {
-                    let token = self.play_from_url(url);
-                    self.state = WorkerState::Playing { token, item: music };
+                    // Ensure the one we get is what we expected
+                    if let WorkerState::Loading { item } = &self.state {
+                        if item.id == music.id {
+                            let token = self.play_from_url(url);
+                            self.state = WorkerState::Playing { token, item: music };
+                        };
+                    };
                 }
             };
+            self.send_state();
             if self.should_quit {
                 break;
             }

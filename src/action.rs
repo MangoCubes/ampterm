@@ -46,6 +46,7 @@ pub enum Action {
     // Play or pause the playerworker
     Pause,
     Play,
+    Skip,
 
     // Anything below this should not be used for keybinds
     // System actions

@@ -44,6 +44,7 @@
 	  "<Shift-a>": {
 		  "Local": "AddLast"
 	  },
+	  "<n>": "Skip",
 	  "<Esc>":"EndKeySeq",
 	  "<s>": "Play",
 	  "<Shift-s>": "Pause"

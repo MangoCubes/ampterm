@@ -95,7 +95,6 @@ impl PlayerWorker {
         tokio::task::spawn_blocking(move || {
             sink.append(rodio::Decoder::new(reader).unwrap());
             sink.sleep_until_end();
-            let _ = player_tx.send(PlayerAction::Skip);
         });
         Ok(())
     }
@@ -167,7 +166,19 @@ impl PlayerWorker {
                     // TODO: Change add location based on pos
                     let was_empty = self.queue.is_empty();
                     match pos {
-                        QueueLocation::Front => todo!(),
+                        QueueLocation::Front => {
+                            match &self.state {
+                                WorkerState::Playing { token: _, item }
+                                | WorkerState::Loading { item } => {
+                                    // If music was currently being played, then add it back to the
+                                    // queue
+                                    self.queue.push_front(item.clone());
+                                }
+                                WorkerState::Idle => {}
+                            }
+                            music.into_iter().for_each(|m| self.queue.push_front(m));
+                            self.skip();
+                        }
                         QueueLocation::Next => {
                             music.into_iter().for_each(|m| self.queue.push_front(m))
                         }
@@ -180,9 +191,8 @@ impl PlayerWorker {
                         if was_empty {
                             self.skip();
                         }
-                    } else {
-                        self.send_state();
                     }
+                    self.send_state();
                 }
                 PlayerAction::PlayURL { music, url } => {
                     let token = self.play_from_url(url);

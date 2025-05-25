@@ -14,6 +14,7 @@ use playlistqueue::PlaylistQueue;
 use queuelist::QueueList;
 use ratatui::{
     layout::{Constraint, Layout, Rect},
+    widgets::{Paragraph, Wrap},
     Frame,
 };
 use tokio::sync::mpsc::UnboundedSender;
@@ -31,6 +32,7 @@ pub struct MainScreen {
     pl_queue: PlaylistQueue,
     now_playing: NowPlaying,
     queuelist: QueueList,
+    message: String,
 }
 
 impl MainScreen {
@@ -42,6 +44,7 @@ impl MainScreen {
             pl_queue: PlaylistQueue::new(),
             queuelist: QueueList::new(),
             now_playing: NowPlaying::new(),
+            message: "You are now logged in.".to_string(),
         }
     }
 }
@@ -49,6 +52,14 @@ impl MainScreen {
 impl Component for MainScreen {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match &action {
+            Action::PlayerError(m) => {
+                self.message = m.clone();
+                Ok(None)
+            }
+            Action::StreamError(m) => {
+                self.message = m.clone();
+                Ok(None)
+            }
             Action::MoveLeft => {
                 self.state = match self.state {
                     CurrentlySelected::Playlists => CurrentlySelected::Queue,
@@ -112,6 +123,10 @@ impl Stateless for MainScreen {
         self.queuelist
             .draw_state(frame, listareas[2], self.state == CurrentlySelected::Queue)?;
         self.now_playing.draw(frame, areas[1])?;
+        frame.render_widget(
+            Paragraph::new(self.message.clone()).wrap(Wrap { trim: false }),
+            areas[2],
+        );
         Ok(())
     }
 }

@@ -10,9 +10,10 @@ enum ErrType {
     Parse(String),
     Stream(HttpStreamError<reqwest::Client>),
     StreamInit(StreamInitializationError<HttpStream<reqwest::Client>>),
-    Join(JoinError), // Rodio(rodio::StreamError),
-                     // Decode(rodio::decoder::DecoderError),
-                     // Play(rodio::PlayError),
+    Join(JoinError),
+    Rodio(rodio::StreamError),
+    Decode(rodio::decoder::DecoderError),
+    Play(rodio::PlayError),
 }
 impl Display for ErrType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -21,9 +22,9 @@ impl Display for ErrType {
             ErrType::StreamInit(e) => write!(f, "Stream Initialisation Error: {}", e),
             ErrType::Parse(url) => write!(f, "URL Parsing Error: {}", url),
             ErrType::Join(e) => write!(f, "Join Error: {}", e),
-            // ErrType::Rodio(e) => write!(f, "Output stream error: {}", e),
-            // ErrType::Decode(e) => write!(f, "Decode error: {}", e),
-            // ErrType::Play(e) => write!(f, "Player error: {}", e),
+            ErrType::Rodio(e) => write!(f, "Output stream error: {}", e),
+            ErrType::Decode(e) => write!(f, "Decode error: {}", e),
+            ErrType::Play(e) => write!(f, "Player error: {}", e),
         }
     }
 }
@@ -78,9 +79,9 @@ impl StreamError {
     //     }
     // }
     //
-    // pub fn decode(e: rodio::decoder::DecoderError) -> StreamError {
-    //     Self {
-    //         reason: ErrType::Decode(e),
-    //     }
-    // }
+    pub fn decode(e: rodio::decoder::DecoderError) -> StreamError {
+        Self {
+            reason: ErrType::Decode(e),
+        }
+    }
 }

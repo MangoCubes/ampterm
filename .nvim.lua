@@ -35,7 +35,11 @@ local function run_cargo()
 	vim.cmd('silent !kitty sh -c "(source ' .. proj_dir .. '/.envrc && cargo run) || read" &')
 end
 
+local function run_cargo_release()
+	vim.cmd('silent !kitty sh -c "(source ' .. proj_dir .. '/.envrc && cargo run --profile release) || read" &')
+end
 vim.keymap.set('n', '<M-s>', run_cargo, { noremap = true, silent = true })
+vim.keymap.set('n', '<M-C-s>', run_cargo, { noremap = true, silent = true })
 
 dap.adapters.lldb = {
 	type = "executable",

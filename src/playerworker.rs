@@ -1,5 +1,6 @@
 pub mod player;
 pub mod streamerror;
+pub mod streamreader;
 
 use std::collections::VecDeque;
 use std::sync::Arc;
@@ -10,6 +11,7 @@ use reqwest::Url;
 use rodio::{OutputStreamHandle, Sink};
 use stream_download::http::HttpStream;
 use streamerror::StreamError;
+use streamreader::StreamReader;
 use tokio::select;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use tokio_util::sync::CancellationToken;
@@ -86,17 +88,27 @@ impl PlayerWorker {
                 .map_err(|e| StreamError::stream_init(e))?,
         )
     }
-    async fn start_stream(sink: Arc<Sink>, url: String) -> Result<(), StreamError> {
-        let reader = PlayerWorker::load_from_url(url).await?;
-        match tokio::task::spawn(async move {
-            sink.append(rodio::Decoder::new(reader).unwrap());
-            sink.sleep_until_end();
-        })
-        .await
-        {
-            Ok(_) => Ok(()),
-            Err(e) => Err(StreamError::join(e)),
-        }
+    async fn start_stream(
+        sink: Arc<Sink>,
+        url: String,
+        token: CancellationToken,
+        action_tx: UnboundedSender<Action>,
+    ) -> Result<(), StreamError> {
+        let reader = StreamReader::get_reader(url.parse().unwrap(), action_tx).await?;
+        Ok(())
+        // action_tx.send(Action::StreamError("A".to_string()));
+        // let reader = PlayerWorker::load_from_url(url).await?;
+        // action_tx.send(Action::StreamError("B".to_string()));
+        // let data = rodio::Decoder::new(reader).unwrap();
+        // tokio::task::spawn(async move {
+        //     // FIX: Append takes too long
+        //     action_tx.send(Action::StreamError("C".to_string()));
+        //     sink.append(data);
+        //     action_tx.send(Action::StreamError("".to_string()));
+        //     sink.sleep_until_end();
+        // })
+        // .await
+        // .map_err(|e| StreamError::join(e))
     }
     fn play_from_url(&self, url: String) -> CancellationToken {
         let sink = self.sink.clone();
@@ -106,13 +118,26 @@ impl PlayerWorker {
         let cloned_token = token.clone();
 
         tokio::task::spawn(async move {
+            let reader =
+                match StreamReader::get_reader(url.parse().unwrap(), action_tx.clone()).await {
+                    Ok(r) => r,
+                    Err(_) => return,
+                };
+            let stream_token = reader.cancellation_token();
+            let play = tokio::task::spawn_blocking(move || -> Result<(), StreamError> {
+                let source = rodio::Decoder::new(reader).map_err(|e| StreamError::decode(e))?;
+                sink.append(source);
+                sink.sleep_until_end();
+                Ok(())
+            });
             select! {
                 _ = cloned_token.cancelled() => {
+                    stream_token.cancel();
                     let _ = action_tx.send(Action::StreamError("Stream cancelled by user.".to_string()));
                     // Player does not need to do anything more, as cancellation
                     // happens only when the stream is stopped or skipped
                 }
-                result = PlayerWorker::start_stream(sink, url) => {
+                result = play => {
                     match result {
                         Ok(_) => {
                             // let _ = action_tx.send(Action::NowPlaying);
@@ -120,9 +145,9 @@ impl PlayerWorker {
 
                         Err(e) => {
                             let _ = action_tx.send(Action::StreamError(e.to_string()));
-                            let _ = player_tx.send(PlayerAction::Skip);
                         }
                     }
+                    let _ = player_tx.send(PlayerAction::Skip);
                 }
             }
         });
@@ -131,8 +156,8 @@ impl PlayerWorker {
     fn skip(&mut self) {
         match &self.state {
             WorkerState::Playing { token, item: _ } => {
-                token.cancel();
                 self.sink.stop();
+                token.cancel();
             }
             WorkerState::Loading { item: _ } => {
                 self.sink.stop();
@@ -146,7 +171,9 @@ impl PlayerWorker {
                     .send(Action::Query(Query::GetUrlByMedia { media: i.clone() }));
                 self.state = WorkerState::Loading { item: i };
             }
-            None => self.state = WorkerState::Idle,
+            None => {
+                self.state = WorkerState::Idle;
+            }
         };
         self.send_state();
     }
@@ -197,6 +224,9 @@ impl PlayerWorker {
                     // Ensure the one we get is what we expected
                     if let WorkerState::Loading { item } = &self.state {
                         if item.id == music.id {
+                            let _ = self
+                                .action_tx
+                                .send(Action::StreamError("Starting...".to_string()));
                             let token = self.play_from_url(url);
                             self.state = WorkerState::Playing { token, item: music };
                         };

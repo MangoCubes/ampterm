@@ -1,5 +1,14 @@
 * Architecture
 - This is mostly for me to keep my thoughts in order.
-** When a music item is selected
-- Initially, we have Music struct available
-- When a request is broadcasted, the Music struct is added to the PlayerWorker's queue
+** Player State Changes
+- There are three stages: Idle, Loading and Playing
+*** Idle
+- Idle -> Loading: When the user selects a music file, and it requires further processing to get the corresponding resource link
+- Idle -> Playing: When the user selects a music file, and it does not require further processing because we already have the URL to fetch the music file from
+*** Loading
+- Loading -> Idle: Playing is cancelled, or the OSClient fails to fetch the link
+- Loading -> Playing: The OSClient successfully fetches the link
+*** Playing
+- Playing -> Idle: Music playing is stopped, or the current music is skipped and the queue is empty
+- Playing -> Loading: Current music is skipped and the queue is not empty
+

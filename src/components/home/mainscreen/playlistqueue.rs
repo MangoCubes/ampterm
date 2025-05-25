@@ -58,7 +58,7 @@ impl PlaylistQueue {
         );
         Block::bordered().title(title).border_style(style)
     }
-    fn select_music(&self) -> Option<Action> {
+    fn select_music(&self, playpos: QueueLocation) -> Option<Action> {
         if let CompState::Loaded {
             name: _,
             comp: _,
@@ -68,7 +68,7 @@ impl PlaylistQueue {
         {
             if let Some(pos) = state.selected() {
                 Some(Action::Player(PlayerAction::AddToQueue {
-                    pos: QueueLocation::Next,
+                    pos: playpos,
                     music: vec![list.entry[pos].clone()],
                 }))
             } else {
@@ -113,7 +113,6 @@ impl Component for PlaylistQueue {
                             state.select_next();
                             Ok(None)
                         }
-                        LocalAction::Confirm => Ok(self.select_music()),
                         LocalAction::Top => {
                             state.select_first();
                             Ok(None)
@@ -126,6 +125,9 @@ impl Component for PlaylistQueue {
                             name: Some(name.to_string()),
                             id: list.id.clone(),
                         }))),
+                        LocalAction::AddNext => Ok(self.select_music(QueueLocation::Next)),
+                        LocalAction::AddLast => Ok(self.select_music(QueueLocation::Last)),
+                        LocalAction::AddFront => Ok(self.select_music(QueueLocation::Front)),
                         // TODO: Add horizontal text scrolling
                         _ => Ok(None),
                     }

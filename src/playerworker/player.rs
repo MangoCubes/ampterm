@@ -7,7 +7,7 @@ use crate::action::getplaylist::Media;
 pub enum QueueLocation {
     // Music is added before the first element in the queue
     // When this action is invoked, the current song is stopped, and the sent music is added
-    Start,
+    Front,
     // Music is added after the first element in the queue
     Next,
     // Music is added at the end of the queue

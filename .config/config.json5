@@ -29,8 +29,20 @@
 	  "<Enter>":{
 		  "Local": "Confirm"
 	  },
-	  "<Q>":{
+	  "<q>":{
 		  "Local": "Cancel"
+	  },
+	  "<i>": {
+		  "Local": "AddNext"
+	  },
+	  "<a>": {
+		  "Local": "AddNext"
+	  },
+	  "<Shift-i>": {
+		  "Local": "AddFront"
+	  },
+	  "<Shift-a>": {
+		  "Local": "AddLast"
 	  },
 	  "<Esc>":"EndKeySeq",
 	  "<s>": "Play",

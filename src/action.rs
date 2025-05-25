@@ -20,18 +20,18 @@ pub enum LocalAction {
     Top,
     Bottom,
     Refresh,
+    // Add selected elements to the queue
+    AddFront,
+    AddNext,
+    AddLast,
 }
 
 #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
 pub enum Action {
-    Tick,
-    Render,
-    Resize(u16, u16),
     Suspend,
     Resume,
     Quit,
     ClearScreen,
-    Error(String),
     Help,
     // These actions are limited to a certain focused component only
     Local(LocalAction),
@@ -43,7 +43,16 @@ pub enum Action {
     // Action for deleting all key sequences currently stored
     // It's like escape in Vim, and Ctrl+G in Emacs
     EndKeySeq,
+    // Play or pause the playerworker
+    Pause,
+    Play,
 
+    // Anything below this should not be used for keybinds
+    // System actions
+    Tick,
+    Render,
+    Resize(u16, u16),
+    Error(String),
     // Action sent from the components to the components when a playlist is selected
     SelectPlaylist {
         key: String,
@@ -63,9 +72,6 @@ pub enum Action {
 
     // Actions sent from the components to the PlayerWorker
     Player(PlayerAction),
-    // These are actions sent to the components, and are then sent to the PlayerWorker
-    Pause,
-    Play,
 
     // This action is used to synchronise the state of PlayerWorker with the components
     InQueue {

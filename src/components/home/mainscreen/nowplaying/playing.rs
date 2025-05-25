@@ -1,10 +1,10 @@
 use crate::{action::Action, components::Component, stateless::Stateless};
 use color_eyre::Result;
 use ratatui::{
-    layout::{Alignment, Rect},
+    layout::Rect,
     style::{Style, Stylize},
     text::Line,
-    widgets::{Block, Padding, Paragraph, Wrap},
+    widgets::{Block, Paragraph, Wrap},
     Frame,
 };
 

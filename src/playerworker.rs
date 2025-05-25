@@ -167,7 +167,7 @@ impl PlayerWorker {
                     // TODO: Change add location based on pos
                     let was_empty = self.queue.is_empty();
                     match pos {
-                        QueueLocation::Start => todo!(),
+                        QueueLocation::Front => todo!(),
                         QueueLocation::Next => {
                             music.into_iter().for_each(|m| self.queue.push_front(m))
                         }

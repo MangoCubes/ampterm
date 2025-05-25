@@ -28,7 +28,7 @@ impl NowPlaying {
 
 impl Component for NowPlaying {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        if let Action::InQueue { current, next } = action {
+        if let Action::InQueue { current, next: _ } = action {
             match current {
                 Some(p) => {
                     self.state = CompState::Playing {

@@ -107,6 +107,9 @@ impl Component for PlaylistList {
                             state.select_next();
                             Ok(None)
                         }
+                        // LocalAction::AddNext => Ok(self.select_playlist()),
+                        // LocalAction::AddLast => Ok(self.select_playlist()),
+                        // LocalAction::AddFront => Ok(self.select_playlist()),
                         LocalAction::Confirm => Ok(self.select_playlist()),
                         LocalAction::Top => {
                             state.select_first();

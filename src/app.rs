@@ -2,6 +2,10 @@ use color_eyre::Result;
 
 use crossterm::event::KeyEvent;
 use ratatui::prelude::Rect;
+use rodio::{
+    cpal::{self, traits::HostTrait, SupportedBufferSize},
+    DeviceTrait, SupportedStreamConfig,
+};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{self};
 use tracing::{debug, info};
@@ -47,7 +51,22 @@ impl App {
         // Start query worker
         tokio::spawn(async move { qw.run().await });
 
-        let (stream, handle) = rodio::OutputStream::try_default().unwrap();
+        let host = cpal::default_host();
+        let device = host.default_output_device().unwrap();
+        let default_config = device.default_output_config()?;
+        let (stream, handle) = rodio::OutputStream::try_from_device_config(
+            &device,
+            SupportedStreamConfig::new(
+                default_config.channels(),
+                default_config.sample_rate(),
+                SupportedBufferSize::Range {
+                    min: 4096,
+                    max: 4096,
+                },
+                default_config.sample_format(),
+            ),
+        )
+        .unwrap();
         let mut pw = PlayerWorker::new(handle, action_tx.clone(), config.clone());
         let player_tx = pw.get_tx();
         // Start query worker

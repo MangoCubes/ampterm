@@ -76,6 +76,7 @@ dependencies = [
 name = "ampterm"
 version = "0.1.0"
 dependencies = [
+ "alsa-sys",
  "anyhow",
  "better-panic",
  "clap",

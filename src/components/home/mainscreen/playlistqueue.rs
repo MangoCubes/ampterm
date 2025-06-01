@@ -4,9 +4,9 @@ use crate::{
         Action, LocalAction,
     },
     components::Component,
+    hasparams::HasParams,
     playerworker::player::{PlayerAction, QueueLocation},
     queryworker::query::Query,
-    stateful::Stateful,
 };
 use color_eyre::Result;
 use ratatui::{
@@ -177,8 +177,8 @@ impl Component for PlaylistQueue {
     }
 }
 
-impl Stateful<bool> for PlaylistQueue {
-    fn draw_state(&mut self, frame: &mut Frame, area: Rect, state: bool) -> Result<()> {
+impl HasParams<bool> for PlaylistQueue {
+    fn draw_params(&mut self, frame: &mut Frame, area: Rect, state: bool) -> Result<()> {
         match &mut self.state {
             CompState::NotSelected => frame.render_widget(
                 Paragraph::new("Choose a playlist!")

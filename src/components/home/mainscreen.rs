@@ -4,8 +4,8 @@ mod playlistqueue;
 mod queuelist;
 
 use crate::{
-    action::Action, components::Component, queryworker::query::Query, stateful::Stateful,
-    stateless::Stateless,
+    action::Action, components::Component, hasparams::HasParams, noparams::NoParams,
+    queryworker::query::Query,
 };
 use color_eyre::Result;
 use nowplaying::NowPlaying;
@@ -95,7 +95,7 @@ impl Component for MainScreen {
     }
 }
 
-impl Stateless for MainScreen {
+impl NoParams for MainScreen {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let vertical = Layout::vertical([
             Constraint::Min(0),
@@ -110,18 +110,18 @@ impl Stateless for MainScreen {
         let areas = vertical.split(area);
         let listareas = horizontal.split(areas[0]);
 
-        self.pl_list.draw_state(
+        self.pl_list.draw_params(
             frame,
             listareas[0],
             self.state == CurrentlySelected::Playlists,
         )?;
-        self.pl_queue.draw_state(
+        self.pl_queue.draw_params(
             frame,
             listareas[1],
             self.state == CurrentlySelected::PlaylistQueue,
         )?;
         self.queuelist
-            .draw_state(frame, listareas[2], self.state == CurrentlySelected::Queue)?;
+            .draw_params(frame, listareas[2], self.state == CurrentlySelected::Queue)?;
         self.now_playing.draw(frame, areas[1])?;
         frame.render_widget(
             Paragraph::new(self.message.clone()).wrap(Wrap { trim: false }),

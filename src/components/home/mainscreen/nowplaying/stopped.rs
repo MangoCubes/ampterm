@@ -1,4 +1,4 @@
-use crate::{action::Action, components::Component, stateless::Stateless};
+use crate::{action::Action, components::Component, noparams::NoParams};
 use color_eyre::Result;
 use ratatui::{
     layout::{Alignment, Rect},
@@ -29,7 +29,7 @@ impl Component for Stopped {
     }
 }
 
-impl Stateless for Stopped {
+impl NoParams for Stopped {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         frame.render_widget(
             Paragraph::new("Select a music!")

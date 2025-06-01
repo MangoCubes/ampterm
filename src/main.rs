@@ -11,12 +11,12 @@ mod cli;
 mod components;
 mod config;
 mod errors;
+mod hasparams;
 mod logging;
+mod noparams;
 mod osclient;
 mod playerworker;
 mod queryworker;
-mod stateful;
-mod stateless;
 mod tui;
 
 pub fn log_alsa_error() {

@@ -4,8 +4,8 @@ use crate::{
         Action, LocalAction,
     },
     components::Component,
+    hasparams::HasParams,
     queryworker::query::Query,
-    stateful::Stateful,
 };
 use color_eyre::Result;
 use ratatui::{
@@ -145,8 +145,8 @@ impl Component for PlaylistList {
     }
 }
 
-impl Stateful<bool> for PlaylistList {
-    fn draw_state(&mut self, frame: &mut Frame, area: Rect, state: bool) -> Result<()> {
+impl HasParams<bool> for PlaylistList {
+    fn draw_params(&mut self, frame: &mut Frame, area: Rect, state: bool) -> Result<()> {
         match &mut self.state {
             CompState::Loading => {
                 // Cannot be cached since the area always changes

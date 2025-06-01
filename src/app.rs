@@ -14,9 +14,9 @@ use crate::{
     action::Action,
     components::{home::Home, Component},
     config::Config,
+    noparams::NoParams,
     playerworker::{player::PlayerAction, PlayerWorker},
     queryworker::{query::Query, QueryWorker},
-    stateless::Stateless,
     tui::{Event, Tui},
 };
 
@@ -24,7 +24,7 @@ pub struct App {
     config: Config,
     tick_rate: f64,
     frame_rate: f64,
-    component: Box<dyn Stateless>,
+    component: Box<dyn NoParams>,
     should_quit: bool,
     should_suspend: bool,
     mode: Mode,

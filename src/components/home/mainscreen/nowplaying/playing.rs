@@ -1,4 +1,4 @@
-use crate::{action::Action, components::Component, stateless::Stateless};
+use crate::{action::Action, components::Component, noparams::NoParams};
 use color_eyre::Result;
 use ratatui::{
     layout::Rect,
@@ -38,7 +38,7 @@ impl Component for Playing {
     }
 }
 
-impl Stateless for Playing {
+impl NoParams for Playing {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         frame.render_widget(
             Paragraph::new(vec![

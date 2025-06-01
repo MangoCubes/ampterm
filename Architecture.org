@@ -1,5 +1,9 @@
 * Architecture
 - This is mostly for me to keep my thoughts in order.
+** State Change Management
+- All components may have state
+- Component state changes occur only though the channel
+- Parameters may be given to modify how a component is displayed (HasParams)
 ** Player State Changes
 - There are three stages: Idle, Loading and Playing
 *** Idle

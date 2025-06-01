@@ -2,7 +2,7 @@ use crate::components::Component;
 use color_eyre::Result;
 use ratatui::{layout::Rect, Frame};
 
-pub trait Stateless: Component {
+pub trait NoParams: Component {
     /// Render the component on the screen. (REQUIRED)
     ///
     /// # Arguments

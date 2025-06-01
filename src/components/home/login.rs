@@ -13,8 +13,8 @@ use tui_textarea::{CursorMove, TextArea};
 use crate::{
     action::{ping::PingResponse, Action},
     config::Config,
+    noparams::NoParams,
     queryworker::query::{setcredential::Credential, Query},
-    stateless::Stateless,
 };
 
 use super::Component;
@@ -189,7 +189,7 @@ impl Component for Login {
     }
 }
 
-impl Stateless for Login {
+impl NoParams for Login {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let [horizontal] = Layout::horizontal([Constraint::Percentage(50)])
             .flex(Flex::Center)

@@ -1,11 +1,12 @@
 mod playing;
 mod stopped;
 
-use crate::{action::Action, components::Component, stateless::Stateless};
 use color_eyre::Result;
 use playing::Playing;
 use ratatui::{layout::Rect, Frame};
 use stopped::Stopped;
+
+use crate::{action::Action, components::Component, noparams::NoParams};
 
 enum CompState {
     Stopped { comp: Stopped },
@@ -50,7 +51,7 @@ impl Component for NowPlaying {
     }
 }
 
-impl Stateless for NowPlaying {
+impl NoParams for NowPlaying {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         match &mut self.state {
             CompState::Stopped { comp } => comp.draw(frame, area),

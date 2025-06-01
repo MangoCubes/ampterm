@@ -4,6 +4,7 @@ pub mod streamreader;
 
 use std::collections::VecDeque;
 use std::sync::Arc;
+use std::time::Duration;
 
 use color_eyre::Result;
 use player::{PlayerAction, QueueLocation};
@@ -12,6 +13,7 @@ use streamerror::StreamError;
 use streamreader::StreamReader;
 use tokio::select;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
+use tokio::time::sleep;
 use tokio_util::sync::CancellationToken;
 
 use crate::action::getplaylist::Media;
@@ -46,7 +48,7 @@ pub struct PlayerWorker {
 }
 
 impl PlayerWorker {
-    fn send_state(&mut self) {
+    fn send_playlist_state(&mut self) {
         match &self.state {
             WorkerState::Playing { token: _, item } | WorkerState::Loading { item } => {
                 let q = self.queue.clone().into();
@@ -72,7 +74,9 @@ impl PlayerWorker {
     }
     fn play_from_url(&self, url: String) -> CancellationToken {
         let sink = self.sink.clone();
+        let sink2 = self.sink.clone();
         let action_tx = self.action_tx.clone();
+        let action_tx2 = self.action_tx.clone();
         let player_tx = self.player_tx.clone();
         let token = CancellationToken::new();
         let cloned_token = token.clone();
@@ -90,7 +94,14 @@ impl PlayerWorker {
                 sink.sleep_until_end();
                 Ok(())
             });
-            let poll_state = tokio::task::spawn(async move { loop {} });
+            let poll_state = tokio::task::spawn(async move {
+                loop {
+                    let _ = action_tx2.send(Action::PlayerState(
+                        crate::action::StateType::Position(sink2.get_pos()),
+                    ));
+                    sleep(Duration::from_millis(500)).await;
+                }
+            });
             select! {
                 _ = cloned_token.cancelled() => {
                     stream_token.cancel();
@@ -139,7 +150,7 @@ impl PlayerWorker {
                 self.state = WorkerState::Idle;
             }
         };
-        self.send_state();
+        self.send_playlist_state();
     }
     pub async fn run(&mut self) -> Result<()> {
         trace_dbg!("Starting PlayerWorker...");
@@ -197,7 +208,7 @@ impl PlayerWorker {
                     };
                 }
             };
-            self.send_state();
+            self.send_playlist_state();
             if self.should_quit {
                 break;
             }

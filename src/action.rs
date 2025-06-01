@@ -10,6 +10,12 @@ use strum::Display;
 
 use crate::{playerworker::player::PlayerAction, queryworker::query::Query};
 #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
+pub enum StateType {
+    Position(std::time::Duration),
+    Volume(f32),
+    Speed(f32),
+}
+#[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
 pub enum LocalAction {
     Up,
     Down,
@@ -78,4 +84,6 @@ pub enum Action {
         current: Option<Media>,
         next: Vec<Media>,
     },
+    // This actions is used to send current position
+    PlayerState(StateType),
 }

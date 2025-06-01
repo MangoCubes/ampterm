@@ -3,10 +3,7 @@ mod playlistlist;
 mod playlistqueue;
 mod queuelist;
 
-use crate::{
-    action::Action, components::Component, hasparams::HasParams, noparams::NoParams,
-    queryworker::query::Query,
-};
+use crate::{action::Action, components::Component, queryworker::query::Query, stateful::Stateful};
 use color_eyre::Result;
 use nowplaying::NowPlaying;
 use playlistlist::PlaylistList;
@@ -66,6 +63,12 @@ impl Component for MainScreen {
                     CurrentlySelected::Queue => CurrentlySelected::PlaylistQueue,
                     CurrentlySelected::PlaylistQueue => CurrentlySelected::Playlists,
                 };
+                self.pl_list
+                    .update_state(self.state == CurrentlySelected::Playlists);
+                self.pl_queue
+                    .update_state(self.state == CurrentlySelected::PlaylistQueue);
+                self.queuelist
+                    .update_state(self.state == CurrentlySelected::Queue);
                 Ok(None)
             }
             Action::MoveRight => {
@@ -74,6 +77,12 @@ impl Component for MainScreen {
                     CurrentlySelected::PlaylistQueue => CurrentlySelected::Queue,
                     CurrentlySelected::Queue => CurrentlySelected::Playlists,
                 };
+                self.pl_list
+                    .update_state(self.state == CurrentlySelected::Playlists);
+                self.pl_queue
+                    .update_state(self.state == CurrentlySelected::PlaylistQueue);
+                self.queuelist
+                    .update_state(self.state == CurrentlySelected::Queue);
                 Ok(None)
             }
             Action::Local(_) => match self.state {
@@ -93,9 +102,6 @@ impl Component for MainScreen {
     fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Result<Option<Action>> {
         Ok(None)
     }
-}
-
-impl NoParams for MainScreen {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let vertical = Layout::vertical([
             Constraint::Min(0),
@@ -110,18 +116,9 @@ impl NoParams for MainScreen {
         let areas = vertical.split(area);
         let listareas = horizontal.split(areas[0]);
 
-        self.pl_list.draw_params(
-            frame,
-            listareas[0],
-            self.state == CurrentlySelected::Playlists,
-        )?;
-        self.pl_queue.draw_params(
-            frame,
-            listareas[1],
-            self.state == CurrentlySelected::PlaylistQueue,
-        )?;
-        self.queuelist
-            .draw_params(frame, listareas[2], self.state == CurrentlySelected::Queue)?;
+        self.pl_list.draw(frame, listareas[0])?;
+        self.pl_queue.draw(frame, listareas[1])?;
+        self.queuelist.draw(frame, listareas[2])?;
         self.now_playing.draw(frame, areas[1])?;
         frame.render_widget(
             Paragraph::new(self.message.clone()).wrap(Wrap { trim: false }),

@@ -9,7 +9,7 @@ use ratatui::{
 use crate::{
     action::{getplaylist::Media, Action},
     components::Component,
-    hasparams::HasParams,
+    stateful::Stateful,
 };
 use color_eyre::Result;
 
@@ -87,15 +87,17 @@ impl Component for QueueList {
         }
         Ok(None)
     }
+    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+        frame.render_stateful_widget(&self.comp, area, &mut self.state);
+        Ok(())
+    }
 }
 
-impl HasParams<bool> for QueueList {
-    fn draw_params(&mut self, frame: &mut Frame, area: Rect, state: bool) -> Result<()> {
+impl Stateful<bool> for QueueList {
+    fn update_state(&mut self, state: bool) {
         if self.enabled != state {
             self.enabled = state;
             self.comp = Self::gen_list(self.enabled, &self.current, Some(&self.list))
         }
-        frame.render_stateful_widget(&self.comp, area, &mut self.state);
-        Ok(())
     }
 }

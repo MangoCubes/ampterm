@@ -1,6 +1,10 @@
 use std::time::Duration;
 
-use crate::{action::Action, components::Component, hasparams::HasParams, noparams::NoParams};
+use crate::{
+    action::{Action, StateType},
+    components::Component,
+    stateful::Stateful,
+};
 use color_eyre::Result;
 use ratatui::{
     layout::Rect,
@@ -11,23 +15,36 @@ use ratatui::{
 };
 
 pub struct Playing {
+    state: CompState,
+}
+
+struct CompState {
+    vol: f32,
+    speed: f32,
+    pos: Duration,
     title: String,
     artist: String,
     album: String,
 }
 
-pub struct PlayingState {
-    pub vol: f32,
-    pub speed: f32,
-    pub pos: Duration,
-}
-
 impl Playing {
-    pub fn new(title: String, artist: String, album: String) -> Self {
+    pub fn new(
+        title: String,
+        artist: String,
+        album: String,
+        vol: f32,
+        speed: f32,
+        pos: Duration,
+    ) -> Self {
         Self {
-            title,
-            artist,
-            album,
+            state: CompState {
+                vol,
+                speed,
+                pos,
+                title,
+                artist,
+                album,
+            },
         }
     }
     fn gen_block() -> Block<'static> {
@@ -35,15 +52,23 @@ impl Playing {
     }
 }
 
-impl Component for Playing {}
-
-impl HasParams<&PlayingState> for Playing {
-    fn draw_params(&mut self, frame: &mut Frame, area: Rect, state: &PlayingState) -> Result<()> {
+impl Component for Playing {
+    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+        if let Action::PlayerState(s) = action {
+            match s {
+                StateType::Position(pos) => self.state.pos = pos,
+                StateType::Volume(v) => self.state.vol = v,
+                StateType::Speed(s) => self.state.speed = s,
+            };
+        };
+        Ok(None)
+    }
+    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         frame.render_widget(
             Paragraph::new(vec![
-                Line::raw(format!("{} - {}", self.artist, self.title)).bold(),
-                Line::raw(format!("{}", self.album)),
-                Line::raw(format!("{}", state.pos.as_secs())),
+                Line::raw(format!("{} - {}", self.state.artist, self.state.title)).bold(),
+                Line::raw(format!("{}", self.state.album)),
+                Line::raw(format!("{}", self.state.pos.as_secs())),
             ])
             .block(Self::gen_block())
             .wrap(Wrap { trim: false }),

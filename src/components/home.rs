@@ -13,14 +13,13 @@ use super::Component;
 use crate::{
     action::{ping::PingResponse, Action},
     config::Config,
-    noparams::NoParams,
     queryworker::query::{setcredential::Credential, Query},
     tui::Event,
 };
 
 pub struct Home {
     action_tx: UnboundedSender<Action>,
-    component: Box<dyn NoParams>,
+    component: Box<dyn Component>,
     config_has_creds: bool,
     config: Config,
 }
@@ -49,7 +48,7 @@ impl Home {
             }
         };
         let config_has_creds;
-        let comp: Box<dyn NoParams> = match config_creds {
+        let comp: Box<dyn Component> = match config_creds {
             Some(creds) => {
                 config_has_creds = true;
                 let url = creds.get_url();
@@ -107,9 +106,6 @@ impl Component for Home {
         }
         Ok(None)
     }
-}
-
-impl NoParams for Home {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         if let Err(err) = self.component.draw(frame, area) {
             self.action_tx.send(Action::Error(err.to_string()))?;

@@ -4,9 +4,9 @@ use crate::{
         Action, LocalAction,
     },
     components::Component,
-    hasparams::HasParams,
     playerworker::player::{PlayerAction, QueueLocation},
     queryworker::query::Query,
+    stateful::Stateful,
 };
 use color_eyre::Result;
 use ratatui::{
@@ -175,15 +175,12 @@ impl Component for PlaylistQueue {
             _ => Ok(None),
         }
     }
-}
-
-impl HasParams<bool> for PlaylistQueue {
-    fn draw_params(&mut self, frame: &mut Frame, area: Rect, state: bool) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         match &mut self.state {
             CompState::NotSelected => frame.render_widget(
                 Paragraph::new("Choose a playlist!")
                     .block(
-                        Self::gen_block(state, "Playlist Queue").padding(Padding::new(
+                        Self::gen_block(self.enabled, "Playlist Queue").padding(Padding::new(
                             0,
                             0,
                             area.height / 2,
@@ -196,7 +193,7 @@ impl HasParams<bool> for PlaylistQueue {
             ),
             CompState::Loading { id: _, name } => frame.render_widget(
                 Paragraph::new("Loading...")
-                    .block(Self::gen_block(state, name).padding(Padding::new(
+                    .block(Self::gen_block(self.enabled, name).padding(Padding::new(
                         0,
                         0,
                         area.height / 2,
@@ -212,7 +209,7 @@ impl HasParams<bool> for PlaylistQueue {
                     Line::raw(format!("{}", error)),
                     Line::raw(format!("Reload with 'R'")),
                 ])
-                .block(Self::gen_block(state, name).padding(Padding::new(
+                .block(Self::gen_block(self.enabled, name).padding(Padding::new(
                     0,
                     0,
                     (area.height / 2) - 1,
@@ -227,13 +224,26 @@ impl HasParams<bool> for PlaylistQueue {
                 state: ls,
                 name: _,
             } => {
-                if self.enabled != state {
-                    self.enabled = state;
-                    *comp = Self::gen_list(list, self.enabled);
-                };
                 frame.render_stateful_widget(&*comp, area, ls);
             }
         };
         Ok(())
+    }
+}
+
+impl Stateful<bool> for PlaylistQueue {
+    fn update_state(&mut self, state: bool) {
+        if self.enabled != state {
+            self.enabled = state;
+            if let CompState::Loaded {
+                name: _,
+                comp,
+                list,
+                state: _,
+            } = &mut self.state
+            {
+                *comp = Self::gen_list(list, self.enabled);
+            };
+        };
     }
 }

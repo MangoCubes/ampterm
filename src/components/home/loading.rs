@@ -6,7 +6,7 @@ use ratatui::{
     Frame,
 };
 
-use crate::{components::Component, noparams::NoParams};
+use crate::components::Component;
 
 pub struct Loading {
     url: String,
@@ -18,9 +18,7 @@ impl Loading {
         Self { url, username }
     }
 }
-impl Component for Loading {}
-
-impl NoParams for Loading {
+impl Component for Loading {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let [horizontal] = Layout::horizontal([Constraint::Percentage(100)])
             .flex(Flex::Center)

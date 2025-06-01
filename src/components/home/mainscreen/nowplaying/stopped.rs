@@ -1,4 +1,4 @@
-use crate::{action::Action, components::Component, noparams::NoParams};
+use crate::{action::Action, components::Component};
 use color_eyre::Result;
 use ratatui::{
     layout::{Alignment, Rect},
@@ -27,9 +27,6 @@ impl Component for Stopped {
         let _ = key;
         Ok(None)
     }
-}
-
-impl NoParams for Stopped {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         frame.render_widget(
             Paragraph::new("Select a music!")

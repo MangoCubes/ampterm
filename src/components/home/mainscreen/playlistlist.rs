@@ -4,8 +4,8 @@ use crate::{
         Action, LocalAction,
     },
     components::Component,
-    hasparams::HasParams,
     queryworker::query::Query,
+    stateful::Stateful,
 };
 use color_eyre::Result;
 use ratatui::{
@@ -73,7 +73,7 @@ impl PlaylistList {
         Block::bordered().title(title).border_style(style)
     }
 
-    fn gen_list(enabled: bool, list: &Vec<SimplePlaylist>) -> List<'static> {
+    fn gen_list(list: &Vec<SimplePlaylist>, enabled: bool) -> List<'static> {
         let items: Vec<String> = list.iter().map(|p| p.name.clone()).collect();
         List::new(items)
             .block(Self::gen_block(enabled, "Playlist"))
@@ -129,7 +129,7 @@ impl Component for PlaylistList {
             Action::GetPlaylists(res) => match res {
                 GetPlaylistsResponse::Success(simple_playlists) => {
                     self.state = CompState::Loaded {
-                        comp: PlaylistList::gen_list(self.enabled, &simple_playlists),
+                        comp: PlaylistList::gen_list(&simple_playlists, self.enabled),
                         list: simple_playlists,
                         state: ListState::default().with_selected(Some(0)),
                     };
@@ -143,10 +143,7 @@ impl Component for PlaylistList {
             _ => Ok(None),
         }
     }
-}
-
-impl HasParams<bool> for PlaylistList {
-    fn draw_params(&mut self, frame: &mut Frame, area: Rect, state: bool) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         match &mut self.state {
             CompState::Loading => {
                 // Cannot be cached since the area always changes
@@ -184,13 +181,25 @@ impl HasParams<bool> for PlaylistList {
                 list,
                 state: ls,
             } => {
-                if self.enabled != state {
-                    self.enabled = state;
-                    *comp = Self::gen_list(self.enabled, list);
-                };
                 frame.render_stateful_widget(&*comp, area, ls);
             }
         };
         Ok(())
+    }
+}
+
+impl Stateful<bool> for PlaylistList {
+    fn update_state(&mut self, state: bool) {
+        if self.enabled != state {
+            self.enabled = state;
+            if let CompState::Loaded {
+                comp,
+                list,
+                state: _,
+            } = &mut self.state
+            {
+                *comp = Self::gen_list(list, self.enabled);
+            };
+        };
     }
 }

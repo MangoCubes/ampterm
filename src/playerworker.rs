@@ -55,12 +55,18 @@ impl PlayerWorker {
                 let _ = self.action_tx.send(Action::InQueue {
                     next: q,
                     current: Some(item.clone()),
+                    vol: self.sink.volume(),
+                    speed: self.sink.speed(),
+                    pos: self.sink.get_pos(),
                 });
             }
             WorkerState::Idle => {
                 let _ = self.action_tx.send(Action::InQueue {
                     next: Vec::default(),
                     current: None,
+                    vol: self.sink.volume(),
+                    speed: self.sink.speed(),
+                    pos: self.sink.get_pos(),
                 });
             }
         };

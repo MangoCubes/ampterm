@@ -2,6 +2,8 @@ pub mod getplaylist;
 pub mod getplaylists;
 pub mod ping;
 
+use std::time::Duration;
+
 use getplaylist::{GetPlaylistResponse, Media};
 use getplaylists::GetPlaylistsResponse;
 use ping::PingResponse;
@@ -83,6 +85,9 @@ pub enum Action {
     InQueue {
         current: Option<Media>,
         next: Vec<Media>,
+        vol: f32,
+        speed: f32,
+        pos: Duration,
     },
     // This actions is used to send current position
     PlayerState(StateType),

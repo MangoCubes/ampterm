@@ -73,7 +73,14 @@ impl QueueList {
 
 impl Component for QueueList {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        if let Action::InQueue { current, next } = action {
+        if let Action::InQueue {
+            current,
+            next,
+            vol,
+            speed,
+            pos,
+        } = action
+        {
             self.list = next;
             self.current = current;
             self.comp = Self::gen_list(self.enabled, &self.current, Some(&self.list))

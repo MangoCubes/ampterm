@@ -1,4 +1,6 @@
-use crate::{action::Action, components::Component, noparams::NoParams};
+use std::time::Duration;
+
+use crate::{action::Action, components::Component, hasparams::HasParams, noparams::NoParams};
 use color_eyre::Result;
 use ratatui::{
     layout::Rect,
@@ -14,6 +16,12 @@ pub struct Playing {
     album: String,
 }
 
+pub struct PlayingState {
+    pub vol: f32,
+    pub speed: f32,
+    pub pos: Duration,
+}
+
 impl Playing {
     pub fn new(title: String, artist: String, album: String) -> Self {
         Self {
@@ -27,23 +35,15 @@ impl Playing {
     }
 }
 
-impl Component for Playing {
-    fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        let _ = action;
-        Ok(None)
-    }
-    fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Result<Option<Action>> {
-        let _ = key;
-        Ok(None)
-    }
-}
+impl Component for Playing {}
 
-impl NoParams for Playing {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+impl HasParams<&PlayingState> for Playing {
+    fn draw_params(&mut self, frame: &mut Frame, area: Rect, state: &PlayingState) -> Result<()> {
         frame.render_widget(
             Paragraph::new(vec![
                 Line::raw(format!("{} - {}", self.artist, self.title)).bold(),
                 Line::raw(format!("{}", self.album)),
+                Line::raw(format!("{}", state.pos.as_secs())),
             ])
             .block(Self::gen_block())
             .wrap(Wrap { trim: false }),

@@ -47,6 +47,7 @@ impl Component for NowPlaying {
                             p.title,
                             p.artist.unwrap_or("Unknown".to_string()),
                             p.album.unwrap_or("Unknown".to_string()),
+                            p.duration.unwrap_or(1),
                             vol,
                             speed,
                             pos,
@@ -61,7 +62,7 @@ impl Component for NowPlaying {
             };
         } else {
             if let CompState::Playing { comp } = &mut self.state {
-                comp.update(action);
+                return comp.update(action);
             }
         }
         Ok(None)

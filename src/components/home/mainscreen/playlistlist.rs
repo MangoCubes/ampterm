@@ -80,10 +80,10 @@ impl PlaylistList {
             .highlight_style(Style::new().reversed())
             .highlight_symbol(">")
     }
-    pub fn new() -> Self {
+    pub fn new(enabled: bool) -> Self {
         Self {
             state: CompState::Loading,
-            enabled: false,
+            enabled,
         }
     }
 }

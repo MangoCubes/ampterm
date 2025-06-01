@@ -37,9 +37,9 @@ impl MainScreen {
         let _ = action_tx.send(Action::Query(Query::GetPlaylists));
         Self {
             state: CurrentlySelected::Playlists,
-            pl_list: PlaylistList::new(),
-            pl_queue: PlaylistQueue::new(),
-            queuelist: QueueList::new(),
+            pl_list: PlaylistList::new(true),
+            pl_queue: PlaylistQueue::new(false),
+            queuelist: QueueList::new(false),
             now_playing: NowPlaying::new(),
             message: "You are now logged in.".to_string(),
         }

@@ -59,14 +59,14 @@ impl QueueList {
             .highlight_symbol(">")
     }
 
-    pub fn new() -> Self {
+    pub fn new(enabled: bool) -> Self {
         let empty = vec![];
         Self {
             state: ListState::default(),
             comp: Self::gen_list(false, &None, None),
             current: None,
             list: empty,
-            enabled: false,
+            enabled,
         }
     }
 }

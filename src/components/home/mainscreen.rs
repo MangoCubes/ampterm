@@ -56,7 +56,7 @@ impl Component for MainScreen {
                 self.message = m.clone();
                 Ok(None)
             }
-            Action::StreamError(m) => {
+            Action::PlayerMessage(m) => {
                 self.message = m.clone();
                 Ok(None)
             }

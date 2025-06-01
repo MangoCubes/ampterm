@@ -61,8 +61,7 @@ pub enum Action {
 
     // Error sent out from the player to the components
     PlayerError(String),
-    // Error sent out from the player to the components regarding data streaming
-    StreamError(String),
+    PlayerMessage(String),
 
     // Query sent from the components to the QueryWorker
     Query(Query),

@@ -42,8 +42,7 @@ impl NoParams for Playing {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         frame.render_widget(
             Paragraph::new(vec![
-                Line::raw(format!("{}", self.title)),
-                Line::raw(format!("{}", self.artist)),
+                Line::raw(format!("{} - {}", self.artist, self.title)).bold(),
                 Line::raw(format!("{}", self.album)),
             ])
             .block(Self::gen_block())

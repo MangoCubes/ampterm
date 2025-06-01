@@ -1,11 +1,8 @@
-use std::error::Error;
-use std::sync::Arc;
 use std::time::Instant;
 
 use reqwest::Url;
-use rodio::Sink;
 use stream_download::http::HttpStream;
-use stream_download::source::{DecodeError, SourceStream};
+use stream_download::source::SourceStream;
 use stream_download::storage::temp::TempStorageProvider;
 use stream_download::{Settings, StreamDownload, StreamPhase};
 use tokio::sync::mpsc::UnboundedSender;
@@ -53,7 +50,7 @@ impl StreamReader {
                 }
                 _ => String::default(),
             };
-            action_tx.send(Action::StreamError(msg));
+            action_tx.send(Action::PlayerMessage(msg));
         });
         match StreamDownload::new_http(url, TempStorageProvider::new(), settings).await {
             Ok(reader) => Ok(reader),

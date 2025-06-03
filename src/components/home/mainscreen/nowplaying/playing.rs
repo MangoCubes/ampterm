@@ -3,7 +3,6 @@ use std::time::Duration;
 use crate::{
     action::{Action, StateType},
     components::Component,
-    stateful::Stateful,
 };
 use color_eyre::Result;
 use ratatui::{
@@ -60,7 +59,16 @@ impl Component for Playing {
                 StateType::Volume(v) => self.state.vol = v,
                 StateType::Speed(s) => self.state.speed = s,
             };
-        };
+        } else if let Action::InQueue {
+            current,
+            next,
+            vol,
+            speed,
+            pos,
+        } = action
+        {
+            self.state.pos = Duration::default();
+        }
         Ok(None)
     }
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
@@ -70,7 +78,6 @@ impl Component for Playing {
             Paragraph::new(vec![
                 Line::raw(format!("{} - {}", self.state.artist, self.state.title)).bold(),
                 Line::raw(format!("{}", self.state.album)),
-                Line::raw(format!("{}", self.state.pos.as_secs())),
             ])
             .block(
                 Block::default()
@@ -81,9 +88,11 @@ impl Component for Playing {
             areas[0],
         );
         let label = format!(
-            "{}:{}",
+            "{:02}:{:02} / {:02}:{:02}",
             self.state.pos.as_secs() / 60,
-            self.state.pos.as_secs() % 60
+            self.state.pos.as_secs() % 60,
+            self.state.length / 60,
+            self.state.length % 60,
         );
         frame.render_widget(
             Gauge::default()

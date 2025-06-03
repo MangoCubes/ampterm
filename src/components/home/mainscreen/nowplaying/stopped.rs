@@ -30,7 +30,7 @@ impl Component for Stopped {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         frame.render_widget(
             Paragraph::new("Select a music!")
-                .block(Self::gen_block().padding(Padding::new(0, 0, area.height / 2, 0)))
+                .block(Self::gen_block().padding(Padding::new(0, 0, area.height / 2 - 1, 0)))
                 .alignment(Alignment::Center)
                 .wrap(Wrap { trim: false }),
             area,

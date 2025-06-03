@@ -49,27 +49,36 @@ pub struct PlayerWorker {
 
 impl PlayerWorker {
     fn send_playlist_state(&mut self) {
-        match &self.state {
-            WorkerState::Playing { token: _, item } | WorkerState::Loading { item } => {
+        let action = match &self.state {
+            WorkerState::Playing { token: _, item } => {
                 let q = self.queue.clone().into();
-                let _ = self.action_tx.send(Action::InQueue {
+                Action::InQueue {
                     next: q,
                     current: Some(item.clone()),
                     vol: self.sink.volume(),
                     speed: self.sink.speed(),
                     pos: self.sink.get_pos(),
-                });
+                }
             }
-            WorkerState::Idle => {
-                let _ = self.action_tx.send(Action::InQueue {
-                    next: Vec::default(),
-                    current: None,
+            WorkerState::Loading { item } => {
+                let q = self.queue.clone().into();
+                Action::InQueue {
+                    next: q,
+                    current: Some(item.clone()),
                     vol: self.sink.volume(),
                     speed: self.sink.speed(),
-                    pos: self.sink.get_pos(),
-                });
+                    pos: Duration::from_secs(0),
+                }
             }
+            WorkerState::Idle => Action::InQueue {
+                next: Vec::default(),
+                current: None,
+                vol: self.sink.volume(),
+                speed: self.sink.speed(),
+                pos: Duration::from_secs(0),
+            },
         };
+        let _ = self.action_tx.send(action);
     }
     fn continue_stream(&mut self) {
         self.sink.play();
@@ -156,7 +165,6 @@ impl PlayerWorker {
                 self.state = WorkerState::Idle;
             }
         };
-        self.send_playlist_state();
     }
     pub async fn run(&mut self) -> Result<()> {
         trace_dbg!("Starting PlayerWorker...");
@@ -209,6 +217,7 @@ impl PlayerWorker {
                                 .action_tx
                                 .send(Action::PlayerMessage("Starting...".to_string()));
                             let token = self.play_from_url(url);
+                            self.sink.try_seek(Duration::from_secs(0));
                             self.state = WorkerState::Playing { token, item: music };
                         };
                     };

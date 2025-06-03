@@ -1,9 +1,10 @@
 use crate::{
     action::{
         getplaylists::{GetPlaylistsResponse, SimplePlaylist},
-        Action, LocalAction,
+        Action,
     },
     components::Component,
+    local_action,
     queryworker::query::Query,
     stateful::Stateful,
 };
@@ -91,31 +92,31 @@ impl PlaylistList {
 impl Component for PlaylistList {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
-            Action::Local(l) => {
+            local_action!() => {
                 if let CompState::Loaded {
                     comp: _,
                     list: _,
                     state,
                 } = &mut self.state
                 {
-                    match l {
-                        LocalAction::Up => {
+                    match action {
+                        Action::Up => {
                             state.select_previous();
                             Ok(None)
                         }
-                        LocalAction::Down => {
+                        Action::Down => {
                             state.select_next();
                             Ok(None)
                         }
                         // LocalAction::AddNext => Ok(self.select_playlist()),
                         // LocalAction::AddLast => Ok(self.select_playlist()),
                         // LocalAction::AddFront => Ok(self.select_playlist()),
-                        LocalAction::Confirm => Ok(self.select_playlist()),
-                        LocalAction::Top => {
+                        Action::Confirm => Ok(self.select_playlist()),
+                        Action::Top => {
                             state.select_first();
                             Ok(None)
                         }
-                        LocalAction::Bottom => {
+                        Action::Bottom => {
                             state.select_last();
                             Ok(None)
                         }

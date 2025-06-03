@@ -17,22 +17,24 @@ pub enum StateType {
     Volume(f32),
     Speed(f32),
 }
-#[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
-pub enum LocalAction {
-    Up,
-    Down,
-    Left,
-    Right,
-    Confirm,
-    Cancel,
-    Top,
-    Bottom,
-    Refresh,
-    // Add selected elements to the queue
-    AddFront,
-    AddNext,
-    AddLast,
-    Selection,
+
+// Macro for getting actions that are sent to the currently focused component only
+#[macro_export]
+macro_rules! local_action {
+    () => {
+        Action::Up
+            | Action::Down
+            | Action::Right
+            | Action::Left
+            | Action::Confirm
+            | Action::Cancel
+            | Action::Top
+            | Action::Bottom
+            | Action::Refresh
+            | Action::AddFront
+            | Action::AddNext
+            | Action::AddLast
+    };
 }
 
 #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
@@ -42,8 +44,6 @@ pub enum Action {
     Quit,
     ClearScreen,
     Help,
-    // These actions are limited to a certain focused component only
-    Local(LocalAction),
     // Action for moving between boxes
     MoveLeft,
     MoveRight,
@@ -57,8 +57,23 @@ pub enum Action {
     Play,
     Skip,
 
+    VisualMode,
     ExitMode,
 
+    // Movement-related actions
+    Up,
+    Down,
+    Left,
+    Right,
+    Confirm,
+    Cancel,
+    Top,
+    Bottom,
+    Refresh,
+    // Add selected elements to the queue
+    AddFront,
+    AddNext,
+    AddLast,
     // Anything below this should not be used for keybinds
     // System actions
     Tick,

@@ -137,7 +137,7 @@ impl PlayerWorker {
                     let _ = player_tx.send(PlayerAction::Skip);
                 }
                 _ = poll_state => {
-                    let _ = action_tx.send(Action::PlayerError("Stream polling crashed?".to_string()));
+                    let _ = action_tx.send(Action::PlayerError("Stream polling crashed! Restart recommended.".to_string()));
                 }
             }
         });
@@ -217,7 +217,6 @@ impl PlayerWorker {
                                 .action_tx
                                 .send(Action::PlayerMessage("Starting...".to_string()));
                             let token = self.play_from_url(url);
-                            self.sink.try_seek(Duration::from_secs(0));
                             self.state = WorkerState::Playing { token, item: music };
                         };
                     };

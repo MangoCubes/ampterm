@@ -3,7 +3,10 @@ mod playlistlist;
 mod playlistqueue;
 mod queuelist;
 
-use crate::{action::Action, components::Component, queryworker::query::Query, stateful::Stateful};
+use crate::{
+    action::Action, components::Component, local_action, queryworker::query::Query,
+    stateful::Stateful,
+};
 use color_eyre::Result;
 use nowplaying::NowPlaying;
 use playlistlist::PlaylistList;
@@ -85,7 +88,7 @@ impl Component for MainScreen {
                     .update_state(self.state == CurrentlySelected::Queue);
                 Ok(None)
             }
-            Action::Local(_) => match self.state {
+            local_action!() => match self.state {
                 CurrentlySelected::Playlists => self.pl_list.update(action),
                 CurrentlySelected::PlaylistQueue => self.pl_queue.update(action),
                 CurrentlySelected::Queue => self.queuelist.update(action),

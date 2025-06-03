@@ -1,9 +1,10 @@
 use crate::{
     action::{
         getplaylist::{FullPlaylist, GetPlaylistResponse},
-        Action, LocalAction,
+        Action,
     },
     components::Component,
+    local_action,
     playerworker::player::{PlayerAction, QueueLocation},
     queryworker::query::Query,
     stateful::Stateful,
@@ -96,7 +97,7 @@ impl PlaylistQueue {
 impl Component for PlaylistQueue {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
-            Action::Local(l) => {
+            local_action!() => {
                 if let CompState::Loaded {
                     name,
                     comp: _,
@@ -104,35 +105,35 @@ impl Component for PlaylistQueue {
                     state,
                 } = &mut self.state
                 {
-                    match l {
-                        LocalAction::Up => {
+                    match action {
+                        Action::Up => {
                             state.select_previous();
                             Ok(None)
                         }
-                        LocalAction::Down => {
+                        Action::Down => {
                             state.select_next();
                             Ok(None)
                         }
-                        LocalAction::Top => {
+                        Action::Top => {
                             state.select_first();
                             Ok(None)
                         }
-                        LocalAction::Bottom => {
+                        Action::Bottom => {
                             state.select_last();
                             Ok(None)
                         }
-                        LocalAction::Refresh => Ok(Some(Action::Query(Query::GetPlaylist {
+                        Action::Refresh => Ok(Some(Action::Query(Query::GetPlaylist {
                             name: Some(name.to_string()),
                             id: list.id.clone(),
                         }))),
-                        LocalAction::AddNext => Ok(self.select_music(QueueLocation::Next)),
-                        LocalAction::AddLast => Ok(self.select_music(QueueLocation::Last)),
-                        LocalAction::AddFront => Ok(self.select_music(QueueLocation::Front)),
+                        Action::AddNext => Ok(self.select_music(QueueLocation::Next)),
+                        Action::AddLast => Ok(self.select_music(QueueLocation::Last)),
+                        Action::AddFront => Ok(self.select_music(QueueLocation::Front)),
                         // TODO: Add horizontal text scrolling
                         _ => Ok(None),
                     }
                 } else if let CompState::Error { id, name, error: _ } = &self.state {
-                    if let LocalAction::Refresh = l {
+                    if let Action::Refresh = action {
                         Ok(Some(Action::Query(Query::GetPlaylist {
                             name: Some(name.to_string()),
                             id: id.to_string(),

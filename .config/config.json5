@@ -10,51 +10,21 @@
 	  "<Ctrl-w><Right>": "MoveRight",
 	  "<Ctrl-w><Up>": "MoveUp",
 	  "<Ctrl-w><Down>": "MoveDown",
-	  "<Shift-g>": {
-		  "Local": "Bottom"
-	  },
-	  "<g><g>": {
-		  "Local": "Top"
-	  },
-	  "<Shift-r>": {
-		  "Local": "Refresh"
-	  },
-	  "<Up>": {
-		  "Local": "Up"
-	  },
-	  "<Down>":{
-		  "Local": "Down"
-	  },
-	  "<Left>":{
-		  "Local": "Left"
-	  },
-	  "<Right>":{
-		  "Local": "Right"
-	  },
-	  "<Enter>":{
-		  "Local": "Confirm"
-	  },
-	  "<q>":{
-		  "Local": "Cancel"
-	  },
-	  "<i>": {
-		  "Local": "AddNext"
-	  },
-	  "<a>": {
-		  "Local": "AddNext"
-	  },
-	  "<v>": {
-		  "Local": "Selection"
-	  },
-	  "<Shift-v>": {
-		  "Local": "Selection"
-	  },
-	  "<Shift-i>": {
-		  "Local": "AddFront"
-	  },
-	  "<Shift-a>": {
-		  "Local": "AddLast"
-	  },
+	  "<Shift-g>":"Bottom",
+	  "<g><g>": "Top",
+	  "<Shift-r>":"Refresh",
+	  "<Up>": "Up",
+	  "<Down>":"Down",
+	  "<Left>":"Left",
+	  "<Right>":"Right",
+	  "<Enter>":"Confirm",
+	  "<q>":"Cancel",
+	  "<i>": "AddNext",
+	  "<a>": "AddNext",
+	  "<v>": "VisualMode",
+	  "<Shift-v>":"VisualMode",
+	  "<Shift-i>":"AddFront",
+	  "<Shift-a>":"AddLast",
 	  "<n>": "Skip",
 	  "<Esc>":"EndKeySeq",
 	  "<s>": "Play",

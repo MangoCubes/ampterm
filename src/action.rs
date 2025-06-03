@@ -11,11 +11,18 @@ use serde::{Deserialize, Serialize};
 use strum::Display;
 
 use crate::{playerworker::player::PlayerAction, queryworker::query::Query};
+
 #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
 pub enum StateType {
     Position(std::time::Duration),
     Volume(f32),
     Speed(f32),
+}
+
+#[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
+pub enum InputMode {
+    Normal,
+    Visual,
 }
 
 // Macro for getting actions that are sent to the currently focused component only
@@ -36,6 +43,31 @@ macro_rules! local_action {
             | Action::AddLast
     };
 }
+// Macro for getting actions involving moving between frames
+#[macro_export]
+macro_rules! movements {
+    () => {
+    Action::MoveLeft,
+    | Action::MoveRight,
+    | Action::MoveUp,
+    | Action::MoveDown,
+    };
+}
+// Macro for getting actions that adds stuff to the queue
+#[macro_export]
+macro_rules! add_to_queue {
+    () => {
+        Action::AddFront | Action::AddNext | Action::AddLast
+    };
+}
+
+// Macro for getting actions that will transform the current mode to the normal mode
+#[macro_export]
+macro_rules! exits_mode {
+    () => {
+        add_to_queue!() | movements!()
+    };
+}
 
 #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
 pub enum Action {
@@ -49,6 +81,7 @@ pub enum Action {
     MoveRight,
     MoveUp,
     MoveDown,
+
     // Action for deleting all key sequences currently stored
     // It's like escape in Vim, and Ctrl+G in Emacs
     EndKeySeq,
@@ -58,7 +91,7 @@ pub enum Action {
     Skip,
 
     VisualMode,
-    ExitMode,
+    NormalMode,
 
     // Movement-related actions
     Up,
@@ -74,10 +107,11 @@ pub enum Action {
     AddFront,
     AddNext,
     AddLast,
-    // Anything below this should not be used for keybinds
+    // Anything below this should not be used for keybinds, but feel free to experiment. Most are used to notify the system
     // System actions
     Tick,
     Render,
+    ModeChanged(InputMode),
     Resize(u16, u16),
     Error(String),
     // Action sent from the components to the components when a playlist is selected

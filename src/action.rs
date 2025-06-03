@@ -32,6 +32,7 @@ pub enum LocalAction {
     AddFront,
     AddNext,
     AddLast,
+    Selection,
 }
 
 #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
@@ -55,6 +56,8 @@ pub enum Action {
     Pause,
     Play,
     Skip,
+
+    ExitMode,
 
     // Anything below this should not be used for keybinds
     // System actions

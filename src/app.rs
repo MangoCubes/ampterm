@@ -37,8 +37,10 @@ pub struct App {
 
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Mode {
-    #[default]
     Common,
+    #[default]
+    Normal,
+    Visual,
 }
 
 impl App {
@@ -77,7 +79,7 @@ impl App {
             should_quit: false,
             should_suspend: false,
             config,
-            mode: Mode::Common,
+            mode: Mode::default(),
             key_stack: Vec::new(),
             action_tx,
             action_rx,

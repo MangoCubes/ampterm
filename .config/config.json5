@@ -1,5 +1,10 @@
 {
   "keybindings": {
+	  "Visual": {
+		  	  "<Esc>":"ExitMode"
+
+	  },
+	  "Normal": {},
     "Common": {
 	  "<Ctrl-w><Left>": "MoveLeft",
 	  "<Ctrl-w><Right>": "MoveRight",
@@ -37,6 +42,12 @@
 	  },
 	  "<a>": {
 		  "Local": "AddNext"
+	  },
+	  "<v>": {
+		  "Local": "Selection"
+	  },
+	  "<Shift-v>": {
+		  "Local": "Selection"
 	  },
 	  "<Shift-i>": {
 		  "Local": "AddFront"

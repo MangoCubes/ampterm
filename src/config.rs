@@ -104,6 +104,7 @@ impl Config {
 
         let mut cfg: Self = builder.build()?.try_deserialize()?;
 
+        // Add user config on top of the default config
         for (mode, default_bindings) in default_config.keybindings.iter() {
             let user_bindings = cfg.keybindings.entry(*mode).or_default();
             for (key, cmd) in default_bindings.iter() {
@@ -112,6 +113,20 @@ impl Config {
                     .or_insert_with(|| cmd.clone());
             }
         }
+
+        // Add Common keybindings to all other modes
+        let common = cfg.keybindings.get(&Mode::Common).cloned();
+        if let Some(common_binds) = common {
+            for (mode, bindings) in cfg.keybindings.iter_mut() {
+                if Mode::Common == *mode {
+                    continue;
+                };
+                for (key, cmd) in common_binds.iter() {
+                    bindings.entry(key.clone()).or_insert_with(|| cmd.clone());
+                }
+            }
+        };
+
         for (mode, default_styles) in default_config.styles.iter() {
             let user_styles = cfg.styles.entry(*mode).or_default();
             for (style_key, style) in default_styles.iter() {

@@ -9,7 +9,7 @@ use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Style, Stylize},
     text::Line,
-    widgets::{Block, Borders, Gauge, Paragraph, Widget, Wrap},
+    widgets::{Block, Borders, Gauge, Paragraph, Wrap},
     Frame,
 };
 

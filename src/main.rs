@@ -11,6 +11,7 @@ mod cli;
 mod components;
 mod config;
 mod errors;
+mod focusable;
 mod logging;
 mod osclient;
 mod playerworker;

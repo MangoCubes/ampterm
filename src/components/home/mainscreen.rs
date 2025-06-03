@@ -4,8 +4,8 @@ mod playlistqueue;
 mod queuelist;
 
 use crate::{
-    action::Action, components::Component, local_action, queryworker::query::Query,
-    stateful::Stateful,
+    action::Action, components::Component, focusable::Focusable, local_action,
+    queryworker::query::Query, stateful::Stateful,
 };
 use color_eyre::Result;
 use nowplaying::NowPlaying;
@@ -67,11 +67,11 @@ impl Component for MainScreen {
                     CurrentlySelected::PlaylistQueue => CurrentlySelected::Playlists,
                 };
                 self.pl_list
-                    .update_state(self.state == CurrentlySelected::Playlists);
+                    .set_enabled(self.state == CurrentlySelected::Playlists);
                 self.pl_queue
-                    .update_state(self.state == CurrentlySelected::PlaylistQueue);
+                    .set_enabled(self.state == CurrentlySelected::PlaylistQueue);
                 self.queuelist
-                    .update_state(self.state == CurrentlySelected::Queue);
+                    .set_enabled(self.state == CurrentlySelected::Queue);
                 Ok(None)
             }
             Action::MoveRight => {
@@ -81,11 +81,11 @@ impl Component for MainScreen {
                     CurrentlySelected::Queue => CurrentlySelected::Playlists,
                 };
                 self.pl_list
-                    .update_state(self.state == CurrentlySelected::Playlists);
+                    .set_enabled(self.state == CurrentlySelected::Playlists);
                 self.pl_queue
-                    .update_state(self.state == CurrentlySelected::PlaylistQueue);
+                    .set_enabled(self.state == CurrentlySelected::PlaylistQueue);
                 self.queuelist
-                    .update_state(self.state == CurrentlySelected::Queue);
+                    .set_enabled(self.state == CurrentlySelected::Queue);
                 Ok(None)
             }
             local_action!() => match self.state {

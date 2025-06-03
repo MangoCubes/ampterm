@@ -6,10 +6,7 @@ use playing::Playing;
 use ratatui::{layout::Rect, Frame};
 use stopped::Stopped;
 
-use crate::{
-    action::{Action, StateType},
-    components::Component,
-};
+use crate::{action::Action, components::Component};
 
 enum CompState {
     Stopped { comp: Stopped },

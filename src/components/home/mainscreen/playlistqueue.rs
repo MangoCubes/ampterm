@@ -4,6 +4,7 @@ use crate::{
         Action,
     },
     components::Component,
+    focusable::Focusable,
     local_action,
     playerworker::player::{PlayerAction, QueueLocation},
     queryworker::query::Query,
@@ -232,10 +233,10 @@ impl Component for PlaylistQueue {
     }
 }
 
-impl Stateful<bool> for PlaylistQueue {
-    fn update_state(&mut self, state: bool) {
-        if self.enabled != state {
-            self.enabled = state;
+impl Focusable for PlaylistQueue {
+    fn set_enabled(&mut self, enable: bool) {
+        if self.enabled != enable {
+            self.enabled = enable;
             if let CompState::Loaded {
                 name: _,
                 comp,

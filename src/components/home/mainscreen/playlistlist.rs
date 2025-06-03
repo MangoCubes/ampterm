@@ -4,6 +4,7 @@ use crate::{
         Action,
     },
     components::Component,
+    focusable::Focusable,
     local_action,
     queryworker::query::Query,
     stateful::Stateful,
@@ -189,10 +190,10 @@ impl Component for PlaylistList {
     }
 }
 
-impl Stateful<bool> for PlaylistList {
-    fn update_state(&mut self, state: bool) {
-        if self.enabled != state {
-            self.enabled = state;
+impl Focusable for PlaylistList {
+    fn set_enabled(&mut self, enable: bool) {
+        if self.enabled != enable {
+            self.enabled = enable;
             if let CompState::Loaded {
                 comp,
                 list,

@@ -9,6 +9,7 @@ use ratatui::{
 use crate::{
     action::{getplaylist::Media, Action},
     components::Component,
+    focusable::Focusable,
     stateful::Stateful,
 };
 use color_eyre::Result;
@@ -93,10 +94,10 @@ impl Component for QueueList {
     }
 }
 
-impl Stateful<bool> for QueueList {
-    fn update_state(&mut self, state: bool) {
-        if self.enabled != state {
-            self.enabled = state;
+impl Focusable for QueueList {
+    fn set_enabled(&mut self, enable: bool) {
+        if self.enabled != enable {
+            self.enabled = enable;
             self.comp = Self::gen_list(self.enabled, &self.current, Some(&self.list))
         }
     }

@@ -1,7 +1,7 @@
 {
   "keybindings": {
 	  "Visual": {
-		  	  "<Esc>":"ExitMode"
+		  	  "<Esc>":"NormalMode"
 
 	  },
 	  "Normal": {},

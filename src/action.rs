@@ -47,10 +47,7 @@ macro_rules! local_action {
 #[macro_export]
 macro_rules! movements {
     () => {
-    Action::MoveLeft,
-    | Action::MoveRight,
-    | Action::MoveUp,
-    | Action::MoveDown,
+        Action::MoveLeft | Action::MoveRight | Action::MoveUp | Action::MoveDown
     };
 }
 // Macro for getting actions that adds stuff to the queue

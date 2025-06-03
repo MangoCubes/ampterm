@@ -18,6 +18,7 @@ mod playerworker;
 mod queryworker;
 mod stateful;
 mod tui;
+mod visualmode;
 
 pub fn log_alsa_error() {
     #[cfg(target_os = "linux")]

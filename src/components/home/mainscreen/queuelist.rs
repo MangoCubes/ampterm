@@ -10,7 +10,6 @@ use crate::{
     action::{getplaylist::Media, Action},
     components::Component,
     focusable::Focusable,
-    stateful::Stateful,
 };
 use color_eyre::Result;
 

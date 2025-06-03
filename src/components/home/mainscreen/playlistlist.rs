@@ -7,7 +7,6 @@ use crate::{
     focusable::Focusable,
     local_action,
     queryworker::query::Query,
-    stateful::Stateful,
 };
 use color_eyre::Result;
 use ratatui::{

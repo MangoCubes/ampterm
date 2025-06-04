@@ -166,6 +166,18 @@ impl App {
                 Action::EndKeySeq => {
                     self.key_stack.drain(..);
                 }
+                Action::VisualMode => {
+                    self.mode = Mode::Visual;
+                    if let Some(ret) = self.component.update(action)? {
+                        self.action_tx.send(ret)?
+                    }
+                }
+                Action::NormalMode => {
+                    self.mode = Mode::Normal;
+                    if let Some(ret) = self.component.update(action)? {
+                        self.action_tx.send(ret)?
+                    }
+                }
                 Action::Play => {
                     self.player_tx.send(PlayerAction::Continue)?;
                     if let Some(ret) = self.component.update(action)? {

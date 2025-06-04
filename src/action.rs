@@ -19,11 +19,11 @@ pub enum StateType {
     Speed(f32),
 }
 
-#[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
-pub enum InputMode {
-    Normal,
-    Visual,
-}
+// #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
+// pub enum InputMode {
+//     Normal,
+//     Visual,
+// }
 
 // Macro for getting actions that are sent to the currently focused component only
 #[macro_export]
@@ -55,14 +55,6 @@ macro_rules! movements {
 macro_rules! add_to_queue {
     () => {
         Action::AddFront | Action::AddNext | Action::AddLast
-    };
-}
-
-// Macro for getting actions that will transform the current mode to the normal mode
-#[macro_export]
-macro_rules! exits_mode {
-    () => {
-        add_to_queue!() | movements!()
     };
 }
 
@@ -108,7 +100,7 @@ pub enum Action {
     // System actions
     Tick,
     Render,
-    ModeChanged(InputMode),
+    // ModeChanged(InputMode),
     Resize(u16, u16),
     Error(String),
     // Action sent from the components to the components when a playlist is selected

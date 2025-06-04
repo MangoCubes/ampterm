@@ -94,15 +94,14 @@ impl Component for Playing {
             self.state.length / 60,
             self.state.length % 60,
         );
+        let percent = ((self.state.pos.as_secs() as i32 * 100) / self.state.length) as u16;
+        let adjusted = if percent > 100 { 100 } else { percent };
         frame.render_widget(
-            Gauge::default()
-                .label(label)
-                .percent(((self.state.pos.as_secs() as i32 * 100) / self.state.length) as u16)
-                .block(
-                    Block::default()
-                        .borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT)
-                        .border_style(Style::new().white()),
-                ),
+            Gauge::default().label(label).percent(adjusted).block(
+                Block::default()
+                    .borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT)
+                    .border_style(Style::new().white()),
+            ),
             areas[1],
         );
         Ok(())

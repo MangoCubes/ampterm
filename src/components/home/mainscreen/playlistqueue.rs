@@ -1,14 +1,16 @@
 use crate::{
     action::{
-        getplaylist::{FullPlaylist, GetPlaylistResponse},
+        getplaylist::{FullPlaylist, GetPlaylistResponse, Media},
         Action,
     },
+    add_to_queue,
     components::Component,
+    exits_mode,
     focusable::Focusable,
-    local_action,
+    local_action, movements,
     playerworker::player::{PlayerAction, QueueLocation},
     queryworker::query::Query,
-    stateful::Stateful,
+    visualmode::VisualMode,
 };
 use color_eyre::Result;
 use ratatui::{
@@ -35,6 +37,11 @@ enum CompState {
         comp: List<'static>,
         list: FullPlaylist,
         state: ListState,
+        // If the value is None, then the current mode is not visual mode
+        // Otherwise, the list is filled with the items selected by the current visual mode
+        visual: Option<Vec<Media>>,
+        // List of all selected media
+        selected: Vec<Media>,
     },
 }
 
@@ -66,6 +73,8 @@ impl PlaylistQueue {
             comp: _,
             list,
             state,
+            visual: _,
+            selected: _,
         } = &self.state
         {
             if let Some(pos) = state.selected() {
@@ -97,6 +106,9 @@ impl PlaylistQueue {
 
 impl Component for PlaylistQueue {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
+        if let exits_mode!() = action {
+            self.reset_visual_mode();
+        };
         match action {
             local_action!() => {
                 if let CompState::Loaded {
@@ -104,6 +116,8 @@ impl Component for PlaylistQueue {
                     comp: _,
                     list,
                     state,
+                    visual,
+                    selected,
                 } = &mut self.state
                 {
                     match action {
@@ -162,6 +176,8 @@ impl Component for PlaylistQueue {
                         name: full_playlist.name.clone(),
                         list: full_playlist,
                         state: ListState::default().with_selected(Some(0)),
+                        visual: None,
+                        selected: vec![],
                     };
                     Ok(None)
                 }
@@ -222,9 +238,11 @@ impl Component for PlaylistQueue {
             ),
             CompState::Loaded {
                 comp,
-                list,
+                list: _,
                 state: ls,
                 name: _,
+                visual: _,
+                selected: _,
             } => {
                 frame.render_stateful_widget(&*comp, area, ls);
             }
@@ -242,10 +260,82 @@ impl Focusable for PlaylistQueue {
                 comp,
                 list,
                 state: _,
+                visual: _,
+                selected: _,
             } = &mut self.state
             {
                 *comp = Self::gen_list(list, self.enabled);
             };
         };
+    }
+}
+
+impl VisualMode<Media> for PlaylistQueue {
+    fn start_visual_mode(&mut self) -> bool {
+        if let CompState::Loaded {
+            name: _,
+            comp: _,
+            list: _,
+            state: _,
+            visual,
+            selected: _,
+        } = &mut self.state
+        {
+            *visual = Some(vec![]);
+            true
+        } else {
+            false
+        }
+    }
+
+    fn end_visual_mode(&mut self) -> bool {
+        if let CompState::Loaded {
+            name: _,
+            comp: _,
+            list: _,
+            state: _,
+            visual,
+            selected,
+        } = &mut self.state
+        {
+            *visual = None;
+            true
+        } else {
+            false
+        }
+    }
+
+    fn reset_visual_mode(&mut self) -> bool {
+        self.end_visual_mode();
+        if let CompState::Loaded {
+            name: _,
+            comp: _,
+            list: _,
+            state: _,
+            visual,
+            selected,
+        } = &mut self.state
+        {
+            *selected = vec![];
+            true
+        } else {
+            false
+        }
+    }
+
+    fn get_selection(&mut self) -> Vec<Media> {
+        if let CompState::Loaded {
+            name: _,
+            comp: _,
+            list: _,
+            state: _,
+            visual,
+            selected,
+        } = &mut self.state
+        {
+            selected.clone()
+        } else {
+            vec![]
+        }
     }
 }

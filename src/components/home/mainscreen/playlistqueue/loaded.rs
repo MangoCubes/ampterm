@@ -65,8 +65,8 @@ impl Loaded {
     }
     fn gen_list(
         list: &FullPlaylist,
-        visual: &Option<HashSet<MediaID>>,
-        selected: &Option<HashSet<MediaID>>,
+        visual: Option<&HashSet<MediaID>>,
+        selected: Option<&HashSet<MediaID>>,
         enabled: bool,
     ) -> List<'static> {
         let items: Vec<ListItem> = list
@@ -77,7 +77,7 @@ impl Loaded {
                 let mut item = ListItem::from(p.title.clone());
                 if let Some(s) = selected {
                     if s.contains(id) {
-                        item = item.bold();
+                        item = item.red();
                     }
                 }
                 if let Some(r) = visual {
@@ -98,7 +98,7 @@ impl Loaded {
         selected.select(Some(0));
         Self {
             name,
-            comp: Loaded::gen_list(&list, &None, &None, enabled),
+            comp: Loaded::gen_list(&list, None, None, enabled),
             list,
             list_state: selected,
             visual: None,
@@ -150,7 +150,12 @@ impl Component for Loaded {
                         let id = item.id.clone();
                         self.set_temp_selection(Some(HashSet::from([id])));
                         self.set_visual_mode(true);
-                        // *comp = Loaded::gen_list(list, &None, &None, self.enabled);
+                        self.comp = Loaded::gen_list(
+                            &self.list,
+                            self.get_temp_selection(),
+                            self.get_selection(),
+                            self.enabled,
+                        );
                         Ok(None)
                     }
                     // TODO: Add horizontal text scrolling
@@ -170,7 +175,12 @@ impl Focusable for Loaded {
     fn set_enabled(&mut self, enable: bool) {
         if self.enabled != enable {
             self.enabled = enable;
-            self.comp = Self::gen_list(&self.list, &self.visual, &self.selected, self.enabled);
+            self.comp = Self::gen_list(
+                &self.list,
+                self.get_temp_selection(),
+                self.get_selection(),
+                self.enabled,
+            );
             if !self.enabled {
                 self.set_visual(false);
             }

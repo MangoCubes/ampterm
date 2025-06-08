@@ -1,10 +1,10 @@
 {
   "keybindings": {
-	  "Visual": {
-		  	  "<Esc>":"NormalMode"
-
-	  },
-	  "Normal": {},
+    "Visual": {
+	  "<Esc>":"NormalMode",
+	  "<v>":"NormalMode"
+    },
+	"Normal": {},
     "Common": {
 	  "<Ctrl-w><Left>": "MoveLeft",
 	  "<Ctrl-w><Right>": "MoveRight",

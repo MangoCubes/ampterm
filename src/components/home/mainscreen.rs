@@ -4,7 +4,7 @@ mod playlistqueue;
 mod queuelist;
 
 use crate::{
-    action::Action, components::Component, focusable::Focusable, local_action,
+    action::Action, components::Component, focusable::Focusable, local_action, modes,
     queryworker::query::Query, stateful::Stateful,
 };
 use color_eyre::Result;
@@ -88,11 +88,19 @@ impl Component for MainScreen {
                     .set_enabled(self.state == CurrentlySelected::Queue);
                 Ok(None)
             }
-            local_action!() => match self.state {
-                CurrentlySelected::Playlists => self.pl_list.update(action),
-                CurrentlySelected::PlaylistQueue => self.pl_queue.update(action),
-                CurrentlySelected::Queue => self.queuelist.update(action),
-            },
+            local_action!() => {
+                if let Action::NormalMode = action {
+                    self.message = "--NORMAL MODE--".to_owned();
+                };
+                if let Action::VisualMode = action {
+                    self.message = "--VISUAL MODE--".to_owned();
+                };
+                match self.state {
+                    CurrentlySelected::Playlists => self.pl_list.update(action),
+                    CurrentlySelected::PlaylistQueue => self.pl_queue.update(action),
+                    CurrentlySelected::Queue => self.queuelist.update(action),
+                }
+            }
             _ => {
                 self.pl_list.update(action.clone())?;
                 self.pl_queue.update(action.clone())?;

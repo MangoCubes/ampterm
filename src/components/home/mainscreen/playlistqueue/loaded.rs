@@ -33,6 +33,7 @@ pub struct Loaded {
     visual: Option<HashSet<MediaID>>,
     // List of all selected media
     selected: Option<HashSet<MediaID>>,
+    prev_item: MediaID,
     enabled: bool,
 }
 
@@ -104,6 +105,7 @@ impl Loaded {
             visual: None,
             selected: None,
             enabled,
+            prev_item: String::default(),
         }
     }
 }
@@ -224,6 +226,26 @@ impl VisualMode<MediaID> for Loaded {
 
     fn set_temp_selection(&mut self, selection: Option<HashSet<MediaID>>) {
         self.visual = selection;
+    }
+
+    fn add_temp_selection(&mut self, item: MediaID) {
+        if let Some(ids) = &mut self.visual {
+            (*ids).insert(item);
+        }
+    }
+
+    fn remove_temp_selection(&mut self, item: MediaID) {
+        if let Some(ids) = &mut self.visual {
+            (*ids).remove(&item);
+        }
+    }
+
+    fn set_item_a(&mut self, item: MediaID) {
+        self.prev_item = item;
+    }
+
+    fn get_item_a_selected(&self) -> MediaID {
+        self.prev_item.clone()
     }
 }
 impl PlaylistQueueComps for Loaded {}

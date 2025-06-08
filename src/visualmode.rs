@@ -5,6 +5,7 @@ use std::hash::Hash;
 // Visual mode have two storages
 // temp: Items selected by the current visual mode
 // (unmarked): Items selected by all visual modes since the last reset
+//
 pub trait VisualMode<T: Eq + Hash + Clone>: Component {
     // Check if the current mode is visual mode
     fn is_visual(&self) -> bool;
@@ -68,4 +69,30 @@ pub trait VisualMode<T: Eq + Hash + Clone>: Component {
 
     // Sets the temporarily selected region
     fn set_temp_selection(&mut self, selection: Option<HashSet<T>>);
+
+    fn add_temp_selection(&mut self, item: T);
+    fn remove_temp_selection(&mut self, item: T);
+    // Items are added by moving around in visual mode
+    // When the cursor moves from item A to item B:
+    //   A is selected, and B is also selected: We are backtracking, and we need to remove A from the
+    //     selection
+    //   A is selected, but B is not selected: We are adding new items, and we need to add B into the
+    //     set
+    fn set_item_a(&mut self, item: T);
+    fn get_item_a_selected(&self) -> T;
+    // Returns true if an item is added
+    fn set_item_b(&mut self, b: T) -> bool {
+        if let Some(set) = self.get_temp_selection() {
+            let a = self.get_item_a_selected();
+            if set.contains(&b) {
+                self.remove_temp_selection(a);
+                false
+            } else {
+                self.add_temp_selection(b);
+                true
+            }
+        } else {
+            panic!("Attempted to modify visual state outside visual mode!")
+        }
+    }
 }

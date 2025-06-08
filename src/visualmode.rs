@@ -7,37 +7,42 @@ use std::hash::Hash;
 // (unmarked): Items selected by all visual modes since the last reset
 pub trait VisualMode<T: Eq + Hash + Clone>: Component {
     // Check if the current mode is visual mode
-    fn is_visual(self) -> bool;
+    fn is_visual(&self) -> bool;
     // Enable/disable visual mode
+    // This behaviour should be defined, but not be used directly
     fn set_visual(&mut self, to: bool);
 
-    // Toggle visual mode
-    // Add temporarily selected items into the list of selected items, unless they are already
-    // added, in which case they are removed instead
-    fn toggle_visual_mode(&mut self) {
+    // Change current mode
+    // If the current mode and the mode to change to are the same, then nothing happens
+    // Otherwise:
+    //   If the current mode is visual, and we are about to change to normal mode, the current
+    //   selection is saved
+    //   If the current mode is normal, and we are about to change to visual mode, the mode changes
+    fn set_visual_mode(&mut self, to: bool) {
+        let current = self.is_visual();
+        if to == current {
+            return;
+        };
         if self.is_visual() {
             let old = self.get_selection();
             let new = self.get_temp_selection();
-            let merged = if let Some(new_selected) = new {
+            if let Some(new_selected) = new {
                 if let Some(old_selected) = old {
                     // Both exists
                     let merged: HashSet<T> = old_selected
                         .symmetric_difference(&new_selected)
                         .cloned()
                         .collect();
-                    Some(merged)
+                    self.set_selection(Some(merged));
                 } else {
                     // Missing old selection
-                    Some(new_selected)
+                    Some(new_selected);
                 }
             } else {
                 if let Some(old_selected) = old {
-                    Some(old_selected)
-                } else {
-                    None
+                    Some(old_selected);
                 }
             };
-            self.set_selection(merged);
             self.set_temp_selection(None);
             self.set_visual(false);
         } else {
@@ -46,17 +51,17 @@ pub trait VisualMode<T: Eq + Hash + Clone>: Component {
     }
 
     // Reset all selection
-    fn reset_normal_selection(&mut self) {
+    fn reset_all_selection(&mut self) {
         self.set_selection(None);
         self.set_temp_selection(None);
         self.set_visual(false);
     }
 
     // Gets the temporarily selected region
-    fn get_temp_selection(self) -> Option<&HashSet<T>>;
+    fn get_temp_selection(&self) -> Option<&HashSet<T>>;
 
     // Gets the selected region
-    fn get_selection(self) -> Option<&HashSet<T>>;
+    fn get_selection(&self) -> Option<&HashSet<T>>;
 
     // Sets the selected region
     fn set_selection(&mut self, selection: Option<HashSet<T>>);

@@ -1,11 +1,12 @@
+use std::collections::HashSet;
+
 use crate::{
     action::{
-        getplaylist::{FullPlaylist, GetPlaylistResponse, Media},
+        getplaylist::{FullPlaylist, GetPlaylistResponse, Media, MediaID},
         Action,
     },
     add_to_queue,
     components::Component,
-    exits_mode,
     focusable::Focusable,
     local_action, movements,
     playerworker::player::{PlayerAction, QueueLocation},
@@ -17,7 +18,7 @@ use ratatui::{
     layout::{Alignment, Rect},
     style::{Modifier, Style, Stylize},
     text::{Line, Span},
-    widgets::{Block, List, ListState, Padding, Paragraph, Wrap},
+    widgets::{Block, List, ListItem, ListState, Padding, Paragraph, Wrap},
     Frame,
 };
 
@@ -39,9 +40,9 @@ enum CompState {
         state: ListState,
         // If the value is None, then the current mode is not visual mode
         // Otherwise, the list is filled with the items selected by the current visual mode
-        visual: Option<Vec<Media>>,
+        visual: Option<HashSet<MediaID>>,
         // List of all selected media
-        selected: Vec<Media>,
+        selected: Option<HashSet<MediaID>>,
     },
 }
 
@@ -89,8 +90,31 @@ impl PlaylistQueue {
             None
         }
     }
-    fn gen_list(list: &FullPlaylist, enabled: bool) -> List<'static> {
-        let items: Vec<String> = list.entry.iter().map(|p| p.title.clone()).collect();
+    fn gen_list(
+        list: &FullPlaylist,
+        visual: &Option<HashSet<MediaID>>,
+        selected: &Option<HashSet<MediaID>>,
+        enabled: bool,
+    ) -> List<'static> {
+        let items: Vec<ListItem> = list
+            .entry
+            .iter()
+            .map(|p| {
+                let id = &p.id;
+                let mut item = ListItem::from(p.title.clone());
+                if let Some(s) = selected {
+                    if s.contains(id) {
+                        item = item.bold();
+                    }
+                }
+                if let Some(r) = visual {
+                    if r.contains(id) {
+                        item = item.green();
+                    }
+                }
+                item
+            })
+            .collect();
         List::new(items)
             .block(Self::gen_block(enabled, &list.name))
             .highlight_style(Style::new().reversed())
@@ -106,14 +130,11 @@ impl PlaylistQueue {
 
 impl Component for PlaylistQueue {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        if let exits_mode!() = action {
-            self.reset_visual_mode();
-        };
         match action {
             local_action!() => {
                 if let CompState::Loaded {
                     name,
-                    comp: _,
+                    comp,
                     list,
                     state,
                     visual,
@@ -144,6 +165,23 @@ impl Component for PlaylistQueue {
                         Action::AddNext => Ok(self.select_music(QueueLocation::Next)),
                         Action::AddLast => Ok(self.select_music(QueueLocation::Last)),
                         Action::AddFront => Ok(self.select_music(QueueLocation::Front)),
+                        Action::NormalMode => {
+                            self.set_visual_mode(false);
+                            Ok(None)
+                        }
+                        Action::VisualMode => {
+                            let Some(i) = state.selected() else {
+                                return Ok(None);
+                            };
+                            let Some(item) = list.entry.get(i) else {
+                                return Ok(None);
+                            };
+                            let id = item.id.clone();
+                            self.set_temp_selection(Some(HashSet::from([id])));
+                            self.set_visual_mode(true);
+                            // *comp = PlaylistQueue::gen_list(list, &None, &None, self.enabled);
+                            Ok(None)
+                        }
                         // TODO: Add horizontal text scrolling
                         _ => Ok(None),
                     }
@@ -172,12 +210,12 @@ impl Component for PlaylistQueue {
             Action::GetPlaylist(res) => match res {
                 GetPlaylistResponse::Success(full_playlist) => {
                     self.state = CompState::Loaded {
-                        comp: PlaylistQueue::gen_list(&full_playlist, self.enabled),
+                        comp: PlaylistQueue::gen_list(&full_playlist, &None, &None, self.enabled),
                         name: full_playlist.name.clone(),
                         list: full_playlist,
                         state: ListState::default().with_selected(Some(0)),
                         visual: None,
-                        selected: vec![],
+                        selected: None,
                     };
                     Ok(None)
                 }
@@ -260,18 +298,37 @@ impl Focusable for PlaylistQueue {
                 comp,
                 list,
                 state: _,
-                visual: _,
-                selected: _,
+                visual,
+                selected,
             } = &mut self.state
             {
-                *comp = Self::gen_list(list, self.enabled);
+                *comp = Self::gen_list(list, visual, selected, self.enabled);
+                if !self.enabled {
+                    self.set_visual(false);
+                }
             };
         };
     }
 }
 
-impl VisualMode<Media> for PlaylistQueue {
-    fn start_visual_mode(&mut self) -> bool {
+impl VisualMode<MediaID> for PlaylistQueue {
+    fn is_visual(&self) -> bool {
+        if let CompState::Loaded {
+            name: _,
+            comp: _,
+            list: _,
+            state: _,
+            visual,
+            selected: _,
+        } = &self.state
+        {
+            matches!(visual, Some(_))
+        } else {
+            false
+        }
+    }
+
+    fn set_visual(&mut self, to: bool) {
         if let CompState::Loaded {
             name: _,
             comp: _,
@@ -281,61 +338,80 @@ impl VisualMode<Media> for PlaylistQueue {
             selected: _,
         } = &mut self.state
         {
-            *visual = Some(vec![]);
-            true
-        } else {
-            false
+            if matches!(visual, Some(_)) != to {
+                *visual = match visual {
+                    Some(_) => None,
+                    None => Some(HashSet::new()),
+                }
+            }
         }
     }
 
-    fn end_visual_mode(&mut self) -> bool {
+    fn get_temp_selection(&self) -> Option<&HashSet<MediaID>> {
         if let CompState::Loaded {
             name: _,
             comp: _,
             list: _,
             state: _,
             visual,
-            selected,
-        } = &mut self.state
+            selected: _,
+        } = &self.state
         {
-            *visual = None;
-            true
+            if let Some(ids) = visual {
+                Some(ids)
+            } else {
+                None
+            }
         } else {
-            false
+            None
         }
     }
 
-    fn reset_visual_mode(&mut self) -> bool {
-        self.end_visual_mode();
+    fn get_selection(&self) -> Option<&HashSet<MediaID>> {
+        if let CompState::Loaded {
+            name: _,
+            comp: _,
+            list: _,
+            state: _,
+            visual: _,
+            selected,
+        } = &self.state
+        {
+            if let Some(ids) = selected {
+                Some(ids)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    fn set_selection(&mut self, selection: Option<HashSet<MediaID>>) {
+        if let CompState::Loaded {
+            name: _,
+            comp: _,
+            list: _,
+            state: _,
+            visual: _,
+            selected,
+        } = &mut self.state
+        {
+            *selected = selection;
+        };
+    }
+
+    fn set_temp_selection(&mut self, selection: Option<HashSet<MediaID>>) {
         if let CompState::Loaded {
             name: _,
             comp: _,
             list: _,
             state: _,
             visual,
-            selected,
+            selected: _,
         } = &mut self.state
         {
-            *selected = vec![];
-            true
-        } else {
-            false
-        }
-    }
-
-    fn get_selection(&mut self) -> Vec<Media> {
-        if let CompState::Loaded {
-            name: _,
-            comp: _,
-            list: _,
-            state: _,
-            visual,
-            selected,
-        } = &mut self.state
-        {
-            selected.clone()
-        } else {
-            vec![]
-        }
+            *visual = selection;
+        };
     }
 }

@@ -48,9 +48,6 @@ impl Component for PlaylistQueue {
                     self.comp = Box::new(Loaded::new(
                         full_playlist.name.clone(),
                         full_playlist,
-                        ListState::default().with_selected(Some(0)),
-                        None,
-                        None,
                         self.enabled,
                     ));
                     Ok(None)

@@ -63,7 +63,7 @@ impl Loaded {
             None
         }
     }
-    pub fn gen_list(
+    fn gen_list(
         list: &FullPlaylist,
         visual: &Option<HashSet<MediaID>>,
         selected: &Option<HashSet<MediaID>>,
@@ -93,19 +93,14 @@ impl Loaded {
             .highlight_style(Style::new().reversed())
             .highlight_symbol(">")
     }
-    pub fn new(
-        name: String,
-        list: FullPlaylist,
-        list_state: ListState,
-        visual: Option<HashSet<MediaID>>,
-        selected: Option<HashSet<MediaID>>,
-        enabled: bool,
-    ) -> Self {
+    pub fn new(name: String, list: FullPlaylist, enabled: bool) -> Self {
+        let mut selected = ListState::default();
+        selected.select(Some(0));
         Self {
             name,
             comp: Loaded::gen_list(&list, &None, &None, enabled),
             list,
-            list_state: ListState::default(),
+            list_state: selected,
             visual: None,
             selected: None,
             enabled,

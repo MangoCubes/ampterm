@@ -1,8 +1,10 @@
 use serde::{Deserialize, Serialize};
 
+pub type MediaID = String;
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Media {
-    pub id: String,
+    pub id: MediaID,
     pub parent: Option<String>,
     pub is_dir: bool,
     pub title: String,

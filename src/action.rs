@@ -19,11 +19,13 @@ pub enum StateType {
     Speed(f32),
 }
 
-// #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
-// pub enum InputMode {
-//     Normal,
-//     Visual,
-// }
+// Macro for getting all mode changes
+#[macro_export]
+macro_rules! modes {
+    () => {
+        Action::NormalMode | Action::VisualMode
+    };
+}
 
 // Macro for getting actions that are sent to the currently focused component only
 #[macro_export]
@@ -41,6 +43,8 @@ macro_rules! local_action {
             | Action::AddFront
             | Action::AddNext
             | Action::AddLast
+            | Action::VisualMode
+            | Action::NormalMode
     };
 }
 // Macro for getting actions involving moving between frames

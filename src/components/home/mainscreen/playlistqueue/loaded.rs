@@ -116,11 +116,40 @@ impl Component for Loaded {
             local_action!() => {
                 match action {
                     Action::Up => {
+                        if matches!(self.visual, Some(_)) {
+                            self.set_item_a(
+                                self.list.entry[self.list_state.selected().unwrap()]
+                                    .id
+                                    .clone(),
+                            );
+                        }
                         self.list_state.select_previous();
+                        if matches!(self.visual, Some(_)) {
+                            self.set_item_b(
+                                self.list.entry[self.list_state.selected().unwrap()]
+                                    .id
+                                    .clone(),
+                            );
+                        }
                         Ok(None)
                     }
                     Action::Down => {
+                        if matches!(self.visual, Some(_)) {
+                            self.set_item_a(
+                                self.list.entry[self.list_state.selected().unwrap()]
+                                    .id
+                                    .clone(),
+                            );
+                        }
                         self.list_state.select_next();
+                        if matches!(self.visual, Some(_)) {
+                            self.set_item_b(
+                                self.list.entry[self.list_state.selected().unwrap()]
+                                    .id
+                                    .clone(),
+                            );
+                        }
+
                         Ok(None)
                     }
                     Action::Top => {
@@ -232,12 +261,24 @@ impl VisualMode<MediaID> for Loaded {
         if let Some(ids) = &mut self.visual {
             (*ids).insert(item);
         }
+        self.comp = Self::gen_list(
+            &self.list,
+            self.get_temp_selection(),
+            self.get_selection(),
+            self.enabled,
+        );
     }
 
     fn remove_temp_selection(&mut self, item: MediaID) {
         if let Some(ids) = &mut self.visual {
             (*ids).remove(&item);
         }
+        self.comp = Self::gen_list(
+            &self.list,
+            self.get_temp_selection(),
+            self.get_selection(),
+            self.enabled,
+        );
     }
 
     fn set_item_a(&mut self, item: MediaID) {

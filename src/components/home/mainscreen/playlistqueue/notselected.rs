@@ -8,6 +8,8 @@ use ratatui::{
     Frame,
 };
 
+use super::PlaylistQueueComps;
+
 pub struct NotSelected {
     enabled: bool,
 }
@@ -59,3 +61,4 @@ impl Focusable for NotSelected {
         self.enabled = enable;
     }
 }
+impl PlaylistQueueComps for NotSelected {}

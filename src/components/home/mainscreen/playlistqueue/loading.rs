@@ -8,10 +8,7 @@ use ratatui::{
     Frame,
 };
 
-enum CompState {
-    Loading { id: String, name: String },
-    NotSelected,
-}
+use super::PlaylistQueueComps;
 
 pub struct Loading {
     id: String,
@@ -66,3 +63,4 @@ impl Focusable for Loading {
         self.enabled = enable;
     }
 }
+impl PlaylistQueueComps for Loading {}

@@ -21,6 +21,8 @@ use ratatui::{
     Frame,
 };
 
+use super::PlaylistQueueComps;
+
 pub struct Loaded {
     name: String,
     comp: List<'static>,
@@ -219,3 +221,4 @@ impl VisualMode<MediaID> for Loaded {
         self.visual = selection;
     }
 }
+impl PlaylistQueueComps for Loaded {}

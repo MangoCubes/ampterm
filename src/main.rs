@@ -17,6 +17,7 @@ mod osclient;
 mod playerworker;
 mod queryworker;
 mod stateful;
+mod statelib;
 mod tui;
 mod visualmode;
 

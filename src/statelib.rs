@@ -1,1 +1,1 @@
-mod visual;
+pub mod visual;

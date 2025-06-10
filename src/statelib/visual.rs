@@ -34,15 +34,20 @@ impl<'a, T> Visual<'a, T> {
         let rows: Vec<Row> =
             if let VisualMode::Select(start) | VisualMode::Deselect(start) = self.temp {
                 let end = self.tablestate.selected().unwrap();
+                let (a, b) = if start < end {
+                    (start, end)
+                } else {
+                    (end, start)
+                };
                 iter.map(|(i, item)| {
                     let mut row = (self.to_row)(item);
-                    row = if i <= end && i >= start {
-                        row.bold()
+                    row = if i <= b && i >= a {
+                        row.reversed()
                     } else {
                         row
                     };
                     if self.selected[i] {
-                        row.reversed()
+                        row.green()
                     } else {
                         row
                     }

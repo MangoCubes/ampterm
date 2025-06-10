@@ -57,7 +57,7 @@ impl<'a, T> Visual<'a, T> {
                 iter.map(|(i, item)| {
                     let row = (self.to_row)(item);
                     if self.selected[i] {
-                        row.reversed()
+                        row.green()
                     } else {
                         row
                     }
@@ -133,11 +133,21 @@ impl<'a, T> Visual<'a, T> {
         if apply {
             let end = self.tablestate.selected().unwrap();
             if let VisualMode::Select(start) = self.temp {
-                for i in start..=end {
+                let (a, b) = if start < end {
+                    (start, end)
+                } else {
+                    (end, start)
+                };
+                for i in a..=b {
                     self.selected[i] = true;
                 }
             } else if let VisualMode::Deselect(start) = self.temp {
-                for i in start..=end {
+                let (a, b) = if start < end {
+                    (start, end)
+                } else {
+                    (end, start)
+                };
+                for i in a..=b {
                     self.selected[i] = false;
                 }
             }

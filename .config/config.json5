@@ -1,8 +1,8 @@
 {
   "keybindings": {
     "Visual": {
-	  "<Esc>":"NormalMode",
-	  "<v>":"NormalMode"
+	  "<Esc>":"ExitVisualModeDiscard",
+	  "<v>":"ExitVisualModeSave"
     },
 	"Normal": {},
     "Common": {
@@ -21,8 +21,9 @@
 	  "<q>":"Cancel",
 	  "<i>": "AddNext",
 	  "<a>": "AddNext",
-	  "<v>": "VisualMode",
-	  "<Shift-v>":"VisualMode",
+	  "<v>": "VisualSelectMode",
+	  "<Shift-v>":"VisualSelectMode",
+	  "<Ctrl-v>":"VisualDeselectMode",
 	  "<Shift-i>":"AddFront",
 	  "<Shift-a>":"AddLast",
 	  "<n>": "Skip",

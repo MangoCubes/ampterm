@@ -96,12 +96,20 @@ impl<'a> Component for Loaded<'a> {
                     Action::AddNext => Ok(self.select_music(QueueLocation::Next)),
                     Action::AddLast => Ok(self.select_music(QueueLocation::Last)),
                     Action::AddFront => Ok(self.select_music(QueueLocation::Front)),
-                    Action::NormalMode => {
+                    Action::ExitVisualModeDiscard => {
                         self.visual.disable_visual(false);
                         Ok(None)
                     }
-                    Action::VisualMode => {
+                    Action::ExitVisualModeSave => {
+                        self.visual.disable_visual(true);
+                        Ok(None)
+                    }
+                    Action::VisualSelectMode => {
                         self.visual.enable_visual(false);
+                        Ok(None)
+                    }
+                    Action::VisualDeselectMode => {
+                        self.visual.enable_visual(true);
                         Ok(None)
                     }
                     // TODO: Add horizontal text scrolling

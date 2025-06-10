@@ -43,8 +43,10 @@ macro_rules! local_action {
             | Action::AddFront
             | Action::AddNext
             | Action::AddLast
-            | Action::VisualMode
-            | Action::NormalMode
+            | Action::VisualSelectMode
+            | Action::VisualDeselectMode
+            | Action::ExitVisualModeSave
+            | Action::ExitVisualModeDiscard
     };
 }
 // Macro for getting actions involving moving between frames
@@ -83,8 +85,10 @@ pub enum Action {
     Play,
     Skip,
 
-    VisualMode,
-    NormalMode,
+    VisualSelectMode,
+    VisualDeselectMode,
+    ExitVisualModeSave,
+    ExitVisualModeDiscard,
 
     // Movement-related actions
     Up,

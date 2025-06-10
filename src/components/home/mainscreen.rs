@@ -4,8 +4,8 @@ mod playlistqueue;
 mod queuelist;
 
 use crate::{
-    action::Action, components::Component, focusable::Focusable, local_action, modes,
-    queryworker::query::Query, stateful::Stateful,
+    action::Action, components::Component, focusable::Focusable, local_action,
+    queryworker::query::Query,
 };
 use color_eyre::Result;
 use nowplaying::NowPlaying;
@@ -89,11 +89,17 @@ impl Component for MainScreen {
                 Ok(None)
             }
             local_action!() => {
-                if let Action::NormalMode = action {
-                    self.message = "--NORMAL MODE--".to_owned();
+                if let Action::ExitVisualModeDiscard | Action::ExitVisualModeSave = action {
+                    self.message = "Selection discarded.".to_owned();
                 };
-                if let Action::VisualMode = action {
-                    self.message = "--VISUAL MODE--".to_owned();
+                if let Action::ExitVisualModeSave = action {
+                    self.message = "Selection applied.".to_owned();
+                };
+                if let Action::VisualSelectMode = action {
+                    self.message = "Hover over items to include...".to_owned();
+                };
+                if let Action::VisualDeselectMode = action {
+                    self.message = "Hover over items to exclude...".to_owned();
                 };
                 match self.state {
                     CurrentlySelected::Playlists => self.pl_list.update(action),

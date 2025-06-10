@@ -1,16 +1,10 @@
 use color_eyre::Result;
 use ratatui::{
     layout::{Constraint, Rect},
-    widgets::{Block, Row, Table, TableState},
+    style::{Style, Stylize},
+    widgets::{Row, Table, TableState},
     Frame,
 };
-
-use crate::focusable::Focusable;
-
-struct Range {
-    start: usize,
-    end: usize,
-}
 
 enum VisualMode {
     // Visual mode disabled
@@ -27,7 +21,7 @@ pub struct Visual<'a, T> {
     items: Vec<T>,
     temp: VisualMode,
     // List of all selected items
-    selected: Vec<Range>,
+    selected: Vec<bool>,
     tablestate: TableState,
     to_row: fn(&T) -> Row<'a>,
     widths: Vec<Constraint>,
@@ -35,24 +29,54 @@ pub struct Visual<'a, T> {
 }
 
 impl<'a, T> Visual<'a, T> {
-    fn gen_table(
-        items: &Vec<T>,
-        to_row: &fn(&T) -> Row<'a>,
-        widths: &Vec<Constraint>,
-    ) -> Table<'a> {
-        let rows: Vec<Row> = items.iter().map(|item| (to_row)(item)).collect();
-        Table::new(rows, widths)
+    fn gen_table(&self) -> Table<'a> {
+        let iter = self.items.iter().enumerate();
+        let rows: Vec<Row> =
+            if let VisualMode::Select(start) | VisualMode::Deselect(start) = self.temp {
+                let end = self.tablestate.selected().unwrap();
+                iter.map(|(i, item)| {
+                    let mut row = (self.to_row)(item);
+                    row = if i <= end && i >= start {
+                        row.bold()
+                    } else {
+                        row
+                    };
+                    if self.selected[i] {
+                        row.reversed()
+                    } else {
+                        row
+                    }
+                })
+                .collect()
+            } else {
+                iter.map(|(i, item)| {
+                    let row = (self.to_row)(item);
+                    if self.selected[i] {
+                        row.reversed()
+                    } else {
+                        row
+                    }
+                })
+                .collect()
+            };
+        Table::new(rows, &self.widths)
+            .highlight_symbol(">")
+            .row_highlight_style(Style::new().reversed())
     }
-    pub fn new(list: Vec<T>, func: fn(&T) -> Row<'a>, widths: Vec<Constraint>) -> Self {
+    pub fn new(list: Vec<T>, to_row: fn(&T) -> Row<'a>, widths: Vec<Constraint>) -> Self {
         let mut tablestate = TableState::default();
+        let len = list.len();
         tablestate.select(Some(0));
-        let comp = Self::gen_table(&list, &func, &widths);
+        let rows: Vec<Row> = list.iter().map(|item| (to_row)(item)).collect();
+        let comp = Table::new(rows, &widths)
+            .highlight_symbol(">")
+            .row_highlight_style(Style::new().reversed());
         Self {
             items: list,
             temp: VisualMode::Off,
-            selected: Vec::new(),
+            selected: vec![false; len],
             tablestate,
-            to_row: func,
+            to_row,
             widths,
             comp,
         }
@@ -66,7 +90,7 @@ impl<'a, T> Visual<'a, T> {
         } else {
             VisualMode::Select(current)
         };
-        self.comp = Self::gen_table(&self.items, &self.to_row, &self.widths);
+        self.comp = self.gen_table();
     }
     #[inline]
     pub fn get_current(&self) -> &T {
@@ -78,22 +102,22 @@ impl<'a, T> Visual<'a, T> {
     #[inline]
     pub fn select_first(&mut self) {
         self.tablestate.select_first();
-        self.comp = Self::gen_table(&self.items, &self.to_row, &self.widths);
+        self.comp = self.gen_table();
     }
     #[inline]
     pub fn select_last(&mut self) {
         self.tablestate.select_last();
-        self.comp = Self::gen_table(&self.items, &self.to_row, &self.widths);
+        self.comp = self.gen_table();
     }
     #[inline]
     pub fn select_next(&mut self) {
         self.tablestate.select_next();
-        self.comp = Self::gen_table(&self.items, &self.to_row, &self.widths);
+        self.comp = self.gen_table();
     }
     #[inline]
     pub fn select_previous(&mut self) {
         self.tablestate.select_previous();
-        self.comp = Self::gen_table(&self.items, &self.to_row, &self.widths);
+        self.comp = self.gen_table();
     }
     pub fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         frame.render_stateful_widget(&self.comp, area, &mut self.tablestate);
@@ -102,9 +126,11 @@ impl<'a, T> Visual<'a, T> {
 
     pub fn disable_visual(&mut self, apply: bool) {
         if apply {
-            todo!();
+            if let VisualMode::Select(start) = &self.temp {
+            } else if let VisualMode::Deselect(start) = &self.temp {
+            }
         };
         self.temp = VisualMode::Off;
-        self.comp = Self::gen_table(&self.items, &self.to_row, &self.widths);
+        self.comp = self.gen_table();
     }
 }

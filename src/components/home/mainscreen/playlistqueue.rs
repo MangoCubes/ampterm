@@ -15,7 +15,7 @@ use error::Error;
 use loaded::Loaded;
 use loading::Loading;
 use notselected::NotSelected;
-use ratatui::{layout::Rect, widgets::ListState, Frame};
+use ratatui::{layout::Rect, Frame};
 
 pub trait PlaylistQueueComps: Focusable {}
 

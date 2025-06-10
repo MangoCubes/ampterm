@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::{
     action::{
-        getplaylist::{FullPlaylist, MediaID},
+        getplaylist::{FullPlaylist, Media, MediaID},
         Action,
     },
     components::Component,
@@ -10,34 +10,28 @@ use crate::{
     local_action,
     playerworker::player::{PlayerAction, QueueLocation},
     queryworker::query::Query,
+    statelib::visual::Visual,
     visualmode::VisualMode,
 };
 use color_eyre::Result;
 use ratatui::{
-    layout::Rect,
+    layout::{Constraint, Rect},
     style::{Modifier, Style, Stylize},
     text::Span,
-    widgets::{Block, List, ListItem, ListState},
+    widgets::{Block, List, ListItem, Row},
     Frame,
 };
 
 use super::PlaylistQueueComps;
 
-pub struct Loaded {
+pub struct Loaded<'a> {
     name: String,
-    comp: List<'static>,
-    list: FullPlaylist,
-    list_state: ListState,
-    // If the value is None, then the current mode is not visual mode
-    // Otherwise, the list is filled with the items selected by the current visual mode
-    visual: Option<HashSet<MediaID>>,
-    // List of all selected media
-    selected: Option<HashSet<MediaID>>,
-    prev_item: MediaID,
+    playlistid: String,
+    visual: Visual<'a, Media>,
     enabled: bool,
 }
 
-impl Loaded {
+impl<'a> Loaded<'a> {
     fn gen_block(enabled: bool, title: &str) -> Block<'static> {
         let style = if enabled {
             Style::new().white()
@@ -55,138 +49,59 @@ impl Loaded {
         Block::bordered().title(title).border_style(style)
     }
     fn select_music(&self, playpos: QueueLocation) -> Option<Action> {
-        if let Some(pos) = self.list_state.selected() {
-            Some(Action::Player(PlayerAction::AddToQueue {
-                pos: playpos,
-                music: vec![self.list.entry[pos].clone()],
-            }))
-        } else {
-            None
-        }
-    }
-    fn gen_list(
-        list: &FullPlaylist,
-        visual: Option<&HashSet<MediaID>>,
-        selected: Option<&HashSet<MediaID>>,
-        enabled: bool,
-    ) -> List<'static> {
-        let items: Vec<ListItem> = list
-            .entry
-            .iter()
-            .map(|p| {
-                let id = &p.id;
-                let mut item = ListItem::from(p.title.clone());
-                if let Some(s) = selected {
-                    if s.contains(id) {
-                        item = item.red();
-                    }
-                }
-                if let Some(r) = visual {
-                    if r.contains(id) {
-                        item = item.green();
-                    }
-                }
-                item
-            })
-            .collect();
-        List::new(items)
-            .block(Self::gen_block(enabled, &list.name))
-            .highlight_style(Style::new().reversed())
-            .highlight_symbol(">")
+        let item = self.visual.get_current();
+        Some(Action::Player(PlayerAction::AddToQueue {
+            pos: playpos,
+            music: vec![item.clone()],
+        }))
     }
     pub fn new(name: String, list: FullPlaylist, enabled: bool) -> Self {
-        let mut selected = ListState::default();
-        selected.select(Some(0));
+        fn convert<'a>(media: &Media) -> Row<'a> {
+            Row::new(vec![media.title.clone()])
+        }
         Self {
             name,
-            comp: Loaded::gen_list(&list, None, None, enabled),
-            list,
-            list_state: selected,
-            visual: None,
-            selected: None,
+            playlistid: list.id,
+            visual: Visual::new(list.entry, convert, [Constraint::Min(0)].to_vec()),
             enabled,
-            prev_item: String::default(),
         }
     }
 }
 
-impl Component for Loaded {
+impl<'a> Component for Loaded<'a> {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             local_action!() => {
                 match action {
                     Action::Up => {
-                        if matches!(self.visual, Some(_)) {
-                            self.set_item_a(
-                                self.list.entry[self.list_state.selected().unwrap()]
-                                    .id
-                                    .clone(),
-                            );
-                        }
-                        self.list_state.select_previous();
-                        if matches!(self.visual, Some(_)) {
-                            self.set_item_b(
-                                self.list.entry[self.list_state.selected().unwrap()]
-                                    .id
-                                    .clone(),
-                            );
-                        }
+                        self.visual.select_previous();
                         Ok(None)
                     }
                     Action::Down => {
-                        if matches!(self.visual, Some(_)) {
-                            self.set_item_a(
-                                self.list.entry[self.list_state.selected().unwrap()]
-                                    .id
-                                    .clone(),
-                            );
-                        }
-                        self.list_state.select_next();
-                        if matches!(self.visual, Some(_)) {
-                            self.set_item_b(
-                                self.list.entry[self.list_state.selected().unwrap()]
-                                    .id
-                                    .clone(),
-                            );
-                        }
-
+                        self.visual.select_next();
                         Ok(None)
                     }
                     Action::Top => {
-                        self.list_state.select_first();
+                        self.visual.select_first();
                         Ok(None)
                     }
                     Action::Bottom => {
-                        self.list_state.select_last();
+                        self.visual.select_last();
                         Ok(None)
                     }
                     Action::Refresh => Ok(Some(Action::Query(Query::GetPlaylist {
                         name: Some(self.name.to_string()),
-                        id: self.list.id.clone(),
+                        id: self.playlistid.clone(),
                     }))),
                     Action::AddNext => Ok(self.select_music(QueueLocation::Next)),
                     Action::AddLast => Ok(self.select_music(QueueLocation::Last)),
                     Action::AddFront => Ok(self.select_music(QueueLocation::Front)),
                     Action::NormalMode => {
-                        self.set_visual_mode(false);
+                        self.visual.disable_visual(false);
                         Ok(None)
                     }
                     Action::VisualMode => {
-                        let Some(i) = self.list_state.selected() else {
-                            return Ok(None);
-                        };
-                        let Some(item) = self.list.entry.get(i) else {
-                            return Ok(None);
-                        };
-                        let id = item.id.clone();
-                        self.set_temp_selection(Some(HashSet::from([id])));
-                        self.set_visual_mode(true);
-                        self.comp = Loaded::gen_list(
-                            &self.list,
-                            self.get_temp_selection(),
-                            self.get_selection(),
-                            self.enabled,
-                        );
+                        self.visual.enable_visual(false);
                         Ok(None)
                     }
                     // TODO: Add horizontal text scrolling
@@ -197,96 +112,22 @@ impl Component for Loaded {
         }
     }
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        frame.render_stateful_widget(&self.comp, area, &mut self.list_state);
-        Ok(())
+        let border = Self::gen_block(self.enabled, &self.name);
+        let inner = border.inner(area);
+        frame.render_widget(border, area);
+        self.visual.draw(frame, inner)
     }
 }
 
-impl Focusable for Loaded {
+impl<'a> Focusable for Loaded<'a> {
     fn set_enabled(&mut self, enable: bool) {
         if self.enabled != enable {
             self.enabled = enable;
-            self.comp = Self::gen_list(
-                &self.list,
-                self.get_temp_selection(),
-                self.get_selection(),
-                self.enabled,
-            );
             if !self.enabled {
-                self.set_visual(false);
+                self.visual.disable_visual(false);
             }
         };
     }
 }
 
-impl VisualMode<MediaID> for Loaded {
-    fn is_visual(&self) -> bool {
-        matches!(self.visual, Some(_))
-    }
-
-    fn set_visual(&mut self, to: bool) {
-        if matches!(self.visual, Some(_)) != to {
-            self.visual = match &self.visual {
-                Some(_) => None,
-                None => Some(HashSet::new()),
-            }
-        }
-    }
-
-    fn get_temp_selection(&self) -> Option<&HashSet<MediaID>> {
-        if let Some(ids) = &self.visual {
-            Some(ids)
-        } else {
-            None
-        }
-    }
-
-    fn get_selection(&self) -> Option<&HashSet<MediaID>> {
-        if let Some(ids) = &self.selected {
-            Some(ids)
-        } else {
-            None
-        }
-    }
-
-    fn set_selection(&mut self, selection: Option<HashSet<MediaID>>) {
-        self.selected = selection;
-    }
-
-    fn set_temp_selection(&mut self, selection: Option<HashSet<MediaID>>) {
-        self.visual = selection;
-    }
-
-    fn add_temp_selection(&mut self, item: MediaID) {
-        if let Some(ids) = &mut self.visual {
-            (*ids).insert(item);
-        }
-        self.comp = Self::gen_list(
-            &self.list,
-            self.get_temp_selection(),
-            self.get_selection(),
-            self.enabled,
-        );
-    }
-
-    fn remove_temp_selection(&mut self, item: MediaID) {
-        if let Some(ids) = &mut self.visual {
-            (*ids).remove(&item);
-        }
-        self.comp = Self::gen_list(
-            &self.list,
-            self.get_temp_selection(),
-            self.get_selection(),
-            self.enabled,
-        );
-    }
-
-    fn set_item_a(&mut self, item: MediaID) {
-        self.prev_item = item;
-    }
-
-    fn get_item_a_selected(&self) -> MediaID {
-        self.prev_item.clone()
-    }
-}
-impl PlaylistQueueComps for Loaded {}
+impl<'a> PlaylistQueueComps for Loaded<'a> {}

@@ -1,9 +1,11 @@
 use color_eyre::Result;
 use ratatui::{
     layout::{Constraint, Rect},
-    widgets::{Row, Table, TableState},
+    widgets::{Block, Row, Table, TableState},
     Frame,
 };
+
+use crate::focusable::Focusable;
 
 struct Range {
     start: usize,
@@ -76,18 +78,22 @@ impl<'a, T> Visual<'a, T> {
     #[inline]
     pub fn select_first(&mut self) {
         self.tablestate.select_first();
+        self.comp = Self::gen_table(&self.items, &self.to_row, &self.widths);
     }
     #[inline]
     pub fn select_last(&mut self) {
         self.tablestate.select_last();
+        self.comp = Self::gen_table(&self.items, &self.to_row, &self.widths);
     }
     #[inline]
     pub fn select_next(&mut self) {
         self.tablestate.select_next();
+        self.comp = Self::gen_table(&self.items, &self.to_row, &self.widths);
     }
     #[inline]
     pub fn select_previous(&mut self) {
         self.tablestate.select_previous();
+        self.comp = Self::gen_table(&self.items, &self.to_row, &self.widths);
     }
     pub fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         frame.render_stateful_widget(&self.comp, area, &mut self.tablestate);

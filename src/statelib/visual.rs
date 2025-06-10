@@ -131,8 +131,15 @@ impl<'a, T> Visual<'a, T> {
 
     pub fn disable_visual(&mut self, apply: bool) {
         if apply {
-            if let VisualMode::Select(start) = &self.temp {
-            } else if let VisualMode::Deselect(start) = &self.temp {
+            let end = self.tablestate.selected().unwrap();
+            if let VisualMode::Select(start) = self.temp {
+                for i in start..=end {
+                    self.selected[i] = true;
+                }
+            } else if let VisualMode::Deselect(start) = self.temp {
+                for i in start..=end {
+                    self.selected[i] = false;
+                }
             }
         };
         self.temp = VisualMode::Off;

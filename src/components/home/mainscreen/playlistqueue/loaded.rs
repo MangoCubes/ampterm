@@ -112,6 +112,10 @@ impl<'a> Component for Loaded<'a> {
                         self.visual.enable_visual(true);
                         Ok(None)
                     }
+                    Action::ResetState => {
+                        self.visual.reset();
+                        Ok(None)
+                    }
                     // TODO: Add horizontal text scrolling
                     _ => Ok(None),
                 }

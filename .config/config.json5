@@ -12,6 +12,8 @@
 	  "<Ctrl-w><Down>": "MoveDown",
 	  "<Shift-g>":"Bottom",
 	  "<g><g>": "Top",
+	  "<g><r>": "ResetState",
+	  // "<g><Shift-r>": "Top",
 	  "<Shift-r>":"Refresh",
 	  "<Up>": "Up",
 	  "<Down>":"Down",

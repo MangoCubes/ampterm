@@ -33,7 +33,10 @@ impl<'a, T> Visual<'a, T> {
         let iter = self.items.iter().enumerate();
         let rows: Vec<Row> =
             if let VisualMode::Select(start) | VisualMode::Deselect(start) = self.temp {
-                let end = self.tablestate.selected().unwrap();
+                let end = self
+                    .tablestate
+                    .selected()
+                    .expect("Unable to generate current table: The current row is somehow none.");
                 let (a, b) = if start < end {
                     (start, end)
                 } else {
@@ -129,9 +132,18 @@ impl<'a, T> Visual<'a, T> {
         Ok(())
     }
 
+    pub fn reset(&mut self) {
+        self.selected = vec![false; self.items.len()];
+        self.comp = self.gen_table();
+    }
+
     pub fn disable_visual(&mut self, apply: bool) {
         if apply {
-            let end = self.tablestate.selected().unwrap();
+            let end = self
+                .tablestate
+                .selected()
+                .expect("Unable to apply selection: The current row is somehow none.");
+
             if let VisualMode::Select(start) = self.temp {
                 let (a, b) = if start < end {
                     (start, end)

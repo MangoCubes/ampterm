@@ -47,6 +47,7 @@ macro_rules! local_action {
             | Action::VisualDeselectMode
             | Action::ExitVisualModeSave
             | Action::ExitVisualModeDiscard
+            | Action::ResetState
     };
 }
 // Macro for getting actions involving moving between frames
@@ -85,10 +86,17 @@ pub enum Action {
     Play,
     Skip,
 
+    // Enter visual mode to select items
     VisualSelectMode,
+    // Enter visual mode to deselect items
     VisualDeselectMode,
+    // Exit visual mode after applying changes
     ExitVisualModeSave,
+    // Exit visual mode after discarding changes
     ExitVisualModeDiscard,
+
+    // Reset current component if that action is valid
+    ResetState,
 
     // Movement-related actions
     Up,

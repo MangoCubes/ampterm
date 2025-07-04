@@ -18,6 +18,29 @@ pub enum StateType {
     Volume(f32),
     Speed(f32),
 }
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+pub struct PlayState {
+    pub current: Option<Media>,
+    pub next: Vec<Media>,
+    pub index: usize,
+}
+
+impl PlayState {
+    pub fn default() -> Self {
+        Self {
+            current: None,
+            next: Vec::new(),
+            index: 0,
+        }
+    }
+    pub fn new(current: Option<Media>, next: Vec<Media>, index: usize) -> Self {
+        Self {
+            current,
+            next,
+            index,
+        }
+    }
+}
 
 // Macro for getting all mode changes
 #[macro_export]
@@ -140,8 +163,7 @@ pub enum Action {
 
     // This action is used to synchronise the state of PlayerWorker with the components
     InQueue {
-        current: Option<Media>,
-        next: Vec<Media>,
+        play: PlayState,
         vol: f32,
         speed: f32,
         pos: Duration,

@@ -132,6 +132,7 @@ impl<'a, T> Visual<'a, T> {
         Ok(())
     }
 
+    #[inline]
     pub fn reset(&mut self) {
         self.selected = vec![false; self.items.len()];
         self.comp = self.gen_table();

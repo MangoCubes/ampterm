@@ -28,10 +28,10 @@
 	  "<Ctrl-v>":"VisualDeselectMode",
 	  "<Shift-i>":"AddFront",
 	  "<Shift-a>":"AddLast",
-	  "<n>": "Skip",
+	  "<s>": "Skip",
 	  "<Esc>":"EndKeySeq",
-	  "<s>": "Play",
-	  "<Shift-s>": "Pause"
+	  "<c>": "Play",
+	  "<Shift-c>": "Pause"
     },
   },
   // Use legacy authentication that sends the password instead of token and salt

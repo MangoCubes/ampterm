@@ -7,7 +7,7 @@ use ratatui::{
 };
 
 use crate::{
-    action::{getplaylist::Media, Action},
+    action::{Action, PlayState},
     components::Component,
     focusable::Focusable,
 };
@@ -15,8 +15,7 @@ use color_eyre::Result;
 
 pub struct QueueList {
     comp: List<'static>,
-    list: Vec<Media>,
-    current: Option<Media>,
+    list: PlayState,
     state: ListState,
     enabled: bool,
 }
@@ -38,34 +37,31 @@ impl QueueList {
         );
         Block::bordered().title(title).border_style(style)
     }
-    fn gen_list(
-        enabled: bool,
-        current: &Option<Media>,
-        list: Option<&Vec<Media>>,
-    ) -> List<'static> {
-        let comp = match list {
-            Some(l) => {
-                let mut items: Vec<ListItem> =
-                    l.iter().map(|p| ListItem::from(p.title.clone())).collect();
-                if let Some(p) = current {
-                    items.insert(0, ListItem::from(p.title.clone()).fg(Color::Green));
-                };
-                List::new(items)
-            }
-            None => List::default(),
+    fn gen_list(enabled: bool, state: &PlayState) -> List<'static> {
+        let mut items: Vec<ListItem> = state
+            .next
+            .iter()
+            .map(|p| ListItem::from(p.title.clone()))
+            .collect();
+        if let Some(m) = state.next.get(state.index) {
+            items.insert(
+                state.index,
+                ListItem::from(m.title.clone()).fg(Color::Green),
+            );
         };
+        let comp = List::new(items);
+
         comp.block(Self::gen_block(enabled, "Next Up"))
             .highlight_style(Style::new().reversed())
             .highlight_symbol(">")
     }
 
     pub fn new(enabled: bool) -> Self {
-        let empty = vec![];
+        let list = PlayState::default();
         Self {
             state: ListState::default(),
-            comp: Self::gen_list(false, &None, None),
-            current: None,
-            list: empty,
+            comp: Self::gen_list(false, &list),
+            list,
             enabled,
         }
     }
@@ -74,16 +70,14 @@ impl QueueList {
 impl Component for QueueList {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         if let Action::InQueue {
-            current,
-            next,
+            play,
             vol,
             speed,
             pos,
         } = action
         {
-            self.list = next;
-            self.current = current;
-            self.comp = Self::gen_list(self.enabled, &self.current, Some(&self.list))
+            self.list = play;
+            self.comp = Self::gen_list(self.enabled, &self.list)
         }
         Ok(None)
     }
@@ -97,7 +91,7 @@ impl Focusable for QueueList {
     fn set_enabled(&mut self, enable: bool) {
         if self.enabled != enable {
             self.enabled = enable;
-            self.comp = Self::gen_list(self.enabled, &self.current, Some(&self.list))
+            self.comp = Self::gen_list(self.enabled, &self.list)
         }
     }
 }

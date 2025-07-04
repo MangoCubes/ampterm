@@ -30,14 +30,13 @@ impl NowPlaying {
 impl Component for NowPlaying {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         if let Action::InQueue {
-            current,
-            next: _,
             vol,
             speed,
             pos,
+            play,
         } = action
         {
-            match current {
+            match play.current {
                 Some(p) => {
                     self.state = CompState::Playing {
                         comp: Playing::new(

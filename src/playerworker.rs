@@ -189,49 +189,49 @@ impl PlayerWorker {
                 PlayerAction::Kill => self.should_quit = true,
                 PlayerAction::Skip => self.skip(),
                 PlayerAction::AddToQueue { mut music, pos } => {
-                    // TODO: Change add location based on pos
-                    let was_empty = self.queue.is_empty();
-                    match pos {
-                        QueueLocation::Front => {
-                            match &self.state {
-                                WorkerState::Playing {
-                                    token: _,
-                                    item: _,
-                                    current,
-                                }
-                                | WorkerState::Loading { item: _, current } => {
-                                    self.queue.splice(current..current, music);
-                                }
-                                WorkerState::Idle { play_next } => {
-                                    self.queue.splice(play_next..play_next, music);
-                                }
-                            };
+                    if self.queue.is_empty() {
+                        self.queue = music;
+                        if let WorkerState::Idle { play_next: _ } = self.state {
+                            // If the queue was empty, then adding an item automatically starts playing
+                            self.skip();
                         }
-                        QueueLocation::Next => {
-                            match &self.state {
-                                WorkerState::Playing {
-                                    token: _,
-                                    item: _,
-                                    current,
-                                }
-                                | WorkerState::Loading { item: _, current } => {
-                                    self.queue.splice((current + 1)..(current + 1), music);
-                                }
-                                WorkerState::Idle { play_next } => {
-                                    self.queue.splice((play_next + 1)..(play_next + 1), music);
-                                }
-                            };
-                        }
-                        QueueLocation::Last => {
-                            self.queue.append(&mut music);
-                        }
-                    }
-                    // if let WorkerState::Idle = self.state {
-                    //     // If the queue was empty, then adding an item automatically starts playing
-                    //     if was_empty {
-                    //         self.skip();
-                    //     }
-                    // }
+                    } else {
+                        match pos {
+                            QueueLocation::Front => {
+                                match &self.state {
+                                    WorkerState::Playing {
+                                        token: _,
+                                        item: _,
+                                        current,
+                                    }
+                                    | WorkerState::Loading { item: _, current } => {
+                                        self.queue.splice(current..current, music);
+                                    }
+                                    WorkerState::Idle { play_next } => {
+                                        self.queue.splice(play_next..play_next, music);
+                                    }
+                                };
+                            }
+                            QueueLocation::Next => {
+                                match &self.state {
+                                    WorkerState::Playing {
+                                        token: _,
+                                        item: _,
+                                        current,
+                                    }
+                                    | WorkerState::Loading { item: _, current } => {
+                                        self.queue.splice((current + 1)..(current + 1), music);
+                                    }
+                                    WorkerState::Idle { play_next } => {
+                                        self.queue.splice((play_next + 1)..(play_next + 1), music);
+                                    }
+                                };
+                            }
+                            QueueLocation::Last => {
+                                self.queue.append(&mut music);
+                            }
+                        };
+                    };
                 }
                 PlayerAction::PlayURL { music, url } => {
                     // Ensure the one we get is what we expected

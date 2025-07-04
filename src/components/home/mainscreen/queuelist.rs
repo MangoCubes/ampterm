@@ -41,7 +41,9 @@ impl QueueList {
         let mut items: Vec<ListItem> = state
             .next
             .iter()
-            .map(|p| ListItem::from(p.title.clone()))
+            .enumerate()
+            .filter(|(index, _)| *index != state.index)
+            .map(|(_, p)| ListItem::from(p.title.clone()))
             .collect();
         if let Some(m) = state.next.get(state.index) {
             items.insert(

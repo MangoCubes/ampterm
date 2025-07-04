@@ -145,7 +145,7 @@ impl PlayerWorker {
         });
         token
     }
-    fn skip(&mut self) {
+    fn skip(&mut self, skip_by: i32) {
         // Get the index of the music to play next
         let index = match &self.state {
             WorkerState::Playing {
@@ -155,25 +155,26 @@ impl PlayerWorker {
             } => {
                 self.sink.stop();
                 token.cancel();
-                current + 1
+                (*current as i32) + skip_by
             }
             WorkerState::Loading { item: _, current } => {
                 self.sink.stop();
-                current + 1
+                (*current as i32) + skip_by
             }
-            WorkerState::Idle { play_next } => *play_next,
+            WorkerState::Idle { play_next } => (*play_next) as i32,
         };
-        match self.queue.get(index) {
+        let cleaned = if index >= 0 { index as usize } else { 0 };
+        match self.queue.get(cleaned) {
             Some(i) => {
                 let _ = self
                     .action_tx
                     .send(Action::Query(Query::GetUrlByMedia { media: i.clone() }));
                 self.state = WorkerState::Loading {
                     item: i.clone(),
-                    current: index,
+                    current: cleaned,
                 };
             }
-            None => self.state = WorkerState::Idle { play_next: index },
+            None => self.state = WorkerState::Idle { play_next: cleaned },
         }
     }
     pub async fn run(&mut self) -> Result<()> {
@@ -187,13 +188,13 @@ impl PlayerWorker {
                 PlayerAction::Pause => self.pause_stream(),
                 PlayerAction::Continue => self.continue_stream(),
                 PlayerAction::Kill => self.should_quit = true,
-                PlayerAction::Skip => self.skip(),
+                PlayerAction::Skip => self.skip(1),
                 PlayerAction::AddToQueue { mut music, pos } => {
                     if self.queue.is_empty() {
                         self.queue = music;
                         if let WorkerState::Idle { play_next: _ } = self.state {
                             // If the queue was empty, then adding an item automatically starts playing
-                            self.skip();
+                            self.skip(0);
                         }
                     } else {
                         match pos {
@@ -211,6 +212,7 @@ impl PlayerWorker {
                                         self.queue.splice(play_next..play_next, music);
                                     }
                                 };
+                                self.skip(0);
                             }
                             QueueLocation::Next => {
                                 match &self.state {

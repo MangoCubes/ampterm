@@ -1,5 +1,23 @@
-* Architecture
+#+TITLE: Architecture
+* Note
 - This is mostly for me to keep my thoughts in order.
+* Player Worker Management
+** Queue Management
+- Queue is stored as a VecDeque<Media>
+- This queue does not delete any elements unless the user explicitly remove elements from it
+- Current state contains the index of the music that is currently being played (Playing/Loading) or should be played when the play button is pressed (Idle) 
+** State
+- There are 3 states: Idle, Loading, and Playing
+*** Idle
+- This is where the player starts at when there is nothing being played
+- This state contains an index named =play_next= which specifies what should be played in case the player is started
+*** Loading
+- When the player is started, we know the identifier of the song, but we do not know the exact location from which we can fetch the music
+- This state represents this exact moment, and is expected to transition into Playing state almost immediately
+- This state may be removed in the future where this is replaced with Playing state
+*** Playing
+- In this state, the music has been fetched from the URL and is now being played
+* General
 ** State Change Management
 - Components may have state, and they are marked with Stateful trait
 - Drawing should not change state
@@ -14,4 +32,5 @@
 *** Playing
 - Playing -> Idle: Music playing is stopped, or the current music is skipped and the queue is empty
 - Playing -> Loading: Current music is skipped and the queue is not empty
+
 

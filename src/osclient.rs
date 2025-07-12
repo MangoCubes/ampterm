@@ -157,15 +157,21 @@ impl OSClient {
     ) -> Result<T, ExternalError> {
         let r = self.query(method, path, query).await;
         let handler = |e: reqwest::Error| ExternalError::req(e);
-        let response = r.map_err(handler)?.text().await.map_err(handler)?;
-        let data = from_str::<Wrapper<T>>(&response).map_err(|e| ExternalError::decode(e))?;
-        Ok(trace_dbg!(data.subsonic_response))
-        // let data = r
-        //     .map_err(handler)?
-        //     .json::<Wrapper<T>>()
-        //     .await
-        //     .map_err(handler)?;
-        // Ok(trace_dbg!(data.subsonic_response))
+        let response = r.map_err(handler)?;
+        match response.error_for_status() {
+            Ok(r) => {
+                let body = r.text().await.map_err(handler)?;
+                let data = from_str::<Wrapper<T>>(&body).map_err(|e| ExternalError::decode(e))?;
+                Ok(trace_dbg!(data.subsonic_response))
+            }
+            Err(status) => {
+                if let Some(code) = status.status() {
+                    Err(trace_dbg!(ExternalError::res(code)))
+                } else {
+                    panic!("Received error status code but found no error status code??")
+                }
+            }
+        }
     }
     // Use password to create a client without verifying if the credentials are valid
     pub fn use_password(

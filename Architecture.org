@@ -1,3 +1,6 @@
+:PROPERTIES:
+:ID:       2c0d8ff0-5fb3-4eb1-a979-403c08867912
+:END:
 #+TITLE: Architecture
 * Note
 - This is mostly for me to keep my thoughts in order.
@@ -17,6 +20,19 @@
 - This state may be removed in the future where this is replaced with Playing state
 *** Playing
 - In this state, the music has been fetched from the URL and is now being played
+** Action
+- There are three actions, add to front, add next, and add last.
+*** Add To Front
+- Add an item so that the new one is played
+- If music was being played, then that music is stopped and pushed next to the queue
+*** Add Next
+- Add an item so that once the current item finishes, the selected music is played
+*** Add Last
+- Add an item so that once everything in the queue (before adding the selected music) is exhausted, the selected music is played
+** Action Handling
+|              | Idle                                                                             | Loading / Playing                                      |
+|--------------+----------------------------------------------------------------------------------+--------------------------------------------------------|
+| Add To Front | Music is added so that once the user starts playing, the added music plays first | Stop the current loading, and play the requested music |
 * General
 ** State Change Management
 - Components may have state, and they are marked with Stateful trait

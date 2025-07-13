@@ -8,10 +8,12 @@ use std::time::Duration;
 use color_eyre::Result;
 use player::{PlayerAction, QueueLocation};
 use rodio::{OutputStreamHandle, Sink};
+use stream_download::Settings;
 use streamerror::StreamError;
 use streamreader::StreamReader;
 use tokio::select;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
+use tokio::task::JoinHandle;
 use tokio::time::sleep;
 use tokio_util::sync::CancellationToken;
 
@@ -89,15 +91,44 @@ impl PlayerWorker {
     fn pause_stream(&mut self) {
         self.sink.pause();
     }
-    fn play_from_url(&self, url: String) -> CancellationToken {
-        let sink = self.sink.clone();
-        let sink2 = self.sink.clone();
-        let action_tx = self.action_tx.clone();
-        let action_tx2 = self.action_tx.clone();
-        let player_tx = self.player_tx.clone();
-        let token = CancellationToken::new();
-        let cloned_token = token.clone();
 
+    /// Given a URL, `play_from_url` fetches music file from this URL and plays it
+    /// This spawns the following threads:
+    /// Function
+    /// |- Main playing thread
+    ///    |- Polling thread
+    ///
+    /// Main playing thread spawns a polling thread, and then runs `select!` macro to wait for the
+    /// music stream to complete.
+    ///
+    /// Polling thread sends out current player position every 500 miliseconds. This is run in a
+    /// loop, and should never complete.
+    ///
+    /// The `select!` macro waits for 3 different things:
+    /// 1. Main playing thread
+    ///    The music has finished. `Skip` Action is sent out.
+    /// 2. Cancellation
+    ///    User has request cancellation, which causes music to stop.
+    ///    `Skip` is NOT sent out; This is handled by the `skip` function itself. Cancellation simply
+    ///    cancels the stream.
+    /// 3. Polling thread
+    ///    This should never happen, and will panic instead.
+    ///
+    /// Calling this function returns immediately with a token that can cancel the main playing
+    /// thread
+    fn play_from_url(&self, url: String) -> CancellationToken {
+        // Used by Main playing thread to append decoded source into it
+        let sink = self.sink.clone();
+        let action_tx = self.action_tx.clone();
+        // Used by Polling thread
+        let sink2 = self.sink.clone();
+        let action_tx2 = self.action_tx.clone();
+
+        let player_tx = self.player_tx.clone();
+        // Cancellation token used for returning
+        let token = CancellationToken::new();
+        // Cancellation token to listen to cancellation
+        let cloned_token = token.clone();
         tokio::task::spawn(async move {
             let reader =
                 match StreamReader::get_reader(url.parse().unwrap(), action_tx.clone()).await {
@@ -105,12 +136,15 @@ impl PlayerWorker {
                     Err(_) => return,
                 };
             let stream_token = reader.cancellation_token();
-            let play = tokio::task::spawn_blocking(move || -> Result<(), StreamError> {
-                let source = rodio::Decoder::new(reader).map_err(|e| StreamError::decode(e))?;
-                sink.append(source);
-                sink.sleep_until_end();
-                Ok(())
-            });
+            let play: JoinHandle<Result<(), StreamError>> =
+                tokio::task::spawn_blocking(move || {
+                    // Panic may happen because Symphonia decoder is not being used
+                    // Without Symphonia decoder, the decoding routine may contain `unwrap`
+                    let source = rodio::Decoder::new(reader).map_err(|e| StreamError::decode(e))?;
+                    sink.append(source);
+                    sink.sleep_until_end();
+                    Ok(())
+                });
             let poll_state = tokio::task::spawn(async move {
                 loop {
                     let _ = action_tx2.send(Action::PlayerState(
@@ -225,7 +259,7 @@ impl PlayerWorker {
                                         self.queue.splice((current + 1)..(current + 1), music);
                                     }
                                     WorkerState::Idle { play_next } => {
-                                        self.queue.splice((play_next + 1)..(play_next + 1), music);
+                                        self.queue.splice(play_next..play_next, music);
                                     }
                                 };
                             }

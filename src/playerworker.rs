@@ -57,6 +57,10 @@ pub struct PlayerWorker {
 }
 
 impl PlayerWorker {
+    /// Add a number of musics into a specific spot
+    /// `items` specifies the list of musics to add
+    /// `pos` specifies the exact position in which the musics will be added relative to the
+    /// current position
     fn add_musics(&mut self, items: Vec<Media>, pos: QueueLocation) {
         match pos {
             QueueLocation::Front => {
@@ -92,6 +96,7 @@ impl PlayerWorker {
             }
         };
     }
+    /// Send the current state of the playlist via `action_tx`
     fn send_playlist_state(&mut self) {
         let q = self.queue.clone().into();
         let action = match &self.state {
@@ -211,6 +216,11 @@ impl PlayerWorker {
         });
         token
     }
+    /// Change the index of the item that is currently being played
+    /// `skip_by` specifies the distance
+    /// 0: Restart the music currently highlighted
+    /// > 0: Move forward
+    /// < 0: Move backwards
     fn skip(&mut self, skip_by: i32) {
         // Get the index of the music to play next
         let index = match &self.state {
@@ -225,7 +235,18 @@ impl PlayerWorker {
             }
             WorkerState::Idle { play_next } => (*play_next) as i32,
         };
-        let cleaned = if index >= 0 { index as usize } else { 0 };
+        let cleaned = if index >= 0 {
+            if index >= self.queue.len().try_into().unwrap() {
+                // New index is beyond the current playlist
+                self.queue.len()
+            } else {
+                // New index is okay as is
+                index as usize
+            }
+        } else {
+            // New index is negative
+            0
+        };
         match self.queue.get(cleaned) {
             Some(i) => {
                 let _ = self

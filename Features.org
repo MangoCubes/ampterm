@@ -1,0 +1,24 @@
+#+TITLE: Features
+
+* Implemented
+- This list contains all the features that are currently present in the program.
+** Basic Features
+*** Add Music Into The Queue
+- Add music into the queue using key combination
+- Three actions are available:
+  - Add to the queue
+  - Add next to the queue
+  - Add last to the queue
+** Multiple Selection
+- Enter visual mode to select multiple musics
+- Anti-visual mode is used to de-select items
+- Press visual mode key to confirm, press Escape to discard selection
+* In Progress
+- This list contains all the features that are currently in development.
+** Add Playlist Into The Queue
+* Planned
+- This list contains all the features that are planned, but currently not being actively developed.
+** Mpri
+** Smart Playlist Editor
+* Not Planned
+- This list contains all the features that will not be included, with reasons for such decision.

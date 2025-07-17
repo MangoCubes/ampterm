@@ -39,13 +39,13 @@ impl QueueList {
     }
     fn gen_list(enabled: bool, state: &PlayState) -> List<'static> {
         let mut items: Vec<ListItem> = state
-            .next
+            .items
             .iter()
             .enumerate()
             .filter(|(index, _)| *index != state.index)
             .map(|(_, p)| ListItem::from(p.title.clone()))
             .collect();
-        if let Some(m) = state.next.get(state.index) {
+        if let Some(m) = state.items.get(state.index) {
             items.insert(
                 state.index,
                 ListItem::from(m.title.clone()).fg(Color::Green),

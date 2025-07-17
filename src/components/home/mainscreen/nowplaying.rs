@@ -36,13 +36,13 @@ impl Component for NowPlaying {
             play,
         } = action
         {
-            match play.current {
+            match play.items.get(play.index) {
                 Some(p) => {
                     self.state = CompState::Playing {
                         comp: Playing::new(
-                            p.title,
-                            p.artist.unwrap_or("Unknown".to_string()),
-                            p.album.unwrap_or("Unknown".to_string()),
+                            p.title.clone(),
+                            p.artist.clone().unwrap_or("Unknown".to_string()),
+                            p.album.clone().unwrap_or("Unknown".to_string()),
                             p.duration.unwrap_or(1),
                             vol,
                             speed,

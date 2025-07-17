@@ -20,25 +20,19 @@ pub enum StateType {
 }
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct PlayState {
-    pub current: Option<Media>,
-    pub next: Vec<Media>,
+    pub items: Vec<Media>,
     pub index: usize,
 }
 
 impl PlayState {
     pub fn default() -> Self {
         Self {
-            current: None,
-            next: Vec::new(),
+            items: Vec::new(),
             index: 0,
         }
     }
-    pub fn new(current: Option<Media>, next: Vec<Media>, index: usize) -> Self {
-        Self {
-            current,
-            next,
-            index,
-        }
+    pub fn new(items: Vec<Media>, index: usize) -> Self {
+        Self { items, index }
     }
 }
 

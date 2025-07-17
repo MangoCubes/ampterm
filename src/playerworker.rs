@@ -26,14 +26,12 @@ enum WorkerState {
     // The fetched file is played
     Playing {
         token: CancellationToken,
-        item: Media,
         // This field exists for all three states, but is in this worker state to differentiate its
         // meaning from WorkerState::Idle
         current: usize,
     },
     // The file URL is being fetched
     Loading {
-        item: Media,
         current: usize,
     },
     // There are no items at the play_next index
@@ -63,12 +61,8 @@ impl PlayerWorker {
         match pos {
             QueueLocation::Front => {
                 match self.state {
-                    WorkerState::Playing {
-                        token: _,
-                        item: _,
-                        current,
-                    }
-                    | WorkerState::Loading { item: _, current } => {
+                    WorkerState::Playing { token: _, current }
+                    | WorkerState::Loading { current } => {
                         self.queue.splice(current..current, items);
                         // The music being played right now is being modified
                         self.skip(0);
@@ -80,12 +74,8 @@ impl PlayerWorker {
             }
             QueueLocation::Next => {
                 match self.state {
-                    WorkerState::Playing {
-                        token: _,
-                        item: _,
-                        current,
-                    }
-                    | WorkerState::Loading { item: _, current } => {
+                    WorkerState::Playing { token: _, current }
+                    | WorkerState::Loading { current } => {
                         self.queue.splice((current + 1)..(current + 1), items);
                     }
                     WorkerState::Idle { play_next } => {
@@ -105,24 +95,20 @@ impl PlayerWorker {
     fn send_playlist_state(&mut self) {
         let q = self.queue.clone().into();
         let action = match &self.state {
-            WorkerState::Playing {
-                token: _,
-                item,
-                current,
-            } => Action::InQueue {
-                play: PlayState::new(Some(item.clone()), q, *current),
+            WorkerState::Playing { token: _, current } => Action::InQueue {
+                play: PlayState::new(q, *current),
                 vol: self.sink.volume(),
                 speed: self.sink.speed(),
                 pos: self.sink.get_pos(),
             },
-            WorkerState::Loading { item, current } => Action::InQueue {
-                play: PlayState::new(Some(item.clone()), q, *current),
+            WorkerState::Loading { current } => Action::InQueue {
+                play: PlayState::new(q, *current),
                 vol: self.sink.volume(),
                 speed: self.sink.speed(),
                 pos: Duration::from_secs(0),
             },
             WorkerState::Idle { play_next } => Action::InQueue {
-                play: PlayState::new(None, q, *play_next),
+                play: PlayState::new(q, *play_next),
                 vol: self.sink.volume(),
                 speed: self.sink.speed(),
                 pos: Duration::from_secs(0),
@@ -228,16 +214,12 @@ impl PlayerWorker {
     fn skip(&mut self, skip_by: i32) {
         // Get the index of the music to play next
         let index = match &self.state {
-            WorkerState::Playing {
-                token,
-                item: _,
-                current,
-            } => {
+            WorkerState::Playing { token, current } => {
                 self.sink.stop();
                 token.cancel();
                 (*current as i32) + skip_by
             }
-            WorkerState::Loading { item: _, current } => {
+            WorkerState::Loading { current } => {
                 self.sink.stop();
                 (*current as i32) + skip_by
             }
@@ -249,10 +231,7 @@ impl PlayerWorker {
                 let _ = self
                     .action_tx
                     .send(Action::Query(Query::GetUrlByMedia { media: i.clone() }));
-                self.state = WorkerState::Loading {
-                    item: i.clone(),
-                    current: cleaned,
-                };
+                self.state = WorkerState::Loading { current: cleaned };
             }
             None => self.state = WorkerState::Idle { play_next: cleaned },
         }
@@ -282,16 +261,17 @@ impl PlayerWorker {
                 }
                 PlayerAction::PlayURL { music, url } => {
                     // Ensure the one we get is what we expected
-                    if let WorkerState::Loading { item, current } = &self.state {
-                        if item.id == music.id {
-                            let _ = self
-                                .action_tx
-                                .send(Action::PlayerMessage("Starting...".to_string()));
-                            let token = self.play_from_url(url);
-                            self.state = WorkerState::Playing {
-                                token,
-                                item: music,
-                                current: *current,
+                    if let WorkerState::Loading { current } = &self.state {
+                        if let Some(item) = self.queue.get(*current) {
+                            if item.id == music.id {
+                                let _ = self
+                                    .action_tx
+                                    .send(Action::PlayerMessage("Starting...".to_string()));
+                                let token = self.play_from_url(url);
+                                self.state = WorkerState::Playing {
+                                    token,
+                                    current: *current,
+                                };
                             };
                         };
                     };

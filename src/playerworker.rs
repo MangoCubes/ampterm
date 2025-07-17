@@ -8,7 +8,6 @@ use std::time::Duration;
 use color_eyre::Result;
 use player::{PlayerAction, QueueLocation};
 use rodio::{OutputStreamHandle, Sink};
-use stream_download::Settings;
 use streamerror::StreamError;
 use streamreader::StreamReader;
 use tokio::select;
@@ -40,6 +39,10 @@ enum WorkerState {
     // There are no items at the play_next index
     Idle {
         // Index of the music currently in play, or music that should be played next
+        // This is different because this may be out of bounds when the streaming have stopped
+        // because the last song has been played.
+        // If there three items [0, 1, 2], and the user listens to all 3, then `play_next` becomes
+        // 3, which is not a valid index
         play_next: usize,
     },
 }
@@ -56,6 +59,49 @@ pub struct PlayerWorker {
 }
 
 impl PlayerWorker {
+    fn add_musics(&mut self, items: Vec<Media>, pos: QueueLocation) {
+        match pos {
+            QueueLocation::Front => {
+                match self.state {
+                    WorkerState::Playing {
+                        token: _,
+                        item: _,
+                        current,
+                    }
+                    | WorkerState::Loading { item: _, current } => {
+                        self.queue.splice(current..current, items);
+                        // The music being played right now is being modified
+                        self.skip(0);
+                    }
+                    WorkerState::Idle { play_next } => {
+                        self.queue.splice(play_next..play_next, items);
+                    }
+                };
+            }
+            QueueLocation::Next => {
+                match self.state {
+                    WorkerState::Playing {
+                        token: _,
+                        item: _,
+                        current,
+                    }
+                    | WorkerState::Loading { item: _, current } => {
+                        self.queue.splice((current + 1)..(current + 1), items);
+                    }
+                    WorkerState::Idle { play_next } => {
+                        if play_next == self.queue.len() {
+                            self.queue.append(&mut items.clone());
+                        } else {
+                            self.queue.splice((play_next + 1)..(play_next + 1), items);
+                        };
+                    }
+                };
+            }
+            QueueLocation::Last => {
+                self.queue.append(&mut items.clone());
+            }
+        };
+    }
     fn send_playlist_state(&mut self) {
         let q = self.queue.clone().into();
         let action = match &self.state {
@@ -223,7 +269,7 @@ impl PlayerWorker {
                 PlayerAction::Continue => self.continue_stream(),
                 PlayerAction::Kill => self.should_quit = true,
                 PlayerAction::Skip => self.skip(1),
-                PlayerAction::AddToQueue { mut music, pos } => {
+                PlayerAction::AddToQueue { music, pos } => {
                     if self.queue.is_empty() {
                         self.queue = music;
                         if let WorkerState::Idle { play_next: _ } = self.state {
@@ -231,42 +277,7 @@ impl PlayerWorker {
                             self.skip(0);
                         }
                     } else {
-                        match pos {
-                            QueueLocation::Front => {
-                                match &self.state {
-                                    WorkerState::Playing {
-                                        token: _,
-                                        item: _,
-                                        current,
-                                    }
-                                    | WorkerState::Loading { item: _, current } => {
-                                        self.queue.splice(current..current, music);
-                                    }
-                                    WorkerState::Idle { play_next } => {
-                                        self.queue.splice(play_next..play_next, music);
-                                    }
-                                };
-                                self.skip(0);
-                            }
-                            QueueLocation::Next => {
-                                match &self.state {
-                                    WorkerState::Playing {
-                                        token: _,
-                                        item: _,
-                                        current,
-                                    }
-                                    | WorkerState::Loading { item: _, current } => {
-                                        self.queue.splice((current + 1)..(current + 1), music);
-                                    }
-                                    WorkerState::Idle { play_next } => {
-                                        self.queue.splice(play_next..play_next, music);
-                                    }
-                                };
-                            }
-                            QueueLocation::Last => {
-                                self.queue.append(&mut music);
-                            }
-                        };
+                        self.add_musics(music, pos);
                     };
                 }
                 PlayerAction::PlayURL { music, url } => {

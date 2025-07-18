@@ -39,7 +39,7 @@ impl QueueList {
     }
     fn gen_list(&self) -> List<'static> {
         let len = self.list.items.len();
-        let before = Style::new().fg(Color::Gray);
+        let before = Style::new().fg(Color::DarkGray);
         let current = Style::new().fg(Color::Green).bold();
         let after = Style::new();
         fn gen_items(ms: &[Media], style: Style) -> Vec<ListItem<'static>> {
@@ -88,7 +88,7 @@ impl QueueList {
         let list = PlayState::default();
         Self {
             state: ListState::default(),
-            comp: List::default(),
+            comp: List::default().block(Self::gen_block(false, "Next Up")),
             list,
             enabled,
         }

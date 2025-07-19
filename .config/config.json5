@@ -1,34 +1,62 @@
 {
   "keybindings": {
     "Visual": {
+	  // In visual mode, these keybindings are used
 	  "<Esc>":"ExitVisualModeDiscard",
-	  "<v>":"ExitVisualModeSave"
+	  // All 3 can be used to exit visual mode whilst confirming the selection
+	  "<v>":"ExitVisualModeSave",
+	  "<Shift-v>":"ExitVisualModeSave",
+	  "<Ctrl-v>":"ExitVisualModeSave",
     },
-	"Normal": {},
-    "Common": {
+	// This keybinding is exclusive to normal mode.
+	"Normal": {
+	  // Movement
 	  "<Ctrl-w><Left>": "MoveLeft",
 	  "<Ctrl-w><Right>": "MoveRight",
 	  "<Ctrl-w><Up>": "MoveUp",
 	  "<Ctrl-w><Down>": "MoveDown",
-	  "<Shift-g>":"Bottom",
-	  "<g><g>": "Top",
-	  "<g><r>": "ResetState",
-	  // "<g><Shift-r>": "Top",
-	  "<Shift-r>":"Refresh",
+
+	  // Movement but with hjkl
+	  "<Ctrl-w><h>": "MoveLeft",
+	  "<Ctrl-w><l>": "MoveRight",
+	  "<Ctrl-w><k>": "MoveUp",
+	  "<Ctrl-w><j>": "MoveDown",
+	},
+    "Common": {
+	  // General movement
+	  "<k>": "Up",
+	  "<j>":"Down",
+	  "<h>":"Left",
+	  "<l>":"Right",
+
 	  "<Up>": "Up",
 	  "<Down>":"Down",
 	  "<Left>":"Left",
 	  "<Right>":"Right",
-	  "<Enter>":"Confirm",
-	  "<q>":"Cancel",
-	  "<i>": "AddNext",
-	  "<a>": "AddNext",
+
+	  // Visual mode entry
 	  "<v>": "VisualSelectMode",
 	  "<Shift-v>":"VisualSelectMode",
 	  "<Ctrl-v>":"VisualDeselectMode",
+
+	  // Playlist manipulation
+	  // Note that both i and Shift+i are mapped to the same key
+	  "<i>": "AddFront",
+	  "<a>": "AddNext",
 	  "<Shift-i>":"AddFront",
 	  "<Shift-a>":"AddLast",
-	  "<s>": "Skip",
+
+	  // "<0>": "Previous"
+	  // "<^>": "GoToStart"
+	  "<$>": "Skip",
+
+	  // Advanced Movements
+	  "<Shift-g>":"Bottom",
+	  "<g><g>": "Top",
+	  "<g><r>": "ResetState",
+	  "<Shift-r>":"Refresh",
+	  "<Enter>":"Confirm",
+	  "<q>":"Cancel",
 	  "<Esc>":"EndKeySeq",
 	  "<c>": "Play",
 	  "<Shift-c>": "Pause"

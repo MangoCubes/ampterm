@@ -38,6 +38,7 @@ impl QueueList {
         Block::bordered().title(title).border_style(style)
     }
     fn gen_list(&self) -> List<'static> {
+        let block = Self::gen_block(self.enabled, "Next Up");
         let len = self.list.items.len();
         let before = Style::new().fg(Color::DarkGray);
         let current = Style::new().fg(Color::Green).bold();
@@ -58,7 +59,7 @@ impl QueueList {
             }
             // Current item is the first element in the playlist
             0 => {
-                let mut list = gen_items(&self.list.items[..1], before);
+                let mut list = gen_items(&self.list.items[1..], after);
                 list.insert(
                     0,
                     ListItem::from((&self.list.items[0].title).clone()).style(current),
@@ -77,7 +78,6 @@ impl QueueList {
             }
         };
         let comp = List::new(items);
-        let block = Self::gen_block(self.enabled, "Next Up");
 
         comp.block(block)
             .highlight_style(Style::new().reversed())

@@ -62,6 +62,10 @@ impl PlayerWorker {
     /// `pos` specifies the exact position in which the musics will be added relative to the
     /// current position
     fn add_musics(&mut self, items: Vec<Media>, pos: QueueLocation) {
+        if self.queue.is_empty() {
+            self.queue = items;
+            return;
+        };
         match pos {
             QueueLocation::Front => {
                 match self.state {
@@ -270,15 +274,15 @@ impl PlayerWorker {
                 PlayerAction::Kill => self.should_quit = true,
                 PlayerAction::Skip => self.skip(1),
                 PlayerAction::AddToQueue { music, pos } => {
-                    if self.queue.is_empty() {
-                        self.queue = music;
-                        if let WorkerState::Idle { play_next: _ } = self.state {
-                            // If the queue was empty, then adding an item automatically starts playing
+                    if let WorkerState::Idle { play_next } = self.state {
+                        let prev_pos = self.queue.len();
+                        self.add_musics(music, pos);
+                        if play_next == prev_pos {
                             self.skip(0);
                         }
                     } else {
                         self.add_musics(music, pos);
-                    };
+                    }
                 }
                 PlayerAction::PlayURL { music, url } => {
                     // Ensure the one we get is what we expected

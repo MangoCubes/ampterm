@@ -100,10 +100,12 @@ pub enum Action {
     // Action for deleting all key sequences currently stored
     // It's like escape in Vim, and Ctrl+G in Emacs
     EndKeySeq,
-    // Play or pause the playerworker
+    // Player controllers
     Pause,
     Play,
     Skip,
+    Previous,
+    GoToStart,
 
     // Enter visual mode to select items
     VisualSelectMode,

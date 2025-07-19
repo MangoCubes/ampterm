@@ -20,6 +20,8 @@ pub enum PlayerAction {
     Pause,
     Continue,
     Skip,
+    Previous,
+    GoToStart,
     AddToQueue {
         music: Vec<Media>,
         pos: QueueLocation,

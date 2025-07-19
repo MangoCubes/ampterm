@@ -301,6 +301,8 @@ impl PlayerWorker {
                         };
                     };
                 }
+                PlayerAction::Previous => self.skip(-1),
+                PlayerAction::GoToStart => todo!(),
             };
             self.send_playlist_state();
             if self.should_quit {

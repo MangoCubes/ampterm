@@ -8,6 +8,24 @@
 	  "<Shift-v>":"ExitVisualModeSave",
 	  "<Ctrl-v>":"ExitVisualModeSave",
     },
+	// Insert mode is activated when you are about to insert (or add next/last) more than one items
+	// That can happen in the following situations:
+	// - When you have selected more than one items
+	// - When you are adding a whole playlist
+	// - When you are adding more than one playlists
+	"Insert": {
+	  "<r>": "Randomise",
+	  // "<R>": "RandomiseABit",
+	  "<v>": "Reverse",
+	  "<Esc>":"CancelAdd",
+
+	  // These keybinds essentially work as "just add them"
+	  // There are multiple keybinds as we do not know what key you used to enter this mode
+	  "<a>": "AddAsIs",
+	  "<i>": "AddAsIs",
+	  "<Shift-i>": "AddAsIs",
+	  "<Shift-a>": "AddAsIs"
+	},
 	// This keybinding is exclusive to normal mode.
 	"Normal": {
 	  // Movement
@@ -21,6 +39,13 @@
 	  "<Ctrl-w><l>": "MoveRight",
 	  "<Ctrl-w><k>": "MoveUp",
 	  "<Ctrl-w><j>": "MoveDown",
+
+	  // Playlist manipulation
+	  // Note that both i and Shift+i are mapped to the same key
+	  "<i>": "AddFront",
+	  "<a>": "AddNext",
+	  "<Shift-i>":"AddFront",
+	  "<Shift-a>":"AddLast",
 	},
     "Common": {
 	  // General movement
@@ -39,16 +64,11 @@
 	  "<Shift-v>":"VisualSelectMode",
 	  "<Ctrl-v>":"VisualDeselectMode",
 
-	  // Playlist manipulation
-	  // Note that both i and Shift+i are mapped to the same key
-	  "<i>": "AddFront",
-	  "<a>": "AddNext",
-	  "<Shift-i>":"AddFront",
-	  "<Shift-a>":"AddLast",
-
-	  // "<0>": "Previous"
+	  "<0>": "Previous"
 	  // "<^>": "GoToStart"
 	  "<$>": "Skip",
+	  "<c>": "Play",
+	  "<Shift-c>": "Pause"
 
 	  // Advanced Movements
 	  "<Shift-g>":"Bottom",
@@ -58,8 +78,6 @@
 	  "<Enter>":"Confirm",
 	  "<q>":"Cancel",
 	  "<Esc>":"EndKeySeq",
-	  "<c>": "Play",
-	  "<Shift-c>": "Pause"
     },
   },
   // Use legacy authentication that sends the password instead of token and salt

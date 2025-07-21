@@ -93,9 +93,7 @@ impl<'a> Component for Loaded<'a> {
                         name: Some(self.name.to_string()),
                         id: self.playlistid.clone(),
                     }))),
-                    Action::AddNext => Ok(self.select_music(QueueLocation::Next)),
-                    Action::AddLast => Ok(self.select_music(QueueLocation::Last)),
-                    Action::AddFront => Ok(self.select_music(QueueLocation::Front)),
+                    Action::Add(loc) => Ok(self.select_music(loc)),
                     Action::ExitVisualModeDiscard => {
                         self.visual.disable_visual(false);
                         Ok(None)

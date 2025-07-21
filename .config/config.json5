@@ -42,10 +42,10 @@
 
 	  // Playlist manipulation
 	  // Note that both i and Shift+i are mapped to the same key
-	  "<i>": "AddFront",
-	  "<a>": "AddNext",
-	  "<Shift-i>":"AddFront",
-	  "<Shift-a>":"AddLast",
+	  "<i>": { Add: "Front" },
+	  "<Shift-i>": { Add: "Front" },
+	  "<a>": { Add: "Next" },
+	  "<Shift-a>": { Add: "Last" },
 	},
     "Common": {
 	  // General movement

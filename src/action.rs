@@ -10,7 +10,10 @@ use ping::PingResponse;
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
-use crate::{playerworker::player::PlayerAction, queryworker::query::Query};
+use crate::{
+    playerworker::player::{PlayerAction, QueueLocation},
+    queryworker::query::Query,
+};
 
 #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
 pub enum StateType {
@@ -24,6 +27,13 @@ pub struct PlayState {
     // Index is guaranteed to be in the range [0, items.len()]
     // In other words, items[index] may be invalid because index goes out of bound by 1
     pub index: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+pub enum PlayOrder {
+    Normal,
+    Random,
+    Reverse,
 }
 
 impl PlayState {
@@ -51,9 +61,7 @@ macro_rules! local_action {
             | Action::Top
             | Action::Bottom
             | Action::Refresh
-            | Action::AddFront
-            | Action::AddNext
-            | Action::AddLast
+            | Action::Add(_)
             | Action::VisualSelectMode
             | Action::VisualDeselectMode
             | Action::ExitVisualModeSave
@@ -122,9 +130,8 @@ pub enum Action {
     Bottom,
     Refresh,
     // Add selected elements to the queue
-    AddFront,
-    AddNext,
-    AddLast,
+    Add(QueueLocation),
+
     // Anything below this should not be used for keybinds, but feel free to experiment. Most are used to notify the system
     // System actions
     Tick,

@@ -60,7 +60,7 @@ impl Component for MainScreen {
                 self.message = m.clone();
                 Ok(None)
             }
-            Action::MoveLeft => {
+            Action::WindowLeft => {
                 self.state = match self.state {
                     CurrentlySelected::Playlists => CurrentlySelected::Queue,
                     CurrentlySelected::Queue => CurrentlySelected::PlaylistQueue,
@@ -74,7 +74,7 @@ impl Component for MainScreen {
                     .set_enabled(self.state == CurrentlySelected::Queue);
                 Ok(None)
             }
-            Action::MoveRight => {
+            Action::WindowRight => {
                 self.state = match self.state {
                     CurrentlySelected::Playlists => CurrentlySelected::PlaylistQueue,
                     CurrentlySelected::PlaylistQueue => CurrentlySelected::Queue,

@@ -13,32 +13,32 @@
 	// - When you have selected more than one items
 	// - When you are adding a whole playlist
 	// - When you are adding more than one playlists
-	"Insert": {
-	  "<r>": "Randomise",
-	  // "<R>": "RandomiseABit",
-	  "<v>": "Reverse",
-	  "<Esc>":"CancelAdd",
-
-	  // These keybinds essentially work as "just add them"
-	  // There are multiple keybinds as we do not know what key you used to enter this mode
-	  "<a>": "AddAsIs",
-	  "<i>": "AddAsIs",
-	  "<Shift-i>": "AddAsIs",
-	  "<Shift-a>": "AddAsIs"
-	},
+	// "Insert": {
+	//   "<r>": "Randomise",
+	//   // "<R>": "RandomiseABit",
+	//   "<v>": "Reverse",
+	//   "<Esc>":"CancelAdd",
+	//
+	//   // These keybinds essentially work as "just add them"
+	//   // There are multiple keybinds as we do not know what key you used to enter this mode
+	//   "<a>": "AddAsIs",
+	//   "<i>": "AddAsIs",
+	//   "<Shift-i>": "AddAsIs",
+	//   "<Shift-a>": "AddAsIs"
+	// },
 	// This keybinding is exclusive to normal mode.
 	"Normal": {
 	  // Movement
-	  "<Ctrl-w><Left>": "MoveLeft",
-	  "<Ctrl-w><Right>": "MoveRight",
-	  "<Ctrl-w><Up>": "MoveUp",
-	  "<Ctrl-w><Down>": "MoveDown",
+	  "<Ctrl-w><Left>": "WindowLeft",
+	  "<Ctrl-w><Right>": "WindowRight",
+	  "<Ctrl-w><Up>": "WindowUp",
+	  "<Ctrl-w><Down>": "WindowDown",
 
 	  // Movement but with hjkl
-	  "<Ctrl-w><h>": "MoveLeft",
-	  "<Ctrl-w><l>": "MoveRight",
-	  "<Ctrl-w><k>": "MoveUp",
-	  "<Ctrl-w><j>": "MoveDown",
+	  "<Ctrl-w><h>": "WindowLeft",
+	  "<Ctrl-w><l>": "WindowRight",
+	  "<Ctrl-w><k>": "WindowUp",
+	  "<Ctrl-w><j>": "WindowDown",
 
 	  // Playlist manipulation
 	  // Note that both i and Shift+i are mapped to the same key
@@ -64,11 +64,13 @@
 	  "<Shift-v>":"VisualSelectMode",
 	  "<Ctrl-v>":"VisualDeselectMode",
 
-	  "<0>": "Previous"
+	  "<0>": "Previous",
+	  "<Shift-k>": "Previous",
 	  // "<^>": "GoToStart"
 	  "<$>": "Skip",
+	  "<Shift-j>": "Skip",
 	  "<c>": "Play",
-	  "<Shift-c>": "Pause"
+	  "<Shift-c>": "Pause",
 
 	  // Advanced Movements
 	  "<Shift-g>":"Bottom",

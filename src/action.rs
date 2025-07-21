@@ -38,14 +38,6 @@ impl PlayState {
     }
 }
 
-// Macro for getting all mode changes
-#[macro_export]
-macro_rules! modes {
-    () => {
-        Action::NormalMode | Action::VisualMode
-    };
-}
-
 // Macro for getting actions that are sent to the currently focused component only
 #[macro_export]
 macro_rules! local_action {
@@ -92,10 +84,10 @@ pub enum Action {
     ClearScreen,
     Help,
     // Action for moving between boxes
-    MoveLeft,
-    MoveRight,
-    MoveUp,
-    MoveDown,
+    WindowLeft,
+    WindowRight,
+    WindowUp,
+    WindowDown,
 
     // Action for deleting all key sequences currently stored
     // It's like escape in Vim, and Ctrl+G in Emacs

@@ -1,4 +1,4 @@
-use crate::{components::Component, focusable::Focusable};
+use crate::{action::getplaylists::PlaylistID, components::Component, focusable::Focusable};
 use color_eyre::Result;
 use ratatui::{
     layout::{Alignment, Rect},
@@ -11,7 +11,7 @@ use ratatui::{
 use super::PlaylistQueueComps;
 
 pub struct Loading {
-    id: String,
+    id: PlaylistID,
     name: String,
     enabled: bool,
 }
@@ -33,7 +33,7 @@ impl Loading {
         );
         Block::bordered().title(title).border_style(style)
     }
-    pub fn new(id: String, name: String, enabled: bool) -> Self {
+    pub fn new(id: PlaylistID, name: String, enabled: bool) -> Self {
         Self { id, name, enabled }
     }
 }

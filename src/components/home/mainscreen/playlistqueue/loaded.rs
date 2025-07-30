@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use crate::{
     action::{
         getplaylist::{FullPlaylist, Media, MediaID},
+        getplaylists::PlaylistID,
         Action,
     },
     components::Component,
@@ -26,7 +27,7 @@ use super::PlaylistQueueComps;
 
 pub struct Loaded<'a> {
     name: String,
-    playlistid: String,
+    playlistid: PlaylistID,
     visual: Visual<'a, Media>,
     enabled: bool,
 }

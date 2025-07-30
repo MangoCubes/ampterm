@@ -39,7 +39,11 @@ impl Component for PlaylistQueue {
             local_action!() => self.comp.update(action),
             Action::Query(q) => {
                 if let Query::GetPlaylist { name, id } = q {
-                    self.comp = Box::new(Loading::new(id.clone(), name.unwrap_or(id), self.enabled))
+                    self.comp = Box::new(Loading::new(
+                        id.clone(),
+                        name.unwrap_or(String::from(id)),
+                        self.enabled,
+                    ))
                 };
                 Ok(None)
             }

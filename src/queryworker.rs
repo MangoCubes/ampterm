@@ -135,7 +135,7 @@ impl QueryWorker {
                             let tx = self.action_tx.clone();
                             let client = c.clone();
                             tokio::spawn(async move {
-                                let res = client.get_playlist(idc).await;
+                                let res = client.get_playlist(String::from(idc)).await;
                                 match res {
                                     Ok(c) => match c {
                                         GetPlaylist::Ok { playlist } => {

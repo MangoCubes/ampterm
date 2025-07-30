@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::action::getplaylists::PlaylistID;
+
 pub type MediaID = String;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -56,7 +58,7 @@ pub struct Media {
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FullPlaylist {
-    pub id: String,
+    pub id: PlaylistID,
     pub name: String,
     pub comment: Option<String>,
     pub owner: Option<String>,
@@ -73,7 +75,7 @@ pub struct FullPlaylist {
 pub enum GetPlaylistResponse {
     Success(FullPlaylist),
     Failure {
-        id: String,
+        id: PlaylistID,
         name: Option<String>,
         msg: String,
     },

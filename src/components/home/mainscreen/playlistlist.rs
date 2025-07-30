@@ -1,11 +1,12 @@
 use crate::{
     action::{
-        getplaylists::{GetPlaylistsResponse, SimplePlaylist},
+        getplaylists::{GetPlaylistsResponse, PlaylistID, SimplePlaylist},
         Action,
     },
     components::Component,
     focusable::Focusable,
-    local_action,
+    insert_action, local_action,
+    playerworker::player::QueueLocation,
     queryworker::query::Query,
 };
 use color_eyre::Result;
@@ -26,6 +27,7 @@ enum CompState {
         comp: List<'static>,
         list: Vec<SimplePlaylist>,
         state: ListState,
+        adding_playlist: Option<(PlaylistID, QueueLocation)>,
     },
 }
 
@@ -40,6 +42,7 @@ impl PlaylistList {
             comp: _,
             list,
             state,
+            adding_playlist: _,
         } = &self.state
         {
             if let Some(pos) = state.selected() {
@@ -87,16 +90,56 @@ impl PlaylistList {
             enabled,
         }
     }
+    pub fn prepare_add_to_queue(&mut self, ql: QueueLocation) -> Option<Action> {
+        if let CompState::Loaded {
+            comp: _,
+            list,
+            state,
+            adding_playlist,
+        } = &mut self.state
+        {
+            if let Some(pos) = state.selected() {
+                let key = list[pos].id.clone();
+                *adding_playlist = Some((key, ql));
+            }
+            None
+        } else {
+            None
+        }
+    }
 }
 
 impl Component for PlaylistList {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
+            insert_action!() => {
+                if let CompState::Loaded {
+                    comp: _,
+                    list: _,
+                    state,
+                    adding_playlist,
+                } = &mut self.state
+                {
+                    if let Some(id) = adding_playlist {
+                        match action {
+                            Action::AddAsIs => todo!(),
+                            Action::Randomise => todo!(),
+                            Action::Reverse => todo!(),
+                            _ => Ok(None),
+                        }
+                    } else {
+                        panic!("Program is in invalid state: Got insert mode action outside insert mode.")
+                    }
+                } else {
+                    Ok(None)
+                }
+            }
             local_action!() => {
                 if let CompState::Loaded {
                     comp: _,
                     list: _,
                     state,
+                    adding_playlist,
                 } = &mut self.state
                 {
                     match action {
@@ -108,9 +151,7 @@ impl Component for PlaylistList {
                             state.select_next();
                             Ok(None)
                         }
-                        // LocalAction::AddNext => Ok(self.select_playlist()),
-                        // LocalAction::AddLast => Ok(self.select_playlist()),
-                        // LocalAction::AddFront => Ok(self.select_playlist()),
+                        Action::Add(pos) => Ok(self.prepare_add_to_queue(pos)),
                         Action::Confirm => Ok(self.select_playlist()),
                         Action::Top => {
                             state.select_first();
@@ -133,6 +174,7 @@ impl Component for PlaylistList {
                         comp: PlaylistList::gen_list(&simple_playlists, self.enabled),
                         list: simple_playlists,
                         state: ListState::default().with_selected(Some(0)),
+                        adding_playlist: None,
                     };
                     Ok(None)
                 }
@@ -181,6 +223,7 @@ impl Component for PlaylistList {
                 comp,
                 list,
                 state: ls,
+                adding_playlist,
             } => {
                 frame.render_stateful_widget(&*comp, area, ls);
             }
@@ -197,6 +240,7 @@ impl Focusable for PlaylistList {
                 comp,
                 list,
                 state: _,
+                adding_playlist,
             } = &mut self.state
             {
                 *comp = Self::gen_list(list, self.enabled);

@@ -48,7 +48,15 @@ impl PlayState {
     }
 }
 
-// Macro for getting actions that are sent to the currently focused component only
+/// Macro for getting insert-mode actiond
+#[macro_export]
+macro_rules! insert_action {
+    () => {
+        Action::AddAsIs | Action::Randomise | Action::Reverse
+    };
+}
+
+/// Macro for getting actions that are sent to the currently focused component only
 #[macro_export]
 macro_rules! local_action {
     () => {
@@ -69,14 +77,14 @@ macro_rules! local_action {
             | Action::ResetState
     };
 }
-// Macro for getting actions involving moving between frames
+/// Macro for getting actions involving moving between frames
 #[macro_export]
 macro_rules! movements {
     () => {
         Action::MoveLeft | Action::MoveRight | Action::MoveUp | Action::MoveDown
     };
 }
-// Macro for getting actions that adds stuff to the queue
+/// Macro for getting actions that adds stuff to the queue
 #[macro_export]
 macro_rules! add_to_queue {
     () => {
@@ -131,6 +139,10 @@ pub enum Action {
     Refresh,
     // Add selected elements to the queue
     Add(QueueLocation),
+    AddAsIs,
+    Randomise,
+    Reverse,
+    CancelAdd,
 
     // Anything below this should not be used for keybinds, but feel free to experiment. Most are used to notify the system
     // System actions

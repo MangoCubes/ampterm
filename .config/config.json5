@@ -13,19 +13,19 @@
 	// - When you have selected more than one items
 	// - When you are adding a whole playlist
 	// - When you are adding more than one playlists
-	// "Insert": {
-	//   "<r>": "Randomise",
-	//   // "<R>": "RandomiseABit",
-	//   "<v>": "Reverse",
-	//   "<Esc>":"CancelAdd",
-	//
-	//   // These keybinds essentially work as "just add them"
-	//   // There are multiple keybinds as we do not know what key you used to enter this mode
-	//   "<a>": "AddAsIs",
-	//   "<i>": "AddAsIs",
-	//   "<Shift-i>": "AddAsIs",
-	//   "<Shift-a>": "AddAsIs"
-	// },
+	"Insert": {
+	  "<r>": "Randomise",
+	  // "<R>": "RandomiseABit",
+	  "<v>": "Reverse",
+	  "<Esc>":"CancelAdd",
+
+	  // These keybinds essentially work as "just add them"
+	  // There are multiple keybinds as we do not know what key you used to enter this mode
+	  "<a>": "AddAsIs",
+	  "<i>": "AddAsIs",
+	  "<Shift-i>": "AddAsIs",
+	  "<Shift-a>": "AddAsIs"
+	},
 	// This keybinding is exclusive to normal mode.
 	"Normal": {
 	  // Movement
@@ -42,6 +42,7 @@
 
 	  // Playlist manipulation
 	  // Note that both i and Shift+i are mapped to the same key
+	  // If the cursor is on a playlist, the program goes into Insert mode
 	  "<i>": { Add: "Front" },
 	  "<Shift-i>": { Add: "Front" },
 	  "<a>": { Add: "Next" },

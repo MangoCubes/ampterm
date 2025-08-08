@@ -15,7 +15,7 @@ pub enum QueueLocation {
 }
 
 #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
-pub enum PlayerAction {
+pub enum ToPlayerWorker {
     Stop,
     Pause,
     Continue,

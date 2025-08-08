@@ -47,6 +47,11 @@
 	  "<Shift-i>": { Add: "Front" },
 	  "<a>": { Add: "Next" },
 	  "<Shift-a>": { Add: "Last" },
+
+	  // Visual mode entry
+	  "<v>": "VisualSelectMode",
+	  "<Shift-v>":"VisualSelectMode",
+	  "<Ctrl-v>":"VisualDeselectMode",
 	},
     "Common": {
 	  // General movement
@@ -59,11 +64,6 @@
 	  "<Down>":"Down",
 	  "<Left>":"Left",
 	  "<Right>":"Right",
-
-	  // Visual mode entry
-	  "<v>": "VisualSelectMode",
-	  "<Shift-v>":"VisualSelectMode",
-	  "<Ctrl-v>":"VisualDeselectMode",
 
 	  "<0>": "Previous",
 	  "<Shift-k>": "Previous",

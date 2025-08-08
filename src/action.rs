@@ -10,10 +10,8 @@ use ping::PingResponse;
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
-use crate::{
-    playerworker::player::{PlayerAction, QueueLocation},
-    queryworker::query::Query,
-};
+use crate::playerworker::player::ToPlayerWorker;
+use crate::{app::Mode, playerworker::player::QueueLocation, queryworker::query::ToQueryWorker};
 
 #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
 pub enum StateType {
@@ -48,128 +46,63 @@ impl PlayState {
     }
 }
 
-/// Macro for getting insert-mode actiond
-#[macro_export]
-macro_rules! insert_action {
-    () => {
-        Action::AddAsIs | Action::Randomise | Action::Reverse
-    };
-}
-
-/// Macro for getting actions that are sent to the currently focused component only
-#[macro_export]
-macro_rules! local_action {
-    () => {
-        Action::Up
-            | Action::Down
-            | Action::Right
-            | Action::Left
-            | Action::Confirm
-            | Action::Cancel
-            | Action::Top
-            | Action::Bottom
-            | Action::Refresh
-            | Action::Add(_)
-            | Action::VisualSelectMode
-            | Action::VisualDeselectMode
-            | Action::ExitVisualModeSave
-            | Action::ExitVisualModeDiscard
-            | Action::ResetState
-    };
-}
-/// Macro for getting actions involving moving between frames
-#[macro_export]
-macro_rules! movements {
-    () => {
-        Action::MoveLeft | Action::MoveRight | Action::MoveUp | Action::MoveDown
-    };
-}
-/// Macro for getting actions that adds stuff to the queue
-#[macro_export]
-macro_rules! add_to_queue {
-    () => {
-        Action::AddFront | Action::AddNext | Action::AddLast
-    };
-}
-
 #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
-pub enum Action {
-    Suspend,
-    Resume,
-    Quit,
-    ClearScreen,
-    Help,
-    // Action for moving between boxes
-    WindowLeft,
-    WindowRight,
-    WindowUp,
-    WindowDown,
-
-    // Action for deleting all key sequences currently stored
-    // It's like escape in Vim, and Ctrl+G in Emacs
-    EndKeySeq,
-    // Player controllers
-    Pause,
-    Play,
-    Skip,
-    Previous,
-    GoToStart,
-
-    // Enter visual mode to select items
-    VisualSelectMode,
-    // Enter visual mode to deselect items
-    VisualDeselectMode,
-    // Exit visual mode after applying changes
-    ExitVisualModeSave,
-    // Exit visual mode after discarding changes
-    ExitVisualModeDiscard,
-
-    // Reset current component if that action is valid
-    ResetState,
-
-    // Movement-related actions
+pub enum Dir {
     Up,
     Down,
     Left,
     Right,
+}
+
+/// Local actions are actions that satisfies both of these conditions:
+/// 1. They are applicable in more than one mode (Insert, Normal, etc)
+/// 2. Actions are applicable to the currently focused component
+#[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
+pub enum Local {
+    Move(Dir),
     Confirm,
     Cancel,
     Top,
     Bottom,
     Refresh,
-    // Add selected elements to the queue
-    Add(QueueLocation),
+    ResetState,
+    Help,
+}
+
+/// Visual mode exclusive actions
+#[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
+pub enum Visual {
+    // Exit visual mode after applying changes
+    ExitSave,
+    // Exit visual mode after discarding changes
+    ExitDiscard,
+}
+
+/// Insert mode exclusive actions
+#[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
+pub enum Insert {
     AddAsIs,
     Randomise,
     Reverse,
     CancelAdd,
+}
 
-    // Anything below this should not be used for keybinds, but feel free to experiment. Most are used to notify the system
-    // System actions
-    Tick,
-    Render,
-    // ModeChanged(InputMode),
-    Resize(u16, u16),
-    Error(String),
-    // Action sent from the components to the components when a playlist is selected
-    SelectPlaylist {
-        key: String,
-    },
+/// Normal mode exclusive actions
+#[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
+pub enum Normal {
+    // Action for moving between boxes
+    WindowMove(Dir),
+    // Enter visual mode to select items
+    SelectMode,
+    // Enter visual mode to deselect items
+    DeselectMode,
+    // Add to the queue
+    Add(QueueLocation),
+}
 
-    // Error sent out from the player to the components
-    PlayerError(String),
-    PlayerMessage(String),
-
-    // Query sent from the components to the QueryWorker
-    Query(Query),
-    // Responses from the queries
-    Ping(PingResponse),
-    GetPlaylists(GetPlaylistsResponse),
-    GetPlaylist(GetPlaylistResponse),
-
-    // Actions sent from the components to the PlayerWorker
-    Player(PlayerAction),
-
+/// These actions are emitted by the playerworker.
+#[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
+pub enum FromPlayerWorker {
     // This action is used to synchronise the state of PlayerWorker with the components
     InQueue {
         play: PlayState,
@@ -179,4 +112,47 @@ pub enum Action {
     },
     // This actions is used to send current position
     PlayerState(StateType),
+    // Error sent out from the player to the components
+    PlayerError(String),
+    PlayerMessage(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
+pub enum FromQueryWorker {
+    // Responses from the queries
+    Ping(PingResponse),
+    GetPlaylists(GetPlaylistsResponse),
+    GetPlaylist(GetPlaylistResponse),
+}
+
+#[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
+pub enum Action {
+    Suspend,
+    Resume,
+    Quit,
+    ClearScreen,
+
+    // Reset current component if that action is valid
+    Local(Local),
+    Normal(Normal),
+    Visual(Visual),
+
+    FromQueryWorker(FromQueryWorker),
+    ToQueryWorker(ToQueryWorker),
+
+    FromPlayerWorker(FromPlayerWorker),
+    ToPlayerWorker(ToPlayerWorker),
+    // This action is fired from the components to the app
+    ChangeMode(Mode),
+
+    // Anything below this should not be used for keybinds, but feel free to experiment. Most are used to notify the system
+    // System actions
+    Tick,
+    Render,
+    // ModeChanged(InputMode),
+    Resize(u16, u16),
+    Error(String),
+    // Action for deleting all key sequences currently stored
+    // It's like escape in Vim, and Ctrl+G in Emacs
+    EndKeySeq,
 }

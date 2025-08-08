@@ -7,7 +7,7 @@ use strum::Display;
 use crate::action::{getplaylist::Media, getplaylists::PlaylistID};
 
 #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
-pub enum Query {
+pub enum ToQueryWorker {
     // Stop query task
     Kill,
     SetCredential(Credential),

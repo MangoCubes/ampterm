@@ -11,9 +11,9 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use super::Component;
 use crate::{
-    action::{ping::PingResponse, Action},
+    action::{ping::PingResponse, Action, FromQueryWorker},
     config::Config,
-    queryworker::query::{setcredential::Credential, Query},
+    queryworker::query::{setcredential::Credential, ToQueryWorker},
     tui::Event,
 };
 
@@ -53,9 +53,9 @@ impl Home {
                 config_has_creds = true;
                 let url = creds.get_url();
                 let username = creds.get_username();
-                let action = Action::Query(Query::SetCredential(creds));
+                let action = Action::ToQueryWorker(ToQueryWorker::SetCredential(creds));
                 let _ = action_tx.send(action);
-                let _ = action_tx.send(Action::Query(Query::Ping));
+                let _ = action_tx.send(Action::ToQueryWorker(ToQueryWorker::Ping));
                 Box::new(Loading::new(url, username))
             }
             None => {
@@ -83,7 +83,7 @@ impl Component for Home {
         // Child component can change in two cases:
         // 1. Login is successful regardless of the current child component
         // 2. Login with the config credentials fails
-        if let Action::Ping(res) = &action {
+        if let Action::FromQueryWorker(FromQueryWorker::Ping(res)) = &action {
             match res {
                 PingResponse::Success => {
                     // Switch child component to MainScreen

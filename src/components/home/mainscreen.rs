@@ -4,8 +4,10 @@ mod playlistqueue;
 mod queuelist;
 
 use crate::{
-    action::Action, components::Component, focusable::Focusable, local_action,
-    queryworker::query::Query,
+    action::{Action, Dir, FromPlayerWorker, Normal},
+    components::Component,
+    focusable::Focusable,
+    queryworker::query::ToQueryWorker,
 };
 use color_eyre::Result;
 use nowplaying::NowPlaying;
@@ -37,7 +39,7 @@ pub struct MainScreen {
 
 impl MainScreen {
     pub fn new(action_tx: UnboundedSender<Action>) -> Self {
-        let _ = action_tx.send(Action::Query(Query::GetPlaylists));
+        let _ = action_tx.send(Action::ToQueryWorker(ToQueryWorker::GetPlaylists));
         Self {
             state: CurrentlySelected::Playlists,
             pl_list: PlaylistList::new(true),
@@ -47,66 +49,55 @@ impl MainScreen {
             message: "You are now logged in.".to_string(),
         }
     }
+    fn update_focus(&mut self) {
+        self.pl_list
+            .set_enabled(self.state == CurrentlySelected::Playlists);
+        self.pl_queue
+            .set_enabled(self.state == CurrentlySelected::PlaylistQueue);
+        self.queuelist
+            .set_enabled(self.state == CurrentlySelected::Queue);
+    }
 }
 
 impl Component for MainScreen {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match &action {
-            Action::PlayerError(m) => {
-                self.message = m.clone();
+            Action::FromPlayerWorker(pw) => {
+                if let FromPlayerWorker::PlayerError(msg) | FromPlayerWorker::PlayerMessage(msg) =
+                    pw
+                {
+                    self.message = msg.clone();
+                };
                 Ok(None)
             }
-            Action::PlayerMessage(m) => {
-                self.message = m.clone();
-                Ok(None)
-            }
-            Action::WindowLeft => {
-                self.state = match self.state {
-                    CurrentlySelected::Playlists => CurrentlySelected::Queue,
-                    CurrentlySelected::Queue => CurrentlySelected::PlaylistQueue,
-                    CurrentlySelected::PlaylistQueue => CurrentlySelected::Playlists,
-                };
-                self.pl_list
-                    .set_enabled(self.state == CurrentlySelected::Playlists);
-                self.pl_queue
-                    .set_enabled(self.state == CurrentlySelected::PlaylistQueue);
-                self.queuelist
-                    .set_enabled(self.state == CurrentlySelected::Queue);
-                Ok(None)
-            }
-            Action::WindowRight => {
-                self.state = match self.state {
-                    CurrentlySelected::Playlists => CurrentlySelected::PlaylistQueue,
-                    CurrentlySelected::PlaylistQueue => CurrentlySelected::Queue,
-                    CurrentlySelected::Queue => CurrentlySelected::Playlists,
-                };
-                self.pl_list
-                    .set_enabled(self.state == CurrentlySelected::Playlists);
-                self.pl_queue
-                    .set_enabled(self.state == CurrentlySelected::PlaylistQueue);
-                self.queuelist
-                    .set_enabled(self.state == CurrentlySelected::Queue);
-                Ok(None)
-            }
-            local_action!() => {
-                if let Action::ExitVisualModeDiscard | Action::ExitVisualModeSave = action {
-                    self.message = "Selection discarded.".to_owned();
-                };
-                if let Action::ExitVisualModeSave = action {
-                    self.message = "Selection applied.".to_owned();
-                };
-                if let Action::VisualSelectMode = action {
-                    self.message = "Hover over items to include...".to_owned();
-                };
-                if let Action::VisualDeselectMode = action {
-                    self.message = "Hover over items to exclude...".to_owned();
-                };
-                match self.state {
-                    CurrentlySelected::Playlists => self.pl_list.update(action),
-                    CurrentlySelected::PlaylistQueue => self.pl_queue.update(action),
-                    CurrentlySelected::Queue => self.queuelist.update(action),
+            Action::Normal(n) => {
+                if let Normal::WindowMove(dir) = n {
+                    match dir {
+                        Dir::Left => {
+                            self.state = match self.state {
+                                CurrentlySelected::Playlists => CurrentlySelected::Queue,
+                                CurrentlySelected::Queue => CurrentlySelected::PlaylistQueue,
+                                CurrentlySelected::PlaylistQueue => CurrentlySelected::Playlists,
+                            }
+                        }
+                        Dir::Right => {
+                            self.state = match self.state {
+                                CurrentlySelected::Playlists => CurrentlySelected::PlaylistQueue,
+                                CurrentlySelected::PlaylistQueue => CurrentlySelected::Queue,
+                                CurrentlySelected::Queue => CurrentlySelected::Playlists,
+                            };
+                        }
+                        _ => {}
+                    };
+                    self.update_focus();
                 }
+                Ok(None)
             }
+            Action::Local(_) => match self.state {
+                CurrentlySelected::Playlists => self.pl_list.update(action),
+                CurrentlySelected::PlaylistQueue => self.pl_queue.update(action),
+                CurrentlySelected::Queue => self.queuelist.update(action),
+            },
             _ => {
                 self.pl_list.update(action.clone())?;
                 self.pl_queue.update(action.clone())?;

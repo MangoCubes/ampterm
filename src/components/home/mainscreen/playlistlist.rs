@@ -3,10 +3,7 @@ mod loaded;
 mod loading;
 
 use crate::{
-    action::{
-        getplaylists::{GetPlaylistsResponse, PlaylistID, SimplePlaylist},
-        Action,
-    },
+    action::{getplaylists::GetPlaylistsResponse, Action},
     components::{
         home::mainscreen::playlistlist::{
             error::PlaylistListError, loaded::PlaylistListLoaded, loading::PlaylistListLoading,
@@ -15,17 +12,9 @@ use crate::{
     },
     focusable::Focusable,
     insert_action, local_action,
-    playerworker::player::QueueLocation,
-    queryworker::query::Query,
 };
 use color_eyre::Result;
-use ratatui::{
-    layout::{Alignment, Rect},
-    style::{Modifier, Style, Stylize},
-    text::{Line, Span},
-    widgets::{Block, List, ListState, Padding, Paragraph, Wrap},
-    Frame,
-};
+use ratatui::{layout::Rect, widgets::ListState, Frame};
 
 pub trait PlaylistListComps: Focusable {}
 
@@ -61,6 +50,7 @@ impl Component for PlaylistList {
                     Ok(None)
                 }
             },
+            insert_action!() | local_action!() => self.comp.update(action),
             _ => Ok(None),
         }
     }

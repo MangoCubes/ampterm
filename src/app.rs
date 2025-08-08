@@ -14,8 +14,8 @@ use crate::{
     action::Action,
     components::{home::Home, Component},
     config::Config,
-    playerworker::{player::PlayerAction, PlayerWorker},
-    queryworker::{query::Query, QueryWorker},
+    playerworker::{player::ToPlayerWorker, PlayerWorker},
+    queryworker::{query::ToQueryWorker, QueryWorker},
     tui::{Event, Tui},
 };
 
@@ -30,8 +30,8 @@ pub struct App {
     key_stack: Vec<KeyEvent>,
     action_tx: mpsc::UnboundedSender<Action>,
     action_rx: mpsc::UnboundedReceiver<Action>,
-    query_tx: mpsc::UnboundedSender<Query>,
-    player_tx: mpsc::UnboundedSender<PlayerAction>,
+    query_tx: mpsc::UnboundedSender<ToQueryWorker>,
+    player_tx: mpsc::UnboundedSender<ToPlayerWorker>,
     stream: rodio::OutputStream,
 }
 
@@ -167,41 +167,11 @@ impl App {
                 Action::EndKeySeq => {
                     self.key_stack.drain(..);
                 }
-                Action::VisualDeselectMode | Action::VisualSelectMode => {
-                    self.mode = Mode::Visual;
-                    if let Some(ret) = self.component.update(action)? {
-                        self.action_tx.send(ret)?
-                    }
+                Action::ToPlayerWorker(pw) => {
+                    self.player_tx.send(pw.clone())?;
                 }
-                Action::ExitVisualModeDiscard | Action::ExitVisualModeSave => {
-                    self.mode = Mode::Normal;
-                    if let Some(ret) = self.component.update(action)? {
-                        self.action_tx.send(ret)?
-                    }
-                }
-                Action::Play => {
-                    self.player_tx.send(PlayerAction::Continue)?;
-                    if let Some(ret) = self.component.update(action)? {
-                        self.action_tx.send(ret)?
-                    }
-                }
-                Action::Pause => {
-                    self.player_tx.send(PlayerAction::Pause)?;
-                    if let Some(ret) = self.component.update(action)? {
-                        self.action_tx.send(ret)?
-                    }
-                }
-                Action::Skip => {
-                    self.player_tx.send(PlayerAction::Skip)?;
-                    if let Some(ret) = self.component.update(action)? {
-                        self.action_tx.send(ret)?
-                    }
-                }
-                Action::Previous => {
-                    self.player_tx.send(PlayerAction::Previous)?;
-                    if let Some(ret) = self.component.update(action)? {
-                        self.action_tx.send(ret)?
-                    }
+                Action::ToQueryWorker(qw) => {
+                    self.query_tx.send(qw.clone())?;
                 }
                 Action::Quit => self.should_quit = true,
                 Action::Suspend => self.should_suspend = true,
@@ -209,24 +179,11 @@ impl App {
                 Action::ClearScreen => tui.terminal.clear()?,
                 Action::Resize(w, h) => self.handle_resize(tui, *w, *h)?,
                 Action::Render => self.render(tui)?,
-                Action::Query(q) => {
-                    self.query_tx.send(q.clone())?;
-                    if let Some(ret) = self.component.update(action)? {
-                        self.action_tx.send(ret)?
-                    }
-                }
-                Action::Player(a) => {
-                    self.player_tx.send(a.clone())?;
-                    if let Some(ret) = self.component.update(action)? {
-                        self.action_tx.send(ret)?
-                    }
-                }
-                _ => {
-                    if let Some(ret) = self.component.update(action)? {
-                        self.action_tx.send(ret)?
-                    }
-                }
+                _ => {}
             };
+            if let Some(ret) = self.component.update(action)? {
+                self.action_tx.send(ret)?
+            }
         }
         Ok(())
     }

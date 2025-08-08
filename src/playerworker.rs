@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use color_eyre::Result;
-use player::{PlayerAction, QueueLocation};
+use player::{QueueLocation, ToPlayerWorker};
 use rodio::{OutputStreamHandle, Sink};
 use streamerror::StreamError;
 use streamreader::StreamReader;
@@ -17,9 +17,9 @@ use tokio::time::sleep;
 use tokio_util::sync::CancellationToken;
 
 use crate::action::getplaylist::Media;
-use crate::action::{Action, PlayState};
+use crate::action::{Action, FromPlayerWorker, PlayState, StateType};
 use crate::config::Config;
-use crate::queryworker::query::Query;
+use crate::queryworker::query::ToQueryWorker;
 use crate::trace_dbg;
 
 enum WorkerState {
@@ -47,8 +47,8 @@ enum WorkerState {
 
 pub struct PlayerWorker {
     state: WorkerState,
-    player_tx: UnboundedSender<PlayerAction>,
-    player_rx: UnboundedReceiver<PlayerAction>,
+    player_tx: UnboundedSender<ToPlayerWorker>,
+    player_rx: UnboundedReceiver<ToPlayerWorker>,
     action_tx: UnboundedSender<Action>,
     should_quit: bool,
     config: Config,
@@ -104,24 +104,30 @@ impl PlayerWorker {
     fn send_playlist_state(&mut self) {
         let q = self.queue.clone().into();
         let action = match &self.state {
-            WorkerState::Playing { token: _, current } => Action::InQueue {
-                play: PlayState::new(q, *current),
-                vol: self.sink.volume(),
-                speed: self.sink.speed(),
-                pos: self.sink.get_pos(),
-            },
-            WorkerState::Loading { current } => Action::InQueue {
-                play: PlayState::new(q, *current),
-                vol: self.sink.volume(),
-                speed: self.sink.speed(),
-                pos: Duration::from_secs(0),
-            },
-            WorkerState::Idle { play_next } => Action::InQueue {
-                play: PlayState::new(q, *play_next),
-                vol: self.sink.volume(),
-                speed: self.sink.speed(),
-                pos: Duration::from_secs(0),
-            },
+            WorkerState::Playing { token: _, current } => {
+                Action::FromPlayerWorker(FromPlayerWorker::InQueue {
+                    play: PlayState::new(q, *current),
+                    vol: self.sink.volume(),
+                    speed: self.sink.speed(),
+                    pos: self.sink.get_pos(),
+                })
+            }
+            WorkerState::Loading { current } => {
+                Action::FromPlayerWorker(FromPlayerWorker::InQueue {
+                    play: PlayState::new(q, *current),
+                    vol: self.sink.volume(),
+                    speed: self.sink.speed(),
+                    pos: Duration::from_secs(0),
+                })
+            }
+            WorkerState::Idle { play_next } => {
+                Action::FromPlayerWorker(FromPlayerWorker::InQueue {
+                    play: PlayState::new(q, *play_next),
+                    vol: self.sink.volume(),
+                    speed: self.sink.speed(),
+                    pos: Duration::from_secs(0),
+                })
+            }
         };
         let _ = self.action_tx.send(action);
     }
@@ -188,8 +194,8 @@ impl PlayerWorker {
                 });
             let poll_state = tokio::task::spawn(async move {
                 loop {
-                    let _ = action_tx2.send(Action::PlayerState(
-                        crate::action::StateType::Position(sink2.get_pos()),
+                    let _ = action_tx2.send(Action::FromPlayerWorker(
+                        FromPlayerWorker::PlayerState(StateType::Position(sink2.get_pos())),
                     ));
                     sleep(Duration::from_millis(500)).await;
                 }
@@ -197,7 +203,9 @@ impl PlayerWorker {
             select! {
                 _ = cloned_token.cancelled() => {
                     stream_token.cancel();
-                    let _ = action_tx.send(Action::PlayerMessage("Stream cancelled by user.".to_string()));
+                    let _ = action_tx.send(Action::FromPlayerWorker(
+                            FromPlayerWorker::PlayerMessage("Stream cancelled by user.".to_string()),
+                    ));
                     // Player does not need to do anything more, as cancellation
                     // happens only when the stream is stopped or skipped
                 }
@@ -208,13 +216,15 @@ impl PlayerWorker {
                         }
 
                         Err(e) => {
-                            let _ = action_tx.send(Action::PlayerError(e.to_string()));
+                            let _ = action_tx.send(Action::FromPlayerWorker(
+                                    FromPlayerWorker::PlayerError(e.to_string()),
+                            ));
                         }
                     }
-                    let _ = player_tx.send(PlayerAction::Skip);
+                    let _ = player_tx.send(ToPlayerWorker::Skip);
                 }
                 _ = poll_state => {
-                    let _ = action_tx.send(Action::PlayerError("Stream polling crashed! Restart recommended.".to_string()));
+                    // let _ = action_tx.send(Action::PlayerError("Stream polling crashed! Restart recommended.".to_string()));
                 }
             }
         });
@@ -255,7 +265,9 @@ impl PlayerWorker {
             Some(i) => {
                 let _ = self
                     .action_tx
-                    .send(Action::Query(Query::GetUrlByMedia { media: i.clone() }));
+                    .send(Action::ToQueryWorker(ToQueryWorker::GetUrlByMedia {
+                        media: i.clone(),
+                    }));
                 self.state = WorkerState::Loading { current: cleaned };
             }
             None => self.state = WorkerState::Idle { play_next: cleaned },
@@ -268,12 +280,12 @@ impl PlayerWorker {
                 break;
             };
             match event {
-                PlayerAction::Stop => todo!(),
-                PlayerAction::Pause => self.pause_stream(),
-                PlayerAction::Continue => self.continue_stream(),
-                PlayerAction::Kill => self.should_quit = true,
-                PlayerAction::Skip => self.skip(1),
-                PlayerAction::AddToQueue { music, pos } => {
+                ToPlayerWorker::Stop => todo!(),
+                ToPlayerWorker::Pause => self.pause_stream(),
+                ToPlayerWorker::Continue => self.continue_stream(),
+                ToPlayerWorker::Kill => self.should_quit = true,
+                ToPlayerWorker::Skip => self.skip(1),
+                ToPlayerWorker::AddToQueue { music, pos } => {
                     if let WorkerState::Idle { play_next } = self.state {
                         let prev_pos = self.queue.len();
                         self.add_musics(music, pos);
@@ -284,14 +296,14 @@ impl PlayerWorker {
                         self.add_musics(music, pos);
                     }
                 }
-                PlayerAction::PlayURL { music, url } => {
+                ToPlayerWorker::PlayURL { music, url } => {
                     // Ensure the one we get is what we expected
                     if let WorkerState::Loading { current } = &self.state {
                         if let Some(item) = self.queue.get(*current) {
                             if item.id == music.id {
-                                let _ = self
-                                    .action_tx
-                                    .send(Action::PlayerMessage("Starting...".to_string()));
+                                let _ = self.action_tx.send(Action::FromPlayerWorker(
+                                    FromPlayerWorker::PlayerMessage("Starting...".to_string()),
+                                ));
                                 let token = self.play_from_url(url);
                                 self.state = WorkerState::Playing {
                                     token,
@@ -301,8 +313,8 @@ impl PlayerWorker {
                         };
                     };
                 }
-                PlayerAction::Previous => self.skip(-1),
-                PlayerAction::GoToStart => todo!(),
+                ToPlayerWorker::Previous => self.skip(-1),
+                ToPlayerWorker::GoToStart => todo!(),
             };
             self.send_playlist_state();
             if self.should_quit {
@@ -332,7 +344,7 @@ impl PlayerWorker {
             queue: Vec::new(),
         }
     }
-    pub fn get_tx(&self) -> UnboundedSender<PlayerAction> {
+    pub fn get_tx(&self) -> UnboundedSender<ToPlayerWorker> {
         self.player_tx.clone()
     }
 }

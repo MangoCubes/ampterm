@@ -1,20 +1,19 @@
 use crate::{
     action::{
-        getplaylists::{GetPlaylistsResponse, PlaylistID, SimplePlaylist},
-        Action,
+        getplaylists::{PlaylistID, SimplePlaylist},
+        Action, Dir, Insert, Local, Normal,
     },
     components::{home::mainscreen::playlistlist::PlaylistListComps, Component},
     focusable::Focusable,
-    insert_action, local_action,
     playerworker::player::QueueLocation,
-    queryworker::query::Query,
+    queryworker::query::ToQueryWorker,
 };
 use color_eyre::Result;
 use ratatui::{
-    layout::{Alignment, Rect},
+    layout::Rect,
     style::{Modifier, Style, Stylize},
-    text::{Line, Span},
-    widgets::{Block, List, ListState, Padding, Paragraph, Wrap},
+    text::Span,
+    widgets::{Block, List, ListState},
     Frame,
 };
 
@@ -31,7 +30,7 @@ impl PlaylistListLoaded {
         if let Some(pos) = self.state.selected() {
             let key = self.list[pos].id.clone();
             let name = self.list[pos].name.clone();
-            Some(Action::Query(Query::GetPlaylist {
+            Some(Action::ToQueryWorker(ToQueryWorker::GetPlaylist {
                 name: Some(name),
                 id: key,
             }))
@@ -90,37 +89,25 @@ impl PlaylistListLoaded {
 impl Component for PlaylistListLoaded {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
-            insert_action!() => {
-                if let Some(id) = &self.adding_playlist {
-                    match action {
-                        Action::AddAsIs => todo!(),
-                        Action::Randomise => todo!(),
-                        Action::Reverse => todo!(),
+            Action::Local(local) => {
+                match local {
+                    Local::Move(dir) => match dir {
+                        Dir::Up => {
+                            self.state.select_previous();
+                            Ok(None)
+                        }
+                        Dir::Down => {
+                            self.state.select_next();
+                            Ok(None)
+                        }
                         _ => Ok(None),
-                    }
-                } else {
-                    panic!(
-                        "Program is in invalid state: Got insert mode action outside insert mode."
-                    )
-                }
-            }
-            local_action!() => {
-                match action {
-                    Action::Up => {
-                        self.state.select_previous();
-                        Ok(None)
-                    }
-                    Action::Down => {
-                        self.state.select_next();
-                        Ok(None)
-                    }
-                    Action::Add(pos) => Ok(self.prepare_add_to_queue(pos)),
-                    Action::Confirm => Ok(self.select_playlist()),
-                    Action::Top => {
+                    },
+                    Local::Confirm => Ok(self.select_playlist()),
+                    Local::Top => {
                         self.state.select_first();
                         Ok(None)
                     }
-                    Action::Bottom => {
+                    Local::Bottom => {
                         self.state.select_last();
                         Ok(None)
                     }
@@ -128,6 +115,19 @@ impl Component for PlaylistListLoaded {
                     _ => Ok(None),
                 }
             }
+            Action::Normal(normal) => {
+                if let Normal::Add(pos) = normal {
+                    Ok(self.prepare_add_to_queue(pos))
+                } else {
+                    Ok(None)
+                }
+            }
+            Action::Insert(insert) => match insert {
+                Insert::AddAsIs => todo!(),
+                Insert::Randomise => todo!(),
+                Insert::Reverse => todo!(),
+                _ => Ok(None),
+            },
             _ => Ok(None),
         }
     }

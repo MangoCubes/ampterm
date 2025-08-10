@@ -6,7 +6,10 @@ use playing::Playing;
 use ratatui::{layout::Rect, Frame};
 use stopped::Stopped;
 
-use crate::{action::Action, components::Component};
+use crate::{
+    action::{Action, FromPlayerWorker},
+    components::Component,
+};
 
 enum CompState {
     Stopped { comp: Stopped },
@@ -29,12 +32,12 @@ impl NowPlaying {
 
 impl Component for NowPlaying {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        if let Action::InQueue {
+        if let Action::FromPlayerWorker(FromPlayerWorker::InQueue {
             vol,
             speed,
             pos,
             play,
-        } = action
+        }) = action
         {
             match play.items.get(play.index) {
                 Some(p) => {

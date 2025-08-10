@@ -136,6 +136,7 @@ pub enum Action {
     Local(Local),
     Normal(Normal),
     Visual(Visual),
+    Insert(Insert),
 
     FromQueryWorker(FromQueryWorker),
     ToQueryWorker(ToQueryWorker),

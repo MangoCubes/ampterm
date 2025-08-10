@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use crate::{
-    action::{Action, StateType},
+    action::{Action, FromPlayerWorker, StateType},
     components::Component,
 };
 use color_eyre::Result;
@@ -53,18 +53,18 @@ impl Playing {
 
 impl Component for Playing {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        if let Action::PlayerState(s) = action {
+        if let Action::FromPlayerWorker(FromPlayerWorker::PlayerState(s)) = action {
             match s {
                 StateType::Position(pos) => self.state.pos = pos,
                 StateType::Volume(v) => self.state.vol = v,
                 StateType::Speed(s) => self.state.speed = s,
             };
-        } else if let Action::InQueue {
-            play,
-            vol,
-            speed,
-            pos,
-        } = action
+        } else if let Action::FromPlayerWorker(FromPlayerWorker::InQueue {
+            play: _,
+            vol: _,
+            speed: _,
+            pos: _,
+        }) = action
         {
             self.state.pos = Duration::default();
         }

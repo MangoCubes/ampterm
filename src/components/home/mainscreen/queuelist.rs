@@ -7,7 +7,7 @@ use ratatui::{
 };
 
 use crate::{
-    action::{getplaylist::Media, Action, PlayState},
+    action::{getplaylist::Media, Action, FromPlayerWorker, PlayState},
     components::Component,
     focusable::Focusable,
 };
@@ -97,12 +97,12 @@ impl QueueList {
 
 impl Component for QueueList {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        if let Action::InQueue {
+        if let Action::FromPlayerWorker(FromPlayerWorker::InQueue {
             play,
-            vol: _,
-            speed: _,
-            pos: _,
-        } = action
+            vol,
+            speed,
+            pos,
+        }) = action
         {
             self.list = play;
             self.comp = self.gen_list()

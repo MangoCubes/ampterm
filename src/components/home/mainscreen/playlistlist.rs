@@ -3,7 +3,7 @@ mod loaded;
 mod loading;
 
 use crate::{
-    action::{getplaylists::GetPlaylistsResponse, Action},
+    action::{getplaylists::GetPlaylistsResponse, Action, FromQueryWorker},
     components::{
         home::mainscreen::playlistlist::{
             error::PlaylistListError, loaded::PlaylistListLoaded, loading::PlaylistListLoading,
@@ -11,7 +11,6 @@ use crate::{
         Component,
     },
     focusable::Focusable,
-    insert_action, local_action,
 };
 use color_eyre::Result;
 use ratatui::{layout::Rect, widgets::ListState, Frame};
@@ -35,7 +34,7 @@ impl PlaylistList {
 impl Component for PlaylistList {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
-            Action::GetPlaylists(res) => match res {
+            Action::FromQueryWorker(FromQueryWorker::GetPlaylists(res)) => match res {
                 GetPlaylistsResponse::Success(simple_playlists) => {
                     self.comp = Box::new(PlaylistListLoaded::new(
                         self.enabled,
@@ -50,7 +49,7 @@ impl Component for PlaylistList {
                     Ok(None)
                 }
             },
-            insert_action!() | local_action!() => self.comp.update(action),
+            Action::Local(_) => self.comp.update(action),
             _ => Ok(None),
         }
     }

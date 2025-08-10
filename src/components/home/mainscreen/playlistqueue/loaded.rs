@@ -1,25 +1,21 @@
-use std::collections::HashSet;
-
 use crate::{
     action::{
-        getplaylist::{FullPlaylist, Media, MediaID},
+        getplaylist::{FullPlaylist, Media},
         getplaylists::PlaylistID,
-        Action,
+        Action, Dir, Local, Normal,
     },
     components::Component,
     focusable::Focusable,
-    local_action,
-    playerworker::player::{PlayerAction, QueueLocation},
-    queryworker::query::Query,
+    playerworker::player::{QueueLocation, ToPlayerWorker},
+    queryworker::query::ToQueryWorker,
     statelib::visual::Visual,
-    visualmode::VisualMode,
 };
 use color_eyre::Result;
 use ratatui::{
     layout::{Constraint, Rect},
     style::{Modifier, Style, Stylize},
     text::Span,
-    widgets::{Block, List, ListItem, Row},
+    widgets::{Block, Row},
     Frame,
 };
 
@@ -51,7 +47,7 @@ impl<'a> Loaded<'a> {
     }
     fn select_music(&self, playpos: QueueLocation) -> Option<Action> {
         let item = self.visual.get_current();
-        Some(Action::Player(PlayerAction::AddToQueue {
+        Some(Action::ToPlayerWorker(ToPlayerWorker::AddToQueue {
             pos: playpos,
             music: vec![item.clone()],
         }))
@@ -72,53 +68,63 @@ impl<'a> Loaded<'a> {
 impl<'a> Component for Loaded<'a> {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
-            local_action!() => {
-                match action {
-                    Action::Up => {
-                        self.visual.select_previous();
+            Action::Local(local) => {
+                match local {
+                    Local::Move(dir) => {
+                        match dir {
+                            Dir::Up => self.visual.select_previous(),
+                            Dir::Down => self.visual.select_next(),
+                            _ => {}
+                        };
                         Ok(None)
                     }
-                    Action::Down => {
-                        self.visual.select_next();
-                        Ok(None)
-                    }
-                    Action::Top => {
+                    Local::Confirm => todo!(),
+                    Local::Cancel => todo!(),
+                    Local::Top => {
                         self.visual.select_first();
                         Ok(None)
                     }
-                    Action::Bottom => {
+                    Local::Bottom => {
                         self.visual.select_last();
                         Ok(None)
                     }
-                    Action::Refresh => Ok(Some(Action::Query(Query::GetPlaylist {
+                    Local::Refresh => Ok(Some(Action::ToQueryWorker(ToQueryWorker::GetPlaylist {
                         name: Some(self.name.to_string()),
                         id: self.playlistid.clone(),
                     }))),
-                    Action::Add(loc) => Ok(self.select_music(loc)),
-                    Action::ExitVisualModeDiscard => {
-                        self.visual.disable_visual(false);
-                        Ok(None)
-                    }
-                    Action::ExitVisualModeSave => {
-                        self.visual.disable_visual(true);
-                        Ok(None)
-                    }
-                    Action::VisualSelectMode => {
-                        self.visual.enable_visual(false);
-                        Ok(None)
-                    }
-                    Action::VisualDeselectMode => {
-                        self.visual.enable_visual(true);
-                        Ok(None)
-                    }
-                    Action::ResetState => {
-                        self.visual.reset();
-                        Ok(None)
-                    }
-                    // TODO: Add horizontal text scrolling
-                    _ => Ok(None),
+                    Local::ResetState => todo!(),
+                    Local::Help => todo!(),
                 }
+                // match action {
+                //     Action::Add(loc) => Ok(self.select_music(loc)),
+                //     Action::ExitVisualModeDiscard => {
+                //         self.visual.disable_visual(false);
+                //         Ok(None)
+                //     }
+                //     Action::ExitVisualModeSave => {
+                //         self.visual.disable_visual(true);
+                //         Ok(None)
+                //     }
+                //     Action::ResetState => {
+                //         self.visual.reset();
+                //         Ok(None)
+                //     }
+                //     // TODO: Add horizontal text scrolling
+                //     _ => Ok(None),
+                // }
             }
+            Action::Normal(normal) => match normal {
+                Normal::SelectMode => {
+                    self.visual.enable_visual(false);
+                    Ok(None)
+                }
+                Normal::DeselectMode => {
+                    self.visual.enable_visual(true);
+                    Ok(None)
+                }
+                Normal::Add(queue_location) => Ok(self.select_music(queue_location)),
+                _ => Ok(None),
+            },
             _ => Ok(None),
         }
     }

@@ -1,12 +1,12 @@
 {
   "keybindings": {
+    // In visual mode, these keybindings are used
     "Visual": {
-	  // In visual mode, these keybindings are used
-	  "<Esc>":"ExitVisualModeDiscard",
+	  "<Esc>": { Visual: "ExitDiscard" },
 	  // All 3 can be used to exit visual mode whilst confirming the selection
-	  "<v>":"ExitVisualModeSave",
-	  "<Shift-v>":"ExitVisualModeSave",
-	  "<Ctrl-v>":"ExitVisualModeSave",
+	  "<v>": { Visual: "ExitSave" },
+	  "<Shift-v>": { Visual: "ExitSave" },
+	  "<Ctrl-v>": { Visual: "ExitSave" },
     },
 	// Insert mode is activated when you are about to insert (or add next/last) more than one items
 	// That can happen in the following situations:
@@ -14,72 +14,72 @@
 	// - When you are adding a whole playlist
 	// - When you are adding more than one playlists
 	"Insert": {
-	  "<r>": "Randomise",
+	  "<r>": { Insert: "Randomise" },
 	  // "<R>": "RandomiseABit",
-	  "<v>": "Reverse",
-	  "<Esc>":"CancelAdd",
+	  "<v>": { Insert: "Reverse" },
+	  "<Esc>": { Insert: "CancelAdd" },
 
 	  // These keybinds essentially work as "just add them"
 	  // There are multiple keybinds as we do not know what key you used to enter this mode
-	  "<a>": "AddAsIs",
-	  "<i>": "AddAsIs",
-	  "<Shift-i>": "AddAsIs",
-	  "<Shift-a>": "AddAsIs"
+	  "<a>": { Insert: "AddAsIs" },
+	  "<i>": { Insert: "AddAsIs" },
+	  "<Shift-i>": { Insert: "AddAsIs" },
+	  "<Shift-a>": { Insert: "AddAsIs" }
 	},
 	// This keybinding is exclusive to normal mode.
 	"Normal": {
 	  // Movement
-	  "<Ctrl-w><Left>": "WindowLeft",
-	  "<Ctrl-w><Right>": "WindowRight",
-	  "<Ctrl-w><Up>": "WindowUp",
-	  "<Ctrl-w><Down>": "WindowDown",
+	  "<Ctrl-w><Left>": { Normal: "WindowLeft" },
+	  "<Ctrl-w><Right>": { Normal: "WindowRight" },
+	  "<Ctrl-w><Up>": { Normal: "WindowUp" },
+	  "<Ctrl-w><Down>": { Normal: "WindowDown" },
 
 	  // Movement but with hjkl
-	  "<Ctrl-w><h>": "WindowLeft",
-	  "<Ctrl-w><l>": "WindowRight",
-	  "<Ctrl-w><k>": "WindowUp",
-	  "<Ctrl-w><j>": "WindowDown",
+	  "<Ctrl-w><h>": { Normal: "WindowLeft" },
+	  "<Ctrl-w><l>": { Normal: "WindowRight" },
+	  "<Ctrl-w><k>": { Normal: "WindowUp" },
+	  "<Ctrl-w><j>": { Normal: "WindowDown" },
 
 	  // Playlist manipulation
 	  // Note that both i and Shift+i are mapped to the same key
 	  // If the cursor is on a playlist, the program goes into Insert mode
-	  "<i>": { Add: "Front" },
-	  "<Shift-i>": { Add: "Front" },
-	  "<a>": { Add: "Next" },
-	  "<Shift-a>": { Add: "Last" },
+	  "<i>": { Normal: { Add: "Front" } },
+	  "<Shift-i>": { Normal: { Add: "Front" } },
+	  "<a>": { Normal: { Add: "Next" } },
+	  "<Shift-a>": { Normal: { Add: "Last" } },
 
 	  // Visual mode entry
-	  "<v>": "VisualSelectMode",
-	  "<Shift-v>":"VisualSelectMode",
-	  "<Ctrl-v>":"VisualDeselectMode",
+	  "<v>": { Normal: "SelectMode" },
+	  "<Shift-v>": { Normal: "SelectMode" },
+	  "<Ctrl-v>": { Normal: "DeselectMode" },
 	},
     "Common": {
 	  // General movement
-	  "<k>": "Up",
-	  "<j>":"Down",
-	  "<h>":"Left",
-	  "<l>":"Right",
+	  "<k>": { Local: "Up" },
+	  "<j>": { Local: "Down" },
+	  "<h>": { Local: "Left" },
+	  "<l>": { Local: "Right" },
 
-	  "<Up>": "Up",
-	  "<Down>":"Down",
-	  "<Left>":"Left",
-	  "<Right>":"Right",
+	  "<Up>": { Local: "Up" },
+	  "<Down>": { Local: "Down" },
+	  "<Left>": { Local: "Left" },
+	  "<Right>": { Local: "Right" },
 
-	  "<0>": "Previous",
-	  "<Shift-k>": "Previous",
+	  "<0>": { ToPlayerWorker: "Previous" },
+	  "<Shift-k>": { ToPlayerWorker: "Previous" },
 	  // "<^>": "GoToStart"
-	  "<$>": "Skip",
-	  "<Shift-j>": "Skip",
-	  "<c>": "Play",
-	  "<Shift-c>": "Pause",
+	  "<$>": { ToPlayerWorker: "Skip" },
+	  "<Shift-j>": { ToPlayerWorker: "Skip" },
+	  "<c>": { ToPlayerWorker: "Continue" },
+	  "<Shift-c>": { ToPlayerWorker: "Pause" },
 
 	  // Advanced Movements
-	  "<Shift-g>":"Bottom",
-	  "<g><g>": "Top",
-	  "<g><r>": "ResetState",
-	  "<Shift-r>":"Refresh",
-	  "<Enter>":"Confirm",
-	  "<q>":"Cancel",
+	  "<Shift-g>": { Local: "Bottom" },
+	  "<g><g>": { Local: "Top" },
+	  "<g><r>": { Local: "ResetState" },
+	  "<Shift-r>": { Local: "Refresh" },
+	  "<Enter>": { Local: "Confirm" },
+	  "<q>": { Local: "Cancel" },
 	  "<Esc>":"EndKeySeq",
     },
   },

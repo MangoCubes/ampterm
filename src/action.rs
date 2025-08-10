@@ -46,20 +46,15 @@ impl PlayState {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
-pub enum Dir {
-    Up,
-    Down,
-    Left,
-    Right,
-}
-
 /// Local actions are actions that satisfies both of these conditions:
 /// 1. They are applicable in more than one mode (Insert, Normal, etc)
 /// 2. Actions are applicable to the currently focused component
 #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
 pub enum Local {
-    Move(Dir),
+    Up,
+    Down,
+    Left,
+    Right,
     Confirm,
     Cancel,
     Top,
@@ -91,7 +86,10 @@ pub enum Insert {
 #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
 pub enum Normal {
     // Action for moving between boxes
-    WindowMove(Dir),
+    WindowUp,
+    WindowDown,
+    WindowLeft,
+    WindowRight,
     // Enter visual mode to select items
     SelectMode,
     // Enter visual mode to deselect items

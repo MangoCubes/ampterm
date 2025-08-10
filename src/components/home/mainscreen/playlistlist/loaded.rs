@@ -1,7 +1,7 @@
 use crate::{
     action::{
         getplaylists::{PlaylistID, SimplePlaylist},
-        Action, Dir, Insert, Local, Normal,
+        Action, Insert, Local, Normal,
     },
     components::{home::mainscreen::playlistlist::PlaylistListComps, Component},
     focusable::Focusable,
@@ -91,17 +91,14 @@ impl Component for PlaylistListLoaded {
         match action {
             Action::Local(local) => {
                 match local {
-                    Local::Move(dir) => match dir {
-                        Dir::Up => {
-                            self.state.select_previous();
-                            Ok(None)
-                        }
-                        Dir::Down => {
-                            self.state.select_next();
-                            Ok(None)
-                        }
-                        _ => Ok(None),
-                    },
+                    Local::Up => {
+                        self.state.select_previous();
+                        Ok(None)
+                    }
+                    Local::Down => {
+                        self.state.select_next();
+                        Ok(None)
+                    }
                     Local::Confirm => Ok(self.select_playlist()),
                     Local::Top => {
                         self.state.select_first();

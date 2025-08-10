@@ -4,7 +4,7 @@ mod playlistqueue;
 mod queuelist;
 
 use crate::{
-    action::{Action, Dir, FromPlayerWorker, Normal},
+    action::{Action, FromPlayerWorker, Normal},
     components::Component,
     focusable::Focusable,
     queryworker::query::ToQueryWorker,
@@ -71,25 +71,24 @@ impl Component for MainScreen {
                 Ok(None)
             }
             Action::Normal(n) => {
-                if let Normal::WindowMove(dir) = n {
-                    match dir {
-                        Dir::Left => {
-                            self.state = match self.state {
-                                CurrentlySelected::Playlists => CurrentlySelected::Queue,
-                                CurrentlySelected::Queue => CurrentlySelected::PlaylistQueue,
-                                CurrentlySelected::PlaylistQueue => CurrentlySelected::Playlists,
-                            }
-                        }
-                        Dir::Right => {
-                            self.state = match self.state {
-                                CurrentlySelected::Playlists => CurrentlySelected::PlaylistQueue,
-                                CurrentlySelected::PlaylistQueue => CurrentlySelected::Queue,
-                                CurrentlySelected::Queue => CurrentlySelected::Playlists,
-                            };
-                        }
-                        _ => {}
-                    };
-                    self.update_focus();
+                match n {
+                    Normal::WindowLeft => {
+                        self.state = match self.state {
+                            CurrentlySelected::Playlists => CurrentlySelected::Queue,
+                            CurrentlySelected::Queue => CurrentlySelected::PlaylistQueue,
+                            CurrentlySelected::PlaylistQueue => CurrentlySelected::Playlists,
+                        };
+                        self.update_focus();
+                    }
+                    Normal::WindowRight => {
+                        self.state = match self.state {
+                            CurrentlySelected::Playlists => CurrentlySelected::PlaylistQueue,
+                            CurrentlySelected::PlaylistQueue => CurrentlySelected::Queue,
+                            CurrentlySelected::Queue => CurrentlySelected::Playlists,
+                        };
+                        self.update_focus();
+                    }
+                    _ => {}
                 }
                 Ok(None)
             }

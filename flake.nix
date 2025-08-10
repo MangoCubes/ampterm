@@ -28,11 +28,8 @@
           src = ./.;
           name = "ampterm";
           cargoHash = "sha256-VeE1kHrc4Q+naTaKLtrh2HA1CAakG43Wq5VvG+2I4iQ=";
-          # cargoLock = pkgs.rustPlatform.importCargoLock {
-          #   lockFile = ./Cargo.lock;
-          # };
         };
-        devShells.default = pkgs.mkShell rec {
+        devShells.default = pkgs.mkShell {
           packages = (
             with pkgs;
             [
@@ -40,6 +37,7 @@
               lldb
               jq
               rustup
+              # This is necessary for opening bash from Neovim
               bash
             ]
           );
@@ -50,13 +48,12 @@
           };
           shellHook =
             let
-              proot = builtins.toString ./.;
               initFile = pkgs.writeText ".bashrc" ''
                 echo "Rust shell activated!"
                 set -a
                   hw() { echo "Hello world!"; }
-                  build() { cargo build; }
-                  run() { cargo run; }
+                  build() { nix build; }
+                  run() { build; }
                 set +a
                 # nvim .
               '';

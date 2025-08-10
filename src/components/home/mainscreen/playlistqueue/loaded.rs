@@ -2,7 +2,7 @@ use crate::{
     action::{
         getplaylist::{FullPlaylist, Media},
         getplaylists::PlaylistID,
-        Action, Dir, Local, Normal,
+        Action, Local, Normal,
     },
     components::Component,
     focusable::Focusable,
@@ -70,16 +70,14 @@ impl<'a> Component for Loaded<'a> {
         match action {
             Action::Local(local) => {
                 match local {
-                    Local::Move(dir) => {
-                        match dir {
-                            Dir::Up => self.visual.select_previous(),
-                            Dir::Down => self.visual.select_next(),
-                            _ => {}
-                        };
+                    Local::Up => {
+                        self.visual.select_previous();
                         Ok(None)
                     }
-                    Local::Confirm => todo!(),
-                    Local::Cancel => todo!(),
+                    Local::Down => {
+                        self.visual.select_next();
+                        Ok(None)
+                    }
                     Local::Top => {
                         self.visual.select_first();
                         Ok(None)
@@ -92,8 +90,7 @@ impl<'a> Component for Loaded<'a> {
                         name: Some(self.name.to_string()),
                         id: self.playlistid.clone(),
                     }))),
-                    Local::ResetState => todo!(),
-                    Local::Help => todo!(),
+                    _ => Ok(None),
                 }
                 // match action {
                 //     Action::Add(loc) => Ok(self.select_music(loc)),

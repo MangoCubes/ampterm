@@ -11,9 +11,9 @@ use tokio::sync::mpsc::UnboundedSender;
 use tui_textarea::{CursorMove, TextArea};
 
 use crate::{
-    action::{ping::PingResponse, Action},
+    action::{ping::PingResponse, Action, FromQueryWorker},
     config::Config,
-    queryworker::query::{setcredential::Credential, Query},
+    queryworker::query::{setcredential::Credential, ToQueryWorker},
 };
 
 use super::Component;
@@ -115,7 +115,7 @@ impl Login {
         self.status = Status::Pending;
         self.status_msg = Some(vec!["Logging in...".to_string()]);
         self.update_style();
-        let action = Action::Query(Query::SetCredential(Credential::Password {
+        let action = Action::ToQueryWorker(ToQueryWorker::SetCredential(Credential::Password {
             url,
             secure: true,
             username,
@@ -123,7 +123,8 @@ impl Login {
             legacy: self.config.config.use_legacy_auth,
         }));
         self.action_tx.send(action)?;
-        self.action_tx.send(Action::Query(Query::Ping))?;
+        self.action_tx
+            .send(Action::ToQueryWorker(ToQueryWorker::Ping))?;
         Ok(())
     }
     pub fn new(action_tx: UnboundedSender<Action>, config: Config) -> Self {
@@ -146,7 +147,7 @@ impl Login {
 
 impl Component for Login {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        if let Action::Ping(res) = action {
+        if let Action::FromQueryWorker(FromQueryWorker::Ping(res)) = action {
             match res {
                 PingResponse::Success => {
                     // The code should never reach here though

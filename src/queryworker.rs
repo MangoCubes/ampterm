@@ -4,25 +4,25 @@ use std::sync::Arc;
 
 use color_eyre::Result;
 use query::setcredential::Credential;
-use query::Query;
+use query::ToQueryWorker;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
 use crate::action::getplaylist::{FullPlaylist, GetPlaylistResponse, Media};
 use crate::action::getplaylists::{GetPlaylistsResponse, SimplePlaylist};
 use crate::action::ping::PingResponse;
-use crate::action::Action;
+use crate::action::{Action, FromQueryWorker};
 use crate::config::Config;
 use crate::osclient::response::empty::Empty;
 use crate::osclient::response::getplaylist::GetPlaylist;
 use crate::osclient::response::getplaylists::GetPlaylists;
 use crate::osclient::OSClient;
-use crate::playerworker::player::PlayerAction;
+use crate::playerworker::player::ToPlayerWorker;
 use crate::trace_dbg;
 
 pub struct QueryWorker {
     client: Option<Arc<OSClient>>,
-    req_tx: UnboundedSender<Query>,
-    req_rx: UnboundedReceiver<Query>,
+    req_tx: UnboundedSender<ToQueryWorker>,
+    req_rx: UnboundedReceiver<ToQueryWorker>,
     action_tx: UnboundedSender<Action>,
     should_quit: bool,
     config: Config,
@@ -70,8 +70,8 @@ impl QueryWorker {
                 break;
             };
             match event {
-                Query::Kill => self.should_quit = true,
-                Query::SetCredential(creds) => {
+                ToQueryWorker::Kill => self.should_quit = true,
+                ToQueryWorker::SetCredential(creds) => {
                     self.client = Some(Arc::from(match creds {
                         Credential::Password {
                             url,
@@ -88,14 +88,14 @@ impl QueryWorker {
                         } => OSClient::use_apikey(url, username, apikey, secure),
                     }));
                 }
-                Query::GetPlaylists => {
+                ToQueryWorker::GetPlaylists => {
                     let tx = self.action_tx.clone();
                     match &self.client {
                         Some(c) => {
                             let cc = c.clone();
                             tokio::spawn(async move {
                                 let res = QueryWorker::get_playlists(cc).await;
-                                tx.send(Action::GetPlaylists(res))
+                                tx.send(Action::FromQueryWorker(FromQueryWorker::GetPlaylists(res)))
                             });
                         }
                         None => tracing::error!(
@@ -103,7 +103,7 @@ impl QueryWorker {
                         ),
                     };
                 }
-                Query::Ping => {
+                ToQueryWorker::Ping => {
                     let tx = self.action_tx.clone();
                     match &self.client {
                         Some(client) => {
@@ -112,14 +112,20 @@ impl QueryWorker {
                                 let ping = c.ping().await;
                                 match ping {
                                     Ok(c) => match c {
-                                        Empty::Ok => tx.send(Action::Ping(PingResponse::Success)),
-                                        Empty::Failed { error } => tx.send(Action::Ping(
-                                            PingResponse::Failure(error.to_string()),
+                                        Empty::Ok => tx.send(Action::FromQueryWorker(
+                                            FromQueryWorker::Ping(PingResponse::Success),
                                         )),
+                                        Empty::Failed { error } => {
+                                            tx.send(Action::FromQueryWorker(FromQueryWorker::Ping(
+                                                PingResponse::Failure(error.to_string()),
+                                            )))
+                                        }
                                     },
-                                    Err(e) => tx.send(Action::Ping(PingResponse::Failure(
-                                        format!("{}", e),
-                                    ))),
+                                    Err(e) => {
+                                        tx.send(Action::FromQueryWorker(FromQueryWorker::Ping(
+                                            PingResponse::Failure(format!("{}", e)),
+                                        )))
+                                    }
                                 }
                             });
                         }
@@ -128,7 +134,7 @@ impl QueryWorker {
                         ),
                     }
                 }
-                Query::GetPlaylist { name, id } => {
+                ToQueryWorker::GetPlaylist { name, id } => {
                     let idc = id.clone();
                     match &self.client {
                         Some(c) => {
@@ -138,8 +144,8 @@ impl QueryWorker {
                                 let res = client.get_playlist(String::from(idc)).await;
                                 match res {
                                     Ok(c) => match c {
-                                        GetPlaylist::Ok { playlist } => {
-                                            tx.send(Action::GetPlaylist(
+                                        GetPlaylist::Ok { playlist } => tx.send(
+                                            Action::FromQueryWorker(FromQueryWorker::GetPlaylist(
                                                 GetPlaylistResponse::Success(FullPlaylist {
                                                     entry: playlist
                                                         .entry
@@ -205,24 +211,28 @@ impl QueryWorker {
                                                     cover_art: playlist.cover_art,
                                                     allowed_users: playlist.allowed_users,
                                                 }),
-                                            ))
-                                        }
+                                            )),
+                                        ),
 
                                         GetPlaylist::Failed { error } => tx.send(
-                                            Action::GetPlaylist(GetPlaylistResponse::Failure {
-                                                id,
-                                                msg: error.to_string(),
-                                                name,
-                                            }),
+                                            Action::FromQueryWorker(FromQueryWorker::GetPlaylist(
+                                                GetPlaylistResponse::Failure {
+                                                    id,
+                                                    msg: error.to_string(),
+                                                    name,
+                                                },
+                                            )),
                                         ),
                                     },
-                                    Err(e) => {
-                                        tx.send(Action::GetPlaylist(GetPlaylistResponse::Failure {
-                                            id,
-                                            msg: e.to_string(),
-                                            name,
-                                        }))
-                                    }
+                                    Err(e) => tx.send(Action::FromQueryWorker(
+                                        FromQueryWorker::GetPlaylist(
+                                            GetPlaylistResponse::Failure {
+                                                id,
+                                                msg: e.to_string(),
+                                                name,
+                                            },
+                                        ),
+                                    )),
                                 }
                             });
                         }
@@ -231,14 +241,14 @@ impl QueryWorker {
                         ),
                     };
                 }
-                Query::GetUrlByMedia { media } => {
+                ToQueryWorker::GetUrlByMedia { media } => {
                     match &self.client {
                         Some(c) => {
                             let id = media.id.clone();
                             let url = c.stream_link(id).to_string();
-                            let _ = self
-                                .action_tx
-                                .send(Action::Player(PlayerAction::PlayURL { music: media, url }));
+                            let _ = self.action_tx.send(Action::ToPlayerWorker(
+                                ToPlayerWorker::PlayURL { music: media, url },
+                            ));
                         }
                         None => tracing::error!(
                             "Invalid state: Tried querying, but client does not exist!"
@@ -266,7 +276,7 @@ impl QueryWorker {
             config,
         }
     }
-    pub fn get_tx(&self) -> UnboundedSender<Query> {
+    pub fn get_tx(&self) -> UnboundedSender<ToQueryWorker> {
         self.req_tx.clone()
     }
 }

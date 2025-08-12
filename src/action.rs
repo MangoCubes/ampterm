@@ -19,6 +19,7 @@ pub enum StateType {
     Volume(f32),
     Speed(f32),
 }
+
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct PlayState {
     pub items: Vec<Media>,
@@ -46,11 +47,11 @@ impl PlayState {
     }
 }
 
-/// Local actions are actions that satisfies both of these conditions:
+/// Common actions are actions that satisfies both of these conditions:
 /// 1. They are applicable in more than one mode (Insert, Normal, etc)
 /// 2. Actions are applicable to the currently focused component
 #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
-pub enum Local {
+pub enum Common {
     Up,
     Down,
     Left,
@@ -124,17 +125,21 @@ pub enum FromQueryWorker {
 }
 
 #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
+pub enum UserAction {
+    Common(Common),
+    Normal(Normal),
+    Visual(Visual),
+    Insert(Insert),
+}
+
+#[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
 pub enum Action {
     Suspend,
     Resume,
     Quit,
     ClearScreen,
 
-    // Reset current component if that action is valid
-    Local(Local),
-    Normal(Normal),
-    Visual(Visual),
-    Insert(Insert),
+    User(UserAction),
 
     FromQueryWorker(FromQueryWorker),
     ToQueryWorker(ToQueryWorker),

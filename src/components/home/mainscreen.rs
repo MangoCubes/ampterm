@@ -4,7 +4,7 @@ mod playlistqueue;
 mod queuelist;
 
 use crate::{
-    action::{Action, FromPlayerWorker, Normal},
+    action::{Action, FromPlayerWorker, Normal, UserAction},
     components::traits::{component::Component, focusable::Focusable},
     queryworker::query::ToQueryWorker,
 };
@@ -102,7 +102,7 @@ impl Component for MainScreen {
                     self.message = msg.clone();
                 };
             }
-            Action::Normal(n) => match n {
+            Action::User(UserAction::Normal(n)) => match n {
                 Normal::WindowLeft => {
                     self.state = match self.state {
                         CurrentlySelected::Playlists => CurrentlySelected::Queue,
@@ -124,7 +124,7 @@ impl Component for MainScreen {
             _ => {}
         };
         match &action {
-            Action::Local(_) | Action::Normal(_) | Action::Visual(_) => self.pass_action(action),
+            Action::User(_) => self.pass_action(action),
             _ => {
                 // For now, the actions passed back from the three components are ignored
                 self.pl_list.update(action.clone())?;

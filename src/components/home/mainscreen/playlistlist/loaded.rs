@@ -1,7 +1,7 @@
 use crate::{
     action::{
         getplaylists::{PlaylistID, SimplePlaylist},
-        Action, Insert, Local, Normal,
+        Action, Common, Insert, Normal, UserAction,
     },
     components::{
         home::mainscreen::playlistlist::PlaylistListComps,
@@ -91,22 +91,22 @@ impl PlaylistListLoaded {
 impl Component for PlaylistListLoaded {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
-            Action::Local(local) => {
+            Action::User(UserAction::Common(local)) => {
                 match local {
-                    Local::Up => {
+                    Common::Up => {
                         self.state.select_previous();
                         Ok(None)
                     }
-                    Local::Down => {
+                    Common::Down => {
                         self.state.select_next();
                         Ok(None)
                     }
-                    Local::Confirm => Ok(self.select_playlist()),
-                    Local::Top => {
+                    Common::Confirm => Ok(self.select_playlist()),
+                    Common::Top => {
                         self.state.select_first();
                         Ok(None)
                     }
-                    Local::Bottom => {
+                    Common::Bottom => {
                         self.state.select_last();
                         Ok(None)
                     }
@@ -114,14 +114,14 @@ impl Component for PlaylistListLoaded {
                     _ => Ok(None),
                 }
             }
-            Action::Normal(normal) => {
+            Action::User(UserAction::Normal(normal)) => {
                 if let Normal::Add(pos) = normal {
                     Ok(self.prepare_add_to_queue(pos))
                 } else {
                     Ok(None)
                 }
             }
-            Action::Insert(insert) => match insert {
+            Action::User(UserAction::Insert(insert)) => match insert {
                 Insert::AddAsIs => todo!(),
                 Insert::Randomise => todo!(),
                 Insert::Reverse => todo!(),

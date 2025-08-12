@@ -2,7 +2,7 @@ use crate::{
     action::{
         getplaylist::{FullPlaylist, Media},
         getplaylists::PlaylistID,
-        Action, Local, Normal,
+        Action, Common, Normal, UserAction,
     },
     components::traits::{component::Component, focusable::Focusable},
     playerworker::player::{QueueLocation, ToPlayerWorker},
@@ -73,28 +73,30 @@ impl<'a> Component for Loaded<'a> {
     }
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
-            Action::Local(local) => {
+            Action::User(UserAction::Common(local)) => {
                 match local {
-                    Local::Up => {
+                    Common::Up => {
                         self.visual.select_previous();
                         Ok(None)
                     }
-                    Local::Down => {
+                    Common::Down => {
                         self.visual.select_next();
                         Ok(None)
                     }
-                    Local::Top => {
+                    Common::Top => {
                         self.visual.select_first();
                         Ok(None)
                     }
-                    Local::Bottom => {
+                    Common::Bottom => {
                         self.visual.select_last();
                         Ok(None)
                     }
-                    Local::Refresh => Ok(Some(Action::ToQueryWorker(ToQueryWorker::GetPlaylist {
-                        name: Some(self.name.to_string()),
-                        id: self.playlistid.clone(),
-                    }))),
+                    Common::Refresh => {
+                        Ok(Some(Action::ToQueryWorker(ToQueryWorker::GetPlaylist {
+                            name: Some(self.name.to_string()),
+                            id: self.playlistid.clone(),
+                        })))
+                    }
                     _ => Ok(None),
                 }
                 // match action {
@@ -115,7 +117,7 @@ impl<'a> Component for Loaded<'a> {
                 //     _ => Ok(None),
                 // }
             }
-            Action::Normal(normal) => match normal {
+            Action::User(UserAction::Normal(normal)) => match normal {
                 Normal::SelectMode => {
                     self.visual.enable_visual(false);
                     Ok(None)

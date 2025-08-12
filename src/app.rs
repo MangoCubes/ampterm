@@ -182,6 +182,7 @@ impl App {
                 _ => {}
             };
             if let Some(ret) = self.component.update(action)? {
+                debug!("Got {ret:?} as a response");
                 self.action_tx.send(ret)?
             }
         }

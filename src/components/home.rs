@@ -101,10 +101,7 @@ impl Component for Home {
                 }
             };
         };
-        if let Some(action) = self.component.update(action)? {
-            self.action_tx.send(action)?;
-        }
-        Ok(None)
+        self.component.update(action)
     }
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         if let Err(err) = self.component.draw(frame, area) {

@@ -98,6 +98,7 @@ impl Component for MainScreen {
                 CurrentlySelected::Queue => self.queuelist.update(action),
             },
             _ => {
+                // TODO: Make callbacks work
                 self.pl_list.update(action.clone())?;
                 self.pl_queue.update(action.clone())?;
                 self.queuelist.update(action.clone())?;

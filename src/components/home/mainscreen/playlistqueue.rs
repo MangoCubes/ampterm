@@ -5,8 +5,9 @@ mod notselected;
 
 use crate::{
     action::{getplaylist::GetPlaylistResponse, Action, FromQueryWorker},
-    components::Component,
+    components::{home::mainscreen::playlistqueue::loading::Loading, Component},
     focusable::Focusable,
+    queryworker::query::ToQueryWorker,
 };
 use color_eyre::Result;
 use error::Error;
@@ -34,6 +35,14 @@ impl Component for PlaylistQueue {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::Local(_) => self.comp.update(action),
+            Action::ToQueryWorker(ToQueryWorker::GetPlaylist { id, name }) => {
+                self.comp = Box::new(Loading::new(
+                    id,
+                    name.unwrap_or("Playlist Queue".to_string()),
+                    self.enabled,
+                ));
+                Ok(None)
+            }
             Action::FromQueryWorker(FromQueryWorker::GetPlaylist(res)) => match res {
                 GetPlaylistResponse::Success(full_playlist) => {
                     self.comp = Box::new(Loaded::new(

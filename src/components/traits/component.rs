@@ -1,0 +1,65 @@
+use color_eyre::Result;
+use crossterm::event::{KeyEvent, MouseEvent};
+use ratatui::{layout::Rect, Frame};
+
+use crate::{action::Action, tui::Event};
+/// `Component` is a trait that represents a visual and interactive element of the user interface.
+///
+/// Implementors of this trait can be registered with the main application loop and will be able to
+/// receive events, update state, and be rendered on the screen.
+pub trait Component {
+    /// Handle incoming events and produce actions if necessary.
+    ///
+    /// # Arguments
+    ///
+    /// * `event` - An optional event to be processed.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Option<Action>>` - An action to be processed or none.
+    fn handle_events(&mut self, event: Event) -> Result<Option<Action>> {
+        let action = match event {
+            Event::Key(key_event) => self.handle_key_event(key_event)?,
+            Event::Mouse(mouse_event) => self.handle_mouse_event(mouse_event)?,
+            _ => None,
+        };
+        Ok(action)
+    }
+    /// Handle key events and produce actions if necessary.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - A key event to be processed.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Option<Action>>` - An action to be processed or none.
+    fn handle_key_event(&mut self, key: KeyEvent) -> Result<Option<Action>> {
+        let _ = key; // to appease clippy
+        Ok(None)
+    }
+    /// Handle mouse events and produce actions if necessary.
+    ///
+    /// # Arguments
+    ///
+    /// * `mouse` - A mouse event to be processed.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Option<Action>>` - An action to be processed or none.
+    fn handle_mouse_event(&mut self, mouse: MouseEvent) -> Result<Option<Action>> {
+        let _ = mouse; // to appease clippy
+        Ok(None)
+    }
+    /// Render the component on the screen. (REQUIRED)
+    ///
+    /// # Arguments
+    ///
+    /// * `f` - A frame used for rendering.
+    /// * `area` - The area in which the component should be drawn.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<()>` - An Ok result or an error.
+    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()>;
+}

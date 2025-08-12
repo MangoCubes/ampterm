@@ -12,6 +12,7 @@ use tui_textarea::{CursorMove, TextArea};
 
 use crate::{
     action::{ping::PingResponse, Action, FromQueryWorker},
+    components::traits::singlecomponent::SingleComponent,
     config::Config,
     queryworker::query::{setcredential::Credential, ToQueryWorker},
 };
@@ -146,23 +147,6 @@ impl Login {
 }
 
 impl Component for Login {
-    fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        if let Action::FromQueryWorker(FromQueryWorker::Ping(res)) = action {
-            match res {
-                PingResponse::Success => {
-                    // The code should never reach here though
-                    self.status = Status::Normal;
-                    self.update_style();
-                }
-                PingResponse::Failure(msg) => {
-                    self.set_error(msg);
-                    self.status = Status::Error;
-                    self.update_style();
-                }
-            };
-        }
-        Ok(None)
-    }
     fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Result<Option<Action>> {
         match key.code {
             KeyCode::Up => self.navigate(true),
@@ -221,5 +205,25 @@ impl Component for Login {
             );
         }
         Ok(())
+    }
+}
+
+impl SingleComponent for Login {
+    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+        if let Action::FromQueryWorker(FromQueryWorker::Ping(res)) = action {
+            match res {
+                PingResponse::Success => {
+                    // The code should never reach here though
+                    self.status = Status::Normal;
+                    self.update_style();
+                }
+                PingResponse::Failure(msg) => {
+                    self.set_error(msg);
+                    self.status = Status::Error;
+                    self.update_style();
+                }
+            };
+        }
+        Ok(None)
     }
 }

@@ -8,14 +8,13 @@ use crate::{
         home::mainscreen::playlistlist::{
             error::PlaylistListError, loaded::PlaylistListLoaded, loading::PlaylistListLoading,
         },
-        Component,
+        traits::{component::Component, focusable::Focusable, singlecomponent::SingleComponent},
     },
-    focusable::Focusable,
 };
 use color_eyre::Result;
 use ratatui::{layout::Rect, widgets::ListState, Frame};
 
-pub trait PlaylistListComps: Focusable {}
+pub trait PlaylistListComps: Focusable + SingleComponent {}
 
 pub struct PlaylistList {
     comp: Box<dyn PlaylistListComps>,
@@ -31,7 +30,7 @@ impl PlaylistList {
     }
 }
 
-impl Component for PlaylistList {
+impl SingleComponent for PlaylistList {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::FromQueryWorker(FromQueryWorker::GetPlaylists(res)) => match res {
@@ -49,10 +48,12 @@ impl Component for PlaylistList {
                     Ok(None)
                 }
             },
-            Action::Local(_) => self.comp.update(action),
-            _ => Ok(None),
+            _ => self.comp.update(action),
         }
     }
+}
+
+impl Component for PlaylistList {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         self.comp.draw(frame, area)
     }

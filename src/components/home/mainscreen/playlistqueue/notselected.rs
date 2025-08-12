@@ -1,4 +1,3 @@
-use crate::{components::Component, focusable::Focusable};
 use color_eyre::Result;
 use ratatui::{
     layout::{Alignment, Rect},
@@ -8,7 +7,10 @@ use ratatui::{
     Frame,
 };
 
-use super::PlaylistQueueComps;
+use crate::components::{
+    home::mainscreen::playlistqueue::PlaylistQueueComps,
+    traits::{component::Component, focusable::Focusable, singlecomponent::SingleComponent},
+};
 
 pub struct NotSelected {
     enabled: bool,
@@ -61,4 +63,5 @@ impl Focusable for NotSelected {
         self.enabled = enable;
     }
 }
+impl SingleComponent for NotSelected {}
 impl PlaylistQueueComps for NotSelected {}

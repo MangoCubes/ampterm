@@ -5,8 +5,7 @@ mod queuelist;
 
 use crate::{
     action::{Action, FromPlayerWorker, Normal},
-    components::Component,
-    focusable::Focusable,
+    components::traits::{component::Component, multicomponent::MultiComponent},
     queryworker::query::ToQueryWorker,
 };
 use color_eyre::Result;
@@ -57,56 +56,16 @@ impl MainScreen {
         self.queuelist
             .set_enabled(self.state == CurrentlySelected::Queue);
     }
+    fn pass_action(&mut self, action: Action) -> Result<Option<Action>> {
+        match self.state {
+            CurrentlySelected::Playlists => self.pl_list.update(action),
+            CurrentlySelected::PlaylistQueue => self.pl_queue.update(action),
+            CurrentlySelected::Queue => self.queuelist.update(action),
+        }
+    }
 }
 
 impl Component for MainScreen {
-    fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        match &action {
-            Action::FromPlayerWorker(pw) => {
-                if let FromPlayerWorker::PlayerError(msg) | FromPlayerWorker::PlayerMessage(msg) =
-                    pw
-                {
-                    self.message = msg.clone();
-                };
-                Ok(None)
-            }
-            Action::Normal(n) => {
-                match n {
-                    Normal::WindowLeft => {
-                        self.state = match self.state {
-                            CurrentlySelected::Playlists => CurrentlySelected::Queue,
-                            CurrentlySelected::Queue => CurrentlySelected::PlaylistQueue,
-                            CurrentlySelected::PlaylistQueue => CurrentlySelected::Playlists,
-                        };
-                        self.update_focus();
-                    }
-                    Normal::WindowRight => {
-                        self.state = match self.state {
-                            CurrentlySelected::Playlists => CurrentlySelected::PlaylistQueue,
-                            CurrentlySelected::PlaylistQueue => CurrentlySelected::Queue,
-                            CurrentlySelected::Queue => CurrentlySelected::Playlists,
-                        };
-                        self.update_focus();
-                    }
-                    _ => {}
-                }
-                Ok(None)
-            }
-            Action::Local(_) => match self.state {
-                CurrentlySelected::Playlists => self.pl_list.update(action),
-                CurrentlySelected::PlaylistQueue => self.pl_queue.update(action),
-                CurrentlySelected::Queue => self.queuelist.update(action),
-            },
-            _ => {
-                // TODO: Make callbacks work
-                self.pl_list.update(action.clone())?;
-                self.pl_queue.update(action.clone())?;
-                self.queuelist.update(action.clone())?;
-                self.now_playing.update(action)?;
-                Ok(None)
-            }
-        }
-    }
     fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Result<Option<Action>> {
         Ok(None)
     }
@@ -133,5 +92,41 @@ impl Component for MainScreen {
             areas[2],
         );
         Ok(())
+    }
+}
+
+impl MultiComponent for MainScreen {
+    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+        match &action {
+            Action::FromPlayerWorker(pw) => {
+                if let FromPlayerWorker::PlayerError(msg) | FromPlayerWorker::PlayerMessage(msg) =
+                    pw
+                {
+                    self.message = msg.clone();
+                };
+            }
+            Action::Normal(n) => match n {
+                Normal::WindowLeft => {
+                    self.state = match self.state {
+                        CurrentlySelected::Playlists => CurrentlySelected::Queue,
+                        CurrentlySelected::Queue => CurrentlySelected::PlaylistQueue,
+                        CurrentlySelected::PlaylistQueue => CurrentlySelected::Playlists,
+                    };
+                    self.update_focus();
+                }
+                Normal::WindowRight => {
+                    self.state = match self.state {
+                        CurrentlySelected::Playlists => CurrentlySelected::PlaylistQueue,
+                        CurrentlySelected::PlaylistQueue => CurrentlySelected::Queue,
+                        CurrentlySelected::Queue => CurrentlySelected::Playlists,
+                    };
+                    self.update_focus();
+                }
+                _ => {}
+            },
+            _ => {}
+        };
+        self.pass_action(action);
+        Ok(None)
     }
 }

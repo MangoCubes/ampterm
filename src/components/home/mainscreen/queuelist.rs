@@ -8,8 +8,9 @@ use ratatui::{
 
 use crate::{
     action::{getplaylist::Media, Action, FromPlayerWorker, PlayState},
-    components::Component,
-    focusable::Focusable,
+    components::traits::{
+        component::Component, focusable::Focusable, singlecomponent::SingleComponent,
+    },
 };
 use color_eyre::Result;
 
@@ -96,6 +97,13 @@ impl QueueList {
 }
 
 impl Component for QueueList {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+        frame.render_stateful_widget(&self.comp, area, &mut self.state);
+        Ok(())
+    }
+}
+
+impl SingleComponent for QueueList {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         if let Action::FromPlayerWorker(FromPlayerWorker::InQueue {
             play,
@@ -108,10 +116,6 @@ impl Component for QueueList {
             self.comp = self.gen_list()
         }
         Ok(None)
-    }
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        frame.render_stateful_widget(&self.comp, area, &mut self.state);
-        Ok(())
     }
 }
 

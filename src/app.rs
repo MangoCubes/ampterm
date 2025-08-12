@@ -12,7 +12,7 @@ use tracing::{debug, info};
 
 use crate::{
     action::Action,
-    components::{home::Home, Component},
+    components::{home::Home, traits::singlecomponent::SingleComponent},
     config::Config,
     playerworker::{player::ToPlayerWorker, PlayerWorker},
     queryworker::{query::ToQueryWorker, QueryWorker},
@@ -23,7 +23,7 @@ pub struct App {
     config: Config,
     tick_rate: f64,
     frame_rate: f64,
-    component: Box<dyn Component>,
+    component: Box<dyn SingleComponent>,
     should_quit: bool,
     should_suspend: bool,
     mode: Mode,
@@ -97,7 +97,6 @@ impl App {
             .frame_rate(self.frame_rate);
         tui.enter()?;
 
-        self.component.init(tui.size()?)?;
         let action_tx = self.action_tx.clone();
         loop {
             self.handle_events(&mut tui).await?;

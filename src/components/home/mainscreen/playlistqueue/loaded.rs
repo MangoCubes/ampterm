@@ -4,8 +4,9 @@ use crate::{
         getplaylists::PlaylistID,
         Action, Local, Normal,
     },
-    components::Component,
-    focusable::Focusable,
+    components::traits::{
+        component::Component, focusable::Focusable, singlecomponent::SingleComponent,
+    },
     playerworker::player::{QueueLocation, ToPlayerWorker},
     queryworker::query::ToQueryWorker,
     statelib::visual::Visual,
@@ -45,7 +46,7 @@ impl<'a> Loaded<'a> {
         );
         Block::bordered().title(title).border_style(style)
     }
-    fn select_music(&self, playpos: QueueLocation) -> Option<Action> {
+    fn add_music(&self, playpos: QueueLocation) -> Option<Action> {
         let item = self.visual.get_current();
         Some(Action::ToPlayerWorker(ToPlayerWorker::AddToQueue {
             pos: playpos,
@@ -66,6 +67,15 @@ impl<'a> Loaded<'a> {
 }
 
 impl<'a> Component for Loaded<'a> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+        let border = Self::gen_block(self.enabled, &self.name);
+        let inner = border.inner(area);
+        frame.render_widget(border, area);
+        self.visual.draw(frame, inner)
+    }
+}
+
+impl<'a> SingleComponent for Loaded<'a> {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::Local(local) => {
@@ -119,17 +129,11 @@ impl<'a> Component for Loaded<'a> {
                     self.visual.enable_visual(true);
                     Ok(None)
                 }
-                Normal::Add(queue_location) => Ok(self.select_music(queue_location)),
+                Normal::Add(queue_location) => Ok(self.add_music(queue_location)),
                 _ => Ok(None),
             },
             _ => Ok(None),
         }
-    }
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        let border = Self::gen_block(self.enabled, &self.name);
-        let inner = border.inner(area);
-        frame.render_widget(border, area);
-        self.visual.draw(frame, inner)
     }
 }
 

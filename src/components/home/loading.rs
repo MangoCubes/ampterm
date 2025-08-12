@@ -6,7 +6,7 @@ use ratatui::{
     Frame,
 };
 
-use crate::components::Component;
+use crate::components::traits::component::Component;
 
 pub struct Loading {
     url: String,

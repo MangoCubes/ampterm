@@ -11,14 +11,12 @@ mod cli;
 mod components;
 mod config;
 mod errors;
-mod focusable;
 mod logging;
 mod osclient;
 mod playerworker;
 mod queryworker;
 mod statelib;
 mod tui;
-mod visualmode;
 
 pub fn log_alsa_error() {
     #[cfg(target_os = "linux")]

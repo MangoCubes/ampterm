@@ -1,4 +1,9 @@
-use crate::{action::getplaylists::PlaylistID, components::Component, focusable::Focusable};
+use crate::{
+    action::getplaylists::PlaylistID,
+    components::traits::{
+        component::Component, focusable::Focusable, singlecomponent::SingleComponent,
+    },
+};
 use color_eyre::Result;
 use ratatui::{
     layout::{Alignment, Rect},
@@ -74,3 +79,4 @@ impl Focusable for Error {
 }
 
 impl PlaylistQueueComps for Error {}
+impl SingleComponent for Error {}

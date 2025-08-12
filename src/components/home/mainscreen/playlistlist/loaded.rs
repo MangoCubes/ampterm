@@ -3,8 +3,10 @@ use crate::{
         getplaylists::{PlaylistID, SimplePlaylist},
         Action, Insert, Local, Normal,
     },
-    components::{home::mainscreen::playlistlist::PlaylistListComps, Component},
-    focusable::Focusable,
+    components::{
+        home::mainscreen::playlistlist::PlaylistListComps,
+        traits::{component::Component, focusable::Focusable, singlecomponent::SingleComponent},
+    },
     playerworker::player::QueueLocation,
     queryworker::query::ToQueryWorker,
 };
@@ -86,7 +88,7 @@ impl PlaylistListLoaded {
     }
 }
 
-impl Component for PlaylistListLoaded {
+impl SingleComponent for PlaylistListLoaded {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::Local(local) => {
@@ -128,6 +130,9 @@ impl Component for PlaylistListLoaded {
             _ => Ok(None),
         }
     }
+}
+
+impl Component for PlaylistListLoaded {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         frame.render_stateful_widget(&self.comp, area, &mut self.state);
         Ok(())

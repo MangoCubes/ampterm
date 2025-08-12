@@ -5,8 +5,7 @@ use ratatui::{
     Frame,
 };
 
-use crate::{components::Component, focusable::Focusable};
-
+use crate::components::traits::{component::Component, focusable::Focusable};
 pub struct Popup {
     visible: bool,
     width: u16,

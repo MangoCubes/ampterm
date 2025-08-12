@@ -1,7 +1,9 @@
 use crate::{
     action::getplaylists::{PlaylistID, SimplePlaylist},
-    components::{home::mainscreen::playlistlist::PlaylistListComps, Component},
-    focusable::Focusable,
+    components::{
+        home::mainscreen::playlistlist::PlaylistListComps,
+        traits::{component::Component, focusable::Focusable, singlecomponent::SingleComponent},
+    },
     playerworker::player::QueueLocation,
 };
 use color_eyre::Result;
@@ -77,5 +79,7 @@ impl Focusable for PlaylistListLoading {
         self.enabled = enable;
     }
 }
+
+impl SingleComponent for PlaylistListLoading {}
 
 impl PlaylistListComps for PlaylistListLoading {}

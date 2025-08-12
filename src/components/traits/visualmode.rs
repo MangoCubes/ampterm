@@ -1,6 +1,7 @@
-use crate::components::Component;
 use std::collections::HashSet;
 use std::hash::Hash;
+
+use crate::components::traits::component::Component;
 
 // Visual mode have two storages
 // temp: Items selected by the current visual mode

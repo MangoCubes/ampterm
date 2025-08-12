@@ -5,8 +5,10 @@ mod notselected;
 
 use crate::{
     action::{getplaylist::GetPlaylistResponse, Action, FromQueryWorker},
-    components::{home::mainscreen::playlistqueue::loading::Loading, Component},
-    focusable::Focusable,
+    components::{
+        home::mainscreen::playlistqueue::loading::Loading,
+        traits::{component::Component, focusable::Focusable, singlecomponent::SingleComponent},
+    },
     queryworker::query::ToQueryWorker,
 };
 use color_eyre::Result;
@@ -15,7 +17,7 @@ use loaded::Loaded;
 use notselected::NotSelected;
 use ratatui::{layout::Rect, Frame};
 
-pub trait PlaylistQueueComps: Focusable {}
+pub trait PlaylistQueueComps: Focusable + SingleComponent {}
 
 pub struct PlaylistQueue {
     comp: Box<dyn PlaylistQueueComps>,
@@ -31,10 +33,9 @@ impl PlaylistQueue {
     }
 }
 
-impl Component for PlaylistQueue {
+impl SingleComponent for PlaylistQueue {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
-            Action::Local(_) => self.comp.update(action),
             Action::ToQueryWorker(ToQueryWorker::GetPlaylist { id, name }) => {
                 self.comp = Box::new(Loading::new(
                     id,
@@ -62,9 +63,12 @@ impl Component for PlaylistQueue {
                     Ok(None)
                 }
             },
-            _ => Ok(None),
+            _ => self.comp.update(action),
         }
     }
+}
+
+impl Component for PlaylistQueue {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         self.comp.draw(frame, area)
     }

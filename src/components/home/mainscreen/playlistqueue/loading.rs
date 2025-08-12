@@ -1,4 +1,3 @@
-use crate::{action::getplaylists::PlaylistID, components::Component, focusable::Focusable};
 use color_eyre::Result;
 use ratatui::{
     layout::{Alignment, Rect},
@@ -6,6 +5,13 @@ use ratatui::{
     text::Span,
     widgets::{Block, Padding, Paragraph, Wrap},
     Frame,
+};
+
+use crate::{
+    action::getplaylists::PlaylistID,
+    components::traits::{
+        component::Component, focusable::Focusable, singlecomponent::SingleComponent,
+    },
 };
 
 use super::PlaylistQueueComps;
@@ -64,3 +70,4 @@ impl Focusable for Loading {
     }
 }
 impl PlaylistQueueComps for Loading {}
+impl SingleComponent for Loading {}

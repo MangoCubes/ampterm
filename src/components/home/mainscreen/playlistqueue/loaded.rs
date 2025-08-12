@@ -4,9 +4,7 @@ use crate::{
         getplaylists::PlaylistID,
         Action, Local, Normal,
     },
-    components::traits::{
-        component::Component, focusable::Focusable, singlecomponent::SingleComponent,
-    },
+    components::traits::{component::Component, focusable::Focusable},
     playerworker::player::{QueueLocation, ToPlayerWorker},
     queryworker::query::ToQueryWorker,
     statelib::visual::Visual,
@@ -73,9 +71,6 @@ impl<'a> Component for Loaded<'a> {
         frame.render_widget(border, area);
         self.visual.draw(frame, inner)
     }
-}
-
-impl<'a> SingleComponent for Loaded<'a> {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::Local(local) => {

@@ -9,9 +9,7 @@ use ratatui::{
 
 use crate::{
     action::getplaylists::PlaylistID,
-    components::traits::{
-        component::Component, focusable::Focusable, singlecomponent::SingleComponent,
-    },
+    components::traits::{component::Component, focusable::Focusable},
 };
 
 use super::PlaylistQueueComps;
@@ -70,4 +68,3 @@ impl Focusable for Loading {
     }
 }
 impl PlaylistQueueComps for Loading {}
-impl SingleComponent for Loading {}

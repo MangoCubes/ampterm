@@ -7,7 +7,7 @@ use crate::{
     action::{getplaylist::GetPlaylistResponse, Action, FromQueryWorker},
     components::{
         home::mainscreen::playlistqueue::loading::Loading,
-        traits::{component::Component, focusable::Focusable, singlecomponent::SingleComponent},
+        traits::{component::Component, focusable::Focusable},
     },
     queryworker::query::ToQueryWorker,
 };
@@ -17,7 +17,7 @@ use loaded::Loaded;
 use notselected::NotSelected;
 use ratatui::{layout::Rect, Frame};
 
-pub trait PlaylistQueueComps: Focusable + SingleComponent {}
+pub trait PlaylistQueueComps: Focusable {}
 
 pub struct PlaylistQueue {
     comp: Box<dyn PlaylistQueueComps>,
@@ -33,7 +33,7 @@ impl PlaylistQueue {
     }
 }
 
-impl SingleComponent for PlaylistQueue {
+impl Component for PlaylistQueue {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::ToQueryWorker(ToQueryWorker::GetPlaylist { id, name }) => {
@@ -66,9 +66,6 @@ impl SingleComponent for PlaylistQueue {
             _ => self.comp.update(action),
         }
     }
-}
-
-impl Component for PlaylistQueue {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         self.comp.draw(frame, area)
     }

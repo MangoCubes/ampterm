@@ -1,6 +1,6 @@
 use crate::components::{
     home::mainscreen::playlistlist::PlaylistListComps,
-    traits::{component::Component, focusable::Focusable, singlecomponent::SingleComponent},
+    traits::{component::Component, focusable::Focusable},
 };
 use color_eyre::Result;
 use ratatui::{
@@ -62,7 +62,6 @@ impl Component for PlaylistListError {
         Ok(())
     }
 }
-impl SingleComponent for PlaylistListError {}
 
 impl Focusable for PlaylistListError {
     fn set_enabled(&mut self, enable: bool) {

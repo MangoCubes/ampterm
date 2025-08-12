@@ -11,7 +11,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
     action::{ping::PingResponse, Action, FromQueryWorker},
-    components::traits::{component::Component, singlecomponent::SingleComponent},
+    components::traits::component::Component,
     config::Config,
     queryworker::query::{setcredential::Credential, ToQueryWorker},
     tui::Event,
@@ -19,7 +19,7 @@ use crate::{
 
 pub struct Home {
     action_tx: UnboundedSender<Action>,
-    component: Box<dyn SingleComponent>,
+    component: Box<dyn Component>,
     config_has_creds: bool,
     config: Config,
 }
@@ -48,7 +48,7 @@ impl Home {
             }
         };
         let config_has_creds;
-        let comp: Box<dyn SingleComponent> = match config_creds {
+        let comp: Box<dyn Component> = match config_creds {
             Some(creds) => {
                 config_has_creds = true;
                 let url = creds.get_url();
@@ -85,9 +85,6 @@ impl Component for Home {
         }
         Ok(())
     }
-}
-
-impl SingleComponent for Home {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         // Child component can change in two cases:
         // 1. Login is successful regardless of the current child component

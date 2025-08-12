@@ -8,7 +8,7 @@ use stopped::Stopped;
 
 use crate::{
     action::{Action, FromPlayerWorker},
-    components::traits::{component::Component, singlecomponent::SingleComponent},
+    components::traits::component::Component,
 };
 
 enum CompState {
@@ -30,7 +30,7 @@ impl NowPlaying {
     }
 }
 
-impl SingleComponent for NowPlaying {
+impl Component for NowPlaying {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         if let Action::FromPlayerWorker(FromPlayerWorker::InQueue {
             vol,
@@ -66,9 +66,6 @@ impl SingleComponent for NowPlaying {
         }
         Ok(None)
     }
-}
-
-impl Component for NowPlaying {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         match &mut self.state {
             CompState::Stopped { comp } => comp.draw(frame, area),

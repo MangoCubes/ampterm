@@ -1,8 +1,6 @@
 use crate::{
     action::getplaylists::PlaylistID,
-    components::traits::{
-        component::Component, focusable::Focusable, singlecomponent::SingleComponent,
-    },
+    components::traits::{component::Component, focusable::Focusable},
 };
 use color_eyre::Result;
 use ratatui::{
@@ -79,4 +77,3 @@ impl Focusable for Error {
 }
 
 impl PlaylistQueueComps for Error {}
-impl SingleComponent for Error {}

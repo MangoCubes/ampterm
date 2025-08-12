@@ -5,7 +5,7 @@ use crate::{
     },
     components::{
         home::mainscreen::playlistlist::PlaylistListComps,
-        traits::{component::Component, focusable::Focusable, singlecomponent::SingleComponent},
+        traits::{component::Component, focusable::Focusable},
     },
     playerworker::player::QueueLocation,
     queryworker::query::ToQueryWorker,
@@ -88,7 +88,7 @@ impl PlaylistListLoaded {
     }
 }
 
-impl SingleComponent for PlaylistListLoaded {
+impl Component for PlaylistListLoaded {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::Local(local) => {
@@ -130,9 +130,6 @@ impl SingleComponent for PlaylistListLoaded {
             _ => Ok(None),
         }
     }
-}
-
-impl Component for PlaylistListLoaded {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         frame.render_stateful_widget(&self.comp, area, &mut self.state);
         Ok(())

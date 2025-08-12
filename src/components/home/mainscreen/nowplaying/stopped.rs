@@ -1,7 +1,4 @@
-use crate::{
-    action::Action,
-    components::traits::{component::Component, singlecomponent::SingleComponent},
-};
+use crate::{action::Action, components::traits::component::Component};
 use color_eyre::Result;
 use ratatui::{
     layout::{Alignment, Rect},
@@ -21,14 +18,11 @@ impl Stopped {
     }
 }
 
-impl SingleComponent for Stopped {
+impl Component for Stopped {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         let _ = action;
         Ok(None)
     }
-}
-
-impl Component for Stopped {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         frame.render_widget(
             Paragraph::new("Select a music!")

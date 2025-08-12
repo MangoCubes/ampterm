@@ -12,7 +12,7 @@ use tracing::{debug, info};
 
 use crate::{
     action::Action,
-    components::{home::Home, traits::singlecomponent::SingleComponent},
+    components::{home::Home, traits::component::Component},
     config::Config,
     playerworker::{player::ToPlayerWorker, PlayerWorker},
     queryworker::{query::ToQueryWorker, QueryWorker},
@@ -23,7 +23,7 @@ pub struct App {
     config: Config,
     tick_rate: f64,
     frame_rate: f64,
-    component: Box<dyn SingleComponent>,
+    component: Box<dyn Component>,
     should_quit: bool,
     should_suspend: bool,
     mode: Mode,

@@ -2,7 +2,7 @@ use crate::{
     action::getplaylists::{PlaylistID, SimplePlaylist},
     components::{
         home::mainscreen::playlistlist::PlaylistListComps,
-        traits::{component::Component, focusable::Focusable, singlecomponent::SingleComponent},
+        traits::{component::Component, focusable::Focusable},
     },
     playerworker::player::QueueLocation,
 };
@@ -79,7 +79,5 @@ impl Focusable for PlaylistListLoading {
         self.enabled = enable;
     }
 }
-
-impl SingleComponent for PlaylistListLoading {}
 
 impl PlaylistListComps for PlaylistListLoading {}

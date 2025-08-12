@@ -12,7 +12,6 @@ use tui_textarea::{CursorMove, TextArea};
 
 use crate::{
     action::{ping::PingResponse, Action, FromQueryWorker},
-    components::traits::singlecomponent::SingleComponent,
     config::Config,
     queryworker::query::{setcredential::Credential, ToQueryWorker},
 };
@@ -206,9 +205,6 @@ impl Component for Login {
         }
         Ok(())
     }
-}
-
-impl SingleComponent for Login {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         if let Action::FromQueryWorker(FromQueryWorker::Ping(res)) = action {
             match res {

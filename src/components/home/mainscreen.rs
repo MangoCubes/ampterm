@@ -5,7 +5,7 @@ mod queuelist;
 
 use crate::{
     action::{Action, FromPlayerWorker, Normal},
-    components::traits::{component::Component, multicomponent::MultiComponent},
+    components::traits::{component::Component, focusable::Focusable},
     queryworker::query::ToQueryWorker,
 };
 use color_eyre::Result;
@@ -93,9 +93,6 @@ impl Component for MainScreen {
         );
         Ok(())
     }
-}
-
-impl MultiComponent for MainScreen {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match &action {
             Action::FromPlayerWorker(pw) => {
@@ -126,7 +123,15 @@ impl MultiComponent for MainScreen {
             },
             _ => {}
         };
-        self.pass_action(action);
-        Ok(None)
+        match &action {
+            Action::Local(_) | Action::Normal(_) | Action::Visual(_) => self.pass_action(action),
+            _ => {
+                // For now, the actions passed back from the three components are ignored
+                self.pl_list.update(action.clone())?;
+                self.pl_queue.update(action.clone())?;
+                self.queuelist.update(action)?;
+                Ok(None)
+            }
+        }
     }
 }

@@ -9,7 +9,7 @@ use ratatui::{
 
 use crate::components::{
     home::mainscreen::playlistqueue::PlaylistQueueComps,
-    traits::{component::Component, focusable::Focusable, singlecomponent::SingleComponent},
+    traits::{component::Component, focusable::Focusable},
 };
 
 pub struct NotSelected {
@@ -63,5 +63,4 @@ impl Focusable for NotSelected {
         self.enabled = enable;
     }
 }
-impl SingleComponent for NotSelected {}
 impl PlaylistQueueComps for NotSelected {}

@@ -2,11 +2,11 @@
   "keybindings": {
     // In visual mode, these keybindings are used
     "Visual": {
-	  "<Esc>": { Visual: "ExitDiscard" },
+	  "<Esc>": { User: { Visual: "ExitDiscard" } },
 	  // All 3 can be used to exit visual mode whilst confirming the selection
-	  "<v>": { Visual: "ExitSave" },
-	  "<Shift-v>": { Visual: "ExitSave" },
-	  "<Ctrl-v>": { Visual: "ExitSave" },
+	  "<v>": { User: { Visual: "ExitSave" } },
+	  "<Shift-v>": { User: { Visual: "ExitSave" } },
+	  "<Ctrl-v>": { User: { Visual: "ExitSave" } },
     },
 	// Insert mode is activated when you are about to insert (or add next/last) more than one items
 	// That can happen in the following situations:
@@ -14,56 +14,56 @@
 	// - When you are adding a whole playlist
 	// - When you are adding more than one playlists
 	"Insert": {
-	  "<r>": { Insert: "Randomise" },
+	  "<r>": { User: { Insert: "Randomise" } },
 	  // "<R>": "RandomiseABit",
-	  "<v>": { Insert: "Reverse" },
-	  "<Esc>": { Insert: "CancelAdd" },
+	  "<v>": { User: { Insert: "Reverse" } },
+	  "<Esc>": { User: { Insert: "CancelAdd" } },
 
 	  // These keybinds essentially work as "just add them"
 	  // There are multiple keybinds as we do not know what key you used to enter this mode
-	  "<a>": { Insert: "AddAsIs" },
-	  "<i>": { Insert: "AddAsIs" },
-	  "<Shift-i>": { Insert: "AddAsIs" },
-	  "<Shift-a>": { Insert: "AddAsIs" }
+	  "<a>": { User: { Insert: "AddAsIs" } },
+	  "<i>": { User: { Insert: "AddAsIs" } },
+	  "<Shift-i>": { User: { Insert: "AddAsIs" } },
+	  "<Shift-a>": { User: { Insert: "AddAsIs" } }
 	},
 	// This keybinding is exclusive to normal mode.
 	"Normal": {
 	  // Movement
-	  "<Ctrl-w><Left>": { Normal: "WindowLeft" },
-	  "<Ctrl-w><Right>": { Normal: "WindowRight" },
-	  "<Ctrl-w><Up>": { Normal: "WindowUp" },
-	  "<Ctrl-w><Down>": { Normal: "WindowDown" },
+	  "<Ctrl-w><Left>": { User: { Normal: "WindowLeft" } },
+	  "<Ctrl-w><Right>": { User: { Normal: "WindowRight" } },
+	  "<Ctrl-w><Up>": { User: { Normal: "WindowUp" } },
+	  "<Ctrl-w><Down>": { User: { Normal: "WindowDown" } },
 
 	  // Movement but with hjkl
-	  "<Ctrl-w><h>": { Normal: "WindowLeft" },
-	  "<Ctrl-w><l>": { Normal: "WindowRight" },
-	  "<Ctrl-w><k>": { Normal: "WindowUp" },
-	  "<Ctrl-w><j>": { Normal: "WindowDown" },
+	  "<Ctrl-w><h>": { User: { Normal: "WindowLeft" } },
+	  "<Ctrl-w><l>": { User: { Normal: "WindowRight" } },
+	  "<Ctrl-w><k>": { User: { Normal: "WindowUp" } },
+	  "<Ctrl-w><j>": { User: { Normal: "WindowDown" } },
 
 	  // Playlist manipulation
 	  // Note that both i and Shift+i are mapped to the same key
 	  // If the cursor is on a playlist, the program goes into Insert mode
-	  "<i>": { Normal: { Add: "Front" } },
-	  "<Shift-i>": { Normal: { Add: "Front" } },
-	  "<a>": { Normal: { Add: "Next" } },
-	  "<Shift-a>": { Normal: { Add: "Last" } },
+	  "<i>": { User: { Normal: { Add: "Front" } } },
+	  "<Shift-i>": { User: { Normal: { Add: "Front" } } },
+	  "<a>": { User: { Normal: { Add: "Next" } } },
+	  "<Shift-a>": { User: { Normal: { Add: "Last" } } },
 
 	  // Visual mode entry
-	  "<v>": { Normal: "SelectMode" },
-	  "<Shift-v>": { Normal: "SelectMode" },
-	  "<Ctrl-v>": { Normal: "DeselectMode" },
+	  "<v>": { User: { Normal: "SelectMode" } },
+	  "<Shift-v>": { User: { Normal: "SelectMode" } },
+	  "<Ctrl-v>": { User: { Normal: "DeselectMode" } },
 	},
     "Common": {
 	  // General movement
-	  "<k>": { Local: "Up" },
-	  "<j>": { Local: "Down" },
-	  "<h>": { Local: "Left" },
-	  "<l>": { Local: "Right" },
+	  "<k>": { User: { Common: "Up" } },
+	  "<j>": { User: { Common: "Down" } },
+	  "<h>": { User: { Common: "Left" } },
+	  "<l>": { User: { Common: "Right" } },
 
-	  "<Up>": { Local: "Up" },
-	  "<Down>": { Local: "Down" },
-	  "<Left>": { Local: "Left" },
-	  "<Right>": { Local: "Right" },
+	  "<Up>": { User: { Common: "Up" } },
+	  "<Down>": { User: { Common: "Down" } },
+	  "<Left>": { User: { Common: "Left" } },
+	  "<Right>": { User: { Common: "Right" } },
 
 	  "<0>": { ToPlayerWorker: "Previous" },
 	  "<Shift-k>": { ToPlayerWorker: "Previous" },
@@ -74,12 +74,12 @@
 	  "<Shift-c>": { ToPlayerWorker: "Pause" },
 
 	  // Advanced Movements
-	  "<Shift-g>": { Local: "Bottom" },
-	  "<g><g>": { Local: "Top" },
-	  "<g><r>": { Local: "ResetState" },
-	  "<Shift-r>": { Local: "Refresh" },
-	  "<Enter>": { Local: "Confirm" },
-	  "<q>": { Local: "Cancel" },
+	  "<Shift-g>": { User: { Common: "Bottom" } },
+	  "<g><g>": { User: { Common: "Top" } },
+	  "<g><r>": { User: { Common: "ResetState" } },
+	  "<Shift-r>": { User: { Common: "Refresh" } },
+	  "<Enter>": { User: { Common: "Confirm" } },
+	  "<q>": { User: { Common: "Cancel" } },
 	  "<Esc>":"EndKeySeq",
     },
   },

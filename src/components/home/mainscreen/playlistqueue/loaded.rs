@@ -47,11 +47,18 @@ impl<'a> Loaded<'a> {
         );
         Block::bordered().title(title).border_style(style)
     }
-    fn add_music(&self, playpos: QueueLocation) -> Option<Action> {
-        let item = self.visual.get_current();
+    fn add_music(&mut self, playpos: QueueLocation) -> Option<Action> {
+        let items = self
+            .visual
+            .get_current_selection()
+            .into_iter()
+            .cloned()
+            .collect();
+        self.visual.disable_visual(false);
+        self.visual.reset();
         Some(Action::ToPlayerWorker(ToPlayerWorker::AddToQueue {
             pos: playpos,
-            music: vec![item.clone()],
+            music: items,
         }))
     }
     pub fn new(name: String, list: FullPlaylist, enabled: bool) -> Self {

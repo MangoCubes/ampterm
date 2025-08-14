@@ -1,2 +1,2 @@
 mod popup;
-pub mod visual;
+pub mod visualtable;

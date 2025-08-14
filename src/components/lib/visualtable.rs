@@ -17,7 +17,7 @@ enum VisualMode {
     Deselect(usize),
 }
 
-pub struct Visual<'a, T> {
+pub struct VisualTable<'a, T> {
     items: Vec<T>,
     temp: VisualMode,
     // List of all selected items
@@ -28,7 +28,7 @@ pub struct Visual<'a, T> {
     comp: Table<'a>,
 }
 
-impl<'a, T> Visual<'a, T> {
+impl<'a, T> VisualTable<'a, T> {
     fn gen_table(&self) -> Table<'a> {
         let iter = self.items.iter().enumerate();
         let rows: Vec<Row> =

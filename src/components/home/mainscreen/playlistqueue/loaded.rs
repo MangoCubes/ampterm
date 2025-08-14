@@ -6,8 +6,7 @@ use crate::{
     },
     app::Mode,
     components::{
-        lib::visual::Visual,
-        traits::{component::Component, focusable::Focusable},
+        lib::visualtable::VisualTable, traits::{component::Component, focusable::Focusable}
     },
     playerworker::player::{QueueLocation, ToPlayerWorker},
     queryworker::query::ToQueryWorker,
@@ -26,7 +25,7 @@ use super::PlaylistQueueComps;
 pub struct Loaded<'a> {
     name: String,
     playlistid: PlaylistID,
-    visual: Visual<'a, Media>,
+    visual: VisualTable<'a, Media>,
     enabled: bool,
 }
 
@@ -61,7 +60,7 @@ impl<'a> Loaded<'a> {
         Self {
             name,
             playlistid: list.id,
-            visual: Visual::new(list.entry, convert, [Constraint::Min(0)].to_vec()),
+            visual: VisualTable::new(list.entry, convert, [Constraint::Min(0)].to_vec()),
             enabled,
         }
     }

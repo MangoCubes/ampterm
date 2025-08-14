@@ -178,6 +178,9 @@ impl App {
                 Action::ClearScreen => tui.terminal.clear()?,
                 Action::Resize(w, h) => self.handle_resize(tui, *w, *h)?,
                 Action::Render => self.render(tui)?,
+                Action::ChangeMode(mode) => {
+                    self.mode = *mode;
+                }
                 _ => {}
             };
             if let Some(ret) = self.component.update(action)? {

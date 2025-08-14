@@ -4,7 +4,11 @@ use crate::{
         getplaylists::PlaylistID,
         Action, Common, Normal, UserAction,
     },
-    components::{lib::visual::Visual, traits::{component::Component, focusable::Focusable}},
+    app::Mode,
+    components::{
+        lib::visual::Visual,
+        traits::{component::Component, focusable::Focusable},
+    },
     playerworker::player::{QueueLocation, ToPlayerWorker},
     queryworker::query::ToQueryWorker,
 };
@@ -100,14 +104,6 @@ impl<'a> Component for Loaded<'a> {
                 }
                 // match action {
                 //     Action::Add(loc) => Ok(self.select_music(loc)),
-                //     Action::ExitVisualModeDiscard => {
-                //         self.visual.disable_visual(false);
-                //         Ok(None)
-                //     }
-                //     Action::ExitVisualModeSave => {
-                //         self.visual.disable_visual(true);
-                //         Ok(None)
-                //     }
                 //     Action::ResetState => {
                 //         self.visual.reset();
                 //         Ok(None)
@@ -116,16 +112,29 @@ impl<'a> Component for Loaded<'a> {
                 //     _ => Ok(None),
                 // }
             }
-            Action::User(UserAction::Normal(normal)) => match normal {
-                Normal::SelectMode => {
-                    self.visual.enable_visual(false);
-                    Ok(None)
-                }
-                Normal::DeselectMode => {
-                    self.visual.enable_visual(true);
-                    Ok(None)
-                }
-                Normal::Add(queue_location) => Ok(self.add_music(queue_location)),
+            Action::User(ua) => match ua {
+                UserAction::Normal(normal) => match normal {
+                    Normal::SelectMode => {
+                        self.visual.enable_visual(false);
+                        Ok(Some(Action::ChangeMode(Mode::Visual)))
+                    }
+                    Normal::DeselectMode => {
+                        self.visual.enable_visual(true);
+                        Ok(Some(Action::ChangeMode(Mode::Visual)))
+                    }
+                    Normal::Add(queue_location) => Ok(self.add_music(queue_location)),
+                    _ => Ok(None),
+                },
+                UserAction::Visual(visual) => match visual {
+                    crate::action::Visual::ExitSave => {
+                        self.visual.disable_visual(true);
+                        Ok(Some(Action::ChangeMode(Mode::Normal)))
+                    }
+                    crate::action::Visual::ExitDiscard => {
+                        self.visual.disable_visual(false);
+                        Ok(Some(Action::ChangeMode(Mode::Normal)))
+                    }
+                },
                 _ => Ok(None),
             },
             _ => Ok(None),

@@ -1,4 +1,7 @@
-use crate::{action::Action, components::traits::component::Component};
+use crate::{
+    action::Action,
+    components::{home::mainscreen::nowplaying::NowPlayingComponent, traits::component::Component},
+};
 use color_eyre::Result;
 use ratatui::{
     layout::{Alignment, Rect},
@@ -34,3 +37,5 @@ impl Component for Stopped {
         Ok(())
     }
 }
+
+impl NowPlayingComponent for Stopped {}

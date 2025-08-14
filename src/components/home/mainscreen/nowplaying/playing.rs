@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use crate::{
     action::{Action, FromPlayerWorker, StateType},
-    components::traits::component::Component,
+    components::{home::mainscreen::nowplaying::NowPlayingComponent, traits::component::Component},
 };
 use color_eyre::Result;
 use ratatui::{
@@ -106,3 +106,5 @@ impl Component for Playing {
         Ok(())
     }
 }
+
+impl NowPlayingComponent for Playing {}

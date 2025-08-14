@@ -6,7 +6,7 @@ use crate::{
     action::{getplaylists::GetPlaylistsResponse, Action, FromQueryWorker},
     components::{
         home::mainscreen::playlistlist::{
-            error::PlaylistListError, loaded::PlaylistListLoaded, loading::PlaylistListLoading,
+            error::Error, loaded::Loaded, loading::Loading,
         },
         traits::{component::Component, focusable::Focusable},
     },
@@ -24,7 +24,7 @@ pub struct PlaylistList {
 impl PlaylistList {
     pub fn new(enabled: bool) -> Self {
         Self {
-            comp: Box::new(PlaylistListLoading::new(enabled)),
+            comp: Box::new(Loading::new(enabled)),
             enabled,
         }
     }
@@ -35,7 +35,7 @@ impl Component for PlaylistList {
         match action {
             Action::FromQueryWorker(FromQueryWorker::GetPlaylists(res)) => match res {
                 GetPlaylistsResponse::Success(simple_playlists) => {
-                    self.comp = Box::new(PlaylistListLoaded::new(
+                    self.comp = Box::new(Loaded::new(
                         self.enabled,
                         simple_playlists,
                         ListState::default().with_selected(Some(0)),
@@ -44,7 +44,7 @@ impl Component for PlaylistList {
                     Ok(None)
                 }
                 GetPlaylistsResponse::Failure(error) => {
-                    self.comp = Box::new(PlaylistListError::new(self.enabled, error));
+                    self.comp = Box::new(Error::new(self.enabled, error));
                     Ok(None)
                 }
             },

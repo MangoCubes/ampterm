@@ -19,7 +19,7 @@ use ratatui::{
     Frame,
 };
 
-pub struct PlaylistListLoaded {
+pub struct Loaded {
     comp: List<'static>,
     list: Vec<SimplePlaylist>,
     state: ListState,
@@ -27,7 +27,7 @@ pub struct PlaylistListLoaded {
     enabled: bool,
 }
 
-impl PlaylistListLoaded {
+impl Loaded {
     fn select_playlist(&self) -> Option<Action> {
         if let Some(pos) = self.state.selected() {
             let key = self.list[pos].id.clone();
@@ -88,7 +88,7 @@ impl PlaylistListLoaded {
     }
 }
 
-impl Component for PlaylistListLoaded {
+impl Component for Loaded {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::User(UserAction::Common(local)) => {
@@ -136,7 +136,7 @@ impl Component for PlaylistListLoaded {
     }
 }
 
-impl Focusable for PlaylistListLoaded {
+impl Focusable for Loaded {
     fn set_enabled(&mut self, enable: bool) {
         if self.enabled != enable {
             self.enabled = enable;
@@ -145,4 +145,4 @@ impl Focusable for PlaylistListLoaded {
     }
 }
 
-impl PlaylistListComps for PlaylistListLoaded {}
+impl PlaylistListComps for Loaded {}

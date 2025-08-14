@@ -11,14 +11,14 @@ use ratatui::{
     Frame,
 };
 
-pub struct PlaylistListError {
+pub struct Error {
     enabled: bool,
     error: String,
 }
 
-impl PlaylistListComps for PlaylistListError {}
+impl PlaylistListComps for Error {}
 
-impl PlaylistListError {
+impl Error {
     fn gen_block(enabled: bool, title: &str) -> Block<'static> {
         let style = if enabled {
             Style::new().white()
@@ -40,7 +40,7 @@ impl PlaylistListError {
     }
 }
 
-impl Component for PlaylistListError {
+impl Component for Error {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         frame.render_widget(
             Paragraph::new(vec![
@@ -49,7 +49,7 @@ impl Component for PlaylistListError {
                 Line::raw(format!("Reload with 'R'")),
             ])
             .block(
-                PlaylistListError::gen_block(self.enabled, "Playlist").padding(Padding::new(
+                Error::gen_block(self.enabled, "Playlist").padding(Padding::new(
                     0,
                     0,
                     (area.height / 2) - 1,
@@ -63,7 +63,7 @@ impl Component for PlaylistListError {
     }
 }
 
-impl Focusable for PlaylistListError {
+impl Focusable for Error {
     fn set_enabled(&mut self, enable: bool) {
         self.enabled = enable;
     }

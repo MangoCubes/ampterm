@@ -1,38 +1,21 @@
-use crate::{
-    action::getplaylists::{PlaylistID, SimplePlaylist},
-    components::{
-        home::mainscreen::playlistlist::PlaylistListComps,
-        traits::{component::Component, focusable::Focusable},
-    },
-    playerworker::player::QueueLocation,
+use crate::components::{
+    home::mainscreen::playlistlist::PlaylistListComps,
+    traits::{component::Component, focusable::Focusable},
 };
 use color_eyre::Result;
 use ratatui::{
     layout::{Alignment, Rect},
     style::{Modifier, Style, Stylize},
     text::Span,
-    widgets::{Block, List, ListState, Padding, Paragraph, Wrap},
+    widgets::{Block, Padding, Paragraph, Wrap},
     Frame,
 };
 
-enum CompState {
-    Loading,
-    Error {
-        error: String,
-    },
-    Loaded {
-        comp: List<'static>,
-        list: Vec<SimplePlaylist>,
-        state: ListState,
-        adding_playlist: Option<(PlaylistID, QueueLocation)>,
-    },
-}
-
-pub struct PlaylistListLoading {
+pub struct Loading {
     enabled: bool,
 }
 
-impl PlaylistListLoading {
+impl Loading {
     fn gen_block(enabled: bool, title: &str) -> Block<'static> {
         let style = if enabled {
             Style::new().white()
@@ -54,12 +37,12 @@ impl PlaylistListLoading {
     }
 }
 
-impl Component for PlaylistListLoading {
+impl Component for Loading {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         frame.render_widget(
             Paragraph::new("Loading...")
                 .block(
-                    PlaylistListLoading::gen_block(self.enabled, "Playlist").padding(Padding::new(
+                    Loading::gen_block(self.enabled, "Playlist").padding(Padding::new(
                         0,
                         0,
                         area.height / 2,
@@ -74,10 +57,10 @@ impl Component for PlaylistListLoading {
     }
 }
 
-impl Focusable for PlaylistListLoading {
+impl Focusable for Loading {
     fn set_enabled(&mut self, enable: bool) {
         self.enabled = enable;
     }
 }
 
-impl PlaylistListComps for PlaylistListLoading {}
+impl PlaylistListComps for Loading {}

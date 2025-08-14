@@ -8,24 +8,6 @@
 	  "<Shift-v>": { User: { Visual: "ExitSave" } },
 	  "<Ctrl-v>": { User: { Visual: "ExitSave" } },
     },
-	// Insert mode is activated when you are about to insert (or add next/last) more than one items
-	// That can happen in the following situations:
-	// - When you have selected more than one items
-	// - When you are adding a whole playlist
-	// - When you are adding more than one playlists
-	"Insert": {
-	  "<r>": { User: { Insert: "Randomise" } },
-	  // "<R>": "RandomiseABit",
-	  "<v>": { User: { Insert: "Reverse" } },
-	  "<Esc>": { User: { Insert: "CancelAdd" } },
-
-	  // These keybinds essentially work as "just add them"
-	  // There are multiple keybinds as we do not know what key you used to enter this mode
-	  "<a>": { User: { Insert: "AddAsIs" } },
-	  "<i>": { User: { Insert: "AddAsIs" } },
-	  "<Shift-i>": { User: { Insert: "AddAsIs" } },
-	  "<Shift-a>": { User: { Insert: "AddAsIs" } }
-	},
 	// This keybinding is exclusive to normal mode.
 	"Normal": {
 	  // Movement
@@ -42,7 +24,6 @@
 
 	  // Playlist manipulation
 	  // Note that both i and Shift+i are mapped to the same key
-	  // If the cursor is on a playlist, the program goes into Insert mode
 	  "<i>": { User: { Normal: { Add: "Front" } } },
 	  "<Shift-i>": { User: { Normal: { Add: "Front" } } },
 	  "<a>": { User: { Normal: { Add: "Next" } } },

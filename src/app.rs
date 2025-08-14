@@ -41,7 +41,6 @@ pub enum Mode {
     #[default]
     Normal,
     Visual,
-    Insert,
 }
 
 impl App {

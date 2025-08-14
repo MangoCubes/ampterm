@@ -1,7 +1,7 @@
 use crate::{
     action::{
         getplaylists::{PlaylistID, SimplePlaylist},
-        Action, Common, Insert, Normal, UserAction,
+        Action, Common, Normal, UserAction,
     },
     components::{
         home::mainscreen::playlistlist::PlaylistListComps,
@@ -121,12 +121,6 @@ impl Component for Loaded {
                     Ok(None)
                 }
             }
-            Action::User(UserAction::Insert(insert)) => match insert {
-                Insert::AddAsIs => todo!(),
-                Insert::Randomise => todo!(),
-                Insert::Reverse => todo!(),
-                _ => Ok(None),
-            },
             _ => Ok(None),
         }
     }

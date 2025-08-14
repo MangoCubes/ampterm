@@ -72,15 +72,6 @@ pub enum Visual {
     ExitDiscard,
 }
 
-/// Insert mode exclusive actions
-#[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
-pub enum Insert {
-    AddAsIs,
-    Randomise,
-    Reverse,
-    CancelAdd,
-}
-
 /// Normal mode exclusive actions
 #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
 pub enum Normal {
@@ -130,7 +121,6 @@ pub enum UserAction {
     Common(Common),
     Normal(Normal),
     Visual(Visual),
-    Insert(Insert),
 }
 
 #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]

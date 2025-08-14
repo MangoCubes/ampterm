@@ -108,6 +108,20 @@ impl<'a, T> VisualTable<'a, T> {
         &self.items[current]
     }
     #[inline]
+    pub fn get_current_selection(&self) -> Vec<&T> {
+        let items: Vec<&T> = self
+            .items
+            .iter()
+            .enumerate()
+            .filter_map(|(i, item)| if self.selected[i] { Some(item) } else { None })
+            .collect();
+        if items.is_empty() {
+            vec![self.get_current()]
+        } else {
+            items
+        }
+    }
+    #[inline]
     pub fn select_first(&mut self) {
         self.tablestate.select_first();
         self.comp = self.gen_table();

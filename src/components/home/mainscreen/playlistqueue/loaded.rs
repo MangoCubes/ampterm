@@ -6,7 +6,8 @@ use crate::{
     },
     app::Mode,
     components::{
-        lib::visualtable::VisualTable, traits::{component::Component, focusable::Focusable}
+        lib::visualtable::VisualTable,
+        traits::{component::Component, focusable::Focusable},
     },
     playerworker::player::{QueueLocation, ToPlayerWorker},
     queryworker::query::ToQueryWorker,

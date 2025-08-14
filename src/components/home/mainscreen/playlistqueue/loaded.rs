@@ -4,10 +4,9 @@ use crate::{
         getplaylists::PlaylistID,
         Action, Common, Normal, UserAction,
     },
-    components::traits::{component::Component, focusable::Focusable},
+    components::{lib::visual::Visual, traits::{component::Component, focusable::Focusable}},
     playerworker::player::{QueueLocation, ToPlayerWorker},
     queryworker::query::ToQueryWorker,
-    statelib::visual::Visual,
 };
 use color_eyre::Result;
 use ratatui::{

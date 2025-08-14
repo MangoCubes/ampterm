@@ -15,7 +15,6 @@ mod logging;
 mod osclient;
 mod playerworker;
 mod queryworker;
-mod statelib;
 mod tui;
 
 pub fn log_alsa_error() {

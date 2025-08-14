@@ -56,13 +56,6 @@ impl MainScreen {
         self.queuelist
             .set_enabled(self.state == CurrentlySelected::Queue);
     }
-    fn pass_action(&mut self, action: Action) -> Result<Option<Action>> {
-        match self.state {
-            CurrentlySelected::Playlists => self.pl_list.update(action),
-            CurrentlySelected::PlaylistQueue => self.pl_queue.update(action),
-            CurrentlySelected::Queue => self.queuelist.update(action),
-        }
-    }
 }
 
 impl Component for MainScreen {
@@ -124,11 +117,16 @@ impl Component for MainScreen {
             _ => {}
         };
         match &action {
-            Action::User(_) => self.pass_action(action),
+            Action::User(_) => match self.state {
+                CurrentlySelected::Playlists => self.pl_list.update(action),
+                CurrentlySelected::PlaylistQueue => self.pl_queue.update(action),
+                CurrentlySelected::Queue => self.queuelist.update(action),
+            },
             _ => {
                 // For now, the actions passed back from the three components are ignored
                 self.pl_list.update(action.clone())?;
                 self.pl_queue.update(action.clone())?;
+                self.now_playing.update(action.clone())?;
                 self.queuelist.update(action)?;
                 Ok(None)
             }

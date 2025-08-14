@@ -5,9 +5,7 @@ mod loading;
 use crate::{
     action::{getplaylists::GetPlaylistsResponse, Action, FromQueryWorker},
     components::{
-        home::mainscreen::playlistlist::{
-            error::Error, loaded::Loaded, loading::Loading,
-        },
+        home::mainscreen::playlistlist::{error::Error, loaded::Loaded, loading::Loading},
         traits::{component::Component, focusable::Focusable},
     },
 };

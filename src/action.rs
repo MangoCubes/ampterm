@@ -47,9 +47,7 @@ impl PlayState {
     }
 }
 
-/// Common actions are actions that satisfies both of these conditions:
-/// 1. They are applicable in more than one mode (Insert, Normal, etc)
-/// 2. Actions are applicable to the currently focused component
+/// Common actions are actions that are applicable in more than one mode (Insert, Normal, etc)
 #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
 pub enum Common {
     Up,
@@ -116,6 +114,7 @@ pub enum FromPlayerWorker {
     PlayerMessage(String),
 }
 
+/// FromQueryWorker enum is used to send responses from the QueryWorker to the components
 #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
 pub enum FromQueryWorker {
     // Responses from the queries
@@ -124,6 +123,8 @@ pub enum FromQueryWorker {
     GetPlaylist(GetPlaylistResponse),
 }
 
+/// These actions corresponds to user actions
+/// Additionally, these actions are limited to the currently focused component only
 #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
 pub enum UserAction {
     Common(Common),

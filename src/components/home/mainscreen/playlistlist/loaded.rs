@@ -1,6 +1,6 @@
 use crate::{
     action::{
-        getplaylists::{PlaylistID, SimplePlaylist},
+        getplaylists::SimplePlaylist,
         Action, Common, Normal, UserAction,
     },
     components::{
@@ -23,7 +23,6 @@ pub struct Loaded {
     comp: List<'static>,
     list: Vec<SimplePlaylist>,
     state: ListState,
-    adding_playlist: Option<(PlaylistID, QueueLocation)>,
     enabled: bool,
 }
 
@@ -65,24 +64,17 @@ impl Loaded {
             .highlight_style(Style::new().reversed())
             .highlight_symbol(">")
     }
-    pub fn new(
-        enabled: bool,
-        list: Vec<SimplePlaylist>,
-        state: ListState,
-        adding_playlist: Option<(PlaylistID, QueueLocation)>,
-    ) -> Self {
+    pub fn new(enabled: bool, list: Vec<SimplePlaylist>, state: ListState) -> Self {
         Self {
             enabled,
             comp: Self::gen_list(&list, enabled),
             list,
             state,
-            adding_playlist,
         }
     }
-    pub fn prepare_add_to_queue(&mut self, ql: QueueLocation) -> Option<Action> {
+    pub fn add_to_queue(&mut self, ql: QueueLocation) -> Option<Action> {
         if let Some(pos) = self.state.selected() {
             let key = self.list[pos].id.clone();
-            self.adding_playlist = Some((key, ql));
         }
         None
     }
@@ -116,7 +108,7 @@ impl Component for Loaded {
             }
             Action::User(UserAction::Normal(normal)) => {
                 if let Normal::Add(pos) = normal {
-                    Ok(self.prepare_add_to_queue(pos))
+                    Ok(self.add_to_queue(pos))
                 } else {
                     Ok(None)
                 }

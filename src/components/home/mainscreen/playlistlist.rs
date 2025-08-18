@@ -37,7 +37,6 @@ impl Component for PlaylistList {
                         self.enabled,
                         simple_playlists,
                         ListState::default().with_selected(Some(0)),
-                        None,
                     ));
                     Ok(None)
                 }

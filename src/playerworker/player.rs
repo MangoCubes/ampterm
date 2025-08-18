@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
-use crate::action::getplaylist::Media;
+use crate::osclient::response::getplaylist::Media;
 
 #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
 pub enum QueueLocation {

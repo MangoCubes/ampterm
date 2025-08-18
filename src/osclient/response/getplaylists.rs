@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-use crate::action::getplaylists::PlaylistID;
+use crate::queryworker::query::getplaylists::PlaylistID;
 
 use super::errordata::ErrorData;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct SimplePlaylist {
     pub id: PlaylistID,
     pub name: String,

@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
-use strum::Display;
+
+use crate::osclient::response::getplaylists::SimplePlaylist;
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PlaylistID(String);
@@ -22,19 +23,7 @@ impl From<PlaylistID> for String {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SimplePlaylist {
-    pub id: PlaylistID,
-    pub name: String,
-    pub owner: String,
-    pub public: bool,
-    pub created: String,
-    pub changed: String,
-    pub song_count: u32,
-    pub duration: u32,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Display, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum GetPlaylistsResponse {
     Success(Vec<SimplePlaylist>),
     Failure(String),

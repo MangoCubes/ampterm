@@ -5,12 +5,12 @@ pub mod setcredential;
 use serde::{Deserialize, Serialize};
 
 use setcredential::Credential;
-use strum::Display;
 
 use crate::{
     osclient::response::getplaylist::Media,
     queryworker::{
         query::{
+            getplaylist::GetPlaylistResponse,
             getplaylists::{GetPlaylistsResponse, PlaylistID},
             ping::PingResponse,
         },
@@ -18,7 +18,7 @@ use crate::{
     },
 };
 
-#[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum QueryType {
     SetCredential(Credential),
     GetPlaylists,
@@ -32,7 +32,7 @@ pub enum QueryType {
     Ping,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToQueryWorker {
     pub ticket: usize,
     pub query: QueryType,
@@ -45,14 +45,14 @@ impl ToQueryWorker {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ResponseType {
     // Responses from the queries
     Ping(PingResponse),
     GetPlaylists(GetPlaylistsResponse),
     GetPlaylist(GetPlaylistResponse),
 }
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FromQueryWorker {
     ticket: usize,
     query: ResponseType,

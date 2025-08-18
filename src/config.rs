@@ -545,14 +545,13 @@ mod tests {
     #[test]
     fn test_config() -> Result<()> {
         let c = Config::new()?;
-        assert_eq!(
-            c.keybindings
-                .get(&Mode::Common)
-                .unwrap()
-                .get(&parse_key_sequence("<q>").unwrap_or_default())
-                .unwrap(),
-            &Action::Quit
-        );
+        let bound_action = c
+            .keybindings
+            .get(&Mode::Common)
+            .unwrap()
+            .get(&parse_key_sequence("<q>").unwrap_or_default())
+            .unwrap();
+        assert!(matches!(bound_action, Action::Quit));
         Ok(())
     }
 

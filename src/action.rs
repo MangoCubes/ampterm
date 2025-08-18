@@ -1,26 +1,20 @@
-pub mod getplaylist;
-pub mod getplaylists;
-pub mod ping;
-
 use std::time::Duration;
 
-use getplaylist::{GetPlaylistResponse, Media};
-use getplaylists::GetPlaylistsResponse;
-use ping::PingResponse;
 use serde::{Deserialize, Serialize};
-use strum::Display;
 
+use crate::osclient::response::getplaylist::Media;
 use crate::playerworker::player::ToPlayerWorker;
+use crate::queryworker::query::FromQueryWorker;
 use crate::{app::Mode, playerworker::player::QueueLocation, queryworker::query::ToQueryWorker};
 
-#[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum StateType {
     Position(std::time::Duration),
     Volume(f32),
     Speed(f32),
 }
 
-#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PlayState {
     pub items: Vec<Media>,
     // Index is guaranteed to be in the range [0, items.len()]
@@ -28,7 +22,7 @@ pub struct PlayState {
     pub index: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum PlayOrder {
     Normal,
     Random,
@@ -48,7 +42,7 @@ impl PlayState {
 }
 
 /// Common actions are actions that are applicable in more than one mode (Insert, Normal, etc)
-#[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Common {
     Up,
     Down,
@@ -64,7 +58,7 @@ pub enum Common {
 }
 
 /// Visual mode exclusive actions
-#[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Visual {
     // Exit visual mode after applying changes
     ExitSave,
@@ -73,7 +67,7 @@ pub enum Visual {
 }
 
 /// Normal mode exclusive actions
-#[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Normal {
     // Action for moving between boxes
     WindowUp,
@@ -89,7 +83,7 @@ pub enum Normal {
 }
 
 /// These actions are emitted by the playerworker.
-#[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum FromPlayerWorker {
     // This action is used to synchronise the state of PlayerWorker with the components
     InQueue {
@@ -106,24 +100,17 @@ pub enum FromPlayerWorker {
 }
 
 /// FromQueryWorker enum is used to send responses from the QueryWorker to the components
-#[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
-pub enum FromQueryWorker {
-    // Responses from the queries
-    Ping(PingResponse),
-    GetPlaylists(GetPlaylistsResponse),
-    GetPlaylist(GetPlaylistResponse),
-}
 
 /// These actions corresponds to user actions
 /// Additionally, these actions are limited to the currently focused component only
-#[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum UserAction {
     Common(Common),
     Normal(Normal),
     Visual(Visual),
 }
 
-#[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Action {
     Suspend,
     Resume,

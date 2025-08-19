@@ -33,7 +33,7 @@ impl Component for PlaylistList {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::FromQueryWorker(qw) => {
-                if let ResponseType::GetPlaylists(res) = qw.query {
+                if let ResponseType::GetPlaylists(res) = qw.res {
                     match res {
                         GetPlaylistsResponse::Success(simple_playlists) => {
                             self.comp = Box::new(Loaded::new(

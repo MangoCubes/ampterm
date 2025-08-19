@@ -55,11 +55,11 @@ pub enum ResponseType {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FromQueryWorker {
     pub ticket: usize,
-    pub query: ResponseType,
+    pub res: ResponseType,
 }
 
 impl FromQueryWorker {
     pub fn new(ticket: usize, query: ResponseType) -> Self {
-        Self { ticket, query }
+        Self { ticket, res: query }
     }
 }

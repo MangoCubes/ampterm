@@ -211,7 +211,7 @@ impl Component for Login {
     }
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         if let Action::FromQueryWorker(res) = action {
-            if let ResponseType::Ping(pr) = res.query {
+            if let ResponseType::Ping(pr) = res.res {
                 match pr {
                     PingResponse::Success => {
                         // The code should never reach here though

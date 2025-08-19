@@ -18,18 +18,18 @@ pub enum StateType {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+pub enum PlayOrder {
+    Normal,
+    Random,
+    Reverse,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PlayState {
     pub items: Vec<Media>,
     // Index is guaranteed to be in the range [0, items.len()]
     // In other words, items[index] may be invalid because index goes out of bound by 1
     pub index: usize,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub enum PlayOrder {
-    Normal,
-    Random,
-    Reverse,
 }
 
 impl PlayState {

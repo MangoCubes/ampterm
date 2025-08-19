@@ -42,6 +42,7 @@ pub enum Normal {
     // Add to the queue
     Add(QueueLocation),
 }
+
 /// These actions corresponds to user actions
 /// Additionally, these actions are limited to the currently focused component only
 #[derive(Debug, Clone, Serialize, Deserialize)]

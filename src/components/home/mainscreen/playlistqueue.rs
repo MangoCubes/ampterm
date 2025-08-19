@@ -47,7 +47,7 @@ impl Component for PlaylistQueue {
                 Ok(None)
             }
             Action::FromQueryWorker(qw) => {
-                if let ResponseType::GetPlaylist(res) = qw.query {
+                if let ResponseType::GetPlaylist(res) = qw.res {
                     match res {
                         GetPlaylistResponse::Success(full_playlist) => {
                             self.comp = Box::new(Loaded::new(

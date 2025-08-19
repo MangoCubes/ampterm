@@ -94,7 +94,7 @@ impl Component for Home {
         // 1. Login is successful regardless of the current child component
         // 2. Login with the config credentials fails
         if let Action::FromQueryWorker(res) = &action {
-            if let ResponseType::Ping(pr) = &res.query {
+            if let ResponseType::Ping(pr) = &res.res {
                 match pr {
                     PingResponse::Success => {
                         // Switch child component to MainScreen

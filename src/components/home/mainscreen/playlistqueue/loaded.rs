@@ -1,5 +1,8 @@
 use crate::{
-    action::{Action, Common, Normal, UserAction},
+    action::{
+        useraction::{Common, Normal, UserAction, Visual},
+        Action,
+    },
     app::Mode,
     components::{
         lib::visualtable::VisualTable,
@@ -130,11 +133,11 @@ impl<'a> Component for Loaded<'a> {
                     _ => Ok(None),
                 },
                 UserAction::Visual(visual) => match visual {
-                    crate::action::Visual::ExitSave => {
+                    Visual::ExitSave => {
                         self.visual.disable_visual(true);
                         Ok(Some(Action::ChangeMode(Mode::Normal)))
                     }
-                    crate::action::Visual::ExitDiscard => {
+                    Visual::ExitDiscard => {
                         self.visual.disable_visual(false);
                         Ok(Some(Action::ChangeMode(Mode::Normal)))
                     }

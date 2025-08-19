@@ -4,7 +4,10 @@ mod playlistqueue;
 mod queuelist;
 
 use crate::{
-    action::{Action, FromPlayerWorker, Normal, UserAction},
+    action::{
+        useraction::{Normal, UserAction},
+        Action, FromPlayerWorker,
+    },
     components::traits::{component::Component, focusable::Focusable},
     queryworker::query::{QueryType, ToQueryWorker},
 };

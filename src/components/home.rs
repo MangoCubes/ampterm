@@ -10,10 +10,13 @@ use ratatui::{layout::Rect, Frame};
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
-    action::{ping::PingResponse, Action, FromQueryWorker},
+    action::Action,
     components::traits::component::Component,
     config::Config,
-    queryworker::query::{setcredential::Credential, ToQueryWorker},
+    queryworker::query::{
+        ping::PingResponse, setcredential::Credential, FromQueryWorker, QueryType, ResponseType,
+        ToQueryWorker,
+    },
     tui::Event,
 };
 
@@ -53,9 +56,10 @@ impl Home {
                 config_has_creds = true;
                 let url = creds.get_url();
                 let username = creds.get_username();
-                let action = Action::ToQueryWorker(ToQueryWorker::SetCredential(creds));
+                let action =
+                    Action::ToQueryWorker(ToQueryWorker::new(QueryType::SetCredential(creds)));
                 let _ = action_tx.send(action);
-                let _ = action_tx.send(Action::ToQueryWorker(ToQueryWorker::Ping));
+                let _ = action_tx.send(Action::ToQueryWorker(ToQueryWorker::new(QueryType::Ping)));
                 Box::new(Loading::new(url, username))
             }
             None => {
@@ -89,20 +93,22 @@ impl Component for Home {
         // Child component can change in two cases:
         // 1. Login is successful regardless of the current child component
         // 2. Login with the config credentials fails
-        if let Action::FromQueryWorker(FromQueryWorker::Ping(res)) = &action {
-            match res {
-                PingResponse::Success => {
-                    // Switch child component to MainScreen
-                    self.component = Box::new(MainScreen::new(self.action_tx.clone()));
-                    return Ok(None);
-                }
-                PingResponse::Failure(_) => {
-                    if self.config_has_creds {
-                        self.config_has_creds = false;
-                        // Switch child component to Login
-                        self.component =
-                            Box::new(Login::new(self.action_tx.clone(), self.config.clone()));
+        if let Action::FromQueryWorker(res) = &action {
+            if let ResponseType::Ping(pr) = &res.query {
+                match pr {
+                    PingResponse::Success => {
+                        // Switch child component to MainScreen
+                        self.component = Box::new(MainScreen::new(self.action_tx.clone()));
                         return Ok(None);
+                    }
+                    PingResponse::Failure(_) => {
+                        if self.config_has_creds {
+                            self.config_has_creds = false;
+                            // Switch child component to Login
+                            self.component =
+                                Box::new(Login::new(self.action_tx.clone(), self.config.clone()));
+                            return Ok(None);
+                        }
                     }
                 }
             };

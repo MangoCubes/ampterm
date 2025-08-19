@@ -6,7 +6,7 @@ mod queuelist;
 use crate::{
     action::{Action, FromPlayerWorker, Normal, UserAction},
     components::traits::{component::Component, focusable::Focusable},
-    queryworker::query::ToQueryWorker,
+    queryworker::query::{QueryType, ToQueryWorker},
 };
 use color_eyre::Result;
 use nowplaying::NowPlaying;
@@ -38,7 +38,9 @@ pub struct MainScreen {
 
 impl MainScreen {
     pub fn new(action_tx: UnboundedSender<Action>) -> Self {
-        let _ = action_tx.send(Action::ToQueryWorker(ToQueryWorker::GetPlaylists));
+        let _ = action_tx.send(Action::ToQueryWorker(ToQueryWorker::new(
+            QueryType::GetPlaylists,
+        )));
         Self {
             state: CurrentlySelected::Playlists,
             pl_list: PlaylistList::new(true),

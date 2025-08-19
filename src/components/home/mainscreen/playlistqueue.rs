@@ -4,12 +4,12 @@ mod loading;
 mod notselected;
 
 use crate::{
-    action::{getplaylist::GetPlaylistResponse, Action, FromQueryWorker},
+    action::Action,
     components::{
         home::mainscreen::playlistqueue::loading::Loading,
         traits::{component::Component, focusable::Focusable},
     },
-    queryworker::query::ToQueryWorker,
+    queryworker::query::{getplaylist::GetPlaylistResponse, QueryType, ResponseType},
 };
 use color_eyre::Result;
 use error::Error;
@@ -36,33 +36,38 @@ impl PlaylistQueue {
 impl Component for PlaylistQueue {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
-            Action::ToQueryWorker(ToQueryWorker::GetPlaylist { id, name }) => {
-                self.comp = Box::new(Loading::new(
-                    id,
-                    name.unwrap_or("Playlist Queue".to_string()),
-                    self.enabled,
-                ));
-                Ok(None)
-            }
-            Action::FromQueryWorker(FromQueryWorker::GetPlaylist(res)) => match res {
-                GetPlaylistResponse::Success(full_playlist) => {
-                    self.comp = Box::new(Loaded::new(
-                        full_playlist.name.clone(),
-                        full_playlist,
-                        self.enabled,
-                    ));
-                    Ok(None)
-                }
-                GetPlaylistResponse::Failure { id, name, msg } => {
-                    self.comp = Box::new(Error::new(
+            Action::ToQueryWorker(qw) => {
+                if let QueryType::GetPlaylist { id, name } = qw.query {
+                    self.comp = Box::new(Loading::new(
                         id,
                         name.unwrap_or("Playlist Queue".to_string()),
-                        msg,
                         self.enabled,
                     ));
-                    Ok(None)
                 }
-            },
+                Ok(None)
+            }
+            Action::FromQueryWorker(qw) => {
+                if let ResponseType::GetPlaylist(res) = qw.query {
+                    match res {
+                        GetPlaylistResponse::Success(full_playlist) => {
+                            self.comp = Box::new(Loaded::new(
+                                full_playlist.name.clone(),
+                                full_playlist,
+                                self.enabled,
+                            ));
+                        }
+                        GetPlaylistResponse::Failure { id, name, msg } => {
+                            self.comp = Box::new(Error::new(
+                                id,
+                                name.unwrap_or("Playlist Queue".to_string()),
+                                msg,
+                                self.enabled,
+                            ));
+                        }
+                    }
+                };
+                Ok(None)
+            }
             _ => self.comp.update(action),
         }
     }

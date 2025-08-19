@@ -16,10 +16,10 @@ use tokio::task::JoinHandle;
 use tokio::time::sleep;
 use tokio_util::sync::CancellationToken;
 
-use crate::action::getplaylist::Media;
 use crate::action::{Action, FromPlayerWorker, PlayState, StateType};
 use crate::config::Config;
-use crate::queryworker::query::ToQueryWorker;
+use crate::osclient::response::getplaylist::Media;
+use crate::queryworker::query::{QueryType, ToQueryWorker};
 use crate::trace_dbg;
 
 enum WorkerState {
@@ -265,9 +265,9 @@ impl PlayerWorker {
             Some(i) => {
                 let _ = self
                     .action_tx
-                    .send(Action::ToQueryWorker(ToQueryWorker::GetUrlByMedia {
-                        media: i.clone(),
-                    }));
+                    .send(Action::ToQueryWorker(ToQueryWorker::new(
+                        QueryType::GetUrlByMedia { media: i.clone() },
+                    )));
                 self.state = WorkerState::Loading { current: cleaned };
             }
             None => self.state = WorkerState::Idle { play_next: cleaned },

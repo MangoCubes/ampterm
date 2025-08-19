@@ -1,14 +1,12 @@
 use crate::{
-    action::{
-        getplaylists::SimplePlaylist,
-        Action, Common, Normal, UserAction,
-    },
+    action::{Action, Common, Normal, UserAction},
     components::{
         home::mainscreen::playlistlist::PlaylistListComps,
         traits::{component::Component, focusable::Focusable},
     },
+    osclient::response::getplaylists::SimplePlaylist,
     playerworker::player::QueueLocation,
-    queryworker::query::ToQueryWorker,
+    queryworker::query::{QueryType, ToQueryWorker},
 };
 use color_eyre::Result;
 use ratatui::{
@@ -31,10 +29,12 @@ impl Loaded {
         if let Some(pos) = self.state.selected() {
             let key = self.list[pos].id.clone();
             let name = self.list[pos].name.clone();
-            Some(Action::ToQueryWorker(ToQueryWorker::GetPlaylist {
-                name: Some(name),
-                id: key,
-            }))
+            Some(Action::ToQueryWorker(ToQueryWorker::new(
+                QueryType::GetPlaylist {
+                    name: Some(name),
+                    id: key,
+                },
+            )))
         } else {
             None
         }

@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::queryworker::query::getplaylists::PlaylistID;
+
 use super::errordata::ErrorData;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -82,7 +84,7 @@ pub struct Media {
 }
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct FullPlaylist {
-    pub id: String,
+    pub id: PlaylistID,
     pub name: String,
     pub comment: Option<String>,
     pub owner: Option<String>,

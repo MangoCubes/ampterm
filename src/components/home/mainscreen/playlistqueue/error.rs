@@ -1,6 +1,6 @@
 use crate::{
-    action::getplaylists::PlaylistID,
     components::traits::{component::Component, focusable::Focusable},
+    queryworker::query::getplaylists::PlaylistID,
 };
 use color_eyre::Result;
 use ratatui::{

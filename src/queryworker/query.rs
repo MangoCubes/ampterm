@@ -54,8 +54,8 @@ pub enum ResponseType {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FromQueryWorker {
-    ticket: usize,
-    query: ResponseType,
+    pub ticket: usize,
+    pub query: ResponseType,
 }
 
 impl FromQueryWorker {

@@ -4,6 +4,13 @@
 #+TITLE: Architecture
 * Note
 - This is mostly for me to keep my thoughts in order.
+* Callback Handling
+- =QueryWorker= is a component that fetches remote resources, and therefore may have an action combined with it
+- Callback is handled by each component independently
+- Whenever a query is sent, a ticket is generated for that query
+  - The component that sends out the action stores this ticket number
+- When the query is complete, the response is sent out to all of the components
+- Each component looks into the ticket number, and runs the callback function
 * Player Worker Management
 ** Queue Management
 - Queue is stored as a VecDeque<Media>

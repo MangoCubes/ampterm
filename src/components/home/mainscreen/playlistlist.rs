@@ -46,8 +46,10 @@ impl Component for PlaylistList {
                             self.comp = Box::new(Error::new(self.enabled, error));
                         }
                     }
+                    Ok(None)
+                } else {
+                    self.comp.update(Action::FromQueryWorker(qw))
                 }
-                Ok(None)
             }
             _ => self.comp.update(action),
         }

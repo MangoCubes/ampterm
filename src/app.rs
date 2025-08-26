@@ -164,6 +164,14 @@ impl App {
                     debug!("{action:?}");
                 }
             }
+            if let Action::Multiple(actions) = action {
+                for a in actions {
+                    if let Some(ac) = a {
+                        self.action_tx.send(ac.clone())?
+                    }
+                }
+                continue;
+            };
 
             match &action {
                 Action::EndKeySeq => {
@@ -189,7 +197,7 @@ impl App {
             if let Some(ret) = self.component.update(action)? {
                 debug!("Got {ret:?} as a response");
                 self.action_tx.send(ret)?
-            }
+            };
         }
         Ok(())
     }

@@ -90,4 +90,5 @@ pub enum Action {
     // Action for deleting all key sequences currently stored
     // It's like escape in Vim, and Ctrl+G in Emacs
     EndKeySeq,
+    Multiple(Vec<Option<Action>>),
 }

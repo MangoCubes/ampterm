@@ -10,8 +10,11 @@ use crate::{
         traits::{component::Component, focusable::Focusable},
     },
     osclient::response::getplaylists::SimplePlaylist,
-    playerworker::player::QueueLocation,
-    queryworker::query::{getplaylists::PlaylistID, QueryType, ToQueryWorker},
+    playerworker::player::{QueueLocation, ToPlayerWorker},
+    queryworker::query::{
+        getplaylist::GetPlaylistResponse, getplaylists::PlaylistID, QueryType, ResponseType,
+        ToQueryWorker,
+    },
 };
 use color_eyre::Result;
 use ratatui::{
@@ -21,6 +24,7 @@ use ratatui::{
     widgets::{Block, List, ListState},
     Frame,
 };
+use ratatui_image::picker::cap_parser::Response;
 use tracing::error;
 
 pub struct Loaded {
@@ -28,7 +32,7 @@ pub struct Loaded {
     list: Vec<SimplePlaylist>,
     state: ListState,
     enabled: bool,
-    callback: HashMap<usize, PlaylistID>,
+    callback: HashMap<usize, (PlaylistID, QueueLocation)>,
 }
 
 impl Loaded {
@@ -85,7 +89,7 @@ impl Loaded {
                 name,
                 id: key.clone(),
             });
-            self.callback.insert(req.ticket, key);
+            self.callback.insert(req.ticket, (key, ql));
             Some(Action::ToQueryWorker(req))
         } else {
             error!("Failed to add playlist to queue: No playlist selected");
@@ -97,6 +101,30 @@ impl Loaded {
 impl Component for Loaded {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
+            Action::FromQueryWorker(res) => {
+                if let Some(cb) = self.callback.remove(&res.ticket) {
+                    if let ResponseType::GetPlaylist(res) = res.res {
+                        match res {
+                            GetPlaylistResponse::Success(full_playlist) => {
+                                return Ok(Some(Action::ToPlayerWorker(
+                                    ToPlayerWorker::AddToQueue {
+                                        music: full_playlist.entry,
+                                        pos: cb.1,
+                                    },
+                                )));
+                            }
+                            GetPlaylistResponse::Failure {
+                                id: _,
+                                name: _,
+                                msg,
+                            } => {
+                                error!("Failed to add playlist to queue: {msg}");
+                            }
+                        }
+                    }
+                }
+                Ok(None)
+            }
             Action::User(UserAction::Common(local)) => {
                 match local {
                     Common::Up => {

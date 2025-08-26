@@ -127,14 +127,12 @@ impl Component for MainScreen {
                 CurrentlySelected::PlaylistQueue => self.pl_queue.update(action),
                 CurrentlySelected::Queue => self.queuelist.update(action),
             },
-            _ => {
-                // For now, the actions passed back from the three components are ignored
-                self.pl_list.update(action.clone())?;
-                self.pl_queue.update(action.clone())?;
-                self.now_playing.update(action.clone())?;
-                self.queuelist.update(action)?;
-                Ok(None)
-            }
+            _ => Ok(Some(Action::Multiple(vec![
+                self.pl_list.update(action.clone())?,
+                self.pl_queue.update(action.clone())?,
+                self.now_playing.update(action.clone())?,
+                self.queuelist.update(action)?,
+            ]))),
         }
     }
 }

@@ -247,7 +247,7 @@ impl PlayerWorker {
                 self.sink.stop();
                 (*current as i32) + skip_by
             }
-            WorkerState::Idle { play_next } => (*play_next) as i32,
+            WorkerState::Idle { play_next } => (*play_next as i32) + skip_by,
         };
         let cleaned = if index >= 0 {
             if index >= self.queue.len().try_into().unwrap() {

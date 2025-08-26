@@ -1,16 +1,16 @@
 use crate::{
     action::{
-        getplaylist::{FullPlaylist, Media},
-        getplaylists::PlaylistID,
-        Action, Common, Normal, UserAction,
+        useraction::{Common, Normal, UserAction, Visual},
+        Action,
     },
     app::Mode,
     components::{
         lib::visualtable::VisualTable,
         traits::{component::Component, focusable::Focusable},
     },
+    osclient::response::getplaylist::{FullPlaylist, Media},
     playerworker::player::{QueueLocation, ToPlayerWorker},
-    queryworker::query::ToQueryWorker,
+    queryworker::query::{getplaylists::PlaylistID, QueryType, ToQueryWorker},
 };
 use color_eyre::Result;
 use ratatui::{
@@ -101,12 +101,12 @@ impl<'a> Component for Loaded<'a> {
                         self.visual.select_last();
                         Ok(None)
                     }
-                    Common::Refresh => {
-                        Ok(Some(Action::ToQueryWorker(ToQueryWorker::GetPlaylist {
+                    Common::Refresh => Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
+                        QueryType::GetPlaylist {
                             name: Some(self.name.to_string()),
                             id: self.playlistid.clone(),
-                        })))
-                    }
+                        },
+                    )))),
                     _ => Ok(None),
                 }
                 // match action {
@@ -133,11 +133,11 @@ impl<'a> Component for Loaded<'a> {
                     _ => Ok(None),
                 },
                 UserAction::Visual(visual) => match visual {
-                    crate::action::Visual::ExitSave => {
+                    Visual::ExitSave => {
                         self.visual.disable_visual(true);
                         Ok(Some(Action::ChangeMode(Mode::Normal)))
                     }
-                    crate::action::Visual::ExitDiscard => {
+                    Visual::ExitDiscard => {
                         self.visual.disable_visual(false);
                         Ok(Some(Action::ChangeMode(Mode::Normal)))
                     }

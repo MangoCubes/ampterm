@@ -8,8 +8,8 @@ use ratatui::{
 };
 
 use crate::{
-    action::getplaylists::PlaylistID,
     components::traits::{component::Component, focusable::Focusable},
+    queryworker::query::getplaylists::PlaylistID,
 };
 
 use super::PlaylistQueueComps;

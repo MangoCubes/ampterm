@@ -7,8 +7,9 @@ use ratatui::{
 };
 
 use crate::{
-    action::{getplaylist::Media, Action, FromPlayerWorker, PlayState},
+    action::{Action, FromPlayerWorker, PlayState},
     components::traits::{component::Component, focusable::Focusable},
+    osclient::response::getplaylist::Media,
 };
 use color_eyre::Result;
 

@@ -1,5 +1,3 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
-
 use color_eyre::Result;
 
 use crossterm::event::KeyEvent;
@@ -45,12 +43,7 @@ pub enum Mode {
     Visual,
 }
 
-static COUNTER: AtomicUsize = AtomicUsize::new(1);
-
 impl App {
-    pub fn get_id() -> usize {
-        COUNTER.fetch_add(1, Ordering::Relaxed)
-    }
     pub fn new(tick_rate: f64, frame_rate: f64) -> Result<Self> {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
         let config = Config::new()?;
@@ -164,9 +157,12 @@ impl App {
 
     fn handle_actions(&mut self, tui: &mut Tui) -> Result<()> {
         while let Ok(action) = self.action_rx.try_recv() {
-            if action != Action::Tick && action != Action::Render {
-                debug!("{action:?}");
-            };
+            match &action {
+                Action::Tick | Action::Render => {}
+                _ => {
+                    debug!("{action:?}");
+                }
+            }
 
             match &action {
                 Action::EndKeySeq => {

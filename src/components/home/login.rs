@@ -11,9 +11,11 @@ use tokio::sync::mpsc::UnboundedSender;
 use tui_textarea::{CursorMove, TextArea};
 
 use crate::{
-    action::{ping::PingResponse, Action, FromQueryWorker},
+    action::Action,
     config::Config,
-    queryworker::query::{setcredential::Credential, ToQueryWorker},
+    queryworker::query::{
+        ping::PingResponse, setcredential::Credential, QueryType, ResponseType, ToQueryWorker,
+    },
 };
 
 use super::Component;
@@ -115,16 +117,18 @@ impl Login {
         self.status = Status::Pending;
         self.status_msg = Some(vec!["Logging in...".to_string()]);
         self.update_style();
-        let action = Action::ToQueryWorker(ToQueryWorker::SetCredential(Credential::Password {
-            url,
-            secure: true,
-            username,
-            password,
-            legacy: self.config.config.use_legacy_auth,
-        }));
+        let action = Action::ToQueryWorker(ToQueryWorker::new(QueryType::SetCredential(
+            Credential::Password {
+                url,
+                secure: true,
+                username,
+                password,
+                legacy: self.config.config.use_legacy_auth,
+            },
+        )));
         self.action_tx.send(action)?;
         self.action_tx
-            .send(Action::ToQueryWorker(ToQueryWorker::Ping))?;
+            .send(Action::ToQueryWorker(ToQueryWorker::new(QueryType::Ping)))?;
         Ok(())
     }
     pub fn new(action_tx: UnboundedSender<Action>, config: Config) -> Self {
@@ -206,19 +210,21 @@ impl Component for Login {
         Ok(())
     }
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        if let Action::FromQueryWorker(FromQueryWorker::Ping(res)) = action {
-            match res {
-                PingResponse::Success => {
-                    // The code should never reach here though
-                    self.status = Status::Normal;
-                    self.update_style();
-                }
-                PingResponse::Failure(msg) => {
-                    self.set_error(msg);
-                    self.status = Status::Error;
-                    self.update_style();
-                }
-            };
+        if let Action::FromQueryWorker(res) = action {
+            if let ResponseType::Ping(pr) = res.res {
+                match pr {
+                    PingResponse::Success => {
+                        // The code should never reach here though
+                        self.status = Status::Normal;
+                        self.update_style();
+                    }
+                    PingResponse::Failure(msg) => {
+                        self.set_error(msg);
+                        self.status = Status::Error;
+                        self.update_style();
+                    }
+                };
+            }
         }
         Ok(None)
     }

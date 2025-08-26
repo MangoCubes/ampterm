@@ -3,11 +3,12 @@ mod loaded;
 mod loading;
 
 use crate::{
-    action::{getplaylists::GetPlaylistsResponse, Action, FromQueryWorker},
+    action::Action,
     components::{
         home::mainscreen::playlistlist::{error::Error, loaded::Loaded, loading::Loading},
         traits::{component::Component, focusable::Focusable},
     },
+    queryworker::query::{getplaylists::GetPlaylistsResponse, FromQueryWorker, ResponseType},
 };
 use color_eyre::Result;
 use ratatui::{layout::Rect, widgets::ListState, Frame};
@@ -31,20 +32,23 @@ impl PlaylistList {
 impl Component for PlaylistList {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
-            Action::FromQueryWorker(FromQueryWorker::GetPlaylists(res)) => match res {
-                GetPlaylistsResponse::Success(simple_playlists) => {
-                    self.comp = Box::new(Loaded::new(
-                        self.enabled,
-                        simple_playlists,
-                        ListState::default().with_selected(Some(0)),
-                    ));
-                    Ok(None)
+            Action::FromQueryWorker(qw) => {
+                if let ResponseType::GetPlaylists(res) = qw.res {
+                    match res {
+                        GetPlaylistsResponse::Success(simple_playlists) => {
+                            self.comp = Box::new(Loaded::new(
+                                self.enabled,
+                                simple_playlists,
+                                ListState::default().with_selected(Some(0)),
+                            ));
+                        }
+                        GetPlaylistsResponse::Failure(error) => {
+                            self.comp = Box::new(Error::new(self.enabled, error));
+                        }
+                    }
                 }
-                GetPlaylistsResponse::Failure(error) => {
-                    self.comp = Box::new(Error::new(self.enabled, error));
-                    Ok(None)
-                }
-            },
+                Ok(None)
+            }
             _ => self.comp.update(action),
         }
     }

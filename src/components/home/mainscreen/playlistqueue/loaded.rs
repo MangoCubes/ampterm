@@ -103,7 +103,7 @@ impl<'a> Component for Loaded<'a> {
                     }
                     Common::Refresh => Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
                         QueryType::GetPlaylist {
-                            name: Some(self.name.to_string()),
+                            name: self.name.to_string(),
                             id: self.playlistid.clone(),
                         },
                     )))),

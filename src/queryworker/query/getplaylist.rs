@@ -8,7 +8,7 @@ pub enum GetPlaylistResponse {
     Success(FullPlaylist),
     Failure {
         id: PlaylistID,
-        name: Option<String>,
+        name: String,
         msg: String,
     },
 }

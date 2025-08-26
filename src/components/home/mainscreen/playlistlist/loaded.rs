@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{
     action::{
         useraction::{Common, Normal, UserAction},
@@ -9,7 +11,7 @@ use crate::{
     },
     osclient::response::getplaylists::SimplePlaylist,
     playerworker::player::QueueLocation,
-    queryworker::query::{QueryType, ToQueryWorker},
+    queryworker::query::{getplaylists::PlaylistID, QueryType, ToQueryWorker},
 };
 use color_eyre::Result;
 use ratatui::{
@@ -19,12 +21,14 @@ use ratatui::{
     widgets::{Block, List, ListState},
     Frame,
 };
+use tracing::error;
 
 pub struct Loaded {
     comp: List<'static>,
     list: Vec<SimplePlaylist>,
     state: ListState,
     enabled: bool,
+    callback: HashMap<usize, PlaylistID>,
 }
 
 impl Loaded {
@@ -33,10 +37,7 @@ impl Loaded {
             let key = self.list[pos].id.clone();
             let name = self.list[pos].name.clone();
             Some(Action::ToQueryWorker(ToQueryWorker::new(
-                QueryType::GetPlaylist {
-                    name: Some(name),
-                    id: key,
-                },
+                QueryType::GetPlaylist { name, id: key },
             )))
         } else {
             None
@@ -73,13 +74,23 @@ impl Loaded {
             comp: Self::gen_list(&list, enabled),
             list,
             state,
+            callback: HashMap::new(),
         }
     }
     pub fn add_to_queue(&mut self, ql: QueueLocation) -> Option<Action> {
         if let Some(pos) = self.state.selected() {
             let key = self.list[pos].id.clone();
+            let name = self.list[pos].name.clone();
+            let req = ToQueryWorker::new(QueryType::GetPlaylist {
+                name,
+                id: key.clone(),
+            });
+            self.callback.insert(req.ticket, key);
+            Some(Action::ToQueryWorker(req))
+        } else {
+            error!("Failed to add playlist to queue: No playlist selected");
+            None
         }
-        None
     }
 }
 

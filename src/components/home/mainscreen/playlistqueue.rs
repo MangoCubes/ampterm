@@ -38,11 +38,7 @@ impl Component for PlaylistQueue {
         match action {
             Action::ToQueryWorker(qw) => {
                 if let QueryType::GetPlaylist { id, name } = qw.query {
-                    self.comp = Box::new(Loading::new(
-                        id,
-                        name.unwrap_or("Playlist Queue".to_string()),
-                        self.enabled,
-                    ));
+                    self.comp = Box::new(Loading::new(id, name, self.enabled));
                 }
                 Ok(None)
             }
@@ -57,12 +53,7 @@ impl Component for PlaylistQueue {
                             ));
                         }
                         GetPlaylistResponse::Failure { id, name, msg } => {
-                            self.comp = Box::new(Error::new(
-                                id,
-                                name.unwrap_or("Playlist Queue".to_string()),
-                                msg,
-                                self.enabled,
-                            ));
+                            self.comp = Box::new(Error::new(id, name, msg, self.enabled));
                         }
                     }
                 };

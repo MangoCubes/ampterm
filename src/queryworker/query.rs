@@ -22,13 +22,8 @@ use crate::{
 pub enum QueryType {
     SetCredential(Credential),
     GetPlaylists,
-    GetPlaylist {
-        name: Option<String>,
-        id: PlaylistID,
-    },
-    GetUrlByMedia {
-        media: Media,
-    },
+    GetPlaylist { name: String, id: PlaylistID },
+    GetUrlByMedia { media: Media },
     Ping,
 }
 

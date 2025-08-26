@@ -37,15 +37,6 @@ impl QueryWorker {
     pub fn get_ticket() -> usize {
         COUNTER.fetch_add(1, Ordering::Relaxed)
     }
-    fn wrapper(&self, cb: impl Fn(Arc<OSClient>, UnboundedSender<Action>) -> ()) {
-        match &self.client {
-            Some(c) => {
-                let tx = self.action_tx.clone();
-                cb(c.clone(), tx);
-            }
-            None => tracing::error!("Invalid state: Tried querying, but client does not exist!"),
-        };
-    }
 
     pub async fn get_playlists(c: Arc<OSClient>) -> GetPlaylistsResponse {
         match c.get_playlists().await {

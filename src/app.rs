@@ -32,6 +32,7 @@ pub struct App {
     action_rx: mpsc::UnboundedReceiver<Action>,
     query_tx: mpsc::UnboundedSender<ToQueryWorker>,
     player_tx: mpsc::UnboundedSender<ToPlayerWorker>,
+    // This is necessary because if this gets dropped, the audio stops
     stream: rodio::OutputStream,
 }
 

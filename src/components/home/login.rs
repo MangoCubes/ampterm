@@ -131,7 +131,11 @@ impl Login {
             .send(Action::ToQueryWorker(ToQueryWorker::new(QueryType::Ping)))?;
         Ok(())
     }
-    pub fn new(action_tx: UnboundedSender<Action>, config: Config) -> Self {
+    pub fn new(
+        action_tx: UnboundedSender<Action>,
+        msg: Option<Vec<String>>,
+        config: Config,
+    ) -> Self {
         let mut res = Self {
             username: TextArea::default(),
             password: TextArea::default(),
@@ -139,7 +143,7 @@ impl Login {
             action_tx,
             mode: Mode::default(),
             status: Status::default(),
-            status_msg: None,
+            status_msg: msg,
             config,
         };
         res.url.move_cursor(CursorMove::End);

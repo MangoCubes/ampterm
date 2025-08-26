@@ -12,10 +12,9 @@ use tokio::sync::mpsc::UnboundedSender;
 use crate::{
     action::Action,
     components::traits::component::Component,
-    config::Config,
+    config::{get_config_dir, Config},
     queryworker::query::{
-        ping::PingResponse, setcredential::Credential, FromQueryWorker, QueryType, ResponseType,
-        ToQueryWorker,
+        ping::PingResponse, setcredential::Credential, QueryType, ResponseType, ToQueryWorker,
     },
     tui::Event,
 };
@@ -58,13 +57,20 @@ impl Home {
                 let username = creds.get_username();
                 let action =
                     Action::ToQueryWorker(ToQueryWorker::new(QueryType::SetCredential(creds)));
-                let _ = action_tx.send(action);
+                if let Err(err) = action_tx.send(action) {};
                 let _ = action_tx.send(Action::ToQueryWorker(ToQueryWorker::new(QueryType::Ping)));
                 Box::new(Loading::new(url, username))
             }
             None => {
                 config_has_creds = false;
-                Box::new(Login::new(action_tx.clone(), config.clone()))
+                Box::new(Login::new(
+                    action_tx.clone(),
+                    Some(vec![
+                        "No credentials detected in the config.".to_string(),
+                        format!("(Loaded config from {:?})", get_config_dir()),
+                    ]),
+                    config.clone(),
+                ))
             }
         };
         Self {
@@ -101,12 +107,19 @@ impl Component for Home {
                         self.component = Box::new(MainScreen::new(self.action_tx.clone()));
                         return Ok(None);
                     }
-                    PingResponse::Failure(_) => {
+                    PingResponse::Failure(err) => {
                         if self.config_has_creds {
                             self.config_has_creds = false;
                             // Switch child component to Login
-                            self.component =
-                                Box::new(Login::new(self.action_tx.clone(), self.config.clone()));
+                            self.component = Box::new(Login::new(
+                                self.action_tx.clone(),
+                                Some(vec![
+                                    "Failed to query the server with the given credentials!"
+                                        .to_string(),
+                                    format!("Error: {}", err),
+                                ]),
+                                self.config.clone(),
+                            ));
                             return Ok(None);
                         }
                     }

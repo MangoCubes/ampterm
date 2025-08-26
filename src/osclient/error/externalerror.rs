@@ -19,8 +19,7 @@ impl Display for ErrType {
 }
 
 // This error is given when the error occurs during the querying
-// In other words, if this error is shown to the user, it means that the media server has not been
-// involved.
+// In other words, the cause that triggered this error does not involve the media server
 #[derive(Debug)]
 pub struct ExternalError {
     reason: ErrType,

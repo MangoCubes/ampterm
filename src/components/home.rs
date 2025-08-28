@@ -11,7 +11,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
     action::Action,
-    components::traits::component::Component,
+    components::traits::{asynccomponent::AsyncComponent, asyncupdatecomp::AsyncUpdateComp, component::Component},
     config::{get_config_dir, Config},
     queryworker::query::{
         ping::PingResponse, setcredential::Credential, QueryType, ResponseType, ToQueryWorker,
@@ -19,10 +19,35 @@ use crate::{
     tui::Event,
 };
 
+enum Comp {
+    Main(MainScreen),
+    Loading(Loading),
+    Login(Login)
+}
+
+impl Component for Comp {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+        match self {
+            Comp::Loading(c) => c.draw(frame, area),
+            Comp::Login(c) => c.draw(frame, area),
+            Comp::Main(c) => c.draw(frame, area),
+        }
+    }
+}
+
+impl AsyncUpdateComp for Comp {
+    async fn update(&mut self, action: Action) -> Result<Option<Action>> {
+        match self {
+            Comp::Loading(c) => c.update(action).await,
+            Comp::Login(c) => c.update(action).await,
+            Comp::Main(c) => c.update(action).await,
+        }
+    }
+}
+
 pub struct Home {
     action_tx: UnboundedSender<Action>,
-    component: Box<dyn Component>,
-    config_has_creds: bool,
+    component: Comp,
     config: Config,
 }
 
@@ -49,21 +74,18 @@ impl Home {
                 None => None,
             }
         };
-        let config_has_creds;
-        let comp: Box<dyn Component> = match config_creds {
+        let comp: Comp = match config_creds {
             Some(creds) => {
-                config_has_creds = true;
                 let url = creds.get_url();
                 let username = creds.get_username();
                 let action =
                     Action::ToQueryWorker(ToQueryWorker::new(QueryType::SetCredential(creds)));
                 if let Err(err) = action_tx.send(action) {};
                 let _ = action_tx.send(Action::ToQueryWorker(ToQueryWorker::new(QueryType::Ping)));
-                Box::new(Loading::new(url, username))
+                Comp::Loading(Loading::new(url, username))
             }
             None => {
-                config_has_creds = false;
-                Box::new(Login::new(
+                Comp::Login(Login::new(
                     action_tx.clone(),
                     Some(vec![
                         "No credentials detected in the config.".to_string(),
@@ -76,7 +98,6 @@ impl Home {
         Self {
             action_tx,
             component: comp,
-            config_has_creds,
             config,
         }
     }
@@ -95,7 +116,10 @@ impl Component for Home {
         }
         Ok(())
     }
-    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+}
+
+impl AsyncUpdateComp for Home{
+        async fn update(&mut self, action: Action) -> Result<Option<Action>> {
         // Child component can change in two cases:
         // 1. Login is successful regardless of the current child component
         // 2. Login with the config credentials fails
@@ -104,14 +128,13 @@ impl Component for Home {
                 match pr {
                     PingResponse::Success => {
                         // Switch child component to MainScreen
-                        self.component = Box::new(MainScreen::new(self.action_tx.clone()));
+                        self.component = Comp::Main(MainScreen::new(self.action_tx.clone()));
                         return Ok(None);
                     }
                     PingResponse::Failure(err) => {
-                        if self.config_has_creds {
-                            self.config_has_creds = false;
+                        if let Comp::Loading(l) = &self.component {
                             // Switch child component to Login
-                            self.component = Box::new(Login::new(
+                            self.component = Comp::Login(Login::new(
                                 self.action_tx.clone(),
                                 Some(vec![
                                     "Failed to query the server with the given credentials!"
@@ -126,6 +149,6 @@ impl Component for Home {
                 }
             };
         };
-        self.component.update(action)
+        self.component.update(action).await
     }
 }

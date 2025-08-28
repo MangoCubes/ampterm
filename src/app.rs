@@ -23,7 +23,7 @@ pub struct App {
     config: Config,
     tick_rate: f64,
     frame_rate: f64,
-    component: Box<dyn Component>,
+    component: Home,
     should_quit: bool,
     should_suspend: bool,
     mode: Mode,
@@ -76,7 +76,7 @@ impl App {
         Ok(Self {
             tick_rate,
             frame_rate,
-            component: Box::new(Home::new(action_tx.clone(), config.clone())),
+            component: Home::new(action_tx.clone(), config.clone()),
             should_quit: false,
             should_suspend: false,
             config,
@@ -100,7 +100,7 @@ impl App {
         let action_tx = self.action_tx.clone();
         loop {
             self.handle_events(&mut tui).await?;
-            self.handle_actions(&mut tui)?;
+            self.handle_actions(&mut tui).await?;
             if self.should_suspend {
                 tui.suspend()?;
                 action_tx.send(Action::Resume)?;
@@ -156,7 +156,7 @@ impl App {
         Ok(())
     }
 
-    fn handle_actions(&mut self, tui: &mut Tui) -> Result<()> {
+    async fn handle_actions(&mut self, tui: &mut Tui) -> Result<()> {
         while let Ok(action) = self.action_rx.try_recv() {
             match &action {
                 Action::Tick | Action::Render => {}
@@ -194,7 +194,7 @@ impl App {
                 }
                 _ => {}
             };
-            if let Some(ret) = self.component.update(action)? {
+            if let Some(ret) = self.component.update(action).await? {
                 debug!("Got {ret:?} as a response");
                 self.action_tx.send(ret)?
             };

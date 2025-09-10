@@ -14,10 +14,6 @@ use ratatui::{
 };
 
 pub struct Playing {
-    state: CompState,
-}
-
-struct CompState {
     vol: f32,
     speed: f32,
     pos: Duration,
@@ -38,15 +34,13 @@ impl Playing {
         pos: Duration,
     ) -> Self {
         Self {
-            state: CompState {
-                vol,
-                speed,
-                pos,
-                title,
-                artist,
-                album,
-                length,
-            },
+            vol,
+            speed,
+            pos,
+            title,
+            artist,
+            album,
+            length,
         }
     }
 }
@@ -55,9 +49,9 @@ impl Component for Playing {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         if let Action::FromPlayerWorker(FromPlayerWorker::PlayerState(s)) = action {
             match s {
-                StateType::Position(pos) => self.state.pos = pos,
-                StateType::Volume(v) => self.state.vol = v,
-                StateType::Speed(s) => self.state.speed = s,
+                StateType::Position(pos) => self.pos = pos,
+                StateType::Volume(v) => self.vol = v,
+                StateType::Speed(s) => self.speed = s,
             };
         } else if let Action::FromPlayerWorker(FromPlayerWorker::InQueue {
             play: _,
@@ -66,7 +60,7 @@ impl Component for Playing {
             pos: _,
         }) = action
         {
-            self.state.pos = Duration::default();
+            self.pos = Duration::default();
         }
         Ok(None)
     }
@@ -75,8 +69,8 @@ impl Component for Playing {
         let areas = vertical.split(area);
         frame.render_widget(
             Paragraph::new(vec![
-                Line::raw(format!("{} - {}", self.state.artist, self.state.title)).bold(),
-                Line::raw(format!("{}", self.state.album)),
+                Line::raw(format!("{} - {}", self.artist, self.title)).bold(),
+                Line::raw(format!("{}", self.album)),
             ])
             .block(
                 Block::default()
@@ -88,12 +82,12 @@ impl Component for Playing {
         );
         let label = format!(
             "{:02}:{:02} / {:02}:{:02}",
-            self.state.pos.as_secs() / 60,
-            self.state.pos.as_secs() % 60,
-            self.state.length / 60,
-            self.state.length % 60,
+            self.pos.as_secs() / 60,
+            self.pos.as_secs() % 60,
+            self.length / 60,
+            self.length % 60,
         );
-        let percent = ((self.state.pos.as_secs() as i32 * 100) / self.state.length) as u16;
+        let percent = ((self.pos.as_secs() as i32 * 100) / self.length) as u16;
         let adjusted = if percent > 100 { 100 } else { percent };
         frame.render_widget(
             Gauge::default().label(label).percent(adjusted).block(

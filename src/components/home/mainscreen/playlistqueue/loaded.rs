@@ -6,12 +6,11 @@ use crate::{
     app::Mode,
     components::{
         lib::visualtable::VisualTable,
-        traits::{component::Component, focusable::Focusable},
+        traits::{asynccomp::AsyncComp, component::Component, focusable::Focusable},
     },
     osclient::response::getplaylist::{FullPlaylist, Media},
     playerworker::player::{QueueLocation, ToPlayerWorker},
     queryworker::query::{getplaylists::PlaylistID, QueryType, ToQueryWorker},
-    trace_dbg,
 };
 use color_eyre::Result;
 use ratatui::{
@@ -92,6 +91,9 @@ impl<'a> Component for Loaded<'a> {
         frame.render_widget(border, area);
         self.visual.draw(frame, inner)
     }
+}
+
+impl<'a> AsyncComp for Loaded<'a> {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::User(UserAction::Common(local)) => {

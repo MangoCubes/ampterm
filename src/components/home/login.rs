@@ -13,9 +13,7 @@ use tui_textarea::{CursorMove, TextArea};
 use crate::{
     action::Action,
     config::Config,
-    queryworker::query::{
-        ping::PingResponse, setcredential::Credential, QueryType, ResponseType, ToQueryWorker,
-    },
+    queryworker::query::{setcredential::Credential, QueryType, ToQueryWorker},
 };
 
 use super::Component;

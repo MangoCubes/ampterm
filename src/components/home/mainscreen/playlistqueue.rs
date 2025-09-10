@@ -7,7 +7,7 @@ use crate::{
     action::Action,
     components::{
         home::mainscreen::playlistqueue::loading::Loading,
-        traits::{component::Component, focusable::Focusable},
+        traits::{component::Component, focusable::Focusable, synccomp::SyncComp},
     },
     queryworker::query::{getplaylist::GetPlaylistResponse, QueryType, ResponseType},
 };
@@ -34,6 +34,12 @@ impl PlaylistQueue {
 }
 
 impl Component for PlaylistQueue {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+        self.comp.draw(frame, area)
+    }
+}
+
+impl SyncComp for PlaylistQueue {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::ToQueryWorker(qw) => {
@@ -61,9 +67,6 @@ impl Component for PlaylistQueue {
             }
             _ => self.comp.update(action),
         }
-    }
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        self.comp.draw(frame, area)
     }
 }
 

@@ -8,11 +8,16 @@ use stopped::Stopped;
 
 use crate::{
     action::{Action, FromPlayerWorker},
-    components::traits::component::Component,
+    components::traits::{component::Component, synccomp::SyncComp},
 };
 
+enum Comp {
+    Playing(Playing),
+    Stopped(Stopped),
+}
+
 pub struct NowPlaying {
-    comp: Box<dyn NowPlayingComponent>,
+    comp: Comp,
 }
 
 pub trait NowPlayingComponent: Component {}
@@ -20,12 +25,18 @@ pub trait NowPlayingComponent: Component {}
 impl NowPlaying {
     pub fn new() -> Self {
         Self {
-            comp: Box::new(Stopped::new()),
+            comp: Comp::Stopped(Stopped::new()),
         }
     }
 }
 
 impl Component for NowPlaying {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+        self.comp.draw(frame, area)
+    }
+}
+
+impl SyncComp for NowPlaying {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         if let Action::FromPlayerWorker(FromPlayerWorker::InQueue {
             vol,
@@ -36,7 +47,7 @@ impl Component for NowPlaying {
         {
             match play.items.get(play.index) {
                 Some(p) => {
-                    self.comp = Box::new(Playing::new(
+                    self.comp = Comp::Playing(Playing::new(
                         p.title.clone(),
                         p.artist.clone().unwrap_or("Unknown".to_string()),
                         p.album.clone().unwrap_or("Unknown".to_string()),
@@ -46,14 +57,11 @@ impl Component for NowPlaying {
                         pos,
                     ));
                 }
-                None => self.comp = Box::new(Stopped::new()),
+                None => self.comp = Comp::Stopped(Stopped::new()),
             };
             Ok(None)
         } else {
             self.comp.update(action)
         }
-    }
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        self.comp.draw(frame, area)
     }
 }

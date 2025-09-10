@@ -2,7 +2,10 @@ use std::time::Duration;
 
 use crate::{
     action::{Action, FromPlayerWorker, StateType},
-    components::{home::mainscreen::nowplaying::NowPlayingComponent, traits::component::Component},
+    components::{
+        home::mainscreen::nowplaying::NowPlayingComponent,
+        traits::{component::Component, synccomp::SyncComp},
+    },
 };
 use color_eyre::Result;
 use ratatui::{
@@ -51,7 +54,7 @@ impl Playing {
     }
 }
 
-impl Component for Playing {
+impl SyncComp for Playing {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         if let Action::FromPlayerWorker(FromPlayerWorker::PlayerState(s)) = action {
             match s {
@@ -70,6 +73,9 @@ impl Component for Playing {
         }
         Ok(None)
     }
+}
+
+impl Component for Playing {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let vertical = Layout::vertical([Constraint::Percentage(50), Constraint::Percentage(50)]);
         let areas = vertical.split(area);

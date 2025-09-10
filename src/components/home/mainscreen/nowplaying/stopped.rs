@@ -1,6 +1,5 @@
-use crate::{
-    action::Action,
-    components::{home::mainscreen::nowplaying::NowPlayingComponent, traits::component::Component},
+use crate::components::{
+    home::mainscreen::nowplaying::NowPlayingComponent, traits::component::Component,
 };
 use color_eyre::Result;
 use ratatui::{
@@ -22,10 +21,6 @@ impl Stopped {
 }
 
 impl Component for Stopped {
-    fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        let _ = action;
-        Ok(None)
-    }
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         frame.render_widget(
             Paragraph::new("Select a music!")

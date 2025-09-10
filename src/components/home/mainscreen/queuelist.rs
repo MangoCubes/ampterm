@@ -8,7 +8,7 @@ use ratatui::{
 
 use crate::{
     action::{Action, FromPlayerWorker, PlayState},
-    components::traits::{component::Component, focusable::Focusable},
+    components::traits::{component::Component, focusable::Focusable, synccomp::SyncComp},
     osclient::response::getplaylist::Media,
 };
 use color_eyre::Result;
@@ -100,6 +100,9 @@ impl Component for QueueList {
         frame.render_stateful_widget(&self.comp, area, &mut self.state);
         Ok(())
     }
+}
+
+impl SyncComp for QueueList {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         if let Action::FromPlayerWorker(FromPlayerWorker::InQueue {
             play,

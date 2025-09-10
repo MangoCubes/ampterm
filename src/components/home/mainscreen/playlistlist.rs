@@ -5,8 +5,8 @@ mod loading;
 use crate::{
     action::Action,
     components::{
-        home::mainscreen::playlistlist::{error::Error, loaded::Loaded, loading::Loading},
-        traits::{component::Component, focusable::Focusable},
+        home::mainscreen::playlistlist::{self, error::Error, loaded::Loaded, loading::Loading},
+        traits::{component::Component, focusable::Focusable, synccomp::SyncComp},
     },
     queryworker::query::{getplaylists::GetPlaylistsResponse, FromQueryWorker, ResponseType},
 };
@@ -30,6 +30,12 @@ impl PlaylistList {
 }
 
 impl Component for PlaylistList {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+        self.comp.draw(frame, area)
+    }
+}
+
+impl SyncComp for PlaylistList {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::FromQueryWorker(qw) => {
@@ -53,9 +59,6 @@ impl Component for PlaylistList {
             }
             _ => self.comp.update(action),
         }
-    }
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        self.comp.draw(frame, area)
     }
 }
 

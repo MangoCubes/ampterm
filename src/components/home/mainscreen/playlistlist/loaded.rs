@@ -7,7 +7,7 @@ use crate::{
     },
     components::{
         home::mainscreen::playlistlist::PlaylistListComps,
-        traits::{component::Component, focusable::Focusable},
+        traits::{asynccomp::AsyncComp, component::Component, focusable::Focusable},
     },
     osclient::response::getplaylists::SimplePlaylist,
     playerworker::player::{QueueLocation, ToPlayerWorker},
@@ -24,7 +24,6 @@ use ratatui::{
     widgets::{Block, List, ListState},
     Frame,
 };
-use ratatui_image::picker::cap_parser::Response;
 use tracing::error;
 
 pub struct Loaded {
@@ -99,6 +98,22 @@ impl Loaded {
 }
 
 impl Component for Loaded {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+        frame.render_stateful_widget(&self.comp, area, &mut self.state);
+        Ok(())
+    }
+}
+
+impl Focusable for Loaded {
+    fn set_enabled(&mut self, enable: bool) {
+        if self.enabled != enable {
+            self.enabled = enable;
+            self.comp = Self::gen_list(&self.list, self.enabled);
+        };
+    }
+}
+
+impl AsyncComp for Loaded {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::FromQueryWorker(res) => {
@@ -157,19 +172,6 @@ impl Component for Loaded {
             }
             _ => Ok(None),
         }
-    }
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        frame.render_stateful_widget(&self.comp, area, &mut self.state);
-        Ok(())
-    }
-}
-
-impl Focusable for Loaded {
-    fn set_enabled(&mut self, enable: bool) {
-        if self.enabled != enable {
-            self.enabled = enable;
-            self.comp = Self::gen_list(&self.list, self.enabled);
-        };
     }
 }
 

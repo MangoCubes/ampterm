@@ -12,7 +12,10 @@ use tracing::{debug, info};
 
 use crate::{
     action::Action,
-    components::{home::Home, traits::component::Component},
+    components::{
+        home::Home,
+        traits::{asynccomp::AsyncComp, component::Component},
+    },
     config::Config,
     playerworker::{player::ToPlayerWorker, PlayerWorker},
     queryworker::{query::ToQueryWorker, QueryWorker},

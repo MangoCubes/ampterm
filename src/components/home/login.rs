@@ -213,23 +213,4 @@ impl Component for Login {
         }
         Ok(())
     }
-    fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        if let Action::FromQueryWorker(res) = action {
-            if let ResponseType::Ping(pr) = res.res {
-                match pr {
-                    PingResponse::Success => {
-                        // The code should never reach here though
-                        self.status = Status::Normal;
-                        self.update_style();
-                    }
-                    PingResponse::Failure(msg) => {
-                        self.set_error(msg);
-                        self.status = Status::Error;
-                        self.update_style();
-                    }
-                };
-            }
-        }
-        Ok(None)
-    }
 }

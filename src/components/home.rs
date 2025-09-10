@@ -11,7 +11,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
     action::Action,
-    components::traits::{asynccomponent::AsyncComponent, asyncupdatecomp::AsyncUpdateComp, component::Component},
+    components::traits::{asynccomp::AsyncComp, component::Component},
     config::{get_config_dir, Config},
     queryworker::query::{
         ping::PingResponse, setcredential::Credential, QueryType, ResponseType, ToQueryWorker,
@@ -22,7 +22,7 @@ use crate::{
 enum Comp {
     Main(MainScreen),
     Loading(Loading),
-    Login(Login)
+    Login(Login),
 }
 
 impl Component for Comp {
@@ -35,12 +35,12 @@ impl Component for Comp {
     }
 }
 
-impl AsyncUpdateComp for Comp {
+impl AsyncComp for Comp {
     async fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        match self {
-            Comp::Loading(c) => c.update(action).await,
-            Comp::Login(c) => c.update(action).await,
-            Comp::Main(c) => c.update(action).await,
+        if let Comp::Main(c) = self {
+            c.update(action).await
+        } else {
+            Ok(None)
         }
     }
 }
@@ -84,16 +84,14 @@ impl Home {
                 let _ = action_tx.send(Action::ToQueryWorker(ToQueryWorker::new(QueryType::Ping)));
                 Comp::Loading(Loading::new(url, username))
             }
-            None => {
-                Comp::Login(Login::new(
-                    action_tx.clone(),
-                    Some(vec![
-                        "No credentials detected in the config.".to_string(),
-                        format!("(Loaded config from {:?})", get_config_dir()),
-                    ]),
-                    config.clone(),
-                ))
-            }
+            None => Comp::Login(Login::new(
+                action_tx.clone(),
+                Some(vec![
+                    "No credentials detected in the config.".to_string(),
+                    format!("(Loaded config from {:?})", get_config_dir()),
+                ]),
+                config.clone(),
+            )),
         };
         Self {
             action_tx,
@@ -118,8 +116,8 @@ impl Component for Home {
     }
 }
 
-impl AsyncUpdateComp for Home{
-        async fn update(&mut self, action: Action) -> Result<Option<Action>> {
+impl AsyncComp for Home {
+    async fn update(&mut self, action: Action) -> Result<Option<Action>> {
         // Child component can change in two cases:
         // 1. Login is successful regardless of the current child component
         // 2. Login with the config credentials fails

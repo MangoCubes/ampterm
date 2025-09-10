@@ -8,7 +8,7 @@ use crate::{
         useraction::{Normal, UserAction},
         Action, FromPlayerWorker,
     },
-    components::traits::{component::Component, focusable::Focusable},
+    components::traits::{asynccomp::AsyncComp, component::Component, focusable::Focusable},
     queryworker::query::{QueryType, ToQueryWorker},
 };
 use color_eyre::Result;
@@ -91,7 +91,10 @@ impl Component for MainScreen {
         );
         Ok(())
     }
-    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+}
+
+impl AsyncComp for MainScreen {
+    async fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match &action {
             Action::FromPlayerWorker(pw) => {
                 if let FromPlayerWorker::PlayerError(msg) | FromPlayerWorker::PlayerMessage(msg) =

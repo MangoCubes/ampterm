@@ -8,7 +8,9 @@ use crate::{
         useraction::{Normal, UserAction},
         Action, FromPlayerWorker,
     },
-    components::traits::{asynccomp::AsyncComp, component::Component, focusable::Focusable},
+    components::traits::{
+        asynccomp::AsyncComp, component::Component, focusable::Focusable, synccomp::SyncComp,
+    },
     queryworker::query::{QueryType, ToQueryWorker},
 };
 use color_eyre::Result;
@@ -126,13 +128,13 @@ impl AsyncComp for MainScreen {
         };
         match &action {
             Action::User(_) => match self.state {
-                CurrentlySelected::Playlists => self.pl_list.update(action),
-                CurrentlySelected::PlaylistQueue => self.pl_queue.update(action),
+                CurrentlySelected::Playlists => self.pl_list.update(action).await,
+                CurrentlySelected::PlaylistQueue => self.pl_queue.update(action).await,
                 CurrentlySelected::Queue => self.queuelist.update(action),
             },
             _ => Ok(Some(Action::Multiple(vec![
-                self.pl_list.update(action.clone())?,
-                self.pl_queue.update(action.clone())?,
+                self.pl_list.update(action.clone()).await?,
+                self.pl_queue.update(action.clone()).await?,
                 self.now_playing.update(action.clone())?,
                 self.queuelist.update(action)?,
             ]))),

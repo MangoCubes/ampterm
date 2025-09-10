@@ -20,8 +20,6 @@ pub struct NowPlaying {
     comp: Comp,
 }
 
-pub trait NowPlayingComponent: Component {}
-
 impl NowPlaying {
     pub fn new() -> Self {
         Self {
@@ -32,7 +30,10 @@ impl NowPlaying {
 
 impl Component for NowPlaying {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        self.comp.draw(frame, area)
+        match &mut self.comp {
+            Comp::Playing(playing) => playing.draw(frame, area),
+            Comp::Stopped(stopped) => stopped.draw(frame, area),
+        }
     }
 }
 
@@ -61,7 +62,11 @@ impl SyncComp for NowPlaying {
             };
             Ok(None)
         } else {
-            self.comp.update(action)
+            if let Comp::Playing(comp) = &mut self.comp {
+                comp.update(action)
+            } else {
+                Ok(None)
+            }
         }
     }
 }

@@ -12,8 +12,6 @@ use crate::{
     queryworker::query::getplaylists::PlaylistID,
 };
 
-use super::PlaylistQueueComps;
-
 pub struct Loading {
     id: PlaylistID,
     name: String,
@@ -67,4 +65,3 @@ impl Focusable for Loading {
         self.enabled = enable;
     }
 }
-impl PlaylistQueueComps for Loading {}

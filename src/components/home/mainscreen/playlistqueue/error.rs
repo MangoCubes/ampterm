@@ -11,8 +11,6 @@ use ratatui::{
     Frame,
 };
 
-use super::PlaylistQueueComps;
-
 pub struct Error {
     id: PlaylistID,
     name: String,
@@ -75,5 +73,3 @@ impl Focusable for Error {
         self.enabled = enable;
     }
 }
-
-impl PlaylistQueueComps for Error {}

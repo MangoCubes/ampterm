@@ -21,8 +21,6 @@ use ratatui::{
     Frame,
 };
 
-use super::PlaylistQueueComps;
-
 pub struct Loaded<'a> {
     name: String,
     playlistid: PlaylistID,
@@ -94,7 +92,7 @@ impl<'a> Component for Loaded<'a> {
 }
 
 impl<'a> AsyncComp for Loaded<'a> {
-    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+    async fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::User(UserAction::Common(local)) => {
                 match local {
@@ -182,5 +180,3 @@ impl<'a> Focusable for Loaded<'a> {
         };
     }
 }
-
-impl<'a> PlaylistQueueComps for Loaded<'a> {}

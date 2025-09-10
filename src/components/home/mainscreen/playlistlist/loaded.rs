@@ -5,10 +5,7 @@ use crate::{
         useraction::{Common, Normal, UserAction},
         Action,
     },
-    components::{
-        home::mainscreen::playlistlist::PlaylistListComps,
-        traits::{asynccomp::AsyncComp, component::Component, focusable::Focusable},
-    },
+    components::traits::{asynccomp::AsyncComp, component::Component, focusable::Focusable},
     osclient::response::getplaylists::SimplePlaylist,
     playerworker::player::{QueueLocation, ToPlayerWorker},
     queryworker::query::{
@@ -114,7 +111,7 @@ impl Focusable for Loaded {
 }
 
 impl AsyncComp for Loaded {
-    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+    async fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::FromQueryWorker(res) => {
                 if let Some(cb) = self.callback.remove(&res.ticket) {
@@ -174,5 +171,3 @@ impl AsyncComp for Loaded {
         }
     }
 }
-
-impl PlaylistListComps for Loaded {}

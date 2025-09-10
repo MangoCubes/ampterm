@@ -1,7 +1,4 @@
-use crate::components::{
-    home::mainscreen::playlistlist::PlaylistListComps,
-    traits::{component::Component, focusable::Focusable},
-};
+use crate::components::traits::{component::Component, focusable::Focusable};
 use color_eyre::Result;
 use ratatui::{
     layout::{Alignment, Rect},
@@ -15,8 +12,6 @@ pub struct Error {
     enabled: bool,
     error: String,
 }
-
-impl PlaylistListComps for Error {}
 
 impl Error {
     fn gen_block(enabled: bool, title: &str) -> Block<'static> {

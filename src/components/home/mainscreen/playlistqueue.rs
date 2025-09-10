@@ -7,7 +7,9 @@ use crate::{
     action::Action,
     components::{
         home::mainscreen::playlistqueue::loading::Loading,
-        traits::{component::Component, focusable::Focusable, synccomp::SyncComp},
+        traits::{
+            asynccomp::AsyncComp, component::Component, focusable::Focusable, synccomp::SyncComp,
+        },
     },
     queryworker::query::{getplaylist::GetPlaylistResponse, QueryType, ResponseType},
 };
@@ -17,17 +19,22 @@ use loaded::Loaded;
 use notselected::NotSelected;
 use ratatui::{layout::Rect, Frame};
 
-pub trait PlaylistQueueComps: Focusable {}
+enum Comp {
+    Error(Error),
+    Loaded(Loaded<'static>),
+    Loading(Loading),
+    NotSelected(NotSelected),
+}
 
 pub struct PlaylistQueue {
-    comp: Box<dyn PlaylistQueueComps>,
+    comp: Comp,
     enabled: bool,
 }
 
 impl PlaylistQueue {
     pub fn new(enabled: bool) -> Self {
         Self {
-            comp: Box::new(NotSelected::new(enabled)),
+            comp: Comp::NotSelected(NotSelected::new(enabled)),
             enabled,
         }
     }
@@ -35,16 +42,21 @@ impl PlaylistQueue {
 
 impl Component for PlaylistQueue {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        self.comp.draw(frame, area)
+        match &mut self.comp {
+            Comp::Error(error) => error.draw(frame, area),
+            Comp::Loaded(loaded) => loaded.draw(frame, area),
+            Comp::Loading(loading) => loading.draw(frame, area),
+            Comp::NotSelected(not_selected) => not_selected.draw(frame, area),
+        }
     }
 }
 
-impl SyncComp for PlaylistQueue {
-    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+impl AsyncComp for PlaylistQueue {
+    async fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::ToQueryWorker(qw) => {
                 if let QueryType::GetPlaylist { id, name } = qw.query {
-                    self.comp = Box::new(Loading::new(id, name, self.enabled));
+                    self.comp = Comp::Loading(Loading::new(id, name, self.enabled));
                 }
                 Ok(None)
             }
@@ -52,20 +64,26 @@ impl SyncComp for PlaylistQueue {
                 if let ResponseType::GetPlaylist(res) = qw.res {
                     match res {
                         GetPlaylistResponse::Success(full_playlist) => {
-                            self.comp = Box::new(Loaded::new(
+                            self.comp = Comp::Loaded(Loaded::new(
                                 full_playlist.name.clone(),
                                 full_playlist,
                                 self.enabled,
                             ));
                         }
                         GetPlaylistResponse::Failure { id, name, msg } => {
-                            self.comp = Box::new(Error::new(id, name, msg, self.enabled));
+                            self.comp = Comp::Error(Error::new(id, name, msg, self.enabled));
                         }
                     }
                 };
                 Ok(None)
             }
-            _ => self.comp.update(action),
+            _ => {
+                if let Comp::Loaded(comp) = &mut self.comp {
+                    comp.update(action).await
+                } else {
+                    Ok(None)
+                }
+            }
         }
     }
 }
@@ -74,7 +92,12 @@ impl Focusable for PlaylistQueue {
     fn set_enabled(&mut self, enable: bool) {
         if self.enabled != enable {
             self.enabled = enable;
-            self.comp.set_enabled(enable);
+            match &mut self.comp {
+                Comp::Error(error) => error.set_enabled(enable),
+                Comp::Loaded(loaded) => loaded.set_enabled(enable),
+                Comp::Loading(loading) => loading.set_enabled(enable),
+                Comp::NotSelected(not_selected) => not_selected.set_enabled(enable),
+            }
         };
     }
 }

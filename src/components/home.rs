@@ -25,26 +25,6 @@ enum Comp {
     Login(Login),
 }
 
-impl Component for Comp {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        match self {
-            Comp::Loading(c) => c.draw(frame, area),
-            Comp::Login(c) => c.draw(frame, area),
-            Comp::Main(c) => c.draw(frame, area),
-        }
-    }
-}
-
-impl AsyncComp for Comp {
-    async fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        if let Comp::Main(c) = self {
-            c.update(action).await
-        } else {
-            Ok(None)
-        }
-    }
-}
-
 pub struct Home {
     action_tx: UnboundedSender<Action>,
     component: Comp,
@@ -103,16 +83,18 @@ impl Home {
 
 impl Component for Home {
     fn handle_events(&mut self, event: Event) -> Result<Option<Action>> {
-        if let Some(action) = self.component.handle_events(event)? {
-            self.action_tx.send(action)?;
+        if let Comp::Main(c) = &mut self.component {
+            c.handle_events(event)
+        } else {
+            Ok(None)
         }
-        Ok(None)
     }
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        if let Err(err) = self.component.draw(frame, area) {
-            self.action_tx.send(Action::Error(err.to_string()))?;
+        match &mut self.component {
+            Comp::Loading(c) => c.draw(frame, area),
+            Comp::Login(c) => c.draw(frame, area),
+            Comp::Main(c) => c.draw(frame, area),
         }
-        Ok(())
     }
 }
 
@@ -147,6 +129,10 @@ impl AsyncComp for Home {
                 }
             };
         };
-        self.component.update(action).await
+        if let Comp::Main(c) = &mut self.component {
+            c.update(action).await
+        } else {
+            Ok(None)
+        }
     }
 }

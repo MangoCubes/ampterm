@@ -5,25 +5,29 @@ mod loading;
 use crate::{
     action::Action,
     components::{
-        home::mainscreen::playlistlist::{self, error::Error, loaded::Loaded, loading::Loading},
-        traits::{component::Component, focusable::Focusable, synccomp::SyncComp},
+        home::mainscreen::playlistlist::{error::Error, loaded::Loaded, loading::Loading},
+        traits::{asynccomp::AsyncComp, component::Component, focusable::Focusable},
     },
-    queryworker::query::{getplaylists::GetPlaylistsResponse, FromQueryWorker, ResponseType},
+    queryworker::query::{getplaylists::GetPlaylistsResponse, ResponseType},
 };
 use color_eyre::Result;
 use ratatui::{layout::Rect, widgets::ListState, Frame};
 
-pub trait PlaylistListComps: Focusable {}
+enum Comp {
+    Error(Error),
+    Loaded(Loaded),
+    Loading(Loading),
+}
 
 pub struct PlaylistList {
-    comp: Box<dyn PlaylistListComps>,
+    comp: Comp,
     enabled: bool,
 }
 
 impl PlaylistList {
     pub fn new(enabled: bool) -> Self {
         Self {
-            comp: Box::new(Loading::new(enabled)),
+            comp: Comp::Loading(Loading::new(enabled)),
             enabled,
         }
     }
@@ -31,33 +35,47 @@ impl PlaylistList {
 
 impl Component for PlaylistList {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        self.comp.draw(frame, area)
+        match &mut self.comp {
+            Comp::Error(error) => error.draw(frame, area),
+            Comp::Loaded(loaded) => loaded.draw(frame, area),
+            Comp::Loading(loading) => loading.draw(frame, area),
+        }
     }
 }
 
-impl SyncComp for PlaylistList {
-    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+impl AsyncComp for PlaylistList {
+    async fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::FromQueryWorker(qw) => {
                 if let ResponseType::GetPlaylists(res) = qw.res {
                     match res {
                         GetPlaylistsResponse::Success(simple_playlists) => {
-                            self.comp = Box::new(Loaded::new(
+                            self.comp = Comp::Loaded(Loaded::new(
                                 self.enabled,
                                 simple_playlists,
                                 ListState::default().with_selected(Some(0)),
                             ));
                         }
                         GetPlaylistsResponse::Failure(error) => {
-                            self.comp = Box::new(Error::new(self.enabled, error));
+                            self.comp = Comp::Error(Error::new(self.enabled, error));
                         }
                     }
                     Ok(None)
                 } else {
-                    self.comp.update(Action::FromQueryWorker(qw))
+                    if let Comp::Loaded(comp) = &mut self.comp {
+                        comp.update(Action::FromQueryWorker(qw)).await
+                    } else {
+                        Ok(None)
+                    }
                 }
             }
-            _ => self.comp.update(action),
+            _ => {
+                if let Comp::Loaded(comp) = &mut self.comp {
+                    comp.update(action).await
+                } else {
+                    Ok(None)
+                }
+            }
         }
     }
 }
@@ -66,7 +84,11 @@ impl Focusable for PlaylistList {
     fn set_enabled(&mut self, enable: bool) {
         if self.enabled != enable {
             self.enabled = enable;
-            self.comp.set_enabled(enable);
+            match &mut self.comp {
+                Comp::Error(error) => error.set_enabled(enable),
+                Comp::Loaded(loaded) => loaded.set_enabled(enable),
+                Comp::Loading(loading) => loading.set_enabled(enable),
+            }
         };
     }
 }

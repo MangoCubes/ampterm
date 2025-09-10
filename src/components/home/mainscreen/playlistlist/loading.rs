@@ -1,7 +1,4 @@
-use crate::components::{
-    home::mainscreen::playlistlist::PlaylistListComps,
-    traits::{component::Component, focusable::Focusable},
-};
+use crate::components::traits::{component::Component, focusable::Focusable};
 use color_eyre::Result;
 use ratatui::{
     layout::{Alignment, Rect},
@@ -62,5 +59,3 @@ impl Focusable for Loading {
         self.enabled = enable;
     }
 }
-
-impl PlaylistListComps for Loading {}

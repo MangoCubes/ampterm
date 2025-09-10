@@ -6,7 +6,7 @@ use crate::{
     app::Mode,
     components::{
         lib::visualtable::VisualTable,
-        traits::{asynccomp::AsyncComp, component::Component, focusable::Focusable},
+        traits::{component::Component, focusable::Focusable},
     },
     osclient::response::getplaylist::{FullPlaylist, Media},
     playerworker::player::{QueueLocation, ToPlayerWorker},
@@ -89,10 +89,7 @@ impl<'a> Component for Loaded<'a> {
         frame.render_widget(border, area);
         self.visual.draw(frame, inner)
     }
-}
-
-impl<'a> AsyncComp for Loaded<'a> {
-    async fn update(&mut self, action: Action) -> Result<Option<Action>> {
+    fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::User(UserAction::Common(local)) => {
                 match local {

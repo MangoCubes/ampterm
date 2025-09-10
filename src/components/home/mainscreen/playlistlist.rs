@@ -6,7 +6,7 @@ use crate::{
     action::Action,
     components::{
         home::mainscreen::playlistlist::{error::Error, loaded::Loaded, loading::Loading},
-        traits::{asynccomp::AsyncComp, component::Component, focusable::Focusable},
+        traits::{component::Component, focusable::Focusable},
     },
     queryworker::query::{getplaylists::GetPlaylistsResponse, ResponseType},
 };
@@ -41,10 +41,7 @@ impl Component for PlaylistList {
             Comp::Loading(loading) => loading.draw(frame, area),
         }
     }
-}
-
-impl AsyncComp for PlaylistList {
-    async fn update(&mut self, action: Action) -> Result<Option<Action>> {
+    fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::FromQueryWorker(qw) => {
                 if let ResponseType::GetPlaylists(res) = qw.res {
@@ -63,7 +60,7 @@ impl AsyncComp for PlaylistList {
                     Ok(None)
                 } else {
                     if let Comp::Loaded(comp) = &mut self.comp {
-                        comp.update(Action::FromQueryWorker(qw)).await
+                        comp.update(Action::FromQueryWorker(qw))
                     } else {
                         Ok(None)
                     }
@@ -71,7 +68,7 @@ impl AsyncComp for PlaylistList {
             }
             _ => {
                 if let Comp::Loaded(comp) = &mut self.comp {
-                    comp.update(action).await
+                    comp.update(action)
                 } else {
                     Ok(None)
                 }

@@ -8,7 +8,7 @@ use stopped::Stopped;
 
 use crate::{
     action::{Action, FromPlayerWorker},
-    components::traits::{component::Component, synccomp::SyncComp},
+    components::traits::component::Component,
 };
 
 enum Comp {
@@ -35,9 +35,6 @@ impl Component for NowPlaying {
             Comp::Stopped(stopped) => stopped.draw(frame, area),
         }
     }
-}
-
-impl SyncComp for NowPlaying {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         if let Action::FromPlayerWorker(FromPlayerWorker::InQueue {
             vol,

@@ -11,7 +11,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
     action::Action,
-    components::traits::{asynccomp::AsyncComp, component::Component},
+    components::traits::component::Component,
     config::{get_config_dir, Config},
     queryworker::query::{
         ping::PingResponse, setcredential::Credential, QueryType, ResponseType, ToQueryWorker,
@@ -96,10 +96,7 @@ impl Component for Home {
             Comp::Main(c) => c.draw(frame, area),
         }
     }
-}
-
-impl AsyncComp for Home {
-    async fn update(&mut self, action: Action) -> Result<Option<Action>> {
+    fn update(&mut self, action: Action) -> Result<Option<Action>> {
         // Child component can change in two cases:
         // 1. Login is successful regardless of the current child component
         // 2. Login with the config credentials fails
@@ -130,7 +127,7 @@ impl AsyncComp for Home {
             };
         };
         if let Comp::Main(c) = &mut self.component {
-            c.update(action).await
+            c.update(action)
         } else {
             Ok(None)
         }

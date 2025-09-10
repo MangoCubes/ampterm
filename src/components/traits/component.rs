@@ -62,4 +62,8 @@ pub trait Component {
     ///
     /// * `Result<()>` - An Ok result or an error.
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()>;
+    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+        let _ = action; // to appease clippy
+        Ok(None)
+    }
 }

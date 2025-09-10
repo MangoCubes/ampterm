@@ -8,9 +8,7 @@ use crate::{
         useraction::{Normal, UserAction},
         Action, FromPlayerWorker,
     },
-    components::traits::{
-        asynccomp::AsyncComp, component::Component, focusable::Focusable, synccomp::SyncComp,
-    },
+    components::traits::{component::Component, focusable::Focusable},
     queryworker::query::{QueryType, ToQueryWorker},
 };
 use color_eyre::Result;
@@ -93,10 +91,7 @@ impl Component for MainScreen {
         );
         Ok(())
     }
-}
-
-impl AsyncComp for MainScreen {
-    async fn update(&mut self, action: Action) -> Result<Option<Action>> {
+    fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match &action {
             Action::FromPlayerWorker(pw) => {
                 if let FromPlayerWorker::PlayerError(msg) | FromPlayerWorker::PlayerMessage(msg) =
@@ -128,13 +123,13 @@ impl AsyncComp for MainScreen {
         };
         match &action {
             Action::User(_) => match self.state {
-                CurrentlySelected::Playlists => self.pl_list.update(action).await,
-                CurrentlySelected::PlaylistQueue => self.pl_queue.update(action).await,
+                CurrentlySelected::Playlists => self.pl_list.update(action),
+                CurrentlySelected::PlaylistQueue => self.pl_queue.update(action),
                 CurrentlySelected::Queue => self.queuelist.update(action),
             },
             _ => Ok(Some(Action::Multiple(vec![
-                self.pl_list.update(action.clone()).await?,
-                self.pl_queue.update(action.clone()).await?,
+                self.pl_list.update(action.clone())?,
+                self.pl_queue.update(action.clone())?,
                 self.now_playing.update(action.clone())?,
                 self.queuelist.update(action)?,
             ]))),

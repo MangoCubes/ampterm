@@ -7,9 +7,7 @@ use crate::{
     action::Action,
     components::{
         home::mainscreen::playlistqueue::loading::Loading,
-        traits::{
-            asynccomp::AsyncComp, component::Component, focusable::Focusable, synccomp::SyncComp,
-        },
+        traits::{component::Component, focusable::Focusable},
     },
     queryworker::query::{getplaylist::GetPlaylistResponse, QueryType, ResponseType},
 };
@@ -49,10 +47,7 @@ impl Component for PlaylistQueue {
             Comp::NotSelected(not_selected) => not_selected.draw(frame, area),
         }
     }
-}
-
-impl AsyncComp for PlaylistQueue {
-    async fn update(&mut self, action: Action) -> Result<Option<Action>> {
+    fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::ToQueryWorker(qw) => {
                 if let QueryType::GetPlaylist { id, name } = qw.query {
@@ -79,7 +74,7 @@ impl AsyncComp for PlaylistQueue {
             }
             _ => {
                 if let Comp::Loaded(comp) = &mut self.comp {
-                    comp.update(action).await
+                    comp.update(action)
                 } else {
                     Ok(None)
                 }

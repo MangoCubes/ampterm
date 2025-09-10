@@ -5,7 +5,7 @@ use crate::{
         useraction::{Common, Normal, UserAction},
         Action,
     },
-    components::traits::{asynccomp::AsyncComp, component::Component, focusable::Focusable},
+    components::traits::{component::Component, focusable::Focusable},
     osclient::response::getplaylists::SimplePlaylist,
     playerworker::player::{QueueLocation, ToPlayerWorker},
     queryworker::query::{
@@ -99,19 +99,7 @@ impl Component for Loaded {
         frame.render_stateful_widget(&self.comp, area, &mut self.state);
         Ok(())
     }
-}
-
-impl Focusable for Loaded {
-    fn set_enabled(&mut self, enable: bool) {
-        if self.enabled != enable {
-            self.enabled = enable;
-            self.comp = Self::gen_list(&self.list, self.enabled);
-        };
-    }
-}
-
-impl AsyncComp for Loaded {
-    async fn update(&mut self, action: Action) -> Result<Option<Action>> {
+    fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::FromQueryWorker(res) => {
                 if let Some(cb) = self.callback.remove(&res.ticket) {
@@ -169,5 +157,14 @@ impl AsyncComp for Loaded {
             }
             _ => Ok(None),
         }
+    }
+}
+
+impl Focusable for Loaded {
+    fn set_enabled(&mut self, enable: bool) {
+        if self.enabled != enable {
+            self.enabled = enable;
+            self.comp = Self::gen_list(&self.list, self.enabled);
+        };
     }
 }

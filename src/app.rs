@@ -12,10 +12,7 @@ use tracing::{debug, info};
 
 use crate::{
     action::Action,
-    components::{
-        home::Home,
-        traits::{asynccomp::AsyncComp, component::Component},
-    },
+    components::{home::Home, traits::component::Component},
     config::Config,
     playerworker::{player::ToPlayerWorker, PlayerWorker},
     queryworker::{query::ToQueryWorker, QueryWorker},
@@ -198,7 +195,7 @@ impl App {
                 }
                 _ => {}
             };
-            if let Some(ret) = self.component.update(action).await? {
+            if let Some(ret) = self.component.update(action)? {
                 debug!("Got {ret:?} as a response");
                 self.action_tx.send(ret)?
             };

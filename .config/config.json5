@@ -2,6 +2,14 @@
   "keybindings": {
     // In visual mode, these keybindings are used
     "Visual": {
+	  // These are similar to Normal's playlist manipulation binding
+	  // But these work on temporarily selected items and exits the visual mode, and does not update the overall selection
+	  // Additionally, these do not take previous selections into consideration
+	  "<i>": { User: { Visual: { Add: "Front" } } },
+	  "<Shift-i>": { User: { Visual: { Add: "Front" } } },
+	  "<a>": { User: { Visual: { Add: "Next" } } },
+	  "<Shift-a>": { User: { Visual: { Add: "Last" } } },
+
 	  "<Esc>": { User: { Visual: "ExitDiscard" } },
 	  // All 3 can be used to exit visual mode whilst confirming the selection
 	  "<v>": { User: { Visual: "ExitSave" } },

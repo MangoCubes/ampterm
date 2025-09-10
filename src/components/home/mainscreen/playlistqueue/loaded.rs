@@ -11,6 +11,7 @@ use crate::{
     osclient::response::getplaylist::{FullPlaylist, Media},
     playerworker::player::{QueueLocation, ToPlayerWorker},
     queryworker::query::{getplaylists::PlaylistID, QueryType, ToQueryWorker},
+    trace_dbg,
 };
 use color_eyre::Result;
 use ratatui::{
@@ -47,14 +48,24 @@ impl<'a> Loaded<'a> {
         );
         Block::bordered().title(title).border_style(style)
     }
-    fn add_music(&mut self, playpos: QueueLocation) -> Option<Action> {
+    fn add_temp_items_to_queue(
+        &mut self,
+        items: Vec<Media>,
+        playpos: QueueLocation,
+    ) -> Option<Action> {
+        self.visual.disable_visual(false);
+        Some(Action::ToPlayerWorker(ToPlayerWorker::AddToQueue {
+            pos: playpos,
+            music: items,
+        }))
+    }
+    fn add_selection_to_queue(&mut self, playpos: QueueLocation) -> Option<Action> {
         let items = self
             .visual
             .get_current_selection()
             .into_iter()
             .cloned()
             .collect();
-        self.visual.disable_visual(false);
         self.visual.reset();
         Some(Action::ToPlayerWorker(ToPlayerWorker::AddToQueue {
             pos: playpos,
@@ -129,7 +140,7 @@ impl<'a> Component for Loaded<'a> {
                         self.visual.enable_visual(true);
                         Ok(Some(Action::ChangeMode(Mode::Visual)))
                     }
-                    Normal::Add(queue_location) => Ok(self.add_music(queue_location)),
+                    Normal::Add(queue_location) => Ok(self.add_selection_to_queue(queue_location)),
                     _ => Ok(None),
                 },
                 UserAction::Visual(visual) => match visual {
@@ -140,6 +151,16 @@ impl<'a> Component for Loaded<'a> {
                     Visual::ExitDiscard => {
                         self.visual.disable_visual(false);
                         Ok(Some(Action::ChangeMode(Mode::Normal)))
+                    }
+                    Visual::Add(queue_location) => {
+                        if let Some(items) = self.visual.get_temp_selection() {
+                            Ok(Some(Action::Multiple(vec![
+                                self.add_temp_items_to_queue(items.to_vec(), queue_location),
+                                Some(Action::ChangeMode(Mode::Normal)),
+                            ])))
+                        } else {
+                            Ok(None)
+                        }
                     }
                 },
                 _ => Ok(None),

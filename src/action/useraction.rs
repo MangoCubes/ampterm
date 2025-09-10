@@ -25,6 +25,8 @@ pub enum Visual {
     ExitSave,
     // Exit visual mode after discarding changes
     ExitDiscard,
+    // Add current selection to the queue, and discards the changes
+    Add(QueueLocation),
 }
 
 /// Normal mode exclusive actions

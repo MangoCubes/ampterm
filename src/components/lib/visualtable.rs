@@ -31,18 +31,9 @@ pub struct VisualTable<'a, T> {
 impl<'a, T> VisualTable<'a, T> {
     fn gen_table(&self) -> Table<'a> {
         let iter = self.items.iter().enumerate();
-        let rows: Vec<Row> =
-            if let VisualMode::Select(start) | VisualMode::Deselect(start) = self.temp {
-                let end = self
-                    .tablestate
-                    .selected()
-                    .expect("Unable to generate current table: The current row is somehow none.");
-                let (a, b) = if start < end {
-                    (start, end)
-                } else {
-                    (end, start)
-                };
-                iter.map(|(i, item)| {
+        let rows: Vec<Row> = match self.get_range() {
+            Some((a, b, _)) => iter
+                .map(|(i, item)| {
                     let mut row = (self.to_row)(item);
                     row = if i <= b && i >= a {
                         row.reversed()
@@ -55,9 +46,9 @@ impl<'a, T> VisualTable<'a, T> {
                         row
                     }
                 })
-                .collect()
-            } else {
-                iter.map(|(i, item)| {
+                .collect(),
+            None => iter
+                .map(|(i, item)| {
                     let row = (self.to_row)(item);
                     if self.selected[i] {
                         row.green()
@@ -65,8 +56,8 @@ impl<'a, T> VisualTable<'a, T> {
                         row
                     }
                 })
-                .collect()
-            };
+                .collect(),
+        };
         Table::new(rows, &self.widths)
             .highlight_symbol(">")
             .row_highlight_style(Style::new().reversed())
@@ -99,6 +90,42 @@ impl<'a, T> VisualTable<'a, T> {
             VisualMode::Select(current)
         };
         self.comp = self.gen_table();
+    }
+    #[inline]
+    fn get_range(&self) -> Option<(usize, usize, bool)> {
+        let end = self
+            .tablestate
+            .selected()
+            .expect("Unable to generate current table: The current row is somehow none.");
+        match self.temp {
+            VisualMode::Off => None,
+            VisualMode::Select(start) => {
+                if start < end {
+                    Some((start, end, true))
+                } else {
+                    Some((end, start, true))
+                }
+            }
+            VisualMode::Deselect(start) => {
+                if start < end {
+                    Some((start, end, false))
+                } else {
+                    Some((end, start, false))
+                }
+            }
+        }
+    }
+    #[inline]
+    pub fn get_temp_selection(&self) -> Option<&[T]> {
+        if let Some((start, end, is_select)) = self.get_range() {
+            if is_select {
+                Some(&self.items[start..=end])
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
     #[inline]
     pub fn get_current(&self) -> &T {

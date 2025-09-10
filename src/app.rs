@@ -33,6 +33,7 @@ pub struct App {
     query_tx: mpsc::UnboundedSender<ToQueryWorker>,
     player_tx: mpsc::UnboundedSender<ToPlayerWorker>,
     // This is necessary because if this gets dropped, the audio stops
+    #[allow(dead_code)]
     stream: rodio::OutputStream,
 }
 
@@ -167,7 +168,7 @@ impl App {
             if let Action::Multiple(actions) = action {
                 for a in actions {
                     if let Some(ac) = a {
-                        self.action_tx.send(ac.clone())?
+                        self.action_tx.send(ac)?
                     }
                 }
                 continue;

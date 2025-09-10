@@ -80,6 +80,8 @@ impl<'a, T> VisualTable<'a, T> {
             comp,
         }
     }
+    /// Enters visual mode
+    /// If [`deselect`] is true, then [`VisualMode::Deselect`] is used instead
     pub fn enable_visual(&mut self, deselect: bool) {
         let Some(current) = self.tablestate.selected() else {
             panic!("Invalid cursor location!");
@@ -91,6 +93,10 @@ impl<'a, T> VisualTable<'a, T> {
         };
         self.comp = self.gen_table();
     }
+    /// Get temporary selection
+    /// Returns index of the start of selection and end, and boolean that indicates selection mode
+    /// If true, then the current selection is [`VisualMode::Select`], false if not
+    /// Returns none if not in visual mode
     #[inline]
     fn get_range(&self) -> Option<(usize, usize, bool)> {
         let end = self
@@ -115,6 +121,8 @@ impl<'a, T> VisualTable<'a, T> {
             }
         }
     }
+    /// Based on the current temporary selection, return all the selected items as reference
+    /// Returns None if the current mode is not [`VisualMode::Select`]
     #[inline]
     pub fn get_temp_selection(&self) -> Option<&[T]> {
         if let Some((start, end, is_select)) = self.get_range() {
@@ -127,6 +135,7 @@ impl<'a, T> VisualTable<'a, T> {
             None
         }
     }
+    /// Get the item the cursor is on top of
     #[inline]
     pub fn get_current(&self) -> &T {
         let Some(current) = self.tablestate.selected() else {
@@ -134,6 +143,7 @@ impl<'a, T> VisualTable<'a, T> {
         };
         &self.items[current]
     }
+    /// Get all selected items into a vector
     #[inline]
     pub fn get_current_selection(&self) -> Vec<&T> {
         let items: Vec<&T> = self
@@ -173,12 +183,15 @@ impl<'a, T> VisualTable<'a, T> {
         Ok(())
     }
 
+    /// Reset all overall selection
     #[inline]
     pub fn reset(&mut self) {
         self.selected = vec![false; self.items.len()];
         self.comp = self.gen_table();
     }
 
+    /// Disable visual mode for the current table
+    /// If apply is true, then the current temporary selection is added to the overall selection
     pub fn disable_visual(&mut self, apply: bool) {
         if apply {
             let end = self

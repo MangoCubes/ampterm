@@ -11,6 +11,7 @@
   - The component that sends out the action stores this ticket number
 - When the query is complete, the response is sent out to all of the components
 - Each component looks into the ticket number, and runs the callback function
+
 * Player Worker Management
 ** Queue Management
 - Queue is stored as a VecDeque<Media>
@@ -29,6 +30,12 @@
 - In this state, the music has been fetched from the URL and is now being played
 ** Action
 - There are three actions, add to front, add next, and add last.
+  - There is no add before the current one
+|              | Idle                                                              | Loading / Playing                                      |
+|--------------+-------------------------------------------------------------------+--------------------------------------------------------|
+| Add To Front | Once the user starts playing, the added music plays first         | Stop the current loading, and play the requested music |
+| Add Next     | Once the current music finishes, the added music plays next       | Same as Idle                                           |
+| Add Last     | Once everything in the queue finishes, the added music plays next | Same as Idle                                           |
 *** Add To Front
 - Add an item so that the new one is played
 - If music was being played, then that music is stopped and pushed next to the queue
@@ -36,10 +43,6 @@
 - Add an item so that once the current item finishes, the selected music is played
 *** Add Last
 - Add an item so that once everything in the queue (before adding the selected music) is exhausted, the selected music is played
-** Action Handling
-|              | Idle                                                                             | Loading / Playing                                      |
-|--------------+----------------------------------------------------------------------------------+--------------------------------------------------------|
-| Add To Front | Music is added so that once the user starts playing, the added music plays first | Stop the current loading, and play the requested music |
 * General
 ** State Change Management
 - Components may have state, and they are marked with Stateful trait

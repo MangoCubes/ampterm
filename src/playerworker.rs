@@ -1,6 +1,6 @@
 pub mod player;
-pub mod streamerror;
-pub mod streamreader;
+mod streamerror;
+mod streamreader;
 
 use std::sync::Arc;
 use std::time::Duration;

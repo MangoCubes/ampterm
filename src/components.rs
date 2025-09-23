@@ -1,3 +1,3 @@
 pub mod home;
-pub mod lib;
+mod lib;
 pub mod traits;

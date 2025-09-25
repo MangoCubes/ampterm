@@ -38,7 +38,8 @@ impl Loaded {
             let key = self.list[pos].id.clone();
             let name = self.list[pos].name.clone();
             Some(Action::ToQueryWorker(ToQueryWorker::new(
-                compid::PLAYLISTLIST,
+                // When a playlist is selected, its content should update the playlist queue
+                compid::PLAYLISTQUEUE,
                 QueryType::GetPlaylist { name, id: key },
             )))
         } else {

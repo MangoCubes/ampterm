@@ -77,18 +77,17 @@ pub enum Action {
 
     FromPlayerWorker(FromPlayerWorker),
     ToPlayerWorker(ToPlayerWorker),
-    // This action is fired from the components to the app
-    ChangeMode(Mode),
+    // Action for deleting all key sequences currently stored
+    // It's like escape in Vim, and Ctrl+G in Emacs
+    EndKeySeq,
 
     // Anything below this should not be used for keybinds, but feel free to experiment. Most are used to notify the system
     // System actions
     Tick,
     Render,
-    // ModeChanged(InputMode),
     Resize(u16, u16),
     Error(String),
-    // Action for deleting all key sequences currently stored
-    // It's like escape in Vim, and Ctrl+G in Emacs
-    EndKeySeq,
     Multiple(Vec<Option<Action>>),
+    // This action is fired from the components to the app
+    ChangeMode(Mode),
 }

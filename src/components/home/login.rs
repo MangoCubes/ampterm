@@ -113,6 +113,7 @@ impl Login {
         self.status_msg = Some(vec!["Logging in...".to_string()]);
         self.update_style();
         let action = Action::ToQueryWorker(ToQueryWorker::new(
+            // There will be no response as this simply sets the credentials
             compid::NONE,
             QueryType::SetCredential(Credential::Password {
                 url,

@@ -59,15 +59,19 @@ impl Home {
             Some(creds) => {
                 let url = creds.get_url();
                 let username = creds.get_username();
-                let action = Action::ToQueryWorker(ToQueryWorker::new(
-                    compid::HOME,
-                    QueryType::SetCredential(creds),
-                ));
-                if let Err(err) = action_tx.send(action) {};
-                let _ = action_tx.send(Action::ToQueryWorker(ToQueryWorker::new(
-                    compid::HOME,
-                    QueryType::Ping,
-                )));
+                let _ = action_tx.send(Action::Multiple(vec![
+                    Some(Action::ToQueryWorker(ToQueryWorker::new(
+                        // Receiver is none because this simply sets the query worker's credentials
+                        compid::NONE,
+                        QueryType::SetCredential(creds),
+                    ))),
+                    Some(Action::ToQueryWorker(ToQueryWorker::new(
+                        // The ping result comes back to this component to verify if the login was
+                        // successful
+                        compid::HOME,
+                        QueryType::Ping,
+                    ))),
+                ]));
                 Comp::Loading(Loading::new(url, username))
             }
             None => Comp::Login(Login::new(

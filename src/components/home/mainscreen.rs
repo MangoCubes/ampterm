@@ -45,6 +45,7 @@ pub struct MainScreen {
 impl MainScreen {
     pub fn new(action_tx: UnboundedSender<Action>) -> Self {
         let _ = action_tx.send(Action::ToQueryWorker(ToQueryWorker::new(
+            // This fetches the list of playlists whenever this component is rendered
             compid::PLAYLISTLIST,
             QueryType::GetPlaylists,
         )));
@@ -127,6 +128,16 @@ impl Component for MainScreen {
                 CurrentlySelected::Playlists => self.pl_list.update(action),
                 CurrentlySelected::PlaylistQueue => self.pl_queue.update(action),
                 CurrentlySelected::Queue => self.queuelist.update(action),
+            },
+            Action::FromQueryWorker(res) => match res.dest {
+                compid::PLAYLISTQUEUE..=compid::__PLAYLISTQUEUE => {
+                    self.pl_queue.update(action.clone())
+                }
+                compid::PLAYLISTLIST..=compid::__PLAYLISTLIST => {
+                    self.pl_list.update(action.clone())
+                }
+                compid::QUEUELIST..=compid::__QUEUELIST => self.queuelist.update(action.clone()),
+                _ => panic!("Invalid routing detected!"),
             },
             _ => Ok(Some(Action::Multiple(vec![
                 self.pl_list.update(action.clone())?,

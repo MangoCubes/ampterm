@@ -5,6 +5,7 @@ mod notselected;
 
 use crate::{
     action::Action,
+    compid,
     components::{
         home::mainscreen::playlistqueue::loading::Loading,
         traits::{component::Component, focusable::Focusable},
@@ -50,8 +51,10 @@ impl Component for PlaylistQueue {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::ToQueryWorker(qw) => {
-                if let QueryType::GetPlaylist { id, name } = qw.query {
-                    self.comp = Comp::Loading(Loading::new(id, name, self.enabled));
+                if qw.dest == compid::PLAYLISTQUEUE {
+                    if let QueryType::GetPlaylist { id, name } = qw.query {
+                        self.comp = Comp::Loading(Loading::new(id, name, self.enabled));
+                    }
                 }
                 Ok(None)
             }

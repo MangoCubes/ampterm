@@ -29,8 +29,13 @@ pub enum QueryType {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToQueryWorker {
+    /// Specifies the component that should be alerted when the request is both initialised and completed
+    /// This ID is limited to a Ratatui component, as requests to [`PlayerWorker`] are implied with
+    /// using [`ToPlayerWorker`]
     pub dest: u32,
+    /// Uniquely identifies the request and response
     pub ticket: usize,
+    /// Actual query body
     pub query: QueryType,
 }
 
@@ -54,8 +59,12 @@ pub enum ResponseType {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FromQueryWorker {
+    /// When a query is completed, the value in [`dest`] specifies which component should be
+    /// notified. This value should be the same as the corresponding [`ToQueryWorker`] request.
     pub dest: u32,
+    /// Uniquely identifies the request and response
     pub ticket: usize,
+    /// Actual response body
     pub res: ResponseType,
 }
 

@@ -29,14 +29,19 @@ pub enum QueryType {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToQueryWorker {
+    pub dest: u32,
     pub ticket: usize,
     pub query: QueryType,
 }
 
 impl ToQueryWorker {
-    pub fn new(query: QueryType) -> Self {
+    pub fn new(dest: u32, query: QueryType) -> Self {
         let ticket = QueryWorker::get_ticket();
-        Self { ticket, query }
+        Self {
+            dest,
+            ticket,
+            query,
+        }
     }
 }
 
@@ -49,12 +54,17 @@ pub enum ResponseType {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FromQueryWorker {
+    pub dest: u32,
     pub ticket: usize,
     pub res: ResponseType,
 }
 
 impl FromQueryWorker {
-    pub fn new(ticket: usize, query: ResponseType) -> Self {
-        Self { ticket, res: query }
+    pub fn new(dest: u32, ticket: usize, query: ResponseType) -> Self {
+        Self {
+            dest,
+            ticket,
+            res: query,
+        }
     }
 }

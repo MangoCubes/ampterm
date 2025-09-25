@@ -5,6 +5,7 @@ use crate::{
         useraction::{Common, Normal, UserAction},
         Action,
     },
+    compid,
     components::traits::{component::Component, focusable::Focusable},
     osclient::response::getplaylists::SimplePlaylist,
     playerworker::player::{QueueLocation, ToPlayerWorker},
@@ -37,6 +38,7 @@ impl Loaded {
             let key = self.list[pos].id.clone();
             let name = self.list[pos].name.clone();
             Some(Action::ToQueryWorker(ToQueryWorker::new(
+                compid::PLAYLISTLIST,
                 QueryType::GetPlaylist { name, id: key },
             )))
         } else {
@@ -81,10 +83,13 @@ impl Loaded {
         if let Some(pos) = self.state.selected() {
             let key = self.list[pos].id.clone();
             let name = self.list[pos].name.clone();
-            let req = ToQueryWorker::new(QueryType::GetPlaylist {
-                name,
-                id: key.clone(),
-            });
+            let req = ToQueryWorker::new(
+                compid::PLAYLISTLIST,
+                QueryType::GetPlaylist {
+                    name,
+                    id: key.clone(),
+                },
+            );
             self.callback.insert(req.ticket, (key, ql));
             Some(Action::ToQueryWorker(req))
         } else {

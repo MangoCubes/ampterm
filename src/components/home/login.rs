@@ -12,6 +12,7 @@ use tui_textarea::{CursorMove, TextArea};
 
 use crate::{
     action::Action,
+    components::home::compid,
     config::Config,
     queryworker::query::{setcredential::Credential, QueryType, ToQueryWorker},
 };
@@ -44,10 +45,6 @@ pub struct Login {
 }
 
 impl Login {
-    fn set_error(&mut self, msg: String) {
-        self.status_msg = Some(vec![msg]);
-        self.update_style();
-    }
     fn update_style(&mut self) {
         fn change_style(textarea: &mut TextArea<'_>, enable: bool, title: &'static str) {
             if enable {
@@ -115,18 +112,22 @@ impl Login {
         self.status = Status::Pending;
         self.status_msg = Some(vec!["Logging in...".to_string()]);
         self.update_style();
-        let action = Action::ToQueryWorker(ToQueryWorker::new(QueryType::SetCredential(
-            Credential::Password {
+        let action = Action::ToQueryWorker(ToQueryWorker::new(
+            compid::NONE,
+            QueryType::SetCredential(Credential::Password {
                 url,
                 secure: true,
                 username,
                 password,
                 legacy: self.config.config.use_legacy_auth,
-            },
-        )));
+            }),
+        ));
         self.action_tx.send(action)?;
         self.action_tx
-            .send(Action::ToQueryWorker(ToQueryWorker::new(QueryType::Ping)))?;
+            .send(Action::ToQueryWorker(ToQueryWorker::new(
+                compid::HOME,
+                QueryType::Ping,
+            )))?;
         Ok(())
     }
     pub fn new(

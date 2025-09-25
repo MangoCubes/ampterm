@@ -8,6 +8,7 @@ use crate::app::App;
 mod action;
 mod app;
 mod cli;
+mod compid;
 mod components;
 mod config;
 mod errors;

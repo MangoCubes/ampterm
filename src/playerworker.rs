@@ -20,7 +20,7 @@ use crate::action::{Action, FromPlayerWorker, PlayState, StateType};
 use crate::config::Config;
 use crate::osclient::response::getplaylist::Media;
 use crate::queryworker::query::{QueryType, ToQueryWorker};
-use crate::trace_dbg;
+use crate::{compid, trace_dbg};
 
 enum WorkerState {
     // The fetched file is played
@@ -266,6 +266,7 @@ impl PlayerWorker {
                 let _ = self
                     .action_tx
                     .send(Action::ToQueryWorker(ToQueryWorker::new(
+                        compid::PLAYERWORKER,
                         QueryType::GetUrlByMedia { media: i.clone() },
                     )));
                 self.state = WorkerState::Loading { current: cleaned };

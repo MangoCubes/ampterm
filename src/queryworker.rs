@@ -94,6 +94,7 @@ impl QueryWorker {
                             tokio::spawn(async move {
                                 let res = QueryWorker::get_playlists(cc).await;
                                 tx.send(Action::FromQueryWorker(FromQueryWorker::new(
+                                    event.dest,
                                     event.ticket,
                                     ResponseType::GetPlaylists(res),
                                 )))
@@ -115,12 +116,14 @@ impl QueryWorker {
                                     Ok(c) => match c {
                                         Empty::Ok => {
                                             tx.send(Action::FromQueryWorker(FromQueryWorker::new(
+                                                event.dest,
                                                 event.ticket,
                                                 ResponseType::Ping(PingResponse::Success),
                                             )))
                                         }
                                         Empty::Failed { error } => {
                                             tx.send(Action::FromQueryWorker(FromQueryWorker::new(
+                                                event.dest,
                                                 event.ticket,
                                                 ResponseType::Ping(PingResponse::Failure(
                                                     error.to_string(),
@@ -130,6 +133,7 @@ impl QueryWorker {
                                     },
                                     Err(e) => {
                                         tx.send(Action::FromQueryWorker(FromQueryWorker::new(
+                                            event.dest,
                                             event.ticket,
                                             ResponseType::Ping(PingResponse::Failure(format!(
                                                 "{}",
@@ -157,6 +161,7 @@ impl QueryWorker {
                                     Ok(c) => match c {
                                         GetPlaylist::Ok { playlist } => {
                                             tx.send(Action::FromQueryWorker(FromQueryWorker::new(
+                                                event.dest,
                                                 event.ticket,
                                                 ResponseType::GetPlaylist(
                                                     GetPlaylistResponse::Success(FullPlaylist {
@@ -233,6 +238,7 @@ impl QueryWorker {
 
                                         GetPlaylist::Failed { error } => {
                                             tx.send(Action::FromQueryWorker(FromQueryWorker::new(
+                                                event.dest,
                                                 event.ticket,
                                                 ResponseType::GetPlaylist(
                                                     GetPlaylistResponse::Failure {
@@ -246,6 +252,7 @@ impl QueryWorker {
                                     },
                                     Err(e) => {
                                         tx.send(Action::FromQueryWorker(FromQueryWorker::new(
+                                            event.dest,
                                             event.ticket,
                                             ResponseType::GetPlaylist(
                                                 GetPlaylistResponse::Failure {

@@ -8,7 +8,10 @@ use crate::{
         useraction::{Normal, UserAction},
         Action, FromPlayerWorker,
     },
-    components::traits::{component::Component, focusable::Focusable},
+    components::{
+        home::compid,
+        traits::{component::Component, focusable::Focusable},
+    },
     queryworker::query::{QueryType, ToQueryWorker},
 };
 use color_eyre::Result;
@@ -42,6 +45,7 @@ pub struct MainScreen {
 impl MainScreen {
     pub fn new(action_tx: UnboundedSender<Action>) -> Self {
         let _ = action_tx.send(Action::ToQueryWorker(ToQueryWorker::new(
+            compid::PLAYLISTLIST,
             QueryType::GetPlaylists,
         )));
         Self {
@@ -64,9 +68,6 @@ impl MainScreen {
 }
 
 impl Component for MainScreen {
-    fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Result<Option<Action>> {
-        Ok(None)
-    }
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let vertical = Layout::vertical([
             Constraint::Min(0),

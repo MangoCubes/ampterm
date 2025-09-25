@@ -266,7 +266,9 @@ impl PlayerWorker {
                 let _ = self
                     .action_tx
                     .send(Action::ToQueryWorker(ToQueryWorker::new(
-                        compid::PLAYERWORKER,
+                        // Technically, PlayerWorker should receive this, but that is handled by
+                        // QueryWorker, as it has the sender to the PlayerWorker
+                        compid::NONE,
                         QueryType::GetUrlByMedia { media: i.clone() },
                     )));
                 self.state = WorkerState::Loading { current: cleaned };

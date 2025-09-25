@@ -23,9 +23,6 @@
 
 pub const NONE: u32 = 0x00000000;
 
-// These three are top-level components
-pub const PLAYERWORKER: u32 = 0x00000001;
-pub const QUERYWORKER: u32 = 0x00000002;
 pub const HOME: u32 = 0x00000003;
 
 pub const LOGIN: u32 = 0x10000000;

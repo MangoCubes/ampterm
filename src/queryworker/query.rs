@@ -4,14 +4,12 @@ pub mod ping;
 pub mod setcredential;
 use serde::{Deserialize, Serialize};
 
-use setcredential::Credential;
-
 use crate::{
-    osclient::response::getplaylist::Media,
+    compid::CompID,
     queryworker::{
+        highlevelquery::HighLevelQuery,
         query::{
-            getplaylist::GetPlaylistResponse,
-            getplaylists::{GetPlaylistsResponse, PlaylistID},
+            getplaylist::GetPlaylistResponse, getplaylists::GetPlaylistsResponse,
             ping::PingResponse,
         },
         QueryWorker,
@@ -19,24 +17,25 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum QueryType {
-    SetCredential(Credential),
-    GetPlaylists,
-    GetPlaylist { name: String, id: PlaylistID },
-    GetUrlByMedia { media: Media },
-    Ping,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToQueryWorker {
+    /// Specifies the component that should be alerted when the request is both initialised and completed
+    /// This ID is limited to a Ratatui component, as requests to [`PlayerWorker`] are implied with
+    /// using [`ToPlayerWorker`]
+    pub dest: CompID,
+    /// Uniquely identifies the request and response
     pub ticket: usize,
-    pub query: QueryType,
+    /// Query parameters
+    pub query: HighLevelQuery,
 }
 
 impl ToQueryWorker {
-    pub fn new(query: QueryType) -> Self {
+    pub fn new(hlq: HighLevelQuery) -> Self {
         let ticket = QueryWorker::get_ticket();
-        Self { ticket, query }
+        Self {
+            dest: hlq.get_dest(),
+            ticket,
+            query: hlq,
+        }
     }
 }
 
@@ -49,12 +48,17 @@ pub enum ResponseType {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FromQueryWorker {
+    /// When a query is completed, the value in [`dest`] specifies which component should be
+    /// notified. This value should be the same as the corresponding [`ToQueryWorker`] request.
+    pub dest: CompID,
+    /// Uniquely identifies the request and response
     pub ticket: usize,
+    /// Actual response body
     pub res: ResponseType,
 }
 
 impl FromQueryWorker {
-    pub fn new(ticket: usize, query: ResponseType) -> Self {
-        Self { ticket, res: query }
+    pub fn new(dest: CompID, ticket: usize, res: ResponseType) -> Self {
+        Self { dest, ticket, res }
     }
 }

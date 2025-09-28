@@ -11,10 +11,12 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
     action::Action,
+    compid,
     components::traits::component::Component,
     config::{get_config_dir, Config},
-    queryworker::query::{
-        ping::PingResponse, setcredential::Credential, QueryType, ResponseType, ToQueryWorker,
+    queryworker::{
+        highlevelquery::HighLevelQuery,
+        query::{ping::PingResponse, setcredential::Credential, ResponseType, ToQueryWorker},
     },
     tui::Event,
 };
@@ -58,10 +60,14 @@ impl Home {
             Some(creds) => {
                 let url = creds.get_url();
                 let username = creds.get_username();
-                let action =
-                    Action::ToQueryWorker(ToQueryWorker::new(QueryType::SetCredential(creds)));
-                if let Err(err) = action_tx.send(action) {};
-                let _ = action_tx.send(Action::ToQueryWorker(ToQueryWorker::new(QueryType::Ping)));
+                let _ = action_tx.send(Action::Multiple(vec![
+                    Some(Action::ToQueryWorker(ToQueryWorker::new(
+                        HighLevelQuery::SetCredential(creds),
+                    ))),
+                    Some(Action::ToQueryWorker(ToQueryWorker::new(
+                        HighLevelQuery::CheckCredentialValidity,
+                    ))),
+                ]));
                 Comp::Loading(Loading::new(url, username))
             }
             None => Comp::Login(Login::new(

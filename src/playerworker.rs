@@ -19,7 +19,8 @@ use tokio_util::sync::CancellationToken;
 use crate::action::{Action, FromPlayerWorker, PlayState, StateType};
 use crate::config::Config;
 use crate::osclient::response::getplaylist::Media;
-use crate::queryworker::query::{QueryType, ToQueryWorker};
+use crate::queryworker::highlevelquery::HighLevelQuery;
+use crate::queryworker::query::ToQueryWorker;
 use crate::trace_dbg;
 
 enum WorkerState {
@@ -266,7 +267,7 @@ impl PlayerWorker {
                 let _ = self
                     .action_tx
                     .send(Action::ToQueryWorker(ToQueryWorker::new(
-                        QueryType::GetUrlByMedia { media: i.clone() },
+                        HighLevelQuery::PlayMusicFromURL(i.clone()),
                     )));
                 self.state = WorkerState::Loading { current: cleaned };
             }

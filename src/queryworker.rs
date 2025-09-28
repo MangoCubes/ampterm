@@ -1,3 +1,4 @@
+pub mod highlevelquery;
 pub mod query;
 
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -10,11 +11,12 @@ use crate::osclient::response::getplaylist::{FullPlaylist, GetPlaylist, Media};
 use crate::osclient::response::getplaylists::{GetPlaylists, SimplePlaylist};
 use crate::osclient::OSClient;
 use crate::playerworker::player::ToPlayerWorker;
+use crate::queryworker::highlevelquery::HighLevelQuery;
 use crate::queryworker::query::getplaylist::GetPlaylistResponse;
 use crate::queryworker::query::getplaylists::GetPlaylistsResponse;
 use crate::queryworker::query::ping::PingResponse;
 use crate::queryworker::query::setcredential::Credential;
-use crate::queryworker::query::{FromQueryWorker, QueryType, ResponseType};
+use crate::queryworker::query::{FromQueryWorker, ResponseType};
 use crate::trace_dbg;
 use color_eyre::Result;
 use query::ToQueryWorker;
@@ -69,7 +71,7 @@ impl QueryWorker {
                 break;
             };
             match event.query {
-                QueryType::SetCredential(creds) => {
+                HighLevelQuery::SetCredential(creds) => {
                     self.client = Some(Arc::from(match creds {
                         Credential::Password {
                             url,
@@ -86,7 +88,7 @@ impl QueryWorker {
                         } => OSClient::use_apikey(url, username, apikey, secure),
                     }));
                 }
-                QueryType::GetPlaylists => {
+                HighLevelQuery::ListPlaylists => {
                     let tx = self.action_tx.clone();
                     match &self.client {
                         Some(c) => {
@@ -94,6 +96,7 @@ impl QueryWorker {
                             tokio::spawn(async move {
                                 let res = QueryWorker::get_playlists(cc).await;
                                 tx.send(Action::FromQueryWorker(FromQueryWorker::new(
+                                    event.dest,
                                     event.ticket,
                                     ResponseType::GetPlaylists(res),
                                 )))
@@ -104,7 +107,7 @@ impl QueryWorker {
                         ),
                     };
                 }
-                QueryType::Ping => {
+                HighLevelQuery::CheckCredentialValidity => {
                     let tx = self.action_tx.clone();
                     match &self.client {
                         Some(client) => {
@@ -115,12 +118,14 @@ impl QueryWorker {
                                     Ok(c) => match c {
                                         Empty::Ok => {
                                             tx.send(Action::FromQueryWorker(FromQueryWorker::new(
+                                                event.dest,
                                                 event.ticket,
                                                 ResponseType::Ping(PingResponse::Success),
                                             )))
                                         }
                                         Empty::Failed { error } => {
                                             tx.send(Action::FromQueryWorker(FromQueryWorker::new(
+                                                event.dest,
                                                 event.ticket,
                                                 ResponseType::Ping(PingResponse::Failure(
                                                     error.to_string(),
@@ -130,6 +135,7 @@ impl QueryWorker {
                                     },
                                     Err(e) => {
                                         tx.send(Action::FromQueryWorker(FromQueryWorker::new(
+                                            event.dest,
                                             event.ticket,
                                             ResponseType::Ping(PingResponse::Failure(format!(
                                                 "{}",
@@ -145,18 +151,20 @@ impl QueryWorker {
                         ),
                     }
                 }
-                QueryType::GetPlaylist { name, id } => {
-                    let idc = id.clone();
+                HighLevelQuery::SelectPlaylist(params)
+                | HighLevelQuery::AddPlaylistToQueue(params) => {
                     match &self.client {
                         Some(c) => {
                             let tx = self.action_tx.clone();
                             let client = c.clone();
                             tokio::spawn(async move {
-                                let res = client.get_playlist(String::from(idc)).await;
+                                let res =
+                                    client.get_playlist(String::from(params.id.clone())).await;
                                 match res {
                                     Ok(c) => match c {
                                         GetPlaylist::Ok { playlist } => {
                                             tx.send(Action::FromQueryWorker(FromQueryWorker::new(
+                                                event.dest,
                                                 event.ticket,
                                                 ResponseType::GetPlaylist(
                                                     GetPlaylistResponse::Success(FullPlaylist {
@@ -215,7 +223,7 @@ impl QueryWorker {
                                                                 explicit_status: e.explicit_status,
                                                             })
                                                             .collect(),
-                                                        id,
+                                                        id: params.id,
                                                         name: playlist.name,
                                                         comment: playlist.comment,
                                                         owner: playlist.owner,
@@ -233,12 +241,13 @@ impl QueryWorker {
 
                                         GetPlaylist::Failed { error } => {
                                             tx.send(Action::FromQueryWorker(FromQueryWorker::new(
+                                                event.dest,
                                                 event.ticket,
                                                 ResponseType::GetPlaylist(
                                                     GetPlaylistResponse::Failure {
-                                                        id,
+                                                        id: params.id,
+                                                        name: params.name,
                                                         msg: error.to_string(),
-                                                        name,
                                                     },
                                                 ),
                                             )))
@@ -246,12 +255,13 @@ impl QueryWorker {
                                     },
                                     Err(e) => {
                                         tx.send(Action::FromQueryWorker(FromQueryWorker::new(
+                                            event.dest,
                                             event.ticket,
                                             ResponseType::GetPlaylist(
                                                 GetPlaylistResponse::Failure {
-                                                    id,
+                                                    id: params.id,
+                                                    name: params.name,
                                                     msg: e.to_string(),
-                                                    name,
                                                 },
                                             ),
                                         )))
@@ -264,7 +274,7 @@ impl QueryWorker {
                         ),
                     };
                 }
-                QueryType::GetUrlByMedia { media } => {
+                HighLevelQuery::PlayMusicFromURL(media) => {
                     match &self.client {
                         Some(c) => {
                             let id = media.id.clone();

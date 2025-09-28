@@ -8,8 +8,11 @@ use crate::{
         useraction::{Normal, UserAction},
         Action, FromPlayerWorker,
     },
-    components::traits::{component::Component, focusable::Focusable},
-    queryworker::query::{QueryType, ToQueryWorker},
+    components::{
+        home::compid,
+        traits::{component::Component, focusable::Focusable},
+    },
+    queryworker::{highlevelquery::HighLevelQuery, query::ToQueryWorker},
 };
 use color_eyre::Result;
 use nowplaying::NowPlaying;
@@ -42,7 +45,7 @@ pub struct MainScreen {
 impl MainScreen {
     pub fn new(action_tx: UnboundedSender<Action>) -> Self {
         let _ = action_tx.send(Action::ToQueryWorker(ToQueryWorker::new(
-            QueryType::GetPlaylists,
+            HighLevelQuery::ListPlaylists,
         )));
         Self {
             state: CurrentlySelected::Playlists,
@@ -64,9 +67,6 @@ impl MainScreen {
 }
 
 impl Component for MainScreen {
-    fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Result<Option<Action>> {
-        Ok(None)
-    }
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let vertical = Layout::vertical([
             Constraint::Min(0),
@@ -126,6 +126,12 @@ impl Component for MainScreen {
                 CurrentlySelected::Playlists => self.pl_list.update(action),
                 CurrentlySelected::PlaylistQueue => self.pl_queue.update(action),
                 CurrentlySelected::Queue => self.queuelist.update(action),
+            },
+            Action::FromQueryWorker(res) => match res.dest {
+                compid::CompID::PlaylistList => self.pl_list.update(action.clone()),
+                compid::CompID::PlaylistQueue => self.pl_queue.update(action.clone()),
+                compid::CompID::QueueList => self.queuelist.update(action.clone()),
+                _ => panic!("Invalid routing detected!"),
             },
             _ => Ok(Some(Action::Multiple(vec![
                 self.pl_list.update(action.clone())?,

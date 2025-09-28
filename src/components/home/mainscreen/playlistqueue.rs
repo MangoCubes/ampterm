@@ -5,12 +5,15 @@ mod notselected;
 
 use crate::{
     action::Action,
-    compid,
+    compid::CompID,
     components::{
         home::mainscreen::playlistqueue::loading::Loading,
         traits::{component::Component, focusable::Focusable},
     },
-    queryworker::query::{getplaylist::GetPlaylistResponse, QueryType, ResponseType},
+    queryworker::{
+        highlevelquery::HighLevelQuery,
+        query::{getplaylist::GetPlaylistResponse, ResponseType},
+    },
 };
 use color_eyre::Result;
 use error::Error;
@@ -51,9 +54,10 @@ impl Component for PlaylistQueue {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::ToQueryWorker(qw) => {
-                if qw.dest == compid::PLAYLISTQUEUE {
-                    if let QueryType::GetPlaylist { id, name } = qw.query {
-                        self.comp = Comp::Loading(Loading::new(id, name, self.enabled));
+                if qw.dest == CompID::PlaylistQueue {
+                    if let HighLevelQuery::SelectPlaylist(params) = qw.query {
+                        self.comp =
+                            Comp::Loading(Loading::new(params.id, params.name, self.enabled));
                     }
                 }
                 Ok(None)

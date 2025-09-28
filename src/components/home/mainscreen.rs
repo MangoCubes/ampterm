@@ -12,7 +12,7 @@ use crate::{
         home::compid,
         traits::{component::Component, focusable::Focusable},
     },
-    queryworker::query::{QueryType, ToQueryWorker},
+    queryworker::{highlevelquery::HighLevelQuery, query::ToQueryWorker},
 };
 use color_eyre::Result;
 use nowplaying::NowPlaying;
@@ -45,9 +45,7 @@ pub struct MainScreen {
 impl MainScreen {
     pub fn new(action_tx: UnboundedSender<Action>) -> Self {
         let _ = action_tx.send(Action::ToQueryWorker(ToQueryWorker::new(
-            // This fetches the list of playlists whenever this component is rendered
-            compid::PLAYLISTLIST,
-            QueryType::GetPlaylists,
+            HighLevelQuery::ListPlaylists,
         )));
         Self {
             state: CurrentlySelected::Playlists,
@@ -130,13 +128,9 @@ impl Component for MainScreen {
                 CurrentlySelected::Queue => self.queuelist.update(action),
             },
             Action::FromQueryWorker(res) => match res.dest {
-                compid::PLAYLISTQUEUE..=compid::__PLAYLISTQUEUE => {
-                    self.pl_queue.update(action.clone())
-                }
-                compid::PLAYLISTLIST..=compid::__PLAYLISTLIST => {
-                    self.pl_list.update(action.clone())
-                }
-                compid::QUEUELIST..=compid::__QUEUELIST => self.queuelist.update(action.clone()),
+                compid::CompID::PlaylistList => self.pl_list.update(action.clone()),
+                compid::CompID::PlaylistQueue => self.pl_queue.update(action.clone()),
+                compid::CompID::QueueList => self.queuelist.update(action.clone()),
                 _ => panic!("Invalid routing detected!"),
             },
             _ => Ok(Some(Action::Multiple(vec![

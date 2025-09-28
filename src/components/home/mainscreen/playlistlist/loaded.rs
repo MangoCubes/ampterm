@@ -5,13 +5,16 @@ use crate::{
         useraction::{Common, Normal, UserAction},
         Action,
     },
-    compid::{self, Purpose},
     components::traits::{component::Component, focusable::Focusable},
     osclient::response::getplaylists::SimplePlaylist,
     playerworker::player::{QueueLocation, ToPlayerWorker},
-    queryworker::query::{
-        getplaylist::GetPlaylistResponse, getplaylists::PlaylistID, QueryType, ResponseType,
-        ToQueryWorker,
+    queryworker::{
+        highlevelquery::HighLevelQuery,
+        query::{
+            getplaylist::{GetPlaylistParams, GetPlaylistResponse},
+            getplaylists::PlaylistID,
+            ResponseType, ToQueryWorker,
+        },
     },
 };
 use color_eyre::Result;
@@ -38,8 +41,7 @@ impl Loaded {
             let key = self.list[pos].id.clone();
             let name = self.list[pos].name.clone();
             Some(Action::ToQueryWorker(ToQueryWorker::new(
-                Purpose::SelectPlaylist,
-                QueryType::GetPlaylist { name, id: key },
+                HighLevelQuery::SelectPlaylist(GetPlaylistParams { name, id: key }),
             )))
         } else {
             None
@@ -83,13 +85,10 @@ impl Loaded {
         if let Some(pos) = self.state.selected() {
             let key = self.list[pos].id.clone();
             let name = self.list[pos].name.clone();
-            let req = ToQueryWorker::new(
-                compid::PLAYLISTLIST,
-                QueryType::GetPlaylist {
-                    name,
-                    id: key.clone(),
-                },
-            );
+            let req = ToQueryWorker::new(HighLevelQuery::AddPlaylistToQueue(GetPlaylistParams {
+                name,
+                id: key.clone(),
+            }));
             self.callback.insert(req.ticket, (key, ql));
             Some(Action::ToQueryWorker(req))
         } else {

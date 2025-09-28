@@ -4,29 +4,17 @@ pub mod ping;
 pub mod setcredential;
 use serde::{Deserialize, Serialize};
 
-use setcredential::Credential;
-
 use crate::{
-    compid::{CompID, Purpose},
-    osclient::response::getplaylist::Media,
+    compid::CompID,
     queryworker::{
+        highlevelquery::HighLevelQuery,
         query::{
-            getplaylist::GetPlaylistResponse,
-            getplaylists::{GetPlaylistsResponse, PlaylistID},
+            getplaylist::GetPlaylistResponse, getplaylists::GetPlaylistsResponse,
             ping::PingResponse,
         },
         QueryWorker,
     },
 };
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum QueryType {
-    SetCredential(Credential),
-    GetPlaylists,
-    GetPlaylist { name: String, id: PlaylistID },
-    GetUrlByMedia { media: Media },
-    Ping,
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToQueryWorker {
@@ -36,17 +24,17 @@ pub struct ToQueryWorker {
     pub dest: CompID,
     /// Uniquely identifies the request and response
     pub ticket: usize,
-    /// Actual query body
-    pub query: QueryType,
+    /// Query parameters
+    pub query: HighLevelQuery,
 }
 
 impl ToQueryWorker {
-    pub fn new(purpose: Purpose, query: QueryType) -> Self {
+    pub fn new(hlq: HighLevelQuery) -> Self {
         let ticket = QueryWorker::get_ticket();
         Self {
-            dest: purpose.get_dest(),
+            dest: hlq.get_dest(),
             ticket,
-            query,
+            query: hlq,
         }
     }
 }
@@ -62,7 +50,7 @@ pub enum ResponseType {
 pub struct FromQueryWorker {
     /// When a query is completed, the value in [`dest`] specifies which component should be
     /// notified. This value should be the same as the corresponding [`ToQueryWorker`] request.
-    pub dest: u32,
+    pub dest: CompID,
     /// Uniquely identifies the request and response
     pub ticket: usize,
     /// Actual response body
@@ -70,11 +58,7 @@ pub struct FromQueryWorker {
 }
 
 impl FromQueryWorker {
-    pub fn new(dest: u32, ticket: usize, query: ResponseType) -> Self {
-        Self {
-            dest,
-            ticket,
-            res: query,
-        }
+    pub fn new(dest: CompID, ticket: usize, res: ResponseType) -> Self {
+        Self { dest, ticket, res }
     }
 }

@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 // A way around this problem is to give each request-sending components a unique ID. The IDs are
 // given in inorder so that we can compare IDs using greater/less-than and narrow down the exact
 // component efficiently and without [`.clone()`]ing the responses.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum CompID {
     None = 0,
     Home,
@@ -27,26 +27,6 @@ pub enum CompID {
     QueueList,
     NowPlaying,
     All,
-}
-
-pub enum Purpose {
-    PlayMusicFromURL,
-    SetCredential,
-    CheckCredentialValidity,
-    RefreshPlaylistQueue,
-    SelectPlaylist,
-    AddPlaylistToQueue,
-}
-
-impl Purpose {
-    pub fn get_dest(&self) -> CompID {
-        match self {
-            Purpose::PlayMusicFromURL | Purpose::SetCredential => CompID::None,
-            Purpose::CheckCredentialValidity => CompID::Home,
-            Purpose::RefreshPlaylistQueue | Purpose::SelectPlaylist => CompID::PlaylistQueue,
-            Purpose::AddPlaylistToQueue => CompID::PlaylistList,
-        }
-    }
 }
 
 macro_rules! mainscreen_comps {

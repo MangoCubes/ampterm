@@ -12,9 +12,11 @@ use tui_textarea::{CursorMove, TextArea};
 
 use crate::{
     action::Action,
-    components::home::compid,
     config::Config,
-    queryworker::query::{setcredential::Credential, QueryType, ToQueryWorker},
+    queryworker::{
+        highlevelquery::HighLevelQuery,
+        query::{setcredential::Credential, ToQueryWorker},
+    },
 };
 
 use super::Component;
@@ -112,7 +114,7 @@ impl Login {
         self.status = Status::Pending;
         self.status_msg = Some(vec!["Logging in...".to_string()]);
         self.update_style();
-        let action = Action::ToQueryWorker(ToQueryWorker::new(QueryType::SetCredential(
+        let action = Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::SetCredential(
             Credential::Password {
                 url,
                 secure: true,
@@ -123,7 +125,9 @@ impl Login {
         )));
         self.action_tx.send(action)?;
         self.action_tx
-            .send(Action::ToQueryWorker(ToQueryWorker::new(QueryType::Ping)))?;
+            .send(Action::ToQueryWorker(ToQueryWorker::new(
+                HighLevelQuery::CheckCredentialValidity,
+            )))?;
         Ok(())
     }
     pub fn new(

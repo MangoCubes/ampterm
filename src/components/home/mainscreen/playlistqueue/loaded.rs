@@ -4,14 +4,16 @@ use crate::{
         Action,
     },
     app::Mode,
-    compid,
     components::{
         lib::visualtable::VisualTable,
         traits::{component::Component, focusable::Focusable},
     },
     osclient::response::getplaylist::{FullPlaylist, Media},
     playerworker::player::{QueueLocation, ToPlayerWorker},
-    queryworker::query::{getplaylists::PlaylistID, QueryType, ToQueryWorker},
+    queryworker::{
+        highlevelquery::HighLevelQuery,
+        query::{getplaylist::GetPlaylistParams, getplaylists::PlaylistID, ToQueryWorker},
+    },
 };
 use color_eyre::Result;
 use ratatui::{
@@ -111,10 +113,10 @@ impl<'a> Component for Loaded<'a> {
                         Ok(None)
                     }
                     Common::Refresh => Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
-                        QueryType::GetPlaylist {
+                        HighLevelQuery::SelectPlaylist(GetPlaylistParams {
                             name: self.name.to_string(),
                             id: self.playlistid.clone(),
-                        },
+                        }),
                     )))),
                     _ => Ok(None),
                 }

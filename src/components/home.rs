@@ -61,16 +61,9 @@ impl Home {
                 let username = creds.get_username();
                 let _ = action_tx.send(Action::Multiple(vec![
                     Some(Action::ToQueryWorker(ToQueryWorker::new(
-                        // Receiver is none because this simply sets the query worker's credentials
-                        compid::NONE,
                         QueryType::SetCredential(creds),
                     ))),
-                    Some(Action::ToQueryWorker(ToQueryWorker::new(
-                        // The ping result comes back to this component to verify if the login was
-                        // successful
-                        compid::HOME,
-                        QueryType::Ping,
-                    ))),
+                    Some(Action::ToQueryWorker(ToQueryWorker::new(QueryType::Ping))),
                 ]));
                 Comp::Loading(Loading::new(url, username))
             }

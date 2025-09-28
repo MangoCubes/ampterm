@@ -111,7 +111,6 @@ impl<'a> Component for Loaded<'a> {
                         Ok(None)
                     }
                     Common::Refresh => Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
-                        compid::PLAYLISTQUEUE,
                         QueryType::GetPlaylist {
                             name: self.name.to_string(),
                             id: self.playlistid.clone(),

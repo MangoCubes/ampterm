@@ -112,23 +112,18 @@ impl Login {
         self.status = Status::Pending;
         self.status_msg = Some(vec!["Logging in...".to_string()]);
         self.update_style();
-        let action = Action::ToQueryWorker(ToQueryWorker::new(
-            // There will be no response as this simply sets the credentials
-            compid::NONE,
-            QueryType::SetCredential(Credential::Password {
+        let action = Action::ToQueryWorker(ToQueryWorker::new(QueryType::SetCredential(
+            Credential::Password {
                 url,
                 secure: true,
                 username,
                 password,
                 legacy: self.config.config.use_legacy_auth,
-            }),
-        ));
+            },
+        )));
         self.action_tx.send(action)?;
         self.action_tx
-            .send(Action::ToQueryWorker(ToQueryWorker::new(
-                compid::HOME,
-                QueryType::Ping,
-            )))?;
+            .send(Action::ToQueryWorker(ToQueryWorker::new(QueryType::Ping)))?;
         Ok(())
     }
     pub fn new(

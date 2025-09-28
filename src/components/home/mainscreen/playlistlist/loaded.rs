@@ -5,7 +5,7 @@ use crate::{
         useraction::{Common, Normal, UserAction},
         Action,
     },
-    compid,
+    compid::{self, Purpose},
     components::traits::{component::Component, focusable::Focusable},
     osclient::response::getplaylists::SimplePlaylist,
     playerworker::player::{QueueLocation, ToPlayerWorker},
@@ -38,8 +38,7 @@ impl Loaded {
             let key = self.list[pos].id.clone();
             let name = self.list[pos].name.clone();
             Some(Action::ToQueryWorker(ToQueryWorker::new(
-                // When a playlist is selected, its content should update the playlist queue
-                compid::PLAYLISTQUEUE,
+                Purpose::SelectPlaylist,
                 QueryType::GetPlaylist { name, id: key },
             )))
         } else {

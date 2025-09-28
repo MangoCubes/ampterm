@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 // The way requests are handled is as follows:
 //
 //   1. A component sends a [`ToQueryWorker`] request. The request contains a unique identifying ID.
@@ -14,29 +16,47 @@
 // A way around this problem is to give each request-sending components a unique ID. The IDs are
 // given in inorder so that we can compare IDs using greater/less-than and narrow down the exact
 // component efficiently and without [`.clone()`]ing the responses.
-// ID naming is as follows:
-//   - Value of 0 represents NONE, and corresponding response does not have any destination
-//   - Value of 0xFFFFFFFF represents ALL, a response that should be propagated to all components
-//   - <Component Name> represents a response that should be propagated to that component
-//   - __<Component Name> is a placeholder ID to specify the range of IDs that should be allocated
-//     to a certain component
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum CompID {
+    None = 0,
+    Home,
+    Login,
+    MainScreen,
+    PlaylistList,
+    PlaylistQueue,
+    QueueList,
+    NowPlaying,
+    All,
+}
 
-pub const NONE: u32 = 0x00000000;
+pub enum Purpose {
+    PlayMusicFromURL,
+    SetCredential,
+    CheckCredentialValidity,
+    RefreshPlaylistQueue,
+    SelectPlaylist,
+    AddPlaylistToQueue,
+}
 
-pub const HOME: u32 = 0x00000003;
+impl Purpose {
+    pub fn get_dest(&self) -> CompID {
+        match self {
+            Purpose::PlayMusicFromURL | Purpose::SetCredential => CompID::None,
+            Purpose::CheckCredentialValidity => CompID::Home,
+            Purpose::RefreshPlaylistQueue | Purpose::SelectPlaylist => CompID::PlaylistQueue,
+            Purpose::AddPlaylistToQueue => CompID::PlaylistList,
+        }
+    }
+}
 
-pub const LOGIN: u32 = 0x10000000;
-pub const MAINSCREEN: u32 = 0x20000000;
-pub const PLAYLISTLIST: u32 = 0x21000000;
-pub const __PLAYLISTLIST: u32 = 0x21FFFFFF;
-pub const PLAYLISTQUEUE: u32 = 0x22000000;
-pub const __PLAYLISTQUEUE: u32 = 0x22FFFFFF;
-pub const QUEUELIST: u32 = 0x23000000;
-pub const __QUEUELIST: u32 = 0x23FFFFFF;
-pub const NOWPLAYING: u32 = 0x23000000;
-pub const __NOWPLAYING: u32 = 0x23FFFFFF;
-pub const __MAINSCREEN: u32 = 0x2FFFFFFF;
-pub const __LOGIN: u32 = 0x1FFFFFFF;
+macro_rules! mainscreen_comps {
+    () => {
+        CompID::PlaylistList | CompID::PlaylistQueue | CompID::QueueList | CompID::NowPlaying
+    };
+}
 
-pub const __HOME: u32 = 0xFFFFFFFE;
-pub const ALL: u32 = 0xFFFFFFFF;
+macro_rules! home_comps {
+    () => {
+        CompID::Login | mainscreen_comps!()
+    };
+}

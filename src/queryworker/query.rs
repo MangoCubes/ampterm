@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use setcredential::Credential;
 
 use crate::{
+    compid::{CompID, Purpose},
     osclient::response::getplaylist::Media,
     queryworker::{
         query::{
@@ -32,7 +33,7 @@ pub struct ToQueryWorker {
     /// Specifies the component that should be alerted when the request is both initialised and completed
     /// This ID is limited to a Ratatui component, as requests to [`PlayerWorker`] are implied with
     /// using [`ToPlayerWorker`]
-    pub dest: u32,
+    pub dest: CompID,
     /// Uniquely identifies the request and response
     pub ticket: usize,
     /// Actual query body
@@ -40,10 +41,10 @@ pub struct ToQueryWorker {
 }
 
 impl ToQueryWorker {
-    pub fn new(dest: u32, query: QueryType) -> Self {
+    pub fn new(purpose: Purpose, query: QueryType) -> Self {
         let ticket = QueryWorker::get_ticket();
         Self {
-            dest,
+            dest: purpose.get_dest(),
             ticket,
             query,
         }

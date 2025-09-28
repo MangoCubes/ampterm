@@ -4,14 +4,22 @@
 #+TITLE: Architecture
 * Note
 - This is mostly for me to keep my thoughts in order.
-* Callback Handling
-- =QueryWorker= is a component that fetches remote resources, and therefore may have an action combined with it
-- Callback is handled by each component independently
-- Whenever a query is sent, a ticket is generated for that query
-  - The component that sends out the action stores this ticket number
-- When the query is complete, the response is sent out to all of the components
-- Each component looks into the ticket number, and runs the callback function
 
+* Callback Handling
+- =QueryWorker= is a component that fetches remote resources, and is the sole component that does this
+** Request Handling
+- The user does a certain action, and some functions are executed
+- The return value of these functions is a certain action that is sent to =QueryWorker=
+- The request contains a single =QueryParams= which specifies what query is being made, and the corresponding data
+  - =QueryParams= has a many-to-one relationship with actual HTTP endpoints
+  - E.g. "List Entire Playlist" action and "Add Playlist To Queue" are two different actions to the user, but both will query the same endpoint that returns the content of the given playlist to fulfil the roles
+- When building the query, the struct contains a =ticket= value, which uniquely identifies the query, and the component can use this ticket to identify each responses
+- Additionally, the =dest= field is filled automatically, which identifies the component that should receive the response
+  - This is to ensure the response goes to the intended recipient
+    - Sender and the receiver may not always be the same component
+** Query Steps
+- MakeQuery -> ToQueryWorker -> 
+- MakeQuery is a high-level object that corresponds closes to the user action
 * Player Worker Management
 ** Queue Management
 - Queue is stored as a VecDeque<Media>

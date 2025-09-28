@@ -18,8 +18,9 @@
   - This is to ensure the response goes to the intended recipient
     - Sender and the receiver may not always be the same component
 ** Query Steps
-- MakeQuery -> ToQueryWorker -> 
-- MakeQuery is a high-level object that corresponds closes to the user action
+- HighLevelQuery -> ToQueryWorker -> 
+- HighLevelQuery is a high-level object that corresponds closes to the user action
+- ToQueryWorker is the object converted from HighLevelQuery that contains information about what actual queries that should be made
 * Player Worker Management
 ** Queue Management
 - Queue is stored as a VecDeque<Media>

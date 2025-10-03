@@ -73,13 +73,44 @@ impl<'a> Loaded<'a> {
         }))
     }
     pub fn new(name: String, list: FullPlaylist, enabled: bool) -> Self {
-        fn convert<'a>(media: &Media) -> Row<'a> {
-            Row::new(vec![media.title.clone()])
+        fn to_row(
+            items: &Vec<Media>,
+            temp: &Option<(usize, usize, bool)>,
+            sel: &Vec<bool>,
+        ) -> Vec<Row<'static>> {
+            let iter = items.iter().enumerate();
+            match temp {
+                Some((a, b, _)) => iter
+                    .map(|(i, item)| {
+                        let mut row = Row::new(vec![item.title.clone()]);
+                        row = if i <= *b && i >= *a {
+                            row.reversed()
+                        } else {
+                            row
+                        };
+                        if sel[i] {
+                            row.green()
+                        } else {
+                            row
+                        }
+                    })
+                    .collect(),
+                None => iter
+                    .map(|(i, item)| {
+                        let row = Row::new(vec![item.title.clone()]);
+                        if sel[i] {
+                            row.green()
+                        } else {
+                            row
+                        }
+                    })
+                    .collect(),
+            }
         }
         Self {
             name,
             playlistid: list.id,
-            visual: VisualTable::new(list.entry, convert, [Constraint::Min(0)].to_vec()),
+            visual: VisualTable::new(list.entry, to_row, [Constraint::Min(0)].to_vec()),
             enabled,
         }
     }

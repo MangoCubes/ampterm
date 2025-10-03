@@ -17,63 +17,49 @@ enum VisualMode {
     Deselect(usize),
 }
 
+/// Wrapper for Ratatui's [`Table`]. Comes with the ability to use visual mode seen in Vim.
 pub struct VisualTable<'a, T> {
+    /// List of all items
     items: Vec<T>,
-    temp: VisualMode,
-    // List of all selected items
+    /// Current mode of the table
+    mode: VisualMode,
+    /// List of all selected items
     selected: Vec<bool>,
+    /// [`TableState`] is used by Ratatui itself
     tablestate: TableState,
-    to_row: fn(&T) -> Row<'a>,
+    /// This is a function given to this component at creation to tell [`VisualTable`] how each row
+    /// should be made
+    to_row: fn(&Vec<T>, &Option<(usize, usize, bool)>, &Vec<bool>) -> Vec<Row<'a>>,
+    /// Specifies the width of the table
     widths: Vec<Constraint>,
+    /// Actual component used to display the table
     comp: Table<'a>,
 }
 
 impl<'a, T> VisualTable<'a, T> {
     fn gen_table(&self) -> Table<'a> {
-        let iter = self.items.iter().enumerate();
-        let rows: Vec<Row> = match self.get_range() {
-            Some((a, b, _)) => iter
-                .map(|(i, item)| {
-                    let mut row = (self.to_row)(item);
-                    row = if i <= b && i >= a {
-                        row.reversed()
-                    } else {
-                        row
-                    };
-                    if self.selected[i] {
-                        row.green()
-                    } else {
-                        row
-                    }
-                })
-                .collect(),
-            None => iter
-                .map(|(i, item)| {
-                    let row = (self.to_row)(item);
-                    if self.selected[i] {
-                        row.green()
-                    } else {
-                        row
-                    }
-                })
-                .collect(),
-        };
+        let rows: Vec<Row> = (self.to_row)(&self.items, &self.get_range(), &self.selected);
         Table::new(rows, &self.widths)
             .highlight_symbol(">")
             .row_highlight_style(Style::new().reversed())
     }
-    pub fn new(list: Vec<T>, to_row: fn(&T) -> Row<'a>, widths: Vec<Constraint>) -> Self {
+    pub fn new(
+        list: Vec<T>,
+        to_row: fn(&Vec<T>, &Option<(usize, usize, bool)>, &Vec<bool>) -> Vec<Row<'a>>,
+        widths: Vec<Constraint>,
+    ) -> Self {
         let mut tablestate = TableState::default();
         let len = list.len();
         tablestate.select(Some(0));
-        let rows: Vec<Row> = list.iter().map(|item| (to_row)(item)).collect();
+        let selected = vec![false; len];
+        let rows: Vec<Row> = to_row(&list, &None, &selected);
         let comp = Table::new(rows, &widths)
             .highlight_symbol(">")
             .row_highlight_style(Style::new().reversed());
         Self {
             items: list,
-            temp: VisualMode::Off,
-            selected: vec![false; len],
+            mode: VisualMode::Off,
+            selected,
             tablestate,
             to_row,
             widths,
@@ -86,7 +72,7 @@ impl<'a, T> VisualTable<'a, T> {
         let Some(current) = self.tablestate.selected() else {
             panic!("Invalid cursor location!");
         };
-        self.temp = if deselect {
+        self.mode = if deselect {
             VisualMode::Deselect(current)
         } else {
             VisualMode::Select(current)
@@ -103,7 +89,7 @@ impl<'a, T> VisualTable<'a, T> {
             .tablestate
             .selected()
             .expect("Unable to generate current table: The current row is somehow none.");
-        match self.temp {
+        match self.mode {
             VisualMode::Off => None,
             VisualMode::Select(start) => {
                 if start < end {
@@ -199,7 +185,7 @@ impl<'a, T> VisualTable<'a, T> {
                 .selected()
                 .expect("Unable to apply selection: The current row is somehow none.");
 
-            if let VisualMode::Select(start) = self.temp {
+            if let VisualMode::Select(start) = self.mode {
                 let (a, b) = if start < end {
                     (start, end)
                 } else {
@@ -208,7 +194,7 @@ impl<'a, T> VisualTable<'a, T> {
                 for i in a..=b {
                     self.selected[i] = true;
                 }
-            } else if let VisualMode::Deselect(start) = self.temp {
+            } else if let VisualMode::Deselect(start) = self.mode {
                 let (a, b) = if start < end {
                     (start, end)
                 } else {
@@ -219,7 +205,7 @@ impl<'a, T> VisualTable<'a, T> {
                 }
             }
         };
-        self.temp = VisualMode::Off;
+        self.mode = VisualMode::Off;
         self.comp = self.gen_table();
     }
 }

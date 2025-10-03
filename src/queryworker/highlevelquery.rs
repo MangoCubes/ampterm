@@ -6,9 +6,14 @@ use crate::{
     queryworker::query::{getplaylist::GetPlaylistParams, setcredential::Credential},
 };
 
-/// [`HighLevelQuery`] are sort of a wrapper of normal HTTP queries, and is used to inform the
-/// components why a query was made in the first place. Some endpoints can be used for multiple
-/// purposes, and it is necessary to convey this so that the components are updated properly.
+/// [`HighLevelQuery`] are sort of a wrapper of normal HTTP queries. These correspond more closely
+/// to the actual user actions rather than HTTP request endpoints. As a result, these contain the
+/// following information:
+///   - The component the request and response should go to
+///   - The endpoint that should be invoked
+///   - The purpose of the query, and how the response should be handled
+///
+/// This information is needed to ensure the correct components are updated.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum HighLevelQuery {
     /// Given [`Media`] object, get its URL to play it with [`PlayerWorker`]

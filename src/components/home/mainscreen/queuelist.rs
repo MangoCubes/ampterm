@@ -20,6 +20,14 @@ pub struct QueueList {
     enabled: bool,
 }
 
+/// There are 4 unique states each item in the list can have:
+/// 1. Position relative to the item currently being played
+/// 2. Temporary selection
+/// 3. Selection
+/// 4. Current cursor position
+///
+/// As a result, a dedicated list component has to be made
+
 impl QueueList {
     fn gen_block(enabled: bool, title: &str) -> Block<'static> {
         let style = if enabled {

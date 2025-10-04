@@ -23,7 +23,7 @@ use ratatui::{layout::Rect, Frame};
 
 enum Comp {
     Error(Error),
-    Loaded(Loaded<'static>),
+    Loaded(Loaded),
     Loading(Loading),
     NotSelected(NotSelected),
 }

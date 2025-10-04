@@ -22,9 +22,13 @@ pub struct QueueList {
 
 /// There are 4 unique states each item in the list can have:
 /// 1. Position relative to the item currently being played
+///    This is indicated by a ▶ at the front, with played items using grey as primary colour
 /// 2. Temporary selection
+///    This is indicated by colour inversion
 /// 3. Selection
+///    This is indicated with green (darker green used if the item has already been played)
 /// 4. Current cursor position
+///    This is indicated with > and inversion
 ///
 /// As a result, a dedicated list component has to be made
 

@@ -9,7 +9,7 @@ enum VisualMode {
     Deselect(usize),
 }
 
-/// Wrapper for Ratatui's [`Table`]. Comes with the ability to use visual mode seen in Vim.
+/// Visual mode state tracker
 pub struct VisualState {
     /// Current mode of the table
     mode: VisualMode,
@@ -36,6 +36,7 @@ impl VisualState {
     }
     /// Get temporary selection
     /// Returns index of the start of selection and end, and boolean that indicates selection mode
+    /// First index is guaranteed to be smaller than the second
     /// If true, then the current selection is [`VisualMode::Select`], false if not
     /// Returns none if not in visual mode
     #[inline]

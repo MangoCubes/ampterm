@@ -107,8 +107,9 @@ impl QueueList {
 
     pub fn new(enabled: bool) -> Self {
         let list = PlayState::default();
+        let tablestate = TableState::default();
         Self {
-            tablestate: TableState::default(),
+            tablestate,
             comp: Table::default().block(Self::gen_block(false, "Next Up")),
             visual: VisualState::new(0),
             list,
@@ -131,10 +132,17 @@ impl Component for QueueList {
                 pos,
             }) => {
                 self.list = play;
+                // Create cursor if it did not exist
+                if self.tablestate.selected() == None {
+                    self.tablestate.select(Some(0));
+                }
                 self.comp = self.gen_table();
                 Ok(None)
             }
             Action::User(UserAction::Common(local)) => {
+                if self.list.items.len() == 0 {
+                    return Ok(None);
+                }
                 let action = match local {
                     Common::Up => {
                         self.tablestate.select_previous();
@@ -158,6 +166,9 @@ impl Component for QueueList {
                 return action;
             }
             Action::User(ua) => {
+                if self.list.items.len() == 0 {
+                    return Ok(None);
+                }
                 let cur_pos = self
                     .tablestate
                     .selected()

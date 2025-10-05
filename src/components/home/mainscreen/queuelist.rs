@@ -1,8 +1,8 @@
 use ratatui::{
-    layout::Rect,
+    layout::{Constraint, Rect},
     style::{Color, Modifier, Style, Stylize},
     text::Span,
-    widgets::{Block, List, ListItem, ListState},
+    widgets::{Block, List, ListItem, ListState, Row, Table, TableState},
     Frame,
 };
 
@@ -14,9 +14,9 @@ use crate::{
 use color_eyre::Result;
 
 pub struct QueueList {
-    comp: List<'static>,
+    comp: Table<'static>,
     list: PlayState,
-    state: ListState,
+    state: TableState,
     enabled: bool,
 }
 
@@ -49,16 +49,21 @@ impl QueueList {
         );
         Block::bordered().title(title).border_style(style)
     }
-    fn gen_list(&self) -> List<'static> {
+    fn gen_table(&self) -> Table<'static> {
         let block = Self::gen_block(self.enabled, "Next Up");
         let len = self.list.items.len();
         let before = Style::new().fg(Color::DarkGray);
-        let current = Style::new().fg(Color::Green).bold();
         let after = Style::new();
-        fn gen_items(ms: &[Media], style: Style) -> Vec<ListItem<'static>> {
+        fn gen_items(ms: &[Media], style: Style) -> Vec<Row<'static>> {
             ms.iter()
-                .map(|m| ListItem::from(m.title.clone()).style(style))
+                .map(|m| {
+                    Row::new(vec![" ".to_string(), " ".to_string(), m.title.clone()]).style(style)
+                })
                 .collect()
+        }
+        fn gen_current_item(ms: &Media) -> Row<'static> {
+            let current = Style::new().bold();
+            Row::new(vec!["▶".to_string(), " ".to_string(), ms.title.clone()]).style(current)
         }
         let items = match self.list.index {
             // Current item is beyond the current playlist
@@ -66,41 +71,37 @@ impl QueueList {
             // Current item is the last item in the playlist
             idx if (len - 1) == self.list.index => {
                 let mut list = gen_items(&self.list.items[..idx], before);
-                list.push(ListItem::from((&self.list.items[idx].title).clone()).style(current));
+                list.push(gen_current_item(&self.list.items[idx]));
                 list
             }
             // Current item is the first element in the playlist
             0 => {
                 let mut list = gen_items(&self.list.items[1..], after);
-                list.insert(
-                    0,
-                    ListItem::from((&self.list.items[0].title).clone()).style(current),
-                );
+                list.insert(0, gen_current_item(&self.list.items[0]));
                 list
             }
             // Every other cases
             idx => {
                 let mut list = gen_items(&self.list.items[..idx], before);
                 list.append(&mut gen_items(&self.list.items[(idx + 1)..], after));
-                list.insert(
-                    idx,
-                    ListItem::from((&self.list.items[idx].title).clone()).style(current),
-                );
+                list.insert(idx, gen_current_item(&self.list.items[idx]));
                 list
             }
         };
-        let comp = List::new(items);
-
-        comp.block(block)
-            .highlight_style(Style::new().reversed())
-            .highlight_symbol(">")
+        let comp = Table::new(
+            items,
+            [Constraint::Max(1), Constraint::Max(1), Constraint::Min(0)].to_vec(),
+        );
+        comp.highlight_symbol(">")
+            .row_highlight_style(Style::new().reversed())
+            .block(block)
     }
 
     pub fn new(enabled: bool) -> Self {
         let list = PlayState::default();
         Self {
-            state: ListState::default(),
-            comp: List::default().block(Self::gen_block(false, "Next Up")),
+            state: TableState::default(),
+            comp: Table::default().block(Self::gen_block(false, "Next Up")),
             list,
             enabled,
         }
@@ -121,7 +122,7 @@ impl Component for QueueList {
         }) = action
         {
             self.list = play;
-            self.comp = self.gen_list()
+            self.comp = self.gen_table()
         }
         Ok(None)
     }
@@ -131,7 +132,7 @@ impl Focusable for QueueList {
     fn set_enabled(&mut self, enable: bool) {
         if self.enabled != enable {
             self.enabled = enable;
-            self.comp = self.gen_list()
+            self.comp = self.gen_table()
         }
     }
 }

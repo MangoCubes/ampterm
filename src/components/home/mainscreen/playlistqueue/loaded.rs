@@ -56,10 +56,9 @@ impl Loaded {
         playpos: QueueLocation,
     ) -> Option<Action> {
         let (start, end, is_select) = selection;
+        self.visual.disable_visual_discard();
         if is_select {
             let slice = &self.playlist.entry[start..=end];
-
-            self.visual.disable_visual_discard();
             Some(Action::ToPlayerWorker(ToPlayerWorker::AddToQueue {
                 pos: playpos,
                 music: slice.to_vec(),

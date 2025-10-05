@@ -2,13 +2,20 @@ use ratatui::{
     layout::{Constraint, Rect},
     style::{Color, Modifier, Style, Stylize},
     text::Span,
-    widgets::{Block, List, ListItem, ListState, Row, Table, TableState},
+    widgets::{Block, Row, Table, TableState},
     Frame,
 };
 
 use crate::{
-    action::{Action, FromPlayerWorker, PlayState},
-    components::traits::{component::Component, focusable::Focusable},
+    action::{
+        useraction::{Common, Normal, UserAction, Visual},
+        Action, FromPlayerWorker, PlayState,
+    },
+    app::Mode,
+    components::{
+        lib::visualstate::VisualState,
+        traits::{component::Component, focusable::Focusable},
+    },
     osclient::response::getplaylist::Media,
 };
 use color_eyre::Result;
@@ -16,8 +23,9 @@ use color_eyre::Result;
 pub struct QueueList {
     comp: Table<'static>,
     list: PlayState,
-    state: TableState,
     enabled: bool,
+    tablestate: TableState,
+    visual: VisualState,
 }
 
 /// There are 4 unique states each item in the list can have:
@@ -100,8 +108,9 @@ impl QueueList {
     pub fn new(enabled: bool) -> Self {
         let list = PlayState::default();
         Self {
-            state: TableState::default(),
+            tablestate: TableState::default(),
             comp: Table::default().block(Self::gen_block(false, "Next Up")),
+            visual: VisualState::new(0),
             list,
             enabled,
         }
@@ -110,21 +119,80 @@ impl QueueList {
 
 impl Component for QueueList {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        frame.render_stateful_widget(&self.comp, area, &mut self.state);
+        frame.render_stateful_widget(&self.comp, area, &mut self.tablestate);
         Ok(())
     }
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        if let Action::FromPlayerWorker(FromPlayerWorker::InQueue {
-            play,
-            vol,
-            speed,
-            pos,
-        }) = action
-        {
-            self.list = play;
-            self.comp = self.gen_table()
+        match action {
+            Action::FromPlayerWorker(FromPlayerWorker::InQueue {
+                play,
+                vol,
+                speed,
+                pos,
+            }) => {
+                self.list = play;
+                self.comp = self.gen_table();
+                Ok(None)
+            }
+            Action::User(UserAction::Common(local)) => {
+                let action = match local {
+                    Common::Up => {
+                        self.tablestate.select_previous();
+                        Ok(None)
+                    }
+                    Common::Down => {
+                        self.tablestate.select_next();
+                        Ok(None)
+                    }
+                    Common::Top => {
+                        self.tablestate.select_first();
+                        Ok(None)
+                    }
+                    Common::Bottom => {
+                        self.tablestate.select_last();
+                        Ok(None)
+                    }
+                    _ => Ok(None),
+                };
+                self.comp = self.gen_table();
+                return action;
+            }
+            Action::User(ua) => {
+                let cur_pos = self
+                    .tablestate
+                    .selected()
+                    .expect("Failed to get current cursor location.");
+
+                let action = match ua {
+                    UserAction::Normal(normal) => match normal {
+                        Normal::SelectMode => {
+                            self.visual.enable_visual(cur_pos, false);
+                            Ok(Some(Action::ChangeMode(Mode::Visual)))
+                        }
+                        Normal::DeselectMode => {
+                            self.visual.enable_visual(cur_pos, true);
+                            Ok(Some(Action::ChangeMode(Mode::Visual)))
+                        }
+                        _ => Ok(None),
+                    },
+                    UserAction::Visual(visual) => match visual {
+                        Visual::ExitSave => {
+                            self.visual.disable_visual(cur_pos);
+                            Ok(Some(Action::ChangeMode(Mode::Normal)))
+                        }
+                        Visual::ExitDiscard => {
+                            self.visual.disable_visual_discard();
+                            Ok(Some(Action::ChangeMode(Mode::Normal)))
+                        }
+                        _ => Ok(None),
+                    },
+                    _ => Ok(None),
+                };
+                self.comp = self.gen_table();
+                action
+            }
+            _ => Ok(None),
         }
-        Ok(None)
     }
 }
 

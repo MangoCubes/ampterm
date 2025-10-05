@@ -139,42 +139,31 @@ impl Component for QueueList {
                 self.comp = self.gen_table();
                 Ok(None)
             }
-            Action::User(UserAction::Common(local)) => {
-                if self.list.items.len() == 0 {
-                    return Ok(None);
-                }
-                let action = match local {
-                    Common::Up => {
-                        self.tablestate.select_previous();
-                        Ok(None)
-                    }
-                    Common::Down => {
-                        self.tablestate.select_next();
-                        Ok(None)
-                    }
-                    Common::Top => {
-                        self.tablestate.select_first();
-                        Ok(None)
-                    }
-                    Common::Bottom => {
-                        self.tablestate.select_last();
-                        Ok(None)
-                    }
-                    _ => Ok(None),
-                };
-                self.comp = self.gen_table();
-                return action;
-            }
             Action::User(ua) => {
-                if self.list.items.len() == 0 {
+                let Some(cur_pos) = self.tablestate.selected() else {
                     return Ok(None);
-                }
-                let cur_pos = self
-                    .tablestate
-                    .selected()
-                    .expect("Failed to get current cursor location.");
+                };
 
                 let action = match ua {
+                    UserAction::Common(local) => match local {
+                        Common::Up => {
+                            self.tablestate.select_previous();
+                            Ok(None)
+                        }
+                        Common::Down => {
+                            self.tablestate.select_next();
+                            Ok(None)
+                        }
+                        Common::Top => {
+                            self.tablestate.select_first();
+                            Ok(None)
+                        }
+                        Common::Bottom => {
+                            self.tablestate.select_last();
+                            Ok(None)
+                        }
+                        _ => Ok(None),
+                    },
                     UserAction::Normal(normal) => match normal {
                         Normal::SelectMode => {
                             self.visual.enable_visual(cur_pos, false);

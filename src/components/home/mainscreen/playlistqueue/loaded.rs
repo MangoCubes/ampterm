@@ -170,44 +170,6 @@ impl Component for Loaded {
     }
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
-            Action::User(UserAction::Common(local)) => {
-                let action = match local {
-                    Common::Up => {
-                        self.tablestate.select_previous();
-                        Ok(None)
-                    }
-                    Common::Down => {
-                        self.tablestate.select_next();
-                        Ok(None)
-                    }
-                    Common::Top => {
-                        self.tablestate.select_first();
-                        Ok(None)
-                    }
-                    Common::Bottom => {
-                        self.tablestate.select_last();
-                        Ok(None)
-                    }
-                    Common::Refresh => Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
-                        HighLevelQuery::SelectPlaylist(GetPlaylistParams {
-                            name: self.name.to_string(),
-                            id: self.playlist.id.clone(),
-                        }),
-                    )))),
-                    _ => Ok(None),
-                };
-                // match action {
-                //     Action::Add(loc) => Ok(self.select_music(loc)),
-                //     Action::ResetState => {
-                //         self.visual.reset();
-                //         Ok(None)
-                //     }
-                //     // TODO: Add horizontal text scrolling
-                //     _ => Ok(None),
-                // }
-                self.table = self.regen_table();
-                return action;
-            }
             Action::User(ua) => {
                 let cur_pos = self
                     .tablestate
@@ -215,6 +177,32 @@ impl Component for Loaded {
                     .expect("Failed to get current cursor location.");
 
                 let action = match ua {
+                    UserAction::Common(local) => match local {
+                        Common::Up => {
+                            self.tablestate.select_previous();
+                            Ok(None)
+                        }
+                        Common::Down => {
+                            self.tablestate.select_next();
+                            Ok(None)
+                        }
+                        Common::Top => {
+                            self.tablestate.select_first();
+                            Ok(None)
+                        }
+                        Common::Bottom => {
+                            self.tablestate.select_last();
+                            Ok(None)
+                        }
+                        Common::Refresh => Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
+                            HighLevelQuery::SelectPlaylist(GetPlaylistParams {
+                                name: self.name.to_string(),
+                                id: self.playlist.id.clone(),
+                            }),
+                        )))),
+                        _ => Ok(None),
+                    },
+
                     UserAction::Normal(normal) => match normal {
                         Normal::SelectMode => {
                             self.visual.enable_visual(cur_pos, false);

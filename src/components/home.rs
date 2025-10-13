@@ -104,10 +104,9 @@ impl Component for Home {
         }
     }
     fn handle_key_event(&mut self, key: KeyEvent) -> Result<Option<Action>> {
-        if let Comp::Login(login) = &mut self.component {
-            login.handle_key_event(key)
-        } else {
-            Ok(None)
+        match &mut self.component {
+            Comp::Login(login) => login.handle_key_event(key),
+            _ => Ok(None),
         }
     }
     fn update(&mut self, action: Action) -> Result<Option<Action>> {

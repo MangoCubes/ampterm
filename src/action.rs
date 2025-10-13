@@ -70,16 +70,17 @@ pub enum Action {
     Quit,
     ClearScreen,
 
+    // Guarantee: All user actions are under [`UserAction`], with the exception of EndKeySeq
     User(UserAction),
+    // Action for deleting all key sequences currently stored
+    // It's like escape in Vim, and Ctrl+G in Emacs
+    EndKeySeq,
 
     FromQueryWorker(FromQueryWorker),
     ToQueryWorker(ToQueryWorker),
 
     FromPlayerWorker(FromPlayerWorker),
     ToPlayerWorker(ToPlayerWorker),
-    // Action for deleting all key sequences currently stored
-    // It's like escape in Vim, and Ctrl+G in Emacs
-    EndKeySeq,
 
     // Anything below this should not be used for keybinds, but feel free to experiment. Most are used to notify the system
     // System actions

@@ -159,6 +159,8 @@ impl App {
                 info!("Got action: {action:?}");
                 self.action_tx.send(action.clone())?;
                 self.key_stack.drain(..);
+            } else {
+                self.component.handle_key_event(key)?;
             }
             Ok(())
         }

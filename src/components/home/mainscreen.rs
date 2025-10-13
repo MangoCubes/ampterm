@@ -16,6 +16,7 @@ use crate::{
     queryworker::{highlevelquery::HighLevelQuery, query::ToQueryWorker},
 };
 use color_eyre::Result;
+use crossterm::event::{KeyEvent, KeyModifiers};
 use nowplaying::NowPlaying;
 use playlistlist::PlaylistList;
 use playlistqueue::PlaylistQueue;
@@ -41,6 +42,7 @@ pub struct MainScreen {
     now_playing: NowPlaying,
     queuelist: QueueList,
     message: String,
+    key_stack: Vec<String>,
 }
 
 impl MainScreen {
@@ -56,6 +58,7 @@ impl MainScreen {
             queuelist: QueueList::new(false),
             now_playing: NowPlaying::new(),
             message: "You are now logged in.".to_string(),
+            key_stack: vec![],
         }
     }
     fn update_focus(&mut self) {
@@ -69,6 +72,18 @@ impl MainScreen {
 }
 
 impl Component for MainScreen {
+    fn handle_key_event(&mut self, key: KeyEvent) -> Result<Option<Action>> {
+        self.key_stack.push(format!(
+            "{}{}",
+            key.code.to_string(),
+            if key.modifiers == KeyModifiers::NONE {
+                ""
+            } else {
+                "+"
+            },
+        ));
+        Ok(None)
+    }
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let vertical = Layout::vertical([
             Constraint::Min(0),
@@ -80,8 +95,10 @@ impl Component for MainScreen {
             Constraint::Percentage(50),
             Constraint::Percentage(25),
         ]);
+        let text_layout = Layout::horizontal([Constraint::Ratio(3, 4), Constraint::Ratio(1, 4)]);
         let areas = vertical.split(area);
         let listareas = horizontal.split(areas[0]);
+        let text_areas = text_layout.split(areas[2]);
 
         self.pl_list.draw(frame, listareas[0])?;
         self.pl_queue.draw(frame, listareas[1])?;
@@ -89,11 +106,18 @@ impl Component for MainScreen {
         self.now_playing.draw(frame, areas[1])?;
         frame.render_widget(
             Paragraph::new(self.message.clone()).wrap(Wrap { trim: false }),
-            areas[2],
+            text_areas[0],
+        );
+        frame.render_widget(
+            Paragraph::new(self.key_stack.join(" ")).wrap(Wrap { trim: false }),
+            text_areas[1],
         );
         Ok(())
     }
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
+        if matches!(action, Action::User(_)) || matches!(action, Action::EndKeySeq) {
+            self.key_stack.drain(..);
+        }
         match &action {
             Action::FromPlayerWorker(pw) => {
                 if let FromPlayerWorker::PlayerError(msg) | FromPlayerWorker::PlayerMessage(msg) =

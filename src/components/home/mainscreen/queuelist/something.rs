@@ -46,47 +46,53 @@ impl Something {
             visual: VisualState::new(len),
         }
     }
+    #[inline(always)]
+    fn is_fav(m: &Media) -> String {
+        if let Some(_) = m.starred {
+            "★".to_string()
+        } else {
+            " ".to_string()
+        }
+    }
+    fn gen_items(ms: &[Media], style: Style) -> Vec<Row<'static>> {
+        ms.iter()
+            .map(|m| Row::new(vec![" ".to_string(), m.title.clone(), Self::is_fav(m)]).style(style))
+            .collect()
+    }
+    fn gen_current_item(ms: &Media) -> Row<'static> {
+        let current = Style::new().bold();
+        Row::new(vec!["▶".to_string(), ms.title.clone(), Self::is_fav(ms)]).style(current)
+    }
     fn gen_table(&self) -> Table<'static> {
         let len = self.list.items.len();
         let before = Style::new().fg(Color::DarkGray);
         let after = Style::new();
-        fn gen_items(ms: &[Media], style: Style) -> Vec<Row<'static>> {
-            ms.iter()
-                .map(|m| {
-                    Row::new(vec![" ".to_string(), " ".to_string(), m.title.clone()]).style(style)
-                })
-                .collect()
-        }
-        fn gen_current_item(ms: &Media) -> Row<'static> {
-            let current = Style::new().bold();
-            Row::new(vec!["▶".to_string(), " ".to_string(), ms.title.clone()]).style(current)
-        }
         let items = match self.list.index {
             // Current item is beyond the current playlist
-            _ if len == self.list.index => gen_items(&self.list.items, before),
+            _ if len == self.list.index => Self::gen_items(&self.list.items, before),
             // Current item is the last item in the playlist
             idx if (len - 1) == self.list.index => {
-                let mut list = gen_items(&self.list.items[..idx], before);
-                list.push(gen_current_item(&self.list.items[idx]));
+                let mut list = Self::gen_items(&self.list.items[..idx], before);
+                list.push(Self::gen_current_item(&self.list.items[idx]));
                 list
             }
             // Current item is the first element in the playlist
             0 => {
-                let mut list = gen_items(&self.list.items[1..], after);
-                list.insert(0, gen_current_item(&self.list.items[0]));
+                let mut list = Self::gen_items(&self.list.items[1..], after);
+                list.insert(0, Self::gen_current_item(&self.list.items[0]));
                 list
             }
             // Every other cases
             idx => {
-                let mut list = gen_items(&self.list.items[..idx], before);
-                list.append(&mut gen_items(&self.list.items[(idx + 1)..], after));
-                list.insert(idx, gen_current_item(&self.list.items[idx]));
+                let mut list = Self::gen_items(&self.list.items[..idx], before);
+                list.append(&mut Self::gen_items(&self.list.items[(idx + 1)..], after));
+                list.insert(idx, Self::gen_current_item(&self.list.items[idx]));
                 list
             }
         };
         let comp = Table::new(
             items,
-            [Constraint::Max(1), Constraint::Max(1), Constraint::Min(0)].to_vec(),
+            [Constraint::Max(1), Constraint::Min(0), Constraint::Max(1)].to_vec(),
         );
         comp.highlight_symbol(">")
             .row_highlight_style(Style::new().reversed())

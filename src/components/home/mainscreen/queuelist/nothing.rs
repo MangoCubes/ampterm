@@ -21,7 +21,7 @@ impl Component for Nothing {
         frame.render_widget(
             Paragraph::new(vec![Line::raw("Nothing in the queue")])
                 .centered()
-                .block(Block::default().padding(Padding::new(0, 0, (area.height / 2), 0)))
+                .block(Block::default().padding(Padding::new(0, 0, area.height / 2, 0)))
                 .wrap(Wrap { trim: false }),
             centered,
         );

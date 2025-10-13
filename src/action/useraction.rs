@@ -16,6 +16,9 @@ pub enum Common {
     Refresh,
     ResetState,
     Help,
+    /// Action for deleting all key sequences currently stored
+    /// It's like escape in Vim, and Ctrl+G in Emacs
+    EndKeySeq,
 }
 
 /// Visual mode exclusive actions

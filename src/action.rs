@@ -70,11 +70,8 @@ pub enum Action {
     Quit,
     ClearScreen,
 
-    // Guarantee: All user actions are under [`UserAction`], with the exception of EndKeySeq
+    // Guarantee: All user actions are under [`UserAction`]
     User(UserAction),
-    // Action for deleting all key sequences currently stored
-    // It's like escape in Vim, and Ctrl+G in Emacs
-    EndKeySeq,
 
     FromQueryWorker(FromQueryWorker),
     ToQueryWorker(ToQueryWorker),
@@ -91,4 +88,7 @@ pub enum Action {
     Multiple(Vec<Option<Action>>),
     // This action is fired from the components to the app
     ChangeMode(Mode),
+    /// THIS IS FOR INTERNAL USE ONLY
+    /// USE [`UserAction::Common(Common::EndKeySeq)`] INSTEAD
+    EndKeySeq,
 }

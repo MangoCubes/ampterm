@@ -115,7 +115,7 @@ impl Component for MainScreen {
         Ok(())
     }
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        if matches!(action, Action::User(_)) || matches!(action, Action::EndKeySeq) {
+        if matches!(action, Action::EndKeySeq) {
             self.key_stack.drain(..);
         }
         match &action {

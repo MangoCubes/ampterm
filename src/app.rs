@@ -43,6 +43,7 @@ pub enum Mode {
     #[default]
     Normal,
     Visual,
+    Insert,
 }
 
 impl App {
@@ -138,23 +139,29 @@ impl App {
     }
 
     fn handle_key_event(&mut self, key: KeyEvent) -> Result<()> {
-        let action_tx = self.action_tx.clone();
-        let Some(keymap) = self.config.keybindings.get(&self.mode) else {
-            return Ok(());
-        };
+        if self.mode == Mode::Insert {
+            if let Some(action) = self.component.handle_key_event(key)? {
+                self.action_tx.send(action)?;
+            }
+            Ok(())
+        } else {
+            let Some(keymap) = self.config.keybindings.get(&self.mode) else {
+                return Ok(());
+            };
 
-        self.key_stack.push(key);
+            self.key_stack.push(key);
 
-        if let Some(action) = keymap.get(&self.key_stack) {
-            info!("Got action: {action:?}");
-            action_tx.send(action.clone())?;
-            self.key_stack.drain(..);
-        } else if let Some(action) = keymap.get(&vec![key]) {
-            info!("Got action: {action:?}");
-            action_tx.send(action.clone())?;
-            self.key_stack.drain(..);
+            if let Some(action) = keymap.get(&self.key_stack) {
+                info!("Got action: {action:?}");
+                self.action_tx.send(action.clone())?;
+                self.key_stack.drain(..);
+            } else if let Some(action) = keymap.get(&vec![key]) {
+                info!("Got action: {action:?}");
+                self.action_tx.send(action.clone())?;
+                self.key_stack.drain(..);
+            }
+            Ok(())
         }
-        Ok(())
     }
 
     async fn handle_actions(&mut self, tui: &mut Tui) -> Result<()> {

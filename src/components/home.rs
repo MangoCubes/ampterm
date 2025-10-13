@@ -3,6 +3,7 @@ mod login;
 mod mainscreen;
 
 use color_eyre::Result;
+use crossterm::event::KeyEvent;
 use loading::Loading;
 use login::Login;
 use mainscreen::MainScreen;
@@ -102,6 +103,13 @@ impl Component for Home {
             Comp::Main(c) => c.draw(frame, area),
         }
     }
+    fn handle_key_event(&mut self, key: KeyEvent) -> Result<Option<Action>> {
+        if let Comp::Login(login) = &mut self.component {
+            login.handle_key_event(key)
+        } else {
+            Ok(None)
+        }
+    }
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         // Child component can change in two cases:
         // 1. Login is successful regardless of the current child component
@@ -132,10 +140,10 @@ impl Component for Home {
                 }
             };
         };
-        if let Comp::Main(c) = &mut self.component {
-            c.update(action)
-        } else {
-            Ok(None)
+        match &mut self.component {
+            Comp::Main(main_screen) => main_screen.update(action),
+            Comp::Loading(_loading) => Ok(None),
+            Comp::Login(login) => login.update(action),
         }
     }
 }

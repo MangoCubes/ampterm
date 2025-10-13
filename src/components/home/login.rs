@@ -135,6 +135,7 @@ impl Login {
         msg: Option<Vec<String>>,
         config: Config,
     ) -> Self {
+        let _ = action_tx.send(Action::ChangeMode(crate::app::Mode::Insert));
         let mut res = Self {
             username: TextArea::default(),
             password: TextArea::default(),

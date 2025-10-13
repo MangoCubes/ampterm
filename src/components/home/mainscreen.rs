@@ -8,6 +8,7 @@ use crate::{
         useraction::{Normal, UserAction},
         Action, FromPlayerWorker,
     },
+    app::Mode,
     components::{
         home::compid,
         traits::{component::Component, focusable::Focusable},
@@ -47,6 +48,7 @@ impl MainScreen {
         let _ = action_tx.send(Action::ToQueryWorker(ToQueryWorker::new(
             HighLevelQuery::ListPlaylists,
         )));
+        let _ = action_tx.send(Action::ChangeMode(Mode::Normal));
         Self {
             state: CurrentlySelected::Playlists,
             pl_list: PlaylistList::new(true),

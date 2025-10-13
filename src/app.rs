@@ -146,20 +146,26 @@ impl App {
             Ok(())
         } else {
             let Some(keymap) = self.config.keybindings.get(&self.mode) else {
-                return Ok(());
+                return color_eyre::Result::Err(color_eyre::Report::msg(
+                    "Current mode does not exist!",
+                ));
             };
 
             self.key_stack.push(key);
 
+            // Try finding action by all the keys pressed so far
             if let Some(action) = keymap.get(&self.key_stack) {
                 info!("Got action: {action:?}");
                 self.action_tx.send(action.clone())?;
-                self.key_stack.drain(..);
-            } else if let Some(action) = keymap.get(&vec![key]) {
+                self.action_tx.send(Action::EndKeySeq)?;
+            } else
+            // Try finding action by the current key
+            if let Some(action) = keymap.get(&vec![key]) {
                 info!("Got action: {action:?}");
                 self.action_tx.send(action.clone())?;
-                self.key_stack.drain(..);
+                self.action_tx.send(Action::EndKeySeq)?;
             } else {
+                // No actions found, pass the pressed key to the child
                 self.component.handle_key_event(key)?;
             }
             Ok(())

@@ -46,6 +46,17 @@ pub enum Mode {
     Insert,
 }
 
+impl ToString for Mode {
+    fn to_string(&self) -> String {
+        match &self {
+            Mode::Common => "COMMON".to_string(),
+            Mode::Normal => "NORMAL".to_string(),
+            Mode::Visual => "VISUAL".to_string(),
+            Mode::Insert => "INSERT".to_string(),
+        }
+    }
+}
+
 impl App {
     pub fn new(tick_rate: f64, frame_rate: f64) -> Result<Self> {
         let (action_tx, action_rx) = mpsc::unbounded_channel();

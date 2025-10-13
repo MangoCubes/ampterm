@@ -43,6 +43,7 @@ pub struct MainScreen {
     queuelist: QueueList,
     message: String,
     key_stack: Vec<String>,
+    current_mode: Mode,
 }
 
 impl MainScreen {
@@ -53,6 +54,7 @@ impl MainScreen {
         let _ = action_tx.send(Action::ChangeMode(Mode::Normal));
         Self {
             state: CurrentlySelected::Playlists,
+            current_mode: Mode::Normal,
             pl_list: PlaylistList::new(true),
             pl_queue: PlaylistQueue::new(false),
             queuelist: QueueList::new(false),
@@ -95,7 +97,11 @@ impl Component for MainScreen {
             Constraint::Percentage(50),
             Constraint::Percentage(25),
         ]);
-        let text_layout = Layout::horizontal([Constraint::Ratio(3, 4), Constraint::Ratio(1, 4)]);
+        let text_layout = Layout::horizontal([
+            Constraint::Length(9),
+            Constraint::Ratio(3, 4),
+            Constraint::Ratio(1, 4),
+        ]);
         let areas = vertical.split(area);
         let listareas = horizontal.split(areas[0]);
         let text_areas = text_layout.split(areas[2]);
@@ -105,12 +111,17 @@ impl Component for MainScreen {
         self.queuelist.draw(frame, listareas[2])?;
         self.now_playing.draw(frame, areas[1])?;
         frame.render_widget(
-            Paragraph::new(self.message.clone()).wrap(Wrap { trim: false }),
+            Paragraph::new(format!("[{}]", self.current_mode.to_string()))
+                .wrap(Wrap { trim: false }),
             text_areas[0],
         );
         frame.render_widget(
-            Paragraph::new(self.key_stack.join(" ")).wrap(Wrap { trim: false }),
+            Paragraph::new(self.message.clone()).wrap(Wrap { trim: false }),
             text_areas[1],
+        );
+        frame.render_widget(
+            Paragraph::new(self.key_stack.join(" ")).wrap(Wrap { trim: false }),
+            text_areas[2],
         );
         Ok(())
     }
@@ -145,6 +156,9 @@ impl Component for MainScreen {
                 }
                 _ => {}
             },
+            Action::ChangeMode(m) => {
+                self.current_mode = *m;
+            }
             _ => {}
         };
         match &action {

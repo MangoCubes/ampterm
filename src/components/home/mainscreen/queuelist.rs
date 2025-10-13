@@ -17,6 +17,7 @@ use crate::{
         traits::{component::Component, focusable::Focusable},
     },
     osclient::response::getplaylist::Media,
+    playerworker::player::ToPlayerWorker,
 };
 use color_eyre::Result;
 
@@ -25,7 +26,7 @@ pub struct QueueList {
     list: PlayState,
     enabled: bool,
     tablestate: TableState,
-    visual: VisualState,
+    visual: Option<VisualState>,
 }
 
 /// There are 4 unique states each item in the list can have:
@@ -111,7 +112,7 @@ impl QueueList {
         Self {
             tablestate,
             comp: Table::default().block(Self::gen_block(false, "Next Up")),
-            visual: VisualState::new(0),
+            visual: None,
             list,
             enabled,
         }
@@ -125,6 +126,9 @@ impl Component for QueueList {
     }
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
+            Action::ToPlayerWorker(ToPlayerWorker::AddToQueue { music, pos }) => {
+                todo!()
+            }
             Action::FromPlayerWorker(FromPlayerWorker::InQueue {
                 play,
                 vol,
@@ -164,28 +168,40 @@ impl Component for QueueList {
                         }
                         _ => Ok(None),
                     },
-                    UserAction::Normal(normal) => match normal {
-                        Normal::SelectMode => {
-                            self.visual.enable_visual(cur_pos, false);
-                            Ok(Some(Action::ChangeMode(Mode::Visual)))
+                    UserAction::Normal(normal) => {
+                        if let Some(v) = &mut self.visual {
+                            match normal {
+                                Normal::SelectMode => {
+                                    v.enable_visual(cur_pos, false);
+                                    Ok(Some(Action::ChangeMode(Mode::Visual)))
+                                }
+                                Normal::DeselectMode => {
+                                    v.enable_visual(cur_pos, true);
+                                    Ok(Some(Action::ChangeMode(Mode::Visual)))
+                                }
+                                _ => Ok(None),
+                            }
+                        } else {
+                            Ok(None)
                         }
-                        Normal::DeselectMode => {
-                            self.visual.enable_visual(cur_pos, true);
-                            Ok(Some(Action::ChangeMode(Mode::Visual)))
+                    }
+                    UserAction::Visual(visual) => {
+                        if let Some(v) = &mut self.visual {
+                            match visual {
+                                Visual::ExitSave => {
+                                    v.disable_visual(cur_pos);
+                                    Ok(Some(Action::ChangeMode(Mode::Normal)))
+                                }
+                                Visual::ExitDiscard => {
+                                    v.disable_visual_discard();
+                                    Ok(Some(Action::ChangeMode(Mode::Normal)))
+                                }
+                                _ => Ok(None),
+                            }
+                        } else {
+                            Ok(None)
                         }
-                        _ => Ok(None),
-                    },
-                    UserAction::Visual(visual) => match visual {
-                        Visual::ExitSave => {
-                            self.visual.disable_visual(cur_pos);
-                            Ok(Some(Action::ChangeMode(Mode::Normal)))
-                        }
-                        Visual::ExitDiscard => {
-                            self.visual.disable_visual_discard();
-                            Ok(Some(Action::ChangeMode(Mode::Normal)))
-                        }
-                        _ => Ok(None),
-                    },
+                    }
                     _ => Ok(None),
                 };
                 self.comp = self.gen_table();

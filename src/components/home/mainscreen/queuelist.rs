@@ -69,6 +69,28 @@ impl Component for QueueList {
             Comp::Something(something) => something.draw(frame, inner),
         }
     }
+    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+        if let Comp::Something(s) = &mut self.comp {
+            s.update(action)
+        } else {
+            match action {
+                Action::FromPlayerWorker(a) => match a {
+                    FromPlayerWorker::InQueue {
+                        play,
+                        vol,
+                        speed,
+                        pos,
+                    } => {
+                        let comp = Something::new(play);
+                        self.comp = Comp::Something(comp)
+                    }
+                    _ => {}
+                },
+                _ => {}
+            }
+            Ok(None)
+        }
+    }
 }
 
 impl Focusable for QueueList {

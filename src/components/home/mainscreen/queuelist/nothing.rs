@@ -19,7 +19,7 @@ impl Component for Nothing {
             .flex(Flex::Center)
             .areas(horizontal);
         frame.render_widget(
-            Paragraph::new(vec![Line::raw("Nothin in the queue")])
+            Paragraph::new(vec![Line::raw("Nothing in the queue")])
                 .centered()
                 .block(Block::default().padding(Padding::new(0, 0, (area.height / 2), 0)))
                 .wrap(Wrap { trim: false }),

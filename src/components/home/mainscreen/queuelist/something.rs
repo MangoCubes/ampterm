@@ -14,7 +14,6 @@ use crate::{
     app::Mode,
     components::{lib::visualstate::VisualState, traits::component::Component},
     osclient::response::getplaylist::Media,
-    playerworker::player::ToPlayerWorker,
 };
 
 pub struct Something {
@@ -36,6 +35,17 @@ pub struct Something {
 ///
 /// As a result, a dedicated list component has to be made
 impl Something {
+    pub fn new(playstate: PlayState) -> Self {
+        let mut tablestate = TableState::default();
+        tablestate.select(Some(0));
+        let len = playstate.items.len();
+        Self {
+            comp: Table::default(),
+            list: playstate,
+            tablestate,
+            visual: VisualState::new(len),
+        }
+    }
     fn gen_table(&self) -> Table<'static> {
         let len = self.list.items.len();
         let before = Style::new().fg(Color::DarkGray);
@@ -90,9 +100,6 @@ impl Component for Something {
     }
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
-            Action::ToPlayerWorker(ToPlayerWorker::AddToQueue { music, pos }) => {
-                todo!()
-            }
             Action::FromPlayerWorker(FromPlayerWorker::InQueue {
                 play,
                 vol,

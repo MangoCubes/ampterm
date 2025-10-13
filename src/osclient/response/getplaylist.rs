@@ -109,3 +109,14 @@ pub enum GetPlaylist {
     #[serde(alias = "failed")]
     Failed { error: ErrorData },
 }
+
+impl Media {
+    #[inline(always)]
+    pub fn get_fav_marker(&self) -> String {
+        if let Some(_) = self.starred {
+            "★".to_string()
+        } else {
+            " ".to_string()
+        }
+    }
+}

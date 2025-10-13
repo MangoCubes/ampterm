@@ -114,7 +114,7 @@ impl Loaded {
         let rows: Vec<Row> = match temp {
             Some((a, b, _)) => iter
                 .map(|(i, item)| {
-                    let mut row = Row::new(vec![" ".to_string(), item.title.clone()]);
+                    let mut row = Row::new(vec![item.title.clone(), item.get_fav_marker()]);
                     row = if i <= b && i >= a {
                         row.reversed()
                     } else {
@@ -129,7 +129,7 @@ impl Loaded {
                 .collect(),
             None => iter
                 .map(|(i, item)| {
-                    let row = Row::new(vec![" ".to_string(), item.title.clone()]);
+                    let row = Row::new(vec![item.title.clone(), item.get_fav_marker()]);
                     if sel[i] {
                         row.green()
                     } else {
@@ -138,7 +138,7 @@ impl Loaded {
                 })
                 .collect(),
         };
-        Table::new(rows, [Constraint::Max(1), Constraint::Min(0)].to_vec())
+        Table::new(rows, [Constraint::Min(0), Constraint::Max(1)].to_vec())
             .highlight_symbol(">")
             .row_highlight_style(Style::new().reversed())
     }

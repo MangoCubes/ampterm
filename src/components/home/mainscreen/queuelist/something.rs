@@ -46,22 +46,16 @@ impl Something {
             visual: VisualState::new(len),
         }
     }
-    #[inline(always)]
-    fn is_fav(m: &Media) -> String {
-        if let Some(_) = m.starred {
-            "★".to_string()
-        } else {
-            " ".to_string()
-        }
-    }
     fn gen_items(ms: &[Media], style: Style) -> Vec<Row<'static>> {
         ms.iter()
-            .map(|m| Row::new(vec![" ".to_string(), m.title.clone(), Self::is_fav(m)]).style(style))
+            .map(|m| {
+                Row::new(vec![" ".to_string(), m.title.clone(), m.get_fav_marker()]).style(style)
+            })
             .collect()
     }
     fn gen_current_item(ms: &Media) -> Row<'static> {
         let current = Style::new().bold();
-        Row::new(vec!["▶".to_string(), ms.title.clone(), Self::is_fav(ms)]).style(current)
+        Row::new(vec!["▶".to_string(), ms.title.clone(), ms.get_fav_marker()]).style(current)
     }
     fn gen_table(&self) -> Table<'static> {
         let len = self.list.items.len();

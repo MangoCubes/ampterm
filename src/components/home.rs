@@ -118,8 +118,9 @@ impl Component for Home {
                 match pr {
                     PingResponse::Success => {
                         // Switch child component to MainScreen
-                        self.component = Comp::Main(MainScreen::new(self.action_tx.clone()));
-                        return Ok(None);
+                        let (comp, actions) = MainScreen::new();
+                        self.component = Comp::Main(comp);
+                        return Ok(Some(actions));
                     }
                     PingResponse::Failure(err) => {
                         if let Comp::Loading(l) = &self.component {

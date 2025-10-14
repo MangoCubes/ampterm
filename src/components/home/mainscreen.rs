@@ -26,7 +26,6 @@ use ratatui::{
     widgets::{Paragraph, Wrap},
     Frame,
 };
-use tokio::sync::mpsc::UnboundedSender;
 
 #[derive(PartialEq)]
 enum CurrentlySelected {
@@ -47,21 +46,25 @@ pub struct MainScreen {
 }
 
 impl MainScreen {
-    pub fn new(action_tx: UnboundedSender<Action>) -> Self {
-        let _ = action_tx.send(Action::ToQueryWorker(ToQueryWorker::new(
-            HighLevelQuery::ListPlaylists,
-        )));
-        let _ = action_tx.send(Action::ChangeMode(Mode::Normal));
-        Self {
-            state: CurrentlySelected::Playlists,
-            current_mode: Mode::Normal,
-            pl_list: PlaylistList::new(true),
-            pl_queue: PlaylistQueue::new(false),
-            queuelist: QueueList::new(false),
-            now_playing: NowPlaying::new(),
-            message: "You are now logged in.".to_string(),
-            key_stack: vec![],
-        }
+    pub fn new() -> (Self, Action) {
+        (
+            Self {
+                state: CurrentlySelected::Playlists,
+                current_mode: Mode::Normal,
+                pl_list: PlaylistList::new(true),
+                pl_queue: PlaylistQueue::new(false),
+                queuelist: QueueList::new(false),
+                now_playing: NowPlaying::new(),
+                message: "You are now logged in.".to_string(),
+                key_stack: vec![],
+            },
+            Action::Multiple(vec![
+                Some(Action::ToQueryWorker(ToQueryWorker::new(
+                    HighLevelQuery::ListPlaylists,
+                ))),
+                Some(Action::ChangeMode(Mode::Normal)),
+            ]),
+        )
     }
     fn update_focus(&mut self) {
         self.pl_list

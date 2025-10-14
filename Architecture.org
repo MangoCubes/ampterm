@@ -5,6 +5,17 @@
 * Note
 - This is mostly for me to keep my thoughts in order.
 
+* Component Design
+** Variant Components
+- A component may have variant subcomponents, depending on its state
+- If a component has variant subcomponents, it has a component for each state, each named in a generic way
+  - Example: PlaylistList has subcomponents named =error=, =loaded=, and =loading=
+** Borders
+- If a component does not have any subcomponents, borders are handled by the component directly
+- If a component has subcomponents, but the border is expected to stay consistent throughout all states, then the borders are handled by the component directly
+- If a component has subcomponents, and the border is expected to change depending on the state, then the borders are handled by each state semi-independently
+  - Base design is handed out by the component
+
 * Callback Handling
 - =QueryWorker= is a component that fetches remote resources, and is the sole component that does this
 ** Request Handling
@@ -18,7 +29,7 @@
   - This is to ensure the response goes to the intended recipient
     - Sender and the receiver may not always be the same component
 ** Query Steps
-- HighLevelQuery -> ToQueryWorker -> 
+- HighLevelQuery -> ToQueryWorker
 - HighLevelQuery is a high-level object that corresponds closes to the user action
 - ToQueryWorker is the object converted from HighLevelQuery that contains information about what actual queries that should be made
 * Player Worker Management

@@ -31,7 +31,6 @@ pub struct Loaded {
     comp: List<'static>,
     list: Vec<SimplePlaylist>,
     state: ListState,
-    enabled: bool,
     callback: HashMap<usize, (PlaylistID, QueueLocation)>,
 }
 
@@ -48,34 +47,17 @@ impl Loaded {
         }
     }
 
-    fn gen_block(enabled: bool, title: &str) -> Block<'static> {
-        let style = if enabled {
-            Style::new().white()
-        } else {
-            Style::new().dark_gray()
-        };
-        let title = Span::styled(
-            title.to_string(),
-            if enabled {
-                Style::default().add_modifier(Modifier::BOLD)
-            } else {
-                Style::default().add_modifier(Modifier::DIM)
-            },
-        );
-        Block::bordered().title(title).border_style(style)
-    }
-
-    fn gen_list(list: &Vec<SimplePlaylist>, enabled: bool) -> List<'static> {
+    /// This needs to be a function not tied to &self because it needs to be used by [`Self::new`]
+    fn gen_list(list: &Vec<SimplePlaylist>) -> List<'static> {
         let items: Vec<String> = list.iter().map(|p| p.name.clone()).collect();
         List::new(items)
-            .block(Self::gen_block(enabled, "Playlist"))
             .highlight_style(Style::new().reversed())
             .highlight_symbol(">")
     }
-    pub fn new(enabled: bool, list: Vec<SimplePlaylist>, state: ListState) -> Self {
+
+    pub fn new(list: Vec<SimplePlaylist>, state: ListState) -> Self {
         Self {
-            enabled,
-            comp: Self::gen_list(&list, enabled),
+            comp: Self::gen_list(&list),
             list,
             state,
             callback: HashMap::new(),
@@ -161,14 +143,5 @@ impl Component for Loaded {
             }
             _ => Ok(None),
         }
-    }
-}
-
-impl Focusable for Loaded {
-    fn set_enabled(&mut self, enable: bool) {
-        if self.enabled != enable {
-            self.enabled = enable;
-            self.comp = Self::gen_list(&self.list, self.enabled);
-        };
     }
 }

@@ -11,7 +11,13 @@ use crate::{
     queryworker::query::{getplaylists::GetPlaylistsResponse, ResponseType},
 };
 use color_eyre::Result;
-use ratatui::{layout::Rect, widgets::ListState, Frame};
+use ratatui::{
+    layout::Rect,
+    style::{Modifier, Style, Stylize},
+    text::Span,
+    widgets::{Block, ListState, Widget},
+    Frame,
+};
 
 enum Comp {
     Error(Error),
@@ -27,18 +33,37 @@ pub struct PlaylistList {
 impl PlaylistList {
     pub fn new(enabled: bool) -> Self {
         Self {
-            comp: Comp::Loading(Loading::new(enabled)),
+            comp: Comp::Loading(Loading::new()),
             enabled,
         }
+    }
+    fn gen_block(&self) -> Block<'static> {
+        let style = if self.enabled {
+            Style::new().white()
+        } else {
+            Style::new().dark_gray()
+        };
+        let title = Span::styled(
+            "Playlist".to_string(),
+            if self.enabled {
+                Style::default().add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().add_modifier(Modifier::DIM)
+            },
+        );
+        Block::bordered().title(title).border_style(style)
     }
 }
 
 impl Component for PlaylistList {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+        let block = self.gen_block();
+        let inner = block.inner(area);
+        frame.render_widget(block, area);
         match &mut self.comp {
-            Comp::Error(error) => error.draw(frame, area),
-            Comp::Loaded(loaded) => loaded.draw(frame, area),
-            Comp::Loading(loading) => loading.draw(frame, area),
+            Comp::Error(error) => error.draw(frame, inner),
+            Comp::Loaded(loaded) => loaded.draw(frame, inner),
+            Comp::Loading(loading) => loading.draw(frame, inner),
         }
     }
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
@@ -48,13 +73,12 @@ impl Component for PlaylistList {
                     match res {
                         GetPlaylistsResponse::Success(simple_playlists) => {
                             self.comp = Comp::Loaded(Loaded::new(
-                                self.enabled,
                                 simple_playlists,
                                 ListState::default().with_selected(Some(0)),
                             ));
                         }
                         GetPlaylistsResponse::Failure(error) => {
-                            self.comp = Comp::Error(Error::new(self.enabled, error));
+                            self.comp = Comp::Error(Error::new(error));
                         }
                     }
                     Ok(None)
@@ -81,11 +105,6 @@ impl Focusable for PlaylistList {
     fn set_enabled(&mut self, enable: bool) {
         if self.enabled != enable {
             self.enabled = enable;
-            match &mut self.comp {
-                Comp::Error(error) => error.set_enabled(enable),
-                Comp::Loaded(loaded) => loaded.set_enabled(enable),
-                Comp::Loading(loading) => loading.set_enabled(enable),
-            }
         };
     }
 }

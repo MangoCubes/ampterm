@@ -19,7 +19,13 @@ use color_eyre::Result;
 use error::Error;
 use loaded::Loaded;
 use notselected::NotSelected;
-use ratatui::{layout::Rect, Frame};
+use ratatui::{
+    layout::Rect,
+    style::{Modifier, Style, Stylize},
+    text::Span,
+    widgets::Block,
+    Frame,
+};
 
 enum Comp {
     Error(Error),
@@ -39,6 +45,23 @@ impl PlaylistQueue {
             comp: Comp::NotSelected(NotSelected::new(enabled)),
             enabled,
         }
+    }
+
+    fn gen_block(enabled: bool, title: String) -> Block<'static> {
+        let style = if enabled {
+            Style::new().white()
+        } else {
+            Style::new().dark_gray()
+        };
+        let title = Span::styled(
+            title,
+            if enabled {
+                Style::default().add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().add_modifier(Modifier::DIM)
+            },
+        );
+        Block::bordered().title(title).border_style(style)
     }
 }
 

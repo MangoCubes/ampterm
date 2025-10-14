@@ -5,6 +5,7 @@ use crate::{
     },
     app::Mode,
     components::{
+        home::mainscreen::playlistqueue::PlaylistQueue,
         lib::visualstate::VisualState,
         traits::{component::Component, focusable::Focusable},
     },
@@ -18,9 +19,8 @@ use crate::{
 use color_eyre::Result;
 use ratatui::{
     layout::{Constraint, Rect},
-    style::{Modifier, Style, Stylize},
-    text::Span,
-    widgets::{Block, Row, Table, TableState},
+    style::{Style, Stylize},
+    widgets::{Row, Table, TableState},
     Frame,
 };
 
@@ -34,22 +34,6 @@ pub struct Loaded {
 }
 
 impl Loaded {
-    fn gen_block(enabled: bool, title: &str) -> Block<'static> {
-        let style = if enabled {
-            Style::new().white()
-        } else {
-            Style::new().dark_gray()
-        };
-        let title = Span::styled(
-            title.to_string(),
-            if enabled {
-                Style::default().add_modifier(Modifier::BOLD)
-            } else {
-                Style::default().add_modifier(Modifier::DIM)
-            },
-        );
-        Block::bordered().title(title).border_style(style)
-    }
     fn add_temp_items_to_queue(
         &mut self,
         selection: (usize, usize, bool),
@@ -162,7 +146,22 @@ impl Loaded {
 
 impl Component for Loaded {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        let border = Self::gen_block(self.enabled, &self.name);
+        let title = if let Some(pos) = self.tablestate.selected() {
+            let len = self.playlist.entry.len();
+            format!(
+                "{} ({}/{})",
+                self.name,
+                if pos == usize::MAX || pos >= len {
+                    len
+                } else {
+                    pos + 1
+                },
+                len
+            )
+        } else {
+            format!("{} ({})", self.name, self.playlist.entry.len())
+        };
+        let border = PlaylistQueue::gen_block(self.enabled, title);
         let inner = border.inner(area);
         frame.render_widget(border, area);
         frame.render_stateful_widget(&self.table, inner, &mut self.tablestate);

@@ -1,14 +1,15 @@
 use color_eyre::Result;
 use ratatui::{
     layout::{Alignment, Rect},
-    style::{Modifier, Style, Stylize},
-    text::Span,
-    widgets::{Block, Padding, Paragraph, Wrap},
+    widgets::{Padding, Paragraph, Wrap},
     Frame,
 };
 
 use crate::{
-    components::traits::{component::Component, focusable::Focusable},
+    components::{
+        home::mainscreen::playlistqueue::PlaylistQueue,
+        traits::{component::Component, focusable::Focusable},
+    },
     queryworker::query::getplaylists::PlaylistID,
 };
 
@@ -19,22 +20,6 @@ pub struct Loading {
 }
 
 impl Loading {
-    fn gen_block(enabled: bool, title: &str) -> Block<'static> {
-        let style = if enabled {
-            Style::new().white()
-        } else {
-            Style::new().dark_gray()
-        };
-        let title = Span::styled(
-            title.to_string(),
-            if enabled {
-                Style::default().add_modifier(Modifier::BOLD)
-            } else {
-                Style::default().add_modifier(Modifier::DIM)
-            },
-        );
-        Block::bordered().title(title).border_style(style)
-    }
     pub fn new(id: PlaylistID, name: String, enabled: bool) -> Self {
         Self { id, name, enabled }
     }
@@ -45,12 +30,8 @@ impl Component for Loading {
         frame.render_widget(
             Paragraph::new("Loading...")
                 .block(
-                    Self::gen_block(self.enabled, &self.name).padding(Padding::new(
-                        0,
-                        0,
-                        area.height / 2,
-                        0,
-                    )),
+                    PlaylistQueue::gen_block(self.enabled, self.name.clone())
+                        .padding(Padding::new(0, 0, area.height / 2, 0)),
                 )
                 .alignment(Alignment::Center)
                 .wrap(Wrap { trim: false }),

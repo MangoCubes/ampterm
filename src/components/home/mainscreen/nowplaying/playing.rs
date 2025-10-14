@@ -65,18 +65,16 @@ impl Component for Playing {
         Ok(None)
     }
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        let vertical = Layout::vertical([Constraint::Percentage(50), Constraint::Percentage(50)]);
-        let areas = vertical.split(area);
+        let border = Block::bordered().border_style(Style::new().white());
+        let inner = border.inner(area);
+        let vertical = Layout::vertical([Constraint::Min(1), Constraint::Length(1)]);
+        let areas = vertical.split(inner);
+        frame.render_widget(border, area);
         frame.render_widget(
             Paragraph::new(vec![
                 Line::raw(format!("{} - {}", self.artist, self.title)).bold(),
                 Line::raw(format!("{}", self.album)),
             ])
-            .block(
-                Block::default()
-                    .borders(Borders::TOP | Borders::LEFT | Borders::RIGHT)
-                    .border_style(Style::new().white()),
-            )
             .wrap(Wrap { trim: false }),
             areas[0],
         );
@@ -89,14 +87,7 @@ impl Component for Playing {
         );
         let percent = ((self.pos.as_secs() as i32 * 100) / self.length) as u16;
         let adjusted = if percent > 100 { 100 } else { percent };
-        frame.render_widget(
-            Gauge::default().label(label).percent(adjusted).block(
-                Block::default()
-                    .borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT)
-                    .border_style(Style::new().white()),
-            ),
-            areas[1],
-        );
+        frame.render_widget(Gauge::default().label(label).percent(adjusted), areas[1]);
         Ok(())
     }
 }

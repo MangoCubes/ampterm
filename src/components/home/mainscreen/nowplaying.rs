@@ -49,6 +49,7 @@ impl Component for NowPlaying {
                         p.title.clone(),
                         p.artist.clone().unwrap_or("Unknown".to_string()),
                         p.album.clone().unwrap_or("Unknown".to_string()),
+                        p.cover_art.clone(),
                         p.duration.unwrap_or(1),
                         vol,
                         speed,

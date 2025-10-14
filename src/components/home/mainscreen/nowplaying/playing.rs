@@ -9,7 +9,7 @@ use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Style, Stylize},
     text::Line,
-    widgets::{Block, Borders, Gauge, Paragraph, Wrap},
+    widgets::{Block, Gauge, Paragraph, Wrap},
     Frame,
 };
 
@@ -21,6 +21,7 @@ pub struct Playing {
     artist: String,
     album: String,
     length: i32,
+    cover: Option<String>,
 }
 
 impl Playing {
@@ -28,6 +29,7 @@ impl Playing {
         title: String,
         artist: String,
         album: String,
+        cover: Option<String>,
         length: i32,
         vol: f32,
         speed: f32,
@@ -41,6 +43,7 @@ impl Playing {
             artist,
             album,
             length,
+            cover,
         }
     }
 }
@@ -88,6 +91,7 @@ impl Component for Playing {
         let percent = ((self.pos.as_secs() as i32 * 100) / self.length) as u16;
         let adjusted = if percent > 100 { 100 } else { percent };
         frame.render_widget(Gauge::default().label(label).percent(adjusted), areas[1]);
+
         Ok(())
     }
 }

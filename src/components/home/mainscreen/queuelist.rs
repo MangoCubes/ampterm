@@ -1,22 +1,17 @@
 use ratatui::{
-    layout::{Constraint, Rect},
-    style::{Color, Modifier, Style, Stylize},
+    layout::Rect,
+    style::{Modifier, Style, Stylize},
     text::Span,
-    widgets::{Block, Row, Table, TableState, Widget},
+    widgets::Block,
     Frame,
 };
 
 use crate::{
-    action::{
-        useraction::{Common, Normal, UserAction, Visual},
-        Action, FromPlayerWorker, PlayState,
-    },
-    app::Mode,
+    action::{Action, FromPlayerWorker},
     components::{
         home::mainscreen::queuelist::{nothing::Nothing, something::Something},
         traits::{component::Component, focusable::Focusable},
     },
-    playerworker::player::ToPlayerWorker,
 };
 use color_eyre::Result;
 
@@ -54,7 +49,7 @@ impl QueueList {
     pub fn new(enabled: bool) -> Self {
         Self {
             enabled,
-            comp: Comp::Nothing(Nothing {}),
+            comp: Comp::Nothing(Nothing::new()),
         }
     }
 }

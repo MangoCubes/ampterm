@@ -1,42 +1,24 @@
 use color_eyre::Result;
-use ratatui::{
-    layout::{Constraint, Flex, Layout, Rect},
-    text::Line,
-    widgets::{Block, Padding, Paragraph, Wrap},
-    Frame,
-};
+use ratatui::{layout::Rect, Frame};
 
-use crate::components::traits::component::Component;
+use crate::components::{lib::centered::Centered, traits::component::Component};
 
 pub struct Loading {
-    url: String,
-    username: String,
+    comp: Centered,
 }
 
 impl Loading {
     pub fn new(url: String, username: String) -> Self {
-        Self { url, username }
+        let comp = Centered::new(vec![
+            "Logging in with the credentials in the configuration...".to_string(),
+            format!("URL: {}", url),
+            format!("Username: {}", username),
+        ]);
+        Self { comp }
     }
 }
 impl Component for Loading {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        let [horizontal] = Layout::horizontal([Constraint::Percentage(100)])
-            .flex(Flex::Center)
-            .areas(area);
-        let [centered] = Layout::vertical([Constraint::Percentage(100)])
-            .flex(Flex::Center)
-            .areas(horizontal);
-        frame.render_widget(
-            Paragraph::new(vec![
-                Line::raw("Logging in with the credentials in the configuration..."),
-                Line::raw(format!("URL: {}", self.url)),
-                Line::raw(format!("Username: {}", self.username)),
-            ])
-            .centered()
-            .block(Block::bordered().padding(Padding::new(0, 0, (area.height / 2) - 1, 0)))
-            .wrap(Wrap { trim: false }),
-            centered,
-        );
-        Ok(())
+        self.comp.draw(frame, area)
     }
 }

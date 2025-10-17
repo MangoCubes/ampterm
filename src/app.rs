@@ -86,10 +86,15 @@ impl App {
         let player_tx = pw.get_tx();
         // Start query worker
         tokio::spawn(async move { pw.run().await });
+        let (component, actions) = Home::new(action_tx.clone(), config.clone());
+        if let Some([a1, a2]) = actions {
+            let _ = action_tx.send(a1);
+            let _ = action_tx.send(a2);
+        }
         Ok(Self {
             tick_rate,
             frame_rate,
-            component: Home::new(action_tx.clone(), config.clone()),
+            component,
             should_quit: false,
             should_suspend: false,
             config,

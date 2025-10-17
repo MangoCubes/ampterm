@@ -35,7 +35,7 @@ pub struct Home {
 }
 
 impl Home {
-    pub fn new(action_tx: UnboundedSender<Action>, config: Config) -> Self {
+    pub fn new(action_tx: UnboundedSender<Action>, config: Config) -> (Self, Option<[Action; 2]>) {
         let auth = config.clone().auth;
         let config_creds = if let Some(creds) = auth {
             Some(Credential::Password {
@@ -57,34 +57,42 @@ impl Home {
                 None => None,
             }
         };
-        let comp: Comp = match config_creds {
+        let (comp, actions): (Comp, Option<[Action; 2]>) = match config_creds {
             Some(creds) => {
                 let url = creds.get_url();
                 let username = creds.get_username();
-                let _ = action_tx.send(Action::Multiple(vec![
-                    Some(Action::ToQueryWorker(ToQueryWorker::new(
-                        HighLevelQuery::SetCredential(creds),
-                    ))),
-                    Some(Action::ToQueryWorker(ToQueryWorker::new(
-                        HighLevelQuery::CheckCredentialValidity,
-                    ))),
-                ]));
-                Comp::Loading(Loading::new(url, username))
+                (
+                    Comp::Loading(Loading::new(url, username)),
+                    Some([
+                        Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::SetCredential(
+                            creds,
+                        ))),
+                        Action::ToQueryWorker(ToQueryWorker::new(
+                            HighLevelQuery::CheckCredentialValidity,
+                        )),
+                    ]),
+                )
             }
-            None => Comp::Login(Login::new(
-                action_tx.clone(),
-                Some(vec![
-                    "No credentials detected in the config.".to_string(),
-                    format!("(Loaded config from {:?})", get_config_dir()),
-                ]),
-                config.clone(),
-            )),
+            None => (
+                Comp::Login(Login::new(
+                    action_tx.clone(),
+                    Some(vec![
+                        "No credentials detected in the config.".to_string(),
+                        format!("(Loaded config from {:?})", get_config_dir()),
+                    ]),
+                    config.clone(),
+                )),
+                None,
+            ),
         };
-        Self {
-            action_tx,
-            component: comp,
-            config,
-        }
+        (
+            Self {
+                action_tx,
+                component: comp,
+                config,
+            },
+            actions,
+        )
     }
 }
 

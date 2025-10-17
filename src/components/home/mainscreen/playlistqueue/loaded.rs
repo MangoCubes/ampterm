@@ -227,10 +227,17 @@ impl Component for Loaded {
                         }
                         Visual::Add(queue_location) => {
                             if let Some(items) = self.visual.get_temp_selection(cur_pos) {
-                                Ok(Some(Action::Multiple(vec![
-                                    self.add_temp_items_to_queue(items, queue_location),
-                                    Some(Action::ChangeMode(Mode::Normal)),
-                                ])))
+                                let temp_action =
+                                    self.add_temp_items_to_queue(items, queue_location);
+
+                                if let Some(a) = temp_action {
+                                    Ok(Some(Action::Multiple(vec![
+                                        a,
+                                        Action::ChangeMode(Mode::Normal),
+                                    ])))
+                                } else {
+                                    Ok(Some(Action::ChangeMode(Mode::Normal)))
+                                }
                             } else {
                                 Ok(None)
                             }

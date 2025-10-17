@@ -7,7 +7,6 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph, Wrap},
     Frame,
 };
-use tokio::sync::mpsc::UnboundedSender;
 use tui_textarea::{CursorMove, TextArea};
 
 use crate::{
@@ -40,7 +39,6 @@ pub struct Login {
     password: TextArea<'static>,
     url: TextArea<'static>,
     status_msg: Option<Vec<String>>,
-    action_tx: UnboundedSender<Action>,
     mode: Mode,
     status: Status,
     config: Config,
@@ -107,40 +105,31 @@ impl Login {
     }
     // Submit current form to the server
     // This function never fails and handles errors from attempt_login
-    fn submit(&mut self) -> Result<()> {
+    fn submit(&mut self) -> Result<Option<Action>> {
         let url = self.url.lines()[0].clone();
         let username = self.username.lines()[0].clone();
         let password = self.password.lines()[0].clone();
         self.status = Status::Pending;
         self.status_msg = Some(vec!["Logging in...".to_string()]);
         self.update_style();
-        let action = Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::SetCredential(
-            Credential::Password {
-                url,
-                secure: true,
-                username,
-                password,
-                legacy: self.config.config.use_legacy_auth,
-            },
-        )));
-        self.action_tx.send(action)?;
-        self.action_tx
-            .send(Action::ToQueryWorker(ToQueryWorker::new(
-                HighLevelQuery::CheckCredentialValidity,
-            )))?;
-        Ok(())
+        Ok(Some(Action::Multiple(vec![
+            Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::SetCredential(
+                Credential::Password {
+                    url,
+                    secure: true,
+                    username,
+                    password,
+                    legacy: self.config.config.use_legacy_auth,
+                },
+            ))),
+            Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::CheckCredentialValidity)),
+        ])))
     }
-    pub fn new(
-        action_tx: UnboundedSender<Action>,
-        msg: Option<Vec<String>>,
-        config: Config,
-    ) -> Self {
-        let _ = action_tx.send(Action::ChangeMode(crate::app::Mode::Insert));
+    pub fn new(msg: Option<Vec<String>>, config: Config) -> (Self, Action) {
         let mut res = Self {
             username: TextArea::default(),
             password: TextArea::default(),
             url: TextArea::new(vec!["https://".to_string()]),
-            action_tx,
             mode: Mode::default(),
             status: Status::default(),
             status_msg: msg,
@@ -149,7 +138,7 @@ impl Login {
         res.url.move_cursor(CursorMove::End);
         res.password.set_mask_char('*');
         res.update_style();
-        res
+        (res, Action::ChangeMode(crate::app::Mode::Insert))
     }
 }
 
@@ -158,7 +147,9 @@ impl Component for Login {
         match key.code {
             KeyCode::Up => self.navigate(true),
             KeyCode::Down => self.navigate(false),
-            KeyCode::Enter => self.submit(),
+            KeyCode::Enter => {
+                return self.submit();
+            }
             KeyCode::Tab => self.navigate(false),
             KeyCode::BackTab => self.navigate(true),
             _ => match self.mode {

@@ -87,10 +87,9 @@ impl App {
         // Start query worker
         tokio::spawn(async move { pw.run().await });
         let (component, actions) = Home::new(action_tx.clone(), config.clone());
-        if let Some([a1, a2]) = actions {
-            let _ = action_tx.send(a1);
-            let _ = action_tx.send(a2);
-        }
+        actions.into_iter().for_each(|a| {
+            action_tx.send(a);
+        });
         Ok(Self {
             tick_rate,
             frame_rate,
@@ -198,9 +197,7 @@ impl App {
             }
             if let Action::Multiple(actions) = action {
                 for a in actions {
-                    if let Some(ac) = a {
-                        self.action_tx.send(ac)?
-                    }
+                    self.action_tx.send(a)?
                 }
                 continue;
             };

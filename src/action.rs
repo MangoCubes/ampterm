@@ -85,7 +85,7 @@ pub enum Action {
     Render,
     Resize(u16, u16),
     Error(String),
-    Multiple(Vec<Option<Action>>),
+    Multiple(Vec<Action>),
     // This action is fired from the components to the app
     ChangeMode(Mode),
     /// THIS IS FOR INTERNAL USE ONLY

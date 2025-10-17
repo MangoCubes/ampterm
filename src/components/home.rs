@@ -35,7 +35,7 @@ pub struct Home {
 }
 
 impl Home {
-    pub fn new(action_tx: UnboundedSender<Action>, config: Config) -> (Self, Option<[Action; 2]>) {
+    pub fn new(action_tx: UnboundedSender<Action>, config: Config) -> (Self, Vec<Action>) {
         let auth = config.clone().auth;
         let config_creds = if let Some(creds) = auth {
             Some(Credential::Password {
@@ -57,33 +57,32 @@ impl Home {
                 None => None,
             }
         };
-        let (comp, actions): (Comp, Option<[Action; 2]>) = match config_creds {
+        let (comp, actions): (Comp, Vec<Action>) = match config_creds {
             Some(creds) => {
                 let url = creds.get_url();
                 let username = creds.get_username();
                 (
                     Comp::Loading(Loading::new(url, username)),
-                    Some([
+                    vec![
                         Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::SetCredential(
                             creds,
                         ))),
                         Action::ToQueryWorker(ToQueryWorker::new(
                             HighLevelQuery::CheckCredentialValidity,
                         )),
-                    ]),
+                    ],
                 )
             }
-            None => (
-                Comp::Login(Login::new(
-                    action_tx.clone(),
+            None => {
+                let (comp, action) = Login::new(
                     Some(vec![
                         "No credentials detected in the config.".to_string(),
                         format!("(Loaded config from {:?})", get_config_dir()),
                     ]),
                     config.clone(),
-                )),
-                None,
-            ),
+                );
+                (Comp::Login(comp), vec![action])
+            }
         };
         (
             Self {
@@ -133,16 +132,16 @@ impl Component for Home {
                     PingResponse::Failure(err) => {
                         if let Comp::Loading(l) = &self.component {
                             // Switch child component to Login
-                            self.component = Comp::Login(Login::new(
-                                self.action_tx.clone(),
+                            let (comp, action) = Login::new(
                                 Some(vec![
                                     "Failed to query the server with the given credentials!"
                                         .to_string(),
                                     format!("Error: {}", err),
                                 ]),
                                 self.config.clone(),
-                            ));
-                            return Ok(None);
+                            );
+                            self.component = Comp::Login(comp);
+                            return Ok(Some(action));
                         }
                     }
                 }

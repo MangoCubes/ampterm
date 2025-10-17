@@ -59,10 +59,8 @@ impl MainScreen {
                 key_stack: vec![],
             },
             Action::Multiple(vec![
-                Some(Action::ToQueryWorker(ToQueryWorker::new(
-                    HighLevelQuery::ListPlaylists,
-                ))),
-                Some(Action::ChangeMode(Mode::Normal)),
+                Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::ListPlaylists)),
+                Action::ChangeMode(Mode::Normal),
             ]),
         )
     }
@@ -176,12 +174,19 @@ impl Component for MainScreen {
                 compid::CompID::QueueList => self.queuelist.update(action.clone()),
                 _ => panic!("Invalid routing detected!"),
             },
-            _ => Ok(Some(Action::Multiple(vec![
-                self.pl_list.update(action.clone())?,
-                self.pl_queue.update(action.clone())?,
-                self.now_playing.update(action.clone())?,
-                self.queuelist.update(action)?,
-            ]))),
+            _ => {
+                let results: Vec<Action> = [
+                    self.pl_list.update(action.clone())?,
+                    self.pl_queue.update(action.clone())?,
+                    self.now_playing.update(action.clone())?,
+                    self.queuelist.update(action)?,
+                ]
+                .into_iter()
+                .filter_map(|a| a)
+                .collect();
+
+                Ok(Some(Action::Multiple(results)))
+            }
         }
     }
 }

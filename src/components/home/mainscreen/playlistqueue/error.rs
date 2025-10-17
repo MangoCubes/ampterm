@@ -1,9 +1,16 @@
 use crate::{
+    action::{
+        useraction::{Common, UserAction},
+        Action,
+    },
     components::{
         home::mainscreen::playlistqueue::PlaylistQueue,
         traits::{component::Component, focusable::Focusable},
     },
-    queryworker::query::getplaylists::PlaylistID,
+    queryworker::{
+        highlevelquery::HighLevelQuery,
+        query::{getplaylist::GetPlaylistParams, getplaylists::PlaylistID, ToQueryWorker},
+    },
 };
 use color_eyre::Result;
 use ratatui::{
@@ -51,6 +58,18 @@ impl Component for Error {
             area,
         );
         Ok(())
+    }
+    fn update(&mut self, action: crate::action::Action) -> Result<Option<Action>> {
+        if let Action::User(UserAction::Common(Common::Refresh)) = action {
+            Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
+                HighLevelQuery::SelectPlaylist(GetPlaylistParams {
+                    name: self.name.clone(),
+                    id: self.id.clone(),
+                }),
+            ))))
+        } else {
+            Ok(None)
+        }
     }
 }
 

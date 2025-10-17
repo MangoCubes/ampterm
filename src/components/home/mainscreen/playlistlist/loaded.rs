@@ -5,7 +5,7 @@ use crate::{
         useraction::{Common, Normal, UserAction},
         Action,
     },
-    components::traits::{component::Component, focusable::Focusable},
+    components::traits::component::Component,
     osclient::response::getplaylists::SimplePlaylist,
     playerworker::player::{QueueLocation, ToPlayerWorker},
     queryworker::{
@@ -20,9 +20,8 @@ use crate::{
 use color_eyre::Result;
 use ratatui::{
     layout::Rect,
-    style::{Modifier, Style, Stylize},
-    text::Span,
-    widgets::{Block, List, ListState},
+    style::{Style, Stylize},
+    widgets::{List, ListState},
     Frame,
 };
 use tracing::error;

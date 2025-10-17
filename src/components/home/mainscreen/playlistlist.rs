@@ -15,7 +15,7 @@ use ratatui::{
     layout::Rect,
     style::{Modifier, Style, Stylize},
     text::Span,
-    widgets::{Block, ListState, Widget},
+    widgets::{Block, ListState},
     Frame,
 };
 
@@ -90,13 +90,11 @@ impl Component for PlaylistList {
                     }
                 }
             }
-            _ => {
-                if let Comp::Loaded(comp) = &mut self.comp {
-                    comp.update(action)
-                } else {
-                    Ok(None)
-                }
-            }
+            _ => match &mut self.comp {
+                Comp::Loaded(comp) => comp.update(action),
+                Comp::Error(comp) => comp.update(action),
+                _ => Ok(None),
+            },
         }
     }
 }

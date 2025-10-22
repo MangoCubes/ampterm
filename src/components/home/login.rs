@@ -11,6 +11,7 @@ use tui_textarea::{CursorMove, TextArea};
 
 use crate::{
     action::Action,
+    components::{lib::checkbox::Checkbox, traits::focusable::Focusable},
     config::Config,
     queryworker::{
         highlevelquery::HighLevelQuery,
@@ -32,12 +33,14 @@ enum Mode {
     Url,
     Username,
     Password,
+    LegacyToggle,
 }
 
 pub struct Login {
     username: TextArea<'static>,
     password: TextArea<'static>,
     url: TextArea<'static>,
+    legacy: Checkbox,
     status_msg: Option<Vec<String>>,
     mode: Mode,
     status: Status,
@@ -82,26 +85,29 @@ impl Login {
             self.mode == Mode::Password && self.status != Status::Pending,
             "Password",
         );
+        self.legacy.set_enabled(self.mode == Mode::LegacyToggle);
     }
-    fn navigate(&mut self, up: bool) -> Result<()> {
+    fn navigate(&mut self, up: bool) -> Result<Option<Action>> {
         if self.status == Status::Pending {
-            return Ok(());
+            return Ok(None);
         }
         self.mode = if up {
             match self.mode {
-                Mode::Url => Mode::Password,
+                Mode::Url => Mode::LegacyToggle,
                 Mode::Username => Mode::Url,
                 Mode::Password => Mode::Username,
+                Mode::LegacyToggle => Mode::Password,
             }
         } else {
             match self.mode {
                 Mode::Url => Mode::Username,
                 Mode::Username => Mode::Password,
-                Mode::Password => Mode::Url,
+                Mode::Password => Mode::LegacyToggle,
+                Mode::LegacyToggle => Mode::Url,
             }
         };
         self.update_style();
-        Ok(())
+        Ok(None)
     }
     // Submit current form to the server
     // This function never fails and handles errors from attempt_login
@@ -134,6 +140,7 @@ impl Login {
             status: Status::default(),
             status_msg: msg,
             config,
+            legacy: Checkbox::new(false, false, "Use legacy auth instead".to_string()),
         };
         res.url.move_cursor(CursorMove::End);
         res.password.set_mask_char('*');
@@ -145,29 +152,27 @@ impl Login {
 impl Component for Login {
     fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Result<Option<Action>> {
         match key.code {
-            KeyCode::Up => self.navigate(true),
-            KeyCode::Down => self.navigate(false),
+            KeyCode::Up | KeyCode::BackTab | KeyCode::Left => self.navigate(true),
+            KeyCode::Down | KeyCode::Tab | KeyCode::Right => self.navigate(false),
             KeyCode::Enter => {
                 return self.submit();
             }
-            KeyCode::Tab => self.navigate(false),
-            KeyCode::BackTab => self.navigate(true),
             _ => match self.mode {
                 Mode::Url => {
                     self.url.input(key);
-                    Ok(())
+                    Ok(None)
                 }
                 Mode::Username => {
                     self.username.input(key);
-                    Ok(())
+                    Ok(None)
                 }
                 Mode::Password => {
                     self.password.input(key);
-                    Ok(())
+                    Ok(None)
                 }
+                Mode::LegacyToggle => self.legacy.handle_key_event(key),
             },
-        }?;
-        Ok(None)
+        }
     }
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let [horizontal] = Layout::horizontal([Constraint::Percentage(50)])
@@ -177,6 +182,7 @@ impl Component for Login {
             .flex(Flex::Center)
             .areas(horizontal);
         let layout = Layout::default().constraints([
+            Constraint::Length(3),
             Constraint::Length(3),
             Constraint::Length(3),
             Constraint::Length(3),
@@ -193,13 +199,14 @@ impl Component for Login {
                 Line::raw("Tab or arrow keys: Navigate"),
             ])
             .centered(),
-            areas[3],
+            areas[4],
         );
+        self.legacy.draw(frame, areas[3])?;
         if let Some(msg) = &self.status_msg {
             let text: Vec<Line> = msg.iter().map(|l| Line::raw(l)).collect();
             frame.render_widget(
                 Paragraph::new(text).centered().wrap(Wrap { trim: false }),
-                areas[4],
+                areas[5],
             );
         }
         Ok(())

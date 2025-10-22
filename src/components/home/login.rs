@@ -154,6 +154,7 @@ impl Component for Login {
         match key.code {
             KeyCode::Up | KeyCode::BackTab | KeyCode::Left => self.navigate(true),
             KeyCode::Down | KeyCode::Tab | KeyCode::Right => self.navigate(false),
+            KeyCode::Esc => Ok(Some(Action::Quit)),
             KeyCode::Enter => {
                 return self.submit();
             }

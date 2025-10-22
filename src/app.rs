@@ -2,10 +2,7 @@ use color_eyre::Result;
 
 use crossterm::event::KeyEvent;
 use ratatui::prelude::Rect;
-use rodio::{
-    cpal::{self, traits::HostTrait, SupportedBufferSize},
-    DeviceTrait, SupportedStreamConfig,
-};
+use rodio::OutputStream;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{self};
 use tracing::{debug, info};
@@ -14,8 +11,8 @@ use crate::{
     action::Action,
     components::{home::Home, traits::component::Component},
     config::Config,
-    playerworker::{player::ToPlayerWorker, PlayerWorker},
-    queryworker::{query::ToQueryWorker, QueryWorker},
+    playerworker::player::ToPlayerWorker,
+    queryworker::query::ToQueryWorker,
     tui::{Event, Tui},
 };
 
@@ -32,9 +29,6 @@ pub struct App {
     action_rx: mpsc::UnboundedReceiver<Action>,
     query_tx: mpsc::UnboundedSender<ToQueryWorker>,
     player_tx: mpsc::UnboundedSender<ToPlayerWorker>,
-    // This is necessary because if this gets dropped, the audio stops
-    #[allow(dead_code)]
-    stream: rodio::OutputStream,
 }
 
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -58,34 +52,15 @@ impl ToString for Mode {
 }
 
 impl App {
-    pub fn new(tick_rate: f64, frame_rate: f64) -> Result<Self> {
-        let (action_tx, action_rx) = mpsc::unbounded_channel();
-        let config = Config::new()?;
-        let mut qw = QueryWorker::new(action_tx.clone(), config.clone());
-        let query_tx = qw.get_tx();
-        // Start query worker
-        tokio::spawn(async move { qw.run().await });
-
-        let host = cpal::default_host();
-        let device = host.default_output_device().unwrap();
-        let default_config = device.default_output_config()?;
-        let (stream, handle) = rodio::OutputStream::try_from_device_config(
-            &device,
-            SupportedStreamConfig::new(
-                default_config.channels(),
-                default_config.sample_rate(),
-                SupportedBufferSize::Range {
-                    min: 4096,
-                    max: 4096,
-                },
-                default_config.sample_format(),
-            ),
-        )
-        .unwrap();
-        let mut pw = PlayerWorker::new(handle, action_tx.clone(), config.clone());
-        let player_tx = pw.get_tx();
-        // Start query worker
-        tokio::spawn(async move { pw.run().await });
+    pub fn new(
+        config: Config,
+        action_tx: mpsc::UnboundedSender<Action>,
+        action_rx: mpsc::UnboundedReceiver<Action>,
+        query_tx: mpsc::UnboundedSender<ToQueryWorker>,
+        player_tx: mpsc::UnboundedSender<ToPlayerWorker>,
+        tick_rate: f64,
+        frame_rate: f64,
+    ) -> Result<Self> {
         let (component, actions) = Home::new(action_tx.clone(), config.clone());
         actions.into_iter().for_each(|a| {
             action_tx.send(a);
@@ -103,7 +78,6 @@ impl App {
             action_rx,
             query_tx,
             player_tx,
-            stream,
         })
     }
 

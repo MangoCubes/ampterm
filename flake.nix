@@ -33,7 +33,6 @@
           packages = (
             with pkgs;
             [
-              rust-analyzer
               lldb
               jq
               rustup

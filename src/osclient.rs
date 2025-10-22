@@ -1,5 +1,5 @@
 use crate::trace_dbg;
-use error::{createclienterror::CreateClientError, externalerror::ExternalError};
+use error::externalerror::ExternalError;
 use reqwest::{Client, Url};
 use reqwest::{Method, Response};
 use response::empty::Empty;
@@ -8,6 +8,7 @@ use response::getplaylists::GetPlaylists;
 use response::wrapper::Wrapper;
 use serde::de::DeserializeOwned;
 use serde_json::from_str;
+use std::error::Error;
 use std::fmt::Debug;
 
 mod error;
@@ -180,23 +181,28 @@ impl OSClient {
         password: String,
         legacy: bool,
         secure: bool,
-    ) -> Self {
-        OSClient::use_credentials(Credential::Password {
-            url: Url::parse(&url).expect("Failed to parse the URL."),
+    ) -> Result<Self, Box<dyn Error>> {
+        Ok(OSClient::use_credentials(Credential::Password {
+            url: Url::parse(&url)?,
             secure,
             username,
             password,
             legacy,
-        })
+        }))
     }
     // Use API key to create a client without verifying if the credentials are valid
-    pub fn use_apikey(url: String, username: String, apikey: String, secure: bool) -> Self {
-        OSClient::use_credentials(Credential::APIKey {
-            url: Url::parse(&url).expect("Failed to parse the URL."),
+    pub fn use_apikey(
+        url: String,
+        username: String,
+        apikey: String,
+        secure: bool,
+    ) -> Result<Self, Box<dyn Error>> {
+        Ok(OSClient::use_credentials(Credential::APIKey {
+            url: Url::parse(&url)?,
             secure,
             username,
             apikey,
-        })
+        }))
     }
     // Use password to create a client
     // A ping request is sent with the credentials to verify it
@@ -207,9 +213,9 @@ impl OSClient {
         password: String,
         legacy: bool,
         secure: bool,
-    ) -> Result<OSClient, CreateClientError> {
+    ) -> Result<Self, Box<dyn Error>> {
         let client = OSClient::credentials(Credential::Password {
-            url: Url::parse(&url).expect("Failed to parse the URL."),
+            url: Url::parse(&url)?,
             secure,
             username,
             password,
@@ -226,26 +232,22 @@ impl OSClient {
         username: String,
         apikey: String,
         secure: bool,
-    ) -> Result<Self, CreateClientError> {
-        let client = OSClient::credentials(Credential::APIKey {
-            url: Url::parse(&url).expect("Failed to parse the URL."),
+    ) -> Result<Self, Box<dyn Error>> {
+        Ok(OSClient::credentials(Credential::APIKey {
+            url: Url::parse(&url)?,
             secure,
             username,
             apikey,
         })
-        .await?;
-        Ok(client)
+        .await?)
     }
     // Create a client using the given credentials, then ping the server to verify the result
-    pub async fn credentials(auth: Credential) -> Result<Self, CreateClientError> {
+    pub async fn credentials(auth: Credential) -> Result<Self, Box<dyn Error>> {
         let client = OSClient::use_credentials(auth);
-        let ping_result = client
-            .ping()
-            .await
-            .map_err(|e| CreateClientError::external(e))?;
+        let ping_result = client.ping().await?;
         match ping_result {
             Empty::Ok => Ok(client),
-            Empty::Failed { error } => Err(CreateClientError::internal(error)),
+            Empty::Failed { error } => Err(Box::new(error)),
         }
     }
     // Create a client using the given credentials

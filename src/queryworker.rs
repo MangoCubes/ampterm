@@ -1,6 +1,7 @@
 pub mod highlevelquery;
 pub mod query;
 
+use color_eyre::eyre::eyre;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
@@ -72,7 +73,7 @@ impl QueryWorker {
             };
             match event.query {
                 HighLevelQuery::SetCredential(creds) => {
-                    self.client = Some(Arc::from(match creds {
+                    let client = match creds {
                         Credential::Password {
                             url,
                             secure,
@@ -86,7 +87,13 @@ impl QueryWorker {
                             username,
                             apikey,
                         } => OSClient::use_apikey(url, username, apikey, secure),
-                    }));
+                    };
+                    match client {
+                        Ok(client) => self.client = Some(Arc::from(client)),
+                        Err(err) => {
+                            return Err(eyre!("Failed to log in: {}", err.to_string()));
+                        }
+                    };
                 }
                 HighLevelQuery::ListPlaylists => {
                     let tx = self.action_tx.clone();

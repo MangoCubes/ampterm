@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::errordata::ErrorData;
+use super::oserror::OSError;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "status")]
@@ -8,5 +8,5 @@ pub enum Empty {
     #[serde(alias = "ok")]
     Ok,
     #[serde(alias = "failed")]
-    Failed { error: ErrorData },
+    Failed { error: OSError },
 }

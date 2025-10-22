@@ -1,3 +1,5 @@
+use std::{error::Error, fmt::Display};
+
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 
@@ -37,18 +39,20 @@ impl ToString for OSErrorCode {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ErrorData {
+pub struct OSError {
     pub code: OSErrorCode,
     pub message: Option<String>,
     #[serde(alias = "helpUrl")]
     pub help_url: Option<String>,
 }
 
-impl ToString for ErrorData {
-    fn to_string(&self) -> String {
+impl Display for OSError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.message.clone() {
-            Some(m) => format!("{}", m),
-            None => self.code.to_string(),
+            Some(m) => write!(f, "{}", m),
+            None => write!(f, "{}", self.code.to_string()),
         }
     }
 }
+
+impl Error for OSError {}

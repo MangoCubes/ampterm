@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::queryworker::query::getplaylists::PlaylistID;
 
-use super::errordata::ErrorData;
+use super::oserror::OSError;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Media {
@@ -107,7 +107,7 @@ pub enum GetPlaylist {
     #[serde(alias = "ok")]
     Ok { playlist: FullPlaylist },
     #[serde(alias = "failed")]
-    Failed { error: ErrorData },
+    Failed { error: OSError },
 }
 
 impl Media {

@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::queryworker::query::getplaylists::PlaylistID;
 
-use super::errordata::ErrorData;
+use super::oserror::OSError;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct SimplePlaylist {
@@ -28,5 +28,5 @@ pub enum GetPlaylists {
     #[serde(alias = "ok")]
     Ok { playlists: GetPlaylistsWrapper },
     #[serde(alias = "failed")]
-    Failed { error: ErrorData },
+    Failed { error: OSError },
 }

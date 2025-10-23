@@ -125,7 +125,7 @@ impl Login {
                     secure: true,
                     username,
                     password,
-                    legacy: self.config.config.use_legacy_auth,
+                    legacy: self.legacy.get_toggle(),
                 },
             ))),
             Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::CheckCredentialValidity)),

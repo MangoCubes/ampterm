@@ -27,20 +27,22 @@ pub enum HighLevelQuery {
     /// Fetches the list of playlists for the sake of displaying them
     ListPlaylists,
     /// Not quite a query, but this exists because there already is a way to communicate with
-    /// [`QueryWorker`] object and it sort of makes sense to reuse that channel. Therefore, this is
-    /// the only query that does not have any reply.
+    /// [`QueryWorker`] object and it sort of makes sense to reuse that channel. However, Login
+    /// component changes the login credentials, and there may be errors when parsing the
+    /// credentials. The error messages are sent as a response to this query.
     SetCredential(Credential),
 }
 
 impl HighLevelQuery {
     pub fn get_dest(&self) -> CompID {
         match self {
-            HighLevelQuery::PlayMusicFromURL(_) | HighLevelQuery::SetCredential(_) => CompID::None,
+            HighLevelQuery::PlayMusicFromURL(_) => CompID::None,
             HighLevelQuery::CheckCredentialValidity => CompID::Home,
             HighLevelQuery::SelectPlaylist(_) => CompID::PlaylistQueue,
             HighLevelQuery::AddPlaylistToQueue(_) | HighLevelQuery::ListPlaylists => {
                 CompID::PlaylistList
             }
+            HighLevelQuery::SetCredential(_) => CompID::Login,
         }
     }
 }

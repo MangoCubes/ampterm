@@ -88,10 +88,27 @@ impl QueryWorker {
                             apikey,
                         } => OSClient::use_apikey(url, username, apikey, secure),
                     };
+
                     match client {
-                        Ok(client) => self.client = Some(Arc::from(client)),
+                        Ok(client) => {
+                            self.client = Some(Arc::from(client));
+                            let _ =
+                                self.action_tx
+                                    .send(Action::FromQueryWorker(FromQueryWorker::new(
+                                        event.dest,
+                                        event.ticket,
+                                        ResponseType::SetCredential(Ok(())),
+                                    )));
+                        }
                         Err(err) => {
-                            return Err(eyre!("Failed to log in: {}", err.to_string()));
+                            let _ =
+                                self.action_tx
+                                    .send(Action::FromQueryWorker(FromQueryWorker::new(
+                                        event.dest,
+                                        event.ticket,
+                                        ResponseType::SetCredential(Err(err.to_string())),
+                                    )));
+                            // return Err(eyre!("Failed to log in: {}", err.to_string()));
                         }
                     };
                 }

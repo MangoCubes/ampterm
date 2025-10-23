@@ -15,7 +15,7 @@ use crate::{
     config::Config,
     queryworker::{
         highlevelquery::HighLevelQuery,
-        query::{setcredential::Credential, ToQueryWorker},
+        query::{setcredential::Credential, FromQueryWorker, ResponseType, ToQueryWorker},
     },
 };
 
@@ -24,7 +24,8 @@ use super::Component;
 enum Status {
     #[default]
     Normal,
-    Pending,
+    /// Contains the ticket for SetCredential query
+    Pending(usize),
     Error,
 }
 #[derive(Default, PartialEq)]
@@ -72,23 +73,23 @@ impl Login {
         }
         change_style(
             &mut self.url,
-            self.mode == Mode::Url && self.status != Status::Pending,
+            self.mode == Mode::Url && !matches!(self.status, Status::Pending(_)),
             "URL",
         );
         change_style(
             &mut self.username,
-            self.mode == Mode::Username && self.status != Status::Pending,
+            self.mode == Mode::Username && !matches!(self.status, Status::Pending(_)),
             "Username",
         );
         change_style(
             &mut self.password,
-            self.mode == Mode::Password && self.status != Status::Pending,
+            self.mode == Mode::Password && !matches!(self.status, Status::Pending(_)),
             "Password",
         );
         self.legacy.set_enabled(self.mode == Mode::LegacyToggle);
     }
     fn navigate(&mut self, up: bool) -> Result<Option<Action>> {
-        if self.status == Status::Pending {
+        if matches!(self.status, Status::Pending(_)) {
             return Ok(None);
         }
         self.mode = if up {
@@ -115,19 +116,18 @@ impl Login {
         let url = self.url.lines()[0].clone();
         let username = self.username.lines()[0].clone();
         let password = self.password.lines()[0].clone();
-        self.status = Status::Pending;
+        let q = ToQueryWorker::new(HighLevelQuery::SetCredential(Credential::Password {
+            url,
+            secure: true,
+            username,
+            password,
+            legacy: self.legacy.get_toggle(),
+        }));
+        self.status = Status::Pending(q.ticket);
         self.status_msg = Some(vec!["Logging in...".to_string()]);
         self.update_style();
         Ok(Some(Action::Multiple(vec![
-            Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::SetCredential(
-                Credential::Password {
-                    url,
-                    secure: true,
-                    username,
-                    password,
-                    legacy: self.legacy.get_toggle(),
-                },
-            ))),
+            Action::ToQueryWorker(q),
             Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::CheckCredentialValidity)),
         ])))
     }
@@ -150,13 +150,27 @@ impl Login {
 }
 
 impl Component for Login {
+    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+        if let Action::FromQueryWorker(res) = action {
+            if let ResponseType::SetCredential(Err(msg)) = res.res {
+                self.status_msg = Some(vec!["Failed to log in! Error:".to_string(), msg]);
+                self.status = Status::Error;
+                self.update_style();
+            }
+        }
+        Ok(None)
+    }
     fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Result<Option<Action>> {
         match key.code {
             KeyCode::Up | KeyCode::BackTab | KeyCode::Left => self.navigate(true),
             KeyCode::Down | KeyCode::Tab | KeyCode::Right => self.navigate(false),
             KeyCode::Esc => Ok(Some(Action::Quit)),
             KeyCode::Enter => {
-                return self.submit();
+                if !matches!(self.status, Status::Pending(_)) {
+                    self.submit()
+                } else {
+                    Ok(None)
+                }
             }
             _ => match self.mode {
                 Mode::Url => {

@@ -45,6 +45,7 @@ pub enum ResponseType {
     Ping(PingResponse),
     GetPlaylists(GetPlaylistsResponse),
     GetPlaylist(GetPlaylistResponse),
+    SetCredential(Result<(), String>),
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FromQueryWorker {

@@ -50,9 +50,7 @@ impl StreamReader {
                 }
                 _ => String::default(),
             };
-            action_tx.send(Action::FromPlayerWorker(FromPlayerWorker::PlayerMessage(
-                msg,
-            )));
+            action_tx.send(Action::FromPlayerWorker(FromPlayerWorker::Message(msg)));
         });
         match StreamDownload::new_http(url, TempStorageProvider::new(), settings).await {
             Ok(reader) => Ok(reader),

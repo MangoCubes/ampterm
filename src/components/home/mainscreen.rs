@@ -132,9 +132,7 @@ impl Component for MainScreen {
         }
         match &action {
             Action::FromPlayerWorker(pw) => {
-                if let FromPlayerWorker::PlayerError(msg) | FromPlayerWorker::PlayerMessage(msg) =
-                    pw
-                {
+                if let FromPlayerWorker::Error(msg) | FromPlayerWorker::Message(msg) = pw {
                     self.message = msg.clone();
                 };
             }

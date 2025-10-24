@@ -50,7 +50,7 @@ impl Playing {
 
 impl Component for Playing {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        if let Action::FromPlayerWorker(FromPlayerWorker::PlayerState(s)) = action {
+        if let Action::FromPlayerWorker(FromPlayerWorker::State(s)) = action {
             match s {
                 StateType::Position(pos) => self.pos = pos,
                 StateType::Volume(v) => self.vol = v,

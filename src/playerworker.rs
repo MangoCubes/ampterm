@@ -195,9 +195,9 @@ impl PlayerWorker {
                 });
             let poll_state = tokio::task::spawn(async move {
                 loop {
-                    let _ = action_tx2.send(Action::FromPlayerWorker(
-                        FromPlayerWorker::PlayerState(StateType::Position(sink2.get_pos())),
-                    ));
+                    let _ = action_tx2.send(Action::FromPlayerWorker(FromPlayerWorker::State(
+                        StateType::Position(sink2.get_pos()),
+                    )));
                     sleep(Duration::from_millis(500)).await;
                 }
             });
@@ -205,7 +205,7 @@ impl PlayerWorker {
                 _ = cloned_token.cancelled() => {
                     stream_token.cancel();
                     let _ = action_tx.send(Action::FromPlayerWorker(
-                            FromPlayerWorker::PlayerMessage("Stream cancelled by user.".to_string()),
+                            FromPlayerWorker::Message("Stream cancelled by user.".to_string()),
                     ));
                     // Player does not need to do anything more, as cancellation
                     // happens only when the stream is stopped or skipped
@@ -218,7 +218,7 @@ impl PlayerWorker {
 
                         Err(e) => {
                             let _ = action_tx.send(Action::FromPlayerWorker(
-                                    FromPlayerWorker::PlayerError(e.to_string()),
+                                    FromPlayerWorker::Error(e.to_string()),
                             ));
                         }
                     }
@@ -303,7 +303,7 @@ impl PlayerWorker {
                         if let Some(item) = self.queue.get(*current) {
                             if item.id == music.id {
                                 let _ = self.action_tx.send(Action::FromPlayerWorker(
-                                    FromPlayerWorker::PlayerMessage("Starting...".to_string()),
+                                    FromPlayerWorker::Message("Starting...".to_string()),
                                 ));
                                 let token = self.play_from_url(url);
                                 self.state = WorkerState::Playing {
@@ -318,7 +318,7 @@ impl PlayerWorker {
                 ToPlayerWorker::GoToStart => {
                     if let Err(e) = self.sink.try_seek(Duration::from_secs(0)) {
                         let _ = self.action_tx.send(Action::FromPlayerWorker(
-                            FromPlayerWorker::PlayerMessage("Failed to seek!".to_string()),
+                            FromPlayerWorker::Message("Failed to seek!".to_string()),
                         ));
                     }
                 }

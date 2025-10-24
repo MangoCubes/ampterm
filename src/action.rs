@@ -55,10 +55,10 @@ pub enum FromPlayerWorker {
         pos: Duration,
     },
     // This actions is used to send current position
-    PlayerState(StateType),
+    State(StateType),
     // Error sent out from the player to the components
-    PlayerError(String),
-    PlayerMessage(String),
+    Error(String),
+    Message(String),
 }
 
 /// FromQueryWorker enum is used to send responses from the QueryWorker to the components

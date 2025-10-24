@@ -54,6 +54,9 @@
 	  "<Left>": { User: { Common: "Left" } },
 	  "<Right>": { User: { Common: "Right" } },
 
+	  // Music controller
+	  "<Shift-Up>": { ToPlayerWorker: { ChangeVolume: 0.05 } },
+	  "<Shift-Down>": { ToPlayerWorker: { ChangeVolume: -0.05 } },
 	  "<0>": { ToPlayerWorker: "Previous" },
 	  "<Shift-k>": { ToPlayerWorker: "Previous" },
 	  // "<^>": "GoToStart"
@@ -70,6 +73,7 @@
 	  "<Enter>": { User: { Common: "Confirm" } },
 	  "<q>": { User: { Common: "Cancel" } },
 	  "<Esc>": { User: { Common: "EndKeySeq" } },
+
 	},
   },
   // Use legacy authentication that sends the password instead of token and salt

@@ -16,12 +16,25 @@ pub enum QueueLocation {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ToPlayerWorker {
+    /// Stop the player. Unlike pause, this resets the progress for the current song.
     Stop,
+    /// Stops the player, and preserves the progress for the current song.
     Pause,
+    /// Resumes the player.
     Continue,
-    Skip,
+    /// Go to the previous song.
     Previous,
+    /// Go to the start of the current song.
     GoToStart,
+    /// Go to the next song.
+    Skip,
+    /// Change the volume. Volume is represented as a decimal value between 0~1, and the passed value is added to the current volume.
+    /// To reduce the value, pass a negative number.
+    ChangeVolume(f32),
+    /// Sets the volume absolutely.
+    SetVolume(f32),
+
+    /// Below should not be used by the user directly.
     AddToQueue {
         music: Vec<Media>,
         pos: QueueLocation,

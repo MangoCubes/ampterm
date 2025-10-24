@@ -316,6 +316,28 @@ impl PlayerWorker {
                 }
                 ToPlayerWorker::Previous => self.skip(-1),
                 ToPlayerWorker::GoToStart => todo!(),
+                ToPlayerWorker::ChangeVolume(by) => {
+                    let current = self.sink.volume();
+                    let new_vol = current + by;
+                    let cleaned = if new_vol < 0.0 {
+                        0.0
+                    } else if new_vol > 1.0 {
+                        1.0
+                    } else {
+                        new_vol
+                    };
+                    self.sink.set_volume(cleaned);
+                }
+                ToPlayerWorker::SetVolume(to) => {
+                    let cleaned = if to < 0.0 {
+                        0.0
+                    } else if to > 1.0 {
+                        1.0
+                    } else {
+                        to
+                    };
+                    self.sink.set_volume(cleaned);
+                }
             };
             self.send_playlist_state();
             if self.should_quit {

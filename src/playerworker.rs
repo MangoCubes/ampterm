@@ -315,7 +315,13 @@ impl PlayerWorker {
                     };
                 }
                 ToPlayerWorker::Previous => self.skip(-1),
-                ToPlayerWorker::GoToStart => todo!(),
+                ToPlayerWorker::GoToStart => {
+                    if let Err(e) = self.sink.try_seek(Duration::from_secs(0)) {
+                        let _ = self.action_tx.send(Action::FromPlayerWorker(
+                            FromPlayerWorker::PlayerMessage("Failed to seek!".to_string()),
+                        ));
+                    }
+                }
                 ToPlayerWorker::ChangeVolume(by) => {
                     let current = self.sink.volume();
                     let new_vol = current + by;

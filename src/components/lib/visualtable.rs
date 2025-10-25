@@ -60,6 +60,7 @@ impl Component for VisualTable {
         frame.render_stateful_widget(&self.table, area, &mut self.tablestate);
         Ok(())
     }
+
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::User(ua) => {
@@ -72,18 +73,22 @@ impl Component for VisualTable {
                     UserAction::Common(local) => match local {
                         Common::Up => {
                             self.tablestate.select_previous();
+                            self.table = self.regen_table();
                             Ok(None)
                         }
                         Common::Down => {
                             self.tablestate.select_next();
+                            self.table = self.regen_table();
                             Ok(None)
                         }
                         Common::Top => {
                             self.tablestate.select_first();
+                            self.table = self.regen_table();
                             Ok(None)
                         }
                         Common::Bottom => {
                             self.tablestate.select_last();
+                            self.table = self.regen_table();
                             Ok(None)
                         }
                         _ => Ok(None),
@@ -102,7 +107,7 @@ impl Component for VisualTable {
                     },
                     UserAction::Visual(visual) => match visual {
                         Visual::ExitSave => {
-                            self.disable_visual(cur_pos);
+                            self.disable_visual();
                             Ok(Some(Action::ChangeMode(Mode::Normal)))
                         }
                         Visual::ExitDiscard => {
@@ -112,7 +117,6 @@ impl Component for VisualTable {
                         _ => Ok(None),
                     },
                 };
-                self.table = self.regen_table();
                 action
             }
             _ => Ok(None),
@@ -163,7 +167,7 @@ impl VisualTable {
         selected: &[bool],
         table_proc: fn(Table<'static>) -> Table<'static>,
     ) -> Table<'static> {
-        let comp = Table::new(rows, constraints);
+        let comp = Table::new(Self::gen_rows(temp, rows, selected), constraints);
         (table_proc)(comp)
     }
     pub fn new(
@@ -191,6 +195,7 @@ impl VisualTable {
         } else {
             VisualMode::Select(current)
         };
+        self.table = self.regen_table();
     }
     /// Get temporary selection
     /// Returns index of the start of selection and end, and boolean that indicates selection mode
@@ -245,6 +250,7 @@ impl VisualTable {
     #[inline]
     pub fn reset(&mut self) {
         self.selected = vec![false; self.selected.len()];
+        self.table = self.regen_table();
     }
     #[inline]
     pub fn get_current(&self) -> Option<usize> {
@@ -253,7 +259,10 @@ impl VisualTable {
 
     /// Disable visual mode for the current table
     /// The current temporary selection is added to the overall selection
-    pub fn disable_visual(&mut self, end: usize) {
+    pub fn disable_visual(&mut self) {
+        let end = self
+            .get_current()
+            .expect("Cannot find the cursor location!");
         if let VisualMode::Select(start) = self.mode {
             let (a, b) = if start < end {
                 (start, end)
@@ -274,10 +283,12 @@ impl VisualTable {
             }
         };
         self.mode = VisualMode::Off;
+        self.table = self.regen_table();
     }
     /// Disable visual mode for the current table
     /// The current temporary selection is not added to the overall selection
     pub fn disable_visual_discard(&mut self) {
         self.mode = VisualMode::Off;
+        self.table = self.regen_table();
     }
 }

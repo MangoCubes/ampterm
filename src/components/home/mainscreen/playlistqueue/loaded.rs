@@ -147,7 +147,6 @@ impl Component for Loaded {
                     Visual::Add(queue_location) => {
                         if let Some(range) = self.table.get_temp_range() {
                             let temp_action = self.add_temp_items_to_queue(range, queue_location);
-
                             if let Some(a) = temp_action {
                                 Ok(Some(Action::Multiple(vec![
                                     a,

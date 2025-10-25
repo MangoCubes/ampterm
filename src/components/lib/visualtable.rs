@@ -43,6 +43,8 @@ enum VisualMode {
 }
 
 /// Visual mode state tracker
+/// All functions that may change the way table looks must end with the code [`self.table =
+/// self.regen_table`] to ensure that the table is displayed properly.
 pub struct VisualTable {
     /// Current mode of the table
     mode: VisualMode,
@@ -72,23 +74,19 @@ impl Component for VisualTable {
                 let action = match ua {
                     UserAction::Common(local) => match local {
                         Common::Up => {
-                            self.tablestate.select_previous();
-                            self.table = self.regen_table();
+                            self.select_previous();
                             Ok(None)
                         }
                         Common::Down => {
-                            self.tablestate.select_next();
-                            self.table = self.regen_table();
+                            self.select_next();
                             Ok(None)
                         }
                         Common::Top => {
-                            self.tablestate.select_first();
-                            self.table = self.regen_table();
+                            self.select_first();
                             Ok(None)
                         }
                         Common::Bottom => {
-                            self.tablestate.select_last();
-                            self.table = self.regen_table();
+                            self.select_last();
                             Ok(None)
                         }
                         _ => Ok(None),
@@ -125,6 +123,31 @@ impl Component for VisualTable {
 }
 
 impl VisualTable {
+    #[inline]
+    fn select_previous(&mut self) {
+        self.tablestate.select_previous();
+        self.table = self.regen_table();
+    }
+
+    #[inline]
+    fn select_next(&mut self) {
+        self.tablestate.select_next();
+        self.table = self.regen_table();
+    }
+
+    #[inline]
+    fn select_last(&mut self) {
+        self.tablestate.select_last();
+        self.table = self.regen_table();
+    }
+
+    #[inline]
+    fn select_first(&mut self) {
+        self.tablestate.select_first();
+        self.table = self.regen_table();
+    }
+
+    /// Consumes the given rows to create a new set of rows with (temporary) selection indicators
     fn gen_rows(
         temp: Option<TempSelection>,
         rows: Vec<Row<'static>>,
@@ -151,6 +174,8 @@ impl VisualTable {
                 .collect(),
         }
     }
+
+    /// Regenerate the table so that its look matches the table's internal state
     pub fn regen_table(&self) -> Table<'static> {
         Self::gen_table(
             &self.constraints,
@@ -160,6 +185,8 @@ impl VisualTable {
             self.table_proc,
         )
     }
+
+    /// Generate a table so that its look matches the table's internal state.
     fn gen_table(
         constraints: &Vec<Constraint>,
         rows: Vec<Row<'static>>,
@@ -170,6 +197,7 @@ impl VisualTable {
         let comp = Table::new(Self::gen_rows(temp, rows, selected), constraints);
         (table_proc)(comp)
     }
+
     pub fn new(
         rows: Vec<Row<'static>>,
         constraints: Vec<Constraint>,

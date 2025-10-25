@@ -142,14 +142,21 @@ impl VisualTable {
             self.rows = rows;
         } else {
             let len = rows.len();
+            let cur = self.get_current().expect("Failed to get cursor location.");
             match pos {
                 QueueLocation::Front => {
                     self.rows.splice(at..at, rows);
                     self.selected.splice(at..at, vec![false; len]);
+                    if cur >= at {
+                        self.tablestate.select(Some(cur + len));
+                    }
                 }
                 QueueLocation::Next => {
                     self.rows.splice((at + 1)..(at + 1), rows);
                     self.selected.splice(at..at, vec![false; len]);
+                    if cur > at {
+                        self.tablestate.select(Some(cur + len));
+                    }
                 }
                 QueueLocation::Last => {
                     self.rows.append(&mut rows);

@@ -6,7 +6,7 @@ use crate::{
     app::Mode,
     components::{
         home::mainscreen::playlistqueue::PlaylistQueue,
-        lib::visualstate::VisualState,
+        lib::visualtable::{TempSelection, VisualTable},
         traits::{component::Component, focusable::Focusable},
     },
     osclient::response::getplaylist::{FullPlaylist, Media},
@@ -27,22 +27,19 @@ use ratatui::{
 pub struct Loaded {
     name: String,
     playlist: FullPlaylist,
-    visual: VisualState,
     enabled: bool,
-    table: Table<'static>,
-    tablestate: TableState,
+    table: VisualTable,
 }
 
 impl Loaded {
     fn add_temp_items_to_queue(
         &mut self,
-        selection: (usize, usize, bool),
+        selection: TempSelection,
         playpos: QueueLocation,
     ) -> Option<Action> {
-        let (start, end, is_select) = selection;
-        self.visual.disable_visual_discard();
-        if is_select {
-            let slice = &self.playlist.entry[start..=end];
+        self.table.disable_visual_discard();
+        if selection.is_select {
+            let slice = &self.playlist.entry[selection.start..=selection.end];
             Some(Action::ToPlayerWorker(ToPlayerWorker::AddToQueue {
                 pos: playpos,
                 music: slice.to_vec(),
@@ -52,7 +49,7 @@ impl Loaded {
         }
     }
     fn add_selection_to_queue(&mut self, playpos: QueueLocation) -> Option<Action> {
-        let selection = self.visual.get_current_selection();
+        let selection = self.table.get_current_selection();
         let items: Vec<Media> = selection
             .into_iter()
             .enumerate()
@@ -62,91 +59,55 @@ impl Loaded {
             .collect();
         if items.len() == 0 {
             let cur_pos = self
-                .tablestate
-                .selected()
-                .expect("Failed to get current cursor location.");
+                .table
+                .get_current()
+                .expect("Failed to get current cursor position!");
             Some(Action::ToPlayerWorker(ToPlayerWorker::AddToQueue {
                 pos: playpos,
                 music: vec![self.playlist.entry[cur_pos].clone()],
             }))
         } else {
-            self.visual.reset();
+            self.table.reset();
             Some(Action::ToPlayerWorker(ToPlayerWorker::AddToQueue {
                 pos: playpos,
                 music: items,
             }))
         }
     }
-    pub fn regen_table(&self) -> Table<'static> {
-        let cur_pos = self
-            .tablestate
-            .selected()
-            .expect("Failed to get current cursor location.");
-
-        Self::gen_table(
-            &self.playlist.entry,
-            self.visual.get_temp_selection(cur_pos),
-            self.visual.get_current_selection(),
-        )
-    }
-    pub fn gen_table(
-        items: &Vec<Media>,
-        temp: Option<(usize, usize, bool)>,
-        sel: &[bool],
-    ) -> Table<'static> {
-        let iter = items.iter().enumerate();
-        let rows: Vec<Row> = match temp {
-            Some((a, b, _)) => iter
-                .map(|(i, item)| {
-                    let mut row = Row::new(vec![item.title.clone(), item.get_fav_marker()]);
-                    row = if i <= b && i >= a {
-                        row.reversed()
-                    } else {
-                        row
-                    };
-                    if sel[i] {
-                        row.green()
-                    } else {
-                        row
-                    }
-                })
-                .collect(),
-            None => iter
-                .map(|(i, item)| {
-                    let row = Row::new(vec![item.title.clone(), item.get_fav_marker()]);
-                    if sel[i] {
-                        row.green()
-                    } else {
-                        row
-                    }
-                })
-                .collect(),
-        };
-        Table::new(rows, [Constraint::Min(0), Constraint::Max(1)].to_vec())
-            .highlight_symbol(">")
-            .row_highlight_style(Style::new().reversed())
+    pub fn gen_rows(items: &Vec<Media>) -> Vec<Row<'static>> {
+        items
+            .iter()
+            .map(|item| Row::new(vec![item.title.clone(), item.get_fav_marker()]))
+            .collect()
     }
 
     pub fn new(name: String, list: FullPlaylist, enabled: bool) -> Self {
-        let len = list.entry.len();
-        let table = Self::gen_table(&list.entry, None, &vec![false; len]);
+        fn table_proc(table: Table<'static>) -> Table<'static> {
+            table
+                .highlight_symbol(">")
+                .row_highlight_style(Style::new().reversed())
+        }
+        let rows = Self::gen_rows(&list.entry);
+        let table = VisualTable::new(
+            rows,
+            [Constraint::Min(0), Constraint::Max(1)].to_vec(),
+            table_proc,
+        );
         let mut tablestate = TableState::default();
         tablestate.select(Some(0));
 
         Self {
             name,
-            visual: VisualState::new(len),
             enabled,
             playlist: list,
             table,
-            tablestate,
         }
     }
 }
 
 impl Component for Loaded {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        let title = if let Some(pos) = self.tablestate.selected() {
+        let title = if let Some(pos) = self.table.get_current() {
             let len = self.playlist.entry.len();
             format!(
                 "{} ({}/{})",
@@ -164,91 +125,46 @@ impl Component for Loaded {
         let border = PlaylistQueue::gen_block(self.enabled, title);
         let inner = border.inner(area);
         frame.render_widget(border, area);
-        frame.render_stateful_widget(&self.table, inner, &mut self.tablestate);
-        Ok(())
+        self.table.draw(frame, inner)
     }
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        match action {
-            Action::User(ua) => {
-                let cur_pos = self
-                    .tablestate
-                    .selected()
-                    .expect("Failed to get current cursor location.");
+        if let Action::User(ua) = action {
+            match ua {
+                UserAction::Common(a) => match a {
+                    Common::Refresh => Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
+                        HighLevelQuery::SelectPlaylist(GetPlaylistParams {
+                            name: self.name.to_string(),
+                            id: self.playlist.id.clone(),
+                        }),
+                    )))),
+                    _ => self.table.update(Action::User(UserAction::Common(a))),
+                },
+                UserAction::Normal(a) => match a {
+                    Normal::Add(queue_location) => Ok(self.add_selection_to_queue(queue_location)),
+                    _ => self.table.update(Action::User(UserAction::Normal(a))),
+                },
+                UserAction::Visual(a) => match a {
+                    Visual::Add(queue_location) => {
+                        if let Some(range) = self.table.get_temp_range() {
+                            let temp_action = self.add_temp_items_to_queue(range, queue_location);
 
-                let action = match ua {
-                    UserAction::Common(local) => match local {
-                        Common::Up => {
-                            self.tablestate.select_previous();
-                            Ok(None)
-                        }
-                        Common::Down => {
-                            self.tablestate.select_next();
-                            Ok(None)
-                        }
-                        Common::Top => {
-                            self.tablestate.select_first();
-                            Ok(None)
-                        }
-                        Common::Bottom => {
-                            self.tablestate.select_last();
-                            Ok(None)
-                        }
-                        Common::Refresh => Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
-                            HighLevelQuery::SelectPlaylist(GetPlaylistParams {
-                                name: self.name.to_string(),
-                                id: self.playlist.id.clone(),
-                            }),
-                        )))),
-                        _ => Ok(None),
-                    },
-
-                    UserAction::Normal(normal) => match normal {
-                        Normal::SelectMode => {
-                            self.visual.enable_visual(cur_pos, false);
-                            Ok(Some(Action::ChangeMode(Mode::Visual)))
-                        }
-                        Normal::DeselectMode => {
-                            self.visual.enable_visual(cur_pos, true);
-                            Ok(Some(Action::ChangeMode(Mode::Visual)))
-                        }
-                        Normal::Add(queue_location) => {
-                            Ok(self.add_selection_to_queue(queue_location))
-                        }
-                        _ => Ok(None),
-                    },
-                    UserAction::Visual(visual) => match visual {
-                        Visual::ExitSave => {
-                            self.visual.disable_visual(cur_pos);
-                            Ok(Some(Action::ChangeMode(Mode::Normal)))
-                        }
-                        Visual::ExitDiscard => {
-                            self.visual.disable_visual_discard();
-                            Ok(Some(Action::ChangeMode(Mode::Normal)))
-                        }
-                        Visual::Add(queue_location) => {
-                            if let Some(items) = self.visual.get_temp_selection(cur_pos) {
-                                let temp_action =
-                                    self.add_temp_items_to_queue(items, queue_location);
-
-                                if let Some(a) = temp_action {
-                                    Ok(Some(Action::Multiple(vec![
-                                        a,
-                                        Action::ChangeMode(Mode::Normal),
-                                    ])))
-                                } else {
-                                    Ok(Some(Action::ChangeMode(Mode::Normal)))
-                                }
+                            if let Some(a) = temp_action {
+                                Ok(Some(Action::Multiple(vec![
+                                    a,
+                                    Action::ChangeMode(Mode::Normal),
+                                ])))
                             } else {
-                                Ok(None)
+                                Ok(Some(Action::ChangeMode(Mode::Normal)))
                             }
+                        } else {
+                            Ok(None)
                         }
-                    },
-                    _ => Ok(None),
-                };
-                self.table = self.regen_table();
-                action
+                    }
+                    _ => self.table.update(Action::User(UserAction::Visual(a))),
+                },
             }
-            _ => Ok(None),
+        } else {
+            self.table.update(action)
         }
     }
 }
@@ -258,7 +174,7 @@ impl Focusable for Loaded {
         if self.enabled != enable {
             self.enabled = enable;
             if !self.enabled {
-                self.visual.disable_visual_discard();
+                self.table.disable_visual_discard();
             }
         };
     }

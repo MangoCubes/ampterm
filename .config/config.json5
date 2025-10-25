@@ -15,6 +15,7 @@
 	  "<v>": { User: { Visual: "ExitSave" } },
 	  "<Shift-v>": { User: { Visual: "ExitSave" } },
 	  "<Ctrl-v>": { User: { Visual: "ExitSave" } },
+	  "<d>": { User: { Visual: "Delete" } },
     },
 	// This keybinding is exclusive to normal mode.
 	"Normal": {
@@ -35,6 +36,7 @@
 	  "<i>": { User: { Normal: { Add: "Front" } } },
 	  "<Shift-i>": { User: { Normal: { Add: "Front" } } },
 	  "<a>": { User: { Normal: { Add: "Next" } } },
+	  "<d>": { User: { Normal: "Delete" } },
 	  "<Shift-a>": { User: { Normal: { Add: "Last" } } },
 
 	  // Visual mode entry

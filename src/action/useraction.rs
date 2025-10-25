@@ -30,6 +30,8 @@ pub enum Visual {
     ExitDiscard,
     // Add current selection to the queue, and discards the changes
     Add(QueueLocation),
+    // Delete a temporarily selected region, exiting visual mode
+    Delete,
 }
 
 /// Normal mode exclusive actions
@@ -46,6 +48,8 @@ pub enum Normal {
     DeselectMode,
     // Add to the queue
     Add(QueueLocation),
+    // Delete a selected region
+    Delete,
 }
 
 /// These actions corresponds to user actions

@@ -93,12 +93,12 @@ impl Component for Something {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::FromPlayerWorker(FromPlayerWorker::InQueue {
-                play,
+                items,
                 vol: _,
                 speed: _,
                 pos: _,
             }) => {
-                self.table.reset_rows(Self::gen_rows(&play));
+                self.table.reset_rows(Self::gen_rows(&items));
                 Ok(None)
             }
             _ => self.table.update(action),

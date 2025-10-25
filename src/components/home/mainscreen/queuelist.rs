@@ -71,12 +71,12 @@ impl Component for QueueList {
             match action {
                 Action::FromPlayerWorker(a) => match a {
                     FromPlayerWorker::InQueue {
-                        play,
+                        items,
                         vol,
                         speed,
                         pos,
                     } => {
-                        let comp = Something::new(play);
+                        let comp = Something::new(items);
                         self.comp = Comp::Something(comp)
                     }
                     _ => {}

@@ -57,7 +57,7 @@ impl Component for Playing {
                 StateType::Speed(s) => self.speed = s,
             };
         } else if let Action::FromPlayerWorker(FromPlayerWorker::InQueue {
-            play: _,
+            items: _,
             vol: _,
             speed: _,
             pos: _,

@@ -49,7 +49,7 @@ impl PlayState {
 pub enum FromPlayerWorker {
     // This action is used to synchronise the state of PlayerWorker with the components
     InQueue {
-        play: PlayState,
+        items: PlayState,
         vol: f32,
         speed: f32,
         pos: Duration,

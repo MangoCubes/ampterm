@@ -40,10 +40,10 @@ impl Component for NowPlaying {
             vol,
             speed,
             pos,
-            play,
+            items,
         }) = action
         {
-            match play.items.get(play.index) {
+            match items.items.get(items.index) {
                 Some(p) => {
                     self.comp = Comp::Playing(Playing::new(
                         p.title.clone(),

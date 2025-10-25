@@ -107,7 +107,7 @@ impl PlayerWorker {
         let action = match &self.state {
             WorkerState::Playing { token: _, current } => {
                 Action::FromPlayerWorker(FromPlayerWorker::InQueue {
-                    play: PlayState::new(q, *current),
+                    items: PlayState::new(q, *current),
                     vol: self.sink.volume(),
                     speed: self.sink.speed(),
                     pos: self.sink.get_pos(),
@@ -115,7 +115,7 @@ impl PlayerWorker {
             }
             WorkerState::Loading { current } => {
                 Action::FromPlayerWorker(FromPlayerWorker::InQueue {
-                    play: PlayState::new(q, *current),
+                    items: PlayState::new(q, *current),
                     vol: self.sink.volume(),
                     speed: self.sink.speed(),
                     pos: Duration::from_secs(0),
@@ -123,7 +123,7 @@ impl PlayerWorker {
             }
             WorkerState::Idle { play_next } => {
                 Action::FromPlayerWorker(FromPlayerWorker::InQueue {
-                    play: PlayState::new(q, *play_next),
+                    items: PlayState::new(q, *play_next),
                     vol: self.sink.volume(),
                     speed: self.sink.speed(),
                     pos: Duration::from_secs(0),

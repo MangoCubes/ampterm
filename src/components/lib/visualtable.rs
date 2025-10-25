@@ -14,6 +14,7 @@ use crate::{
     },
     app::Mode,
     components::traits::component::Component,
+    playerworker::player::QueueLocation,
 };
 
 /// Struct that contains the state of the current temporary selection
@@ -129,6 +130,56 @@ impl Component for VisualTable {
 }
 
 impl VisualTable {
+    /// Adds a number of rows at a specific index
+    pub fn add_rows_at(&mut self, mut rows: Vec<Row<'static>>, at: usize, pos: QueueLocation) {
+        if self.rows.is_empty() {
+            self.rows = rows;
+        } else {
+            let len = rows.len();
+            match pos {
+                QueueLocation::Front => {
+                    self.rows.splice(at..at, rows);
+                    self.selected.splice(at..at, vec![false; len]);
+                }
+                QueueLocation::Next => {
+                    self.rows.splice((at + 1)..(at + 1), rows);
+                    self.selected.splice(at..at, vec![false; len]);
+                }
+                QueueLocation::Last => {
+                    self.rows.append(&mut rows);
+                    self.selected.extend(vec![false; len]);
+                }
+            };
+        };
+        self.table = self.regen_table();
+    }
+    pub fn add_rows(&mut self, rows: Vec<Row<'static>>, pos: QueueLocation) {
+        self.add_rows_at(
+            rows,
+            self.get_current().expect("Failed to get cursor location."),
+            pos,
+        );
+    }
+    pub fn delete_temp_selection(&mut self) {
+        if let Some(range) = self.get_temp_range() {
+            self.rows.drain(range.start..=range.end);
+            self.selected.drain(range.start..=range.end);
+            self.table = self.regen_table();
+        }
+    }
+    pub fn delete_selection(&mut self) {
+        self.rows = self
+            .rows
+            .clone()
+            .into_iter()
+            .enumerate()
+            .filter(|(idx, _)| self.selected[*idx])
+            .map(|(_, row)| row)
+            .collect();
+        self.selected = vec![false; self.rows.len()];
+        self.table = self.regen_table();
+    }
+
     #[inline]
     fn select_previous(&mut self) {
         self.tablestate.select_previous();

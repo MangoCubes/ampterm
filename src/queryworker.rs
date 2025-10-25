@@ -1,7 +1,6 @@
 pub mod highlevelquery;
 pub mod query;
 
-use color_eyre::eyre::eyre;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 

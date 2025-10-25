@@ -2,16 +2,12 @@ use color_eyre::Result;
 use ratatui::{
     layout::{Constraint, Rect},
     style::{Color, Style, Stylize},
-    widgets::{Row, Table, TableState},
+    widgets::{Row, Table},
     Frame,
 };
 
 use crate::{
-    action::{
-        useraction::{Common, Normal, UserAction, Visual},
-        Action, FromPlayerWorker, PlayState,
-    },
-    app::Mode,
+    action::{Action, FromPlayerWorker, PlayState},
     components::{lib::visualtable::VisualTable, traits::component::Component},
     osclient::response::getplaylist::Media,
 };
@@ -48,10 +44,6 @@ impl Something {
             list: playstate,
         }
     }
-    fn gen_current_item(ms: &Media) -> Row<'static> {
-        let current = Style::new().bold();
-        Row::new(vec!["▶".to_string(), ms.title.clone(), ms.get_fav_marker()]).style(current)
-    }
     fn gen_rows(playstate: &PlayState) -> Vec<Row<'static>> {
         let len = playstate.items.len();
         let before = Style::new().fg(Color::DarkGray);
@@ -64,26 +56,30 @@ impl Something {
                 })
                 .collect()
         }
+        fn gen_current_item(ms: &Media) -> Row<'static> {
+            let current = Style::new().bold();
+            Row::new(vec!["▶".to_string(), ms.title.clone(), ms.get_fav_marker()]).style(current)
+        }
         match playstate.index {
             // Current item is beyond the current playlist
             _ if len == playstate.index => gen_rows_part(&playstate.items, before),
             // Current item is the last item in the playlist
             idx if (len - 1) == playstate.index => {
                 let mut list = gen_rows_part(&playstate.items[..idx], before);
-                list.push(Self::gen_current_item(&playstate.items[idx]));
+                list.push(gen_current_item(&playstate.items[idx]));
                 list
             }
             // Current item is the first element in the playlist
             0 => {
                 let mut list = gen_rows_part(&playstate.items[1..], after);
-                list.insert(0, Self::gen_current_item(&playstate.items[0]));
+                list.insert(0, gen_current_item(&playstate.items[0]));
                 list
             }
             // Every other cases
             idx => {
                 let mut list = gen_rows_part(&playstate.items[..idx], before);
                 list.append(&mut gen_rows_part(&playstate.items[(idx + 1)..], after));
-                list.insert(idx, Self::gen_current_item(&playstate.items[idx]));
+                list.insert(idx, gen_current_item(&playstate.items[idx]));
                 list
             }
         }
@@ -95,6 +91,17 @@ impl Component for Something {
         self.table.draw(frame, area)
     }
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        self.table.update(action)
+        match action {
+            Action::FromPlayerWorker(FromPlayerWorker::InQueue {
+                play,
+                vol: _,
+                speed: _,
+                pos: _,
+            }) => {
+                self.table.reset_rows(Self::gen_rows(&play));
+                Ok(None)
+            }
+            _ => self.table.update(action),
+        }
     }
 }

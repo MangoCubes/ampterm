@@ -130,6 +130,12 @@ impl Component for VisualTable {
 }
 
 impl VisualTable {
+    /// Resets the entire table, overwriting all existing rows with the new ones
+    pub fn reset_rows(&mut self, rows: Vec<Row<'static>>) {
+        self.selected = vec![false; rows.len()];
+        self.rows = rows;
+        self.table = self.regen_table();
+    }
     /// Adds a number of rows at a specific index
     pub fn add_rows_at(&mut self, mut rows: Vec<Row<'static>>, at: usize, pos: QueueLocation) {
         if self.rows.is_empty() {

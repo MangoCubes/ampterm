@@ -16,11 +16,16 @@ use crate::{
     components::traits::component::Component,
 };
 
+/// Struct that contains the state of the current temporary selection
+/// [`TempSelection::start`] is guaranteed to be smaller than or equal to [`TempSelection::end`]
+/// If [`TempSelection::is_select`] is true, then the current selection mode is
+/// [`VisualMode::Select`].
 pub struct TempSelection {
     pub start: usize,
     pub end: usize,
     pub is_select: bool,
 }
+
 impl TempSelection {
     fn new(start: usize, end: usize, is_select: bool) -> Self {
         Self {
@@ -57,6 +62,7 @@ pub struct VisualTable {
     rows: Vec<Row<'static>>,
 }
 
+/// For consistency, do not use [`VisualTable::regen_table`] here
 impl Component for VisualTable {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         frame.render_stateful_widget(&self.table, area, &mut self.tablestate);

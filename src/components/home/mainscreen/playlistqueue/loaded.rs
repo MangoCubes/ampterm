@@ -32,6 +32,9 @@ pub struct Loaded {
 }
 
 impl Loaded {
+    /// Adds temporarily selected items into the queue. Also quits selection mode at the same time.
+    /// Does not work if the current mode is not select mode. Takes priority over
+    /// [`Loaded::add_selection_to_queue`].
     fn add_temp_items_to_queue(
         &mut self,
         selection: TempSelection,
@@ -48,6 +51,9 @@ impl Loaded {
             None
         }
     }
+
+    /// Adds selected items into the queue, resetting the current selection. If temporary selection
+    /// is present, this action is NOT taken in favour of [`Loaded::add_temp_items_to_queue`].
     fn add_selection_to_queue(&mut self, playpos: QueueLocation) -> Option<Action> {
         let selection = self.table.get_current_selection();
         let items: Vec<Media> = selection
@@ -74,6 +80,8 @@ impl Loaded {
             }))
         }
     }
+
+    /// Generate rows so that they can be used by the table component
     pub fn gen_rows(items: &Vec<Media>) -> Vec<Row<'static>> {
         items
             .iter()

@@ -122,9 +122,13 @@ impl Component for Something {
             Action::FromPlayerWorker(FromPlayerWorker::StateChange(state_type)) => {
                 match state_type {
                     StateType::Queue(queue_change) => match queue_change {
-                        QueueChange::Add { items, at } => {
+                        QueueChange::Add { mut items, at } => {
                             let len = items.len();
-                            self.list.splice(at..at, items);
+                            if at > len {
+                                self.list.append(&mut items);
+                            } else {
+                                self.list.splice(at..at, items);
+                            }
                             self.table
                                 .add_rows_at(Self::gen_rows(&self.list, self.index), at, len);
                         }

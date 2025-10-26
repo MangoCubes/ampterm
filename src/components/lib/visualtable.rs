@@ -150,7 +150,11 @@ impl VisualTable {
         } else {
             let cur = self.get_current().expect("Failed to get cursor location.");
             self.rows = rows;
-            self.selected.splice(at..at, vec![false; len]);
+            if at > self.selected.len() {
+                self.selected.append(&mut vec![false; len]);
+            } else {
+                self.selected.splice(at..at, vec![false; len]);
+            }
             if cur >= at {
                 self.tablestate.select(Some(cur + len));
             }

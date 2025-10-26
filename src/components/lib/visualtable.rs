@@ -130,48 +130,33 @@ impl Component for VisualTable {
 }
 
 impl VisualTable {
+    /// Set all the rows with a new set of rows
+    pub fn set_rows(&mut self, rows: Vec<Row<'static>>) {
+        self.rows = rows;
+        self.table = self.regen_table();
+    }
     /// Resets the entire table, overwriting all existing rows with the new ones
     pub fn reset_rows(&mut self, rows: Vec<Row<'static>>) {
         self.selected = vec![false; rows.len()];
         self.rows = rows;
         self.table = self.regen_table();
     }
-    /// Adds a number of rows at a specific index
-    pub fn add_rows_at(&mut self, mut rows: Vec<Row<'static>>, at: usize, pos: QueueLocation) {
+    /// Set all the rows with a new set of rows, then signal the table that there have been
+    /// additional elements at the specified index
+    pub fn add_rows_at(&mut self, rows: Vec<Row<'static>>, at: usize) {
         if self.rows.is_empty() {
+            self.selected = vec![false; rows.len()];
             self.rows = rows;
         } else {
             let len = rows.len();
             let cur = self.get_current().expect("Failed to get cursor location.");
-            match pos {
-                QueueLocation::Front => {
-                    self.rows.splice(at..at, rows);
-                    self.selected.splice(at..at, vec![false; len]);
-                    if cur >= at {
-                        self.tablestate.select(Some(cur + len));
-                    }
-                }
-                QueueLocation::Next => {
-                    self.rows.splice((at + 1)..(at + 1), rows);
-                    self.selected.splice(at..at, vec![false; len]);
-                    if cur > at {
-                        self.tablestate.select(Some(cur + len));
-                    }
-                }
-                QueueLocation::Last => {
-                    self.rows.append(&mut rows);
-                    self.selected.extend(vec![false; len]);
-                }
-            };
+            self.rows = rows;
+            self.selected.splice(at..at, vec![false; len]);
+            if cur >= at {
+                self.tablestate.select(Some(cur + len));
+            }
         };
         self.table = self.regen_table();
-    }
-    pub fn add_rows(&mut self, rows: Vec<Row<'static>>, pos: QueueLocation) {
-        self.add_rows_at(
-            rows,
-            self.get_current().expect("Failed to get cursor location."),
-            pos,
-        );
     }
     pub fn delete_temp_selection(&mut self) {
         if let Some(range) = self.get_temp_range() {

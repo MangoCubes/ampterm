@@ -7,7 +7,7 @@ use ratatui::{
 };
 
 use crate::{
-    action::{Action, FromPlayerWorker},
+    action::{Action, FromPlayerWorker, QueueChange, StateType},
     components::{
         home::mainscreen::queuelist::{nothing::Nothing, something::Something},
         traits::{component::Component, focusable::Focusable},
@@ -70,12 +70,10 @@ impl Component for QueueList {
         } else {
             match action {
                 Action::FromPlayerWorker(a) => match a {
-                    FromPlayerWorker::InQueue {
+                    FromPlayerWorker::StateChange(StateType::Queue(QueueChange::Add {
                         items,
-                        vol,
-                        speed,
-                        pos,
-                    } => {
+                        at,
+                    })) => {
                         let comp = Something::new(items);
                         self.comp = Comp::Something(comp)
                     }

@@ -16,7 +16,7 @@ use tokio::task::JoinHandle;
 use tokio::time::sleep;
 use tokio_util::sync::CancellationToken;
 
-use crate::action::{Action, FromPlayerWorker, PlayState, StateType};
+use crate::action::{Action, FromPlayerWorker, QueueChange, StateType};
 use crate::config::Config;
 use crate::osclient::response::getplaylist::Media;
 use crate::queryworker::highlevelquery::HighLevelQuery;
@@ -64,7 +64,12 @@ impl PlayerWorker {
     /// current position
     fn add_musics(&mut self, items: Vec<Media>, pos: QueueLocation) {
         if self.queue.is_empty() {
-            self.queue = items;
+            self.queue = items.clone();
+            let _ = self
+                .action_tx
+                .send(Action::FromPlayerWorker(FromPlayerWorker::StateChange(
+                    StateType::Queue(QueueChange::add(items, 0)),
+                )));
             return;
         };
         match pos {
@@ -72,12 +77,23 @@ impl PlayerWorker {
                 match self.state {
                     WorkerState::Playing { token: _, current }
                     | WorkerState::Loading { current } => {
-                        self.queue.splice(current..current, items);
+                        self.queue.splice(current..current, items.clone());
+                        let _ = self.action_tx.send(Action::FromPlayerWorker(
+                            FromPlayerWorker::StateChange(StateType::Queue(QueueChange::add(
+                                items, current,
+                            ))),
+                        ));
+
                         // The music being played right now is being modified
                         self.skip(0);
                     }
                     WorkerState::Idle { play_next } => {
-                        self.queue.splice(play_next..play_next, items);
+                        self.queue.splice(play_next..play_next, items.clone());
+                        let _ = self.action_tx.send(Action::FromPlayerWorker(
+                            FromPlayerWorker::StateChange(StateType::Queue(QueueChange::add(
+                                items, play_next,
+                            ))),
+                        ));
                     }
                 };
             }
@@ -85,52 +101,46 @@ impl PlayerWorker {
                 match self.state {
                     WorkerState::Playing { token: _, current }
                     | WorkerState::Loading { current } => {
-                        self.queue.splice((current + 1)..(current + 1), items);
+                        self.queue
+                            .splice((current + 1)..(current + 1), items.clone());
+                        let _ = self.action_tx.send(Action::FromPlayerWorker(
+                            FromPlayerWorker::StateChange(StateType::Queue(QueueChange::add(
+                                items,
+                                current + 1,
+                            ))),
+                        ));
                     }
                     WorkerState::Idle { play_next } => {
                         if play_next == self.queue.len() {
                             self.queue.append(&mut items.clone());
+                            let _ = self.action_tx.send(Action::FromPlayerWorker(
+                                FromPlayerWorker::StateChange(StateType::Queue(QueueChange::add(
+                                    items,
+                                    self.queue.len(),
+                                ))),
+                            ));
                         } else {
-                            self.queue.splice((play_next + 1)..(play_next + 1), items);
+                            self.queue
+                                .splice((play_next + 1)..(play_next + 1), items.clone());
+                            let _ = self.action_tx.send(Action::FromPlayerWorker(
+                                FromPlayerWorker::StateChange(StateType::Queue(QueueChange::add(
+                                    items,
+                                    play_next + 1,
+                                ))),
+                            ));
                         };
                     }
                 };
             }
             QueueLocation::Last => {
                 self.queue.append(&mut items.clone());
+                let _ =
+                    self.action_tx
+                        .send(Action::FromPlayerWorker(FromPlayerWorker::StateChange(
+                            StateType::Queue(QueueChange::add(items, self.queue.len())),
+                        )));
             }
         };
-    }
-    /// Send the current state of the playlist via `action_tx`
-    fn send_playlist_state(&mut self) {
-        let q = self.queue.clone().into();
-        let action = match &self.state {
-            WorkerState::Playing { token: _, current } => {
-                Action::FromPlayerWorker(FromPlayerWorker::InQueue {
-                    items: PlayState::new(q, *current),
-                    vol: self.sink.volume(),
-                    speed: self.sink.speed(),
-                    pos: self.sink.get_pos(),
-                })
-            }
-            WorkerState::Loading { current } => {
-                Action::FromPlayerWorker(FromPlayerWorker::InQueue {
-                    items: PlayState::new(q, *current),
-                    vol: self.sink.volume(),
-                    speed: self.sink.speed(),
-                    pos: Duration::from_secs(0),
-                })
-            }
-            WorkerState::Idle { play_next } => {
-                Action::FromPlayerWorker(FromPlayerWorker::InQueue {
-                    items: PlayState::new(q, *play_next),
-                    vol: self.sink.volume(),
-                    speed: self.sink.speed(),
-                    pos: Duration::from_secs(0),
-                })
-            }
-        };
-        let _ = self.action_tx.send(action);
     }
     fn continue_stream(&mut self) {
         self.sink.play();
@@ -195,9 +205,9 @@ impl PlayerWorker {
                 });
             let poll_state = tokio::task::spawn(async move {
                 loop {
-                    let _ = action_tx2.send(Action::FromPlayerWorker(FromPlayerWorker::State(
-                        StateType::Position(sink2.get_pos()),
-                    )));
+                    let _ = action_tx2.send(Action::FromPlayerWorker(
+                        FromPlayerWorker::StateChange(StateType::Position(sink2.get_pos())),
+                    ));
                     sleep(Duration::from_millis(500)).await;
                 }
             });
@@ -262,8 +272,21 @@ impl PlayerWorker {
             // New index is negative
             0
         };
+        let _ = self
+            .action_tx
+            .send(Action::FromPlayerWorker(FromPlayerWorker::StateChange(
+                StateType::Position(Duration::from_secs(0)),
+            )));
         match self.queue.get(cleaned) {
             Some(i) => {
+                let _ =
+                    self.action_tx
+                        .send(Action::FromPlayerWorker(FromPlayerWorker::StateChange(
+                            StateType::NowPlaying {
+                                music: self.queue[cleaned].clone(),
+                                index: cleaned,
+                            },
+                        )));
                 let _ = self
                     .action_tx
                     .send(Action::ToQueryWorker(ToQueryWorker::new(
@@ -286,15 +309,15 @@ impl PlayerWorker {
                 ToPlayerWorker::Continue => self.continue_stream(),
                 ToPlayerWorker::Kill => self.should_quit = true,
                 ToPlayerWorker::Skip => self.skip(1),
-                ToPlayerWorker::AddToQueue { music, pos } => {
+                ToPlayerWorker::AddToQueue { music: items, pos } => {
                     if let WorkerState::Idle { play_next } = self.state {
                         let prev_pos = self.queue.len();
-                        self.add_musics(music, pos);
+                        self.add_musics(items, pos);
                         if play_next == prev_pos {
                             self.skip(0);
                         }
                     } else {
-                        self.add_musics(music, pos);
+                        self.add_musics(items, pos);
                     }
                 }
                 ToPlayerWorker::PlayURL { music, url } => {
@@ -320,6 +343,12 @@ impl PlayerWorker {
                         let _ = self.action_tx.send(Action::FromPlayerWorker(
                             FromPlayerWorker::Message("Failed to seek!".to_string()),
                         ));
+                    } else {
+                        let _ = self.action_tx.send(Action::FromPlayerWorker(
+                            FromPlayerWorker::StateChange(StateType::Position(
+                                Duration::from_secs(0),
+                            )),
+                        ));
                     }
                 }
                 ToPlayerWorker::ChangeVolume(by) => {
@@ -333,6 +362,9 @@ impl PlayerWorker {
                         new_vol
                     };
                     self.sink.set_volume(cleaned);
+                    let _ = self.action_tx.send(Action::FromPlayerWorker(
+                        FromPlayerWorker::StateChange(StateType::Volume(cleaned)),
+                    ));
                 }
                 ToPlayerWorker::SetVolume(to) => {
                     let cleaned = if to < 0.0 {
@@ -343,9 +375,11 @@ impl PlayerWorker {
                         to
                     };
                     self.sink.set_volume(cleaned);
+                    let _ = self.action_tx.send(Action::FromPlayerWorker(
+                        FromPlayerWorker::StateChange(StateType::Volume(cleaned)),
+                    ));
                 }
             };
-            self.send_playlist_state();
             if self.should_quit {
                 break;
             }

@@ -7,13 +7,14 @@ use ratatui::{
 };
 
 use crate::{
-    action::{Action, FromPlayerWorker, PlayState},
+    action::{Action, FromPlayerWorker, QueueChange, StateType},
     components::{lib::visualtable::VisualTable, traits::component::Component},
     osclient::response::getplaylist::Media,
 };
 
 pub struct Something {
-    list: PlayState,
+    list: Vec<Media>,
+    index: usize,
     table: VisualTable,
 }
 
@@ -29,7 +30,7 @@ pub struct Something {
 ///
 /// As a result, a dedicated list component has to be made
 impl Something {
-    pub fn new(playstate: PlayState) -> Self {
+    pub fn new(list: Vec<Media>) -> Self {
         fn table_proc(table: Table<'static>) -> Table<'static> {
             table
                 .highlight_symbol(">")
@@ -37,15 +38,16 @@ impl Something {
         }
         Self {
             table: VisualTable::new(
-                Self::gen_rows(&playstate),
+                Self::gen_rows(&list, 0),
                 [Constraint::Max(1), Constraint::Min(0), Constraint::Max(1)].to_vec(),
                 table_proc,
             ),
-            list: playstate,
+            list,
+            index: 0,
         }
     }
-    fn gen_rows(playstate: &PlayState) -> Vec<Row<'static>> {
-        let len = playstate.items.len();
+    fn gen_rows(items: &Vec<Media>, index: usize) -> Vec<Row<'static>> {
+        let len = items.len();
         let before = Style::new().fg(Color::DarkGray);
         let after = Style::new();
         fn gen_rows_part(ms: &[Media], style: Style) -> Vec<Row<'static>> {
@@ -60,26 +62,26 @@ impl Something {
             let current = Style::new().bold();
             Row::new(vec!["▶".to_string(), ms.title.clone(), ms.get_fav_marker()]).style(current)
         }
-        match playstate.index {
+        match index {
             // Current item is beyond the current playlist
-            _ if len == playstate.index => gen_rows_part(&playstate.items, before),
+            _ if len == index => gen_rows_part(&items, before),
             // Current item is the last item in the playlist
-            idx if (len - 1) == playstate.index => {
-                let mut list = gen_rows_part(&playstate.items[..idx], before);
-                list.push(gen_current_item(&playstate.items[idx]));
+            idx if (len - 1) == index => {
+                let mut list = gen_rows_part(&items[..idx], before);
+                list.push(gen_current_item(&items[idx]));
                 list
             }
             // Current item is the first element in the playlist
             0 => {
-                let mut list = gen_rows_part(&playstate.items[1..], after);
-                list.insert(0, gen_current_item(&playstate.items[0]));
+                let mut list = gen_rows_part(&items[1..], after);
+                list.insert(0, gen_current_item(&items[0]));
                 list
             }
             // Every other cases
             idx => {
-                let mut list = gen_rows_part(&playstate.items[..idx], before);
-                list.append(&mut gen_rows_part(&playstate.items[(idx + 1)..], after));
-                list.insert(idx, gen_current_item(&playstate.items[idx]));
+                let mut list = gen_rows_part(&items[..idx], before);
+                list.append(&mut gen_rows_part(&items[(idx + 1)..], after));
+                list.insert(idx, gen_current_item(&items[idx]));
                 list
             }
         }
@@ -92,13 +94,22 @@ impl Component for Something {
     }
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
-            Action::FromPlayerWorker(FromPlayerWorker::InQueue {
-                items,
-                vol: _,
-                speed: _,
-                pos: _,
-            }) => {
-                self.table.reset_rows(Self::gen_rows(&items));
+            Action::FromPlayerWorker(FromPlayerWorker::StateChange(state_type)) => {
+                match state_type {
+                    StateType::Queue(queue_change) => match queue_change {
+                        QueueChange::Add { items, at } => {
+                            self.list.splice(at..at, items);
+                            self.table
+                                .add_rows_at(Self::gen_rows(&self.list, self.index), at);
+                        }
+                        QueueChange::Del { from, to } => todo!(),
+                    },
+                    StateType::NowPlaying { music, index } => {
+                        self.index = index;
+                        self.table.set_rows(Self::gen_rows(&self.list, self.index));
+                    }
+                    StateType::Volume(_) | StateType::Position(_) | StateType::Speed(_) => {}
+                }
                 Ok(None)
             }
             _ => self.table.update(action),

@@ -19,6 +19,7 @@ pub enum Common {
     /// Action for deleting all key sequences currently stored
     /// It's like escape in Vim, and Ctrl+G in Emacs
     EndKeySeq,
+    TapToBPM,
 }
 
 /// Visual mode exclusive actions

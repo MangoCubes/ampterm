@@ -1,4 +1,4 @@
-// mod bpmtoy;
+mod bpmtoy;
 mod nowplaying;
 mod playlistlist;
 mod playlistqueue;
@@ -11,7 +11,10 @@ use crate::{
     },
     app::Mode,
     compid::CompID,
-    components::traits::{component::Component, focusable::Focusable},
+    components::{
+        home::mainscreen::bpmtoy::BPMToy,
+        traits::{component::Component, focusable::Focusable},
+    },
     queryworker::{highlevelquery::HighLevelQuery, query::ToQueryWorker},
 };
 use color_eyre::Result;
@@ -38,6 +41,7 @@ pub struct MainScreen {
     pl_list: PlaylistList,
     pl_queue: PlaylistQueue,
     now_playing: NowPlaying,
+    bpmtoy: BPMToy,
     queuelist: QueueList,
     message: String,
     key_stack: Vec<String>,
@@ -54,6 +58,7 @@ impl MainScreen {
                 pl_queue: PlaylistQueue::new(false),
                 queuelist: QueueList::new(false),
                 now_playing: NowPlaying::new(),
+                bpmtoy: BPMToy::new(),
                 message: "You are now logged in.".to_string(),
                 key_stack: vec![],
             },
@@ -102,14 +107,18 @@ impl Component for MainScreen {
             Constraint::Ratio(3, 4),
             Constraint::Ratio(1, 4),
         ]);
+        let bottom_layout =
+            Layout::horizontal([Constraint::Percentage(75), Constraint::Percentage(25)]);
         let areas = vertical.split(area);
         let listareas = horizontal.split(areas[0]);
         let text_areas = text_layout.split(areas[2]);
-
+        let bottom_areas = bottom_layout.split(areas[1]);
         self.pl_list.draw(frame, listareas[0])?;
         self.pl_queue.draw(frame, listareas[1])?;
         self.queuelist.draw(frame, listareas[2])?;
-        self.now_playing.draw(frame, areas[1])?;
+        self.now_playing.draw(frame, bottom_areas[0])?;
+        self.bpmtoy.draw(frame, bottom_areas[1])?;
+
         frame.render_widget(
             Paragraph::new(format!("[{}]", self.current_mode.to_string()))
                 .wrap(Wrap { trim: false }),

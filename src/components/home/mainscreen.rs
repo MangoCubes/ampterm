@@ -169,6 +169,20 @@ impl Component for MainScreen {
             _ => {}
         };
         match &action {
+            Action::User(UserAction::Global(_)) => {
+                let results: Vec<Action> = [
+                    self.pl_list.update(action.clone())?,
+                    self.pl_queue.update(action.clone())?,
+                    self.now_playing.update(action.clone())?,
+                    self.queuelist.update(action.clone())?,
+                    self.bpmtoy.update(action)?,
+                ]
+                .into_iter()
+                .filter_map(|a| a)
+                .collect();
+
+                Ok(Some(Action::Multiple(results)))
+            }
             Action::User(_) => match self.state {
                 CurrentlySelected::Playlists => self.pl_list.update(action),
                 CurrentlySelected::PlaylistQueue => self.pl_queue.update(action),
@@ -185,7 +199,8 @@ impl Component for MainScreen {
                     self.pl_list.update(action.clone())?,
                     self.pl_queue.update(action.clone())?,
                     self.now_playing.update(action.clone())?,
-                    self.queuelist.update(action)?,
+                    self.queuelist.update(action.clone())?,
+                    self.bpmtoy.update(action)?,
                 ]
                 .into_iter()
                 .filter_map(|a| a)

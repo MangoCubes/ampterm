@@ -73,8 +73,9 @@
 	  "<Shift-r>": { User: { Common: "Refresh" } },
 	  "<Enter>": { User: { Common: "Confirm" } },
 	  "<q>": { User: { Common: "Cancel" } },
-	  "<Esc>": { User: { Common: "EndKeySeq" } },
 
+	  "<Esc>": { User: { Global: "EndKeySeq" } },
+	  "<t>": { User: { Global: "TapToBPM" } },
 	},
   },
   // Use legacy authentication that sends the password instead of token and salt

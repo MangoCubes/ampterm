@@ -24,7 +24,7 @@ enum State {
     },
     Running {
         last_tap: Instant,
-        interval_count: u8,
+        interval_count: u32,
         total_len: f64,
         comp: Centered,
     },
@@ -65,12 +65,22 @@ impl Component for BPMToy {
                     last_tap: Instant::now(),
                     comp: Centered::new(vec!["Continue tapping...".to_string()]),
                 },
-                State::NeedToTapMore { last_tap, comp } => State::Running {
-                    interval_count: 1,
-                    last_tap: Instant::now(),
-                    total_len: last_tap.elapsed().as_secs_f64(),
-                    comp: Centered::new(vec!["Continue tapping...".to_string()]),
-                },
+                State::NeedToTapMore { last_tap, comp } => {
+                    let elapsed = last_tap.elapsed();
+                    if elapsed > Duration::from_secs(3) {
+                        State::NeedToTapMore {
+                            last_tap: Instant::now(),
+                            comp: Centered::new(vec!["Continue tapping...".to_string()]),
+                        }
+                    } else {
+                        State::Running {
+                            interval_count: 1,
+                            last_tap: Instant::now(),
+                            total_len: elapsed.as_secs_f64(),
+                            comp: Centered::new(vec!["Continue tapping...".to_string()]),
+                        }
+                    }
+                }
                 State::Running {
                     last_tap,
                     total_len,

@@ -29,15 +29,15 @@ pub struct QueueList {
 }
 
 impl QueueList {
-    fn gen_block(&self) -> Block<'static> {
-        let style = if self.enabled {
+    fn gen_block(enabled: bool, title: String) -> Block<'static> {
+        let style = if enabled {
             Style::new().white()
         } else {
             Style::new().dark_gray()
         };
         let title = Span::styled(
-            "Queue".to_string(),
-            if self.enabled {
+            title,
+            if enabled {
                 Style::default().add_modifier(Modifier::BOLD)
             } else {
                 Style::default().add_modifier(Modifier::DIM)
@@ -48,20 +48,17 @@ impl QueueList {
 
     pub fn new(enabled: bool) -> Self {
         Self {
+            comp: Comp::Nothing(Nothing::new(enabled)),
             enabled,
-            comp: Comp::Nothing(Nothing::new()),
         }
     }
 }
 
 impl Component for QueueList {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        let block = self.gen_block();
-        let inner = block.inner(area);
-        frame.render_widget(block, area);
         match &mut self.comp {
-            Comp::Nothing(nothing) => nothing.draw(frame, inner),
-            Comp::Something(something) => something.draw(frame, inner),
+            Comp::Nothing(nothing) => nothing.draw(frame, area),
+            Comp::Something(something) => something.draw(frame, area),
         }
     }
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
@@ -74,7 +71,7 @@ impl Component for QueueList {
                         items,
                         at,
                     })) => {
-                        let comp = Something::new(items);
+                        let comp = Something::new(self.enabled, items);
                         self.comp = Comp::Something(comp)
                     }
                     _ => {}
@@ -85,11 +82,14 @@ impl Component for QueueList {
         }
     }
 }
-
 impl Focusable for QueueList {
     fn set_enabled(&mut self, enable: bool) {
         if self.enabled != enable {
             self.enabled = enable;
-        }
+            match &mut self.comp {
+                Comp::Nothing(comp) => comp.set_enabled(enable),
+                Comp::Something(comp) => comp.set_enabled(enable),
+            }
+        };
     }
 }

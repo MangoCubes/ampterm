@@ -8,7 +8,11 @@ use ratatui::{
 
 use crate::{
     action::{Action, FromPlayerWorker, NowPlaying, QueueChange, StateType},
-    components::{lib::visualtable::VisualTable, traits::component::Component},
+    components::{
+        home::mainscreen::queuelist::QueueList,
+        lib::visualtable::VisualTable,
+        traits::{component::Component, focusable::Focusable},
+    },
     osclient::response::getplaylist::Media,
 };
 
@@ -16,6 +20,7 @@ pub struct Something {
     list: Vec<Media>,
     index: Option<usize>,
     table: VisualTable,
+    enabled: bool,
 }
 
 /// There are 4 unique states each item in the list can have:
@@ -30,13 +35,14 @@ pub struct Something {
 ///
 /// As a result, a dedicated list component has to be made
 impl Something {
-    pub fn new(list: Vec<Media>) -> Self {
+    pub fn new(enabled: bool, list: Vec<Media>) -> Self {
         fn table_proc(table: Table<'static>) -> Table<'static> {
             table
                 .highlight_symbol(">")
                 .row_highlight_style(Style::new().reversed())
         }
         Self {
+            enabled,
             table: VisualTable::new(
                 Self::gen_rows(&list, Some(0)),
                 [Constraint::Max(1), Constraint::Min(0), Constraint::Max(1)].to_vec(),
@@ -92,7 +98,24 @@ impl Something {
 
 impl Component for Something {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        self.table.draw(frame, area)
+        let title = if let Some(pos) = self.table.get_current() {
+            let len = self.list.len();
+            format!(
+                "Queue ({}/{})",
+                if pos == usize::MAX || pos >= len {
+                    len
+                } else {
+                    pos + 1
+                },
+                len
+            )
+        } else {
+            format!("Queue ({})", self.list.len())
+        };
+        let border = QueueList::gen_block(self.enabled, title);
+        let inner = border.inner(area);
+        frame.render_widget(border, area);
+        self.table.draw(frame, inner)
     }
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
@@ -121,5 +144,11 @@ impl Component for Something {
             }
             _ => self.table.update(action),
         }
+    }
+}
+
+impl Focusable for Something {
+    fn set_enabled(&mut self, enable: bool) {
+        self.enabled = enable;
     }
 }

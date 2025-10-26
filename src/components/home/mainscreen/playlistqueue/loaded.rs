@@ -169,6 +169,7 @@ impl Component for Loaded {
                     }
                     _ => self.table.update(Action::User(UserAction::Visual(a))),
                 },
+                _ => Ok(None),
             }
         } else {
             self.table.update(action)

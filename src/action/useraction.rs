@@ -2,7 +2,18 @@ use serde::{Deserialize, Serialize};
 
 use crate::playerworker::player::QueueLocation;
 
-/// Common actions are actions that are applicable in more than one mode (Insert, Normal, etc)
+/// Actions that are always available to the user regardless of what the user is currently
+/// focusing.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Global {
+    /// Action for deleting all key sequences currently stored
+    /// It's like escape in Vim, and Ctrl+G in Emacs
+    EndKeySeq,
+    TapToBPM,
+}
+
+/// Common actions are actions that are applicable in more than one mode (Insert, Normal, etc), but
+/// must not propagate to more than one components.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Common {
     Up,
@@ -16,10 +27,6 @@ pub enum Common {
     Refresh,
     ResetState,
     Help,
-    /// Action for deleting all key sequences currently stored
-    /// It's like escape in Vim, and Ctrl+G in Emacs
-    EndKeySeq,
-    TapToBPM,
 }
 
 /// Visual mode exclusive actions
@@ -60,4 +67,5 @@ pub enum UserAction {
     Common(Common),
     Normal(Normal),
     Visual(Visual),
+    Global(Global),
 }

@@ -9,7 +9,7 @@ use ratatui::{
 
 use crate::{
     action::{
-        useraction::{Common, UserAction},
+        useraction::{Common, Global, UserAction},
         Action,
     },
     components::{lib::centered::Centered, traits::component::Component},
@@ -59,7 +59,7 @@ impl Component for BPMToy {
         }
     }
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        if let Action::User(UserAction::Common(Common::TapToBPM)) = action {
+        if let Action::User(UserAction::Global(Global::TapToBPM)) = action {
             self.state = match &self.state {
                 State::Init(_centered) => State::NeedToTapMore {
                     last_tap: Instant::now(),

@@ -14,7 +14,6 @@ use crate::{
     },
     app::Mode,
     components::traits::component::Component,
-    playerworker::player::QueueLocation,
 };
 
 /// Struct that contains the state of the current temporary selection
@@ -121,6 +120,7 @@ impl Component for VisualTable {
                         }
                         _ => Ok(None),
                     },
+                    _ => Ok(None),
                 };
                 action
             }

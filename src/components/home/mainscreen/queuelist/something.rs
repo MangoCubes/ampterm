@@ -7,14 +7,14 @@ use ratatui::{
 };
 
 use crate::{
-    action::{Action, FromPlayerWorker, QueueChange, StateType},
+    action::{Action, FromPlayerWorker, NowPlaying, QueueChange, StateType},
     components::{lib::visualtable::VisualTable, traits::component::Component},
     osclient::response::getplaylist::Media,
 };
 
 pub struct Something {
     list: Vec<Media>,
-    index: usize,
+    index: Option<usize>,
     table: VisualTable,
 }
 
@@ -38,15 +38,15 @@ impl Something {
         }
         Self {
             table: VisualTable::new(
-                Self::gen_rows(&list, 0),
+                Self::gen_rows(&list, Some(0)),
                 [Constraint::Max(1), Constraint::Min(0), Constraint::Max(1)].to_vec(),
                 table_proc,
             ),
             list,
-            index: 0,
+            index: Some(0),
         }
     }
-    fn gen_rows(items: &Vec<Media>, index: usize) -> Vec<Row<'static>> {
+    fn gen_rows(items: &Vec<Media>, index: Option<usize>) -> Vec<Row<'static>> {
         let len = items.len();
         let before = Style::new().fg(Color::DarkGray);
         let after = Style::new();
@@ -63,27 +63,29 @@ impl Something {
             Row::new(vec!["▶".to_string(), ms.title.clone(), ms.get_fav_marker()]).style(current)
         }
         match index {
+            Some(idx) => match idx {
+                // Current item is the last item in the playlist
+                i if (len - 1) == idx => {
+                    let mut list = gen_rows_part(&items[..i], before);
+                    list.push(gen_current_item(&items[i]));
+                    list
+                }
+                // Current item is the first element in the playlist
+                0 => {
+                    let mut list = gen_rows_part(&items[1..], after);
+                    list.insert(0, gen_current_item(&items[0]));
+                    list
+                }
+                // Every other cases
+                i => {
+                    let mut list = gen_rows_part(&items[..i], before);
+                    list.append(&mut gen_rows_part(&items[(i + 1)..], after));
+                    list.insert(i, gen_current_item(&items[i]));
+                    list
+                }
+            },
             // Current item is beyond the current playlist
-            _ if len == index => gen_rows_part(&items, before),
-            // Current item is the last item in the playlist
-            idx if (len - 1) == index => {
-                let mut list = gen_rows_part(&items[..idx], before);
-                list.push(gen_current_item(&items[idx]));
-                list
-            }
-            // Current item is the first element in the playlist
-            0 => {
-                let mut list = gen_rows_part(&items[1..], after);
-                list.insert(0, gen_current_item(&items[0]));
-                list
-            }
-            // Every other cases
-            idx => {
-                let mut list = gen_rows_part(&items[..idx], before);
-                list.append(&mut gen_rows_part(&items[(idx + 1)..], after));
-                list.insert(idx, gen_current_item(&items[idx]));
-                list
-            }
+            None => gen_rows_part(&items, before),
         }
     }
 }
@@ -105,8 +107,12 @@ impl Component for Something {
                         }
                         QueueChange::Del { from, to } => todo!(),
                     },
-                    StateType::NowPlaying { music, index } => {
-                        self.index = index;
+                    StateType::NowPlaying(now_playing) => {
+                        self.index = if let Some(n) = now_playing {
+                            Some(n.index)
+                        } else {
+                            None
+                        };
                         self.table.set_rows(Self::gen_rows(&self.list, self.index));
                     }
                     StateType::Volume(_) | StateType::Position(_) | StateType::Speed(_) => {}

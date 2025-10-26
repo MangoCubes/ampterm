@@ -40,9 +40,10 @@ impl Component for Playing {
                 StateType::Volume(v) => self.vol = v,
                 StateType::Speed(s) => self.speed = s,
                 StateType::Queue(_queue_change) => {}
-                StateType::NowPlaying { music, index: _ } => {
-                    self.music = music;
+                StateType::NowPlaying(Some(now_playing)) => {
+                    self.music = now_playing.music;
                 }
+                _ => {}
             };
         }
         Ok(None)

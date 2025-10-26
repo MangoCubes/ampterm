@@ -16,7 +16,7 @@ use tokio::task::JoinHandle;
 use tokio::time::sleep;
 use tokio_util::sync::CancellationToken;
 
-use crate::action::{Action, FromPlayerWorker, QueueChange, StateType};
+use crate::action::{Action, FromPlayerWorker, NowPlaying, QueueChange, StateType};
 use crate::config::Config;
 use crate::osclient::response::getplaylist::Media;
 use crate::queryworker::highlevelquery::HighLevelQuery;
@@ -133,11 +133,12 @@ impl PlayerWorker {
                 };
             }
             QueueLocation::Last => {
+                let last = self.queue.len();
                 self.queue.append(&mut items.clone());
                 let _ =
                     self.action_tx
                         .send(Action::FromPlayerWorker(FromPlayerWorker::StateChange(
-                            StateType::Queue(QueueChange::add(items, self.queue.len())),
+                            StateType::Queue(QueueChange::add(items, last)),
                         )));
             }
         };
@@ -282,10 +283,10 @@ impl PlayerWorker {
                 let _ =
                     self.action_tx
                         .send(Action::FromPlayerWorker(FromPlayerWorker::StateChange(
-                            StateType::NowPlaying {
-                                music: self.queue[cleaned].clone(),
-                                index: cleaned,
-                            },
+                            StateType::NowPlaying(NowPlaying::new(
+                                self.queue[cleaned].clone(),
+                                cleaned,
+                            )),
                         )));
                 let _ = self
                     .action_tx

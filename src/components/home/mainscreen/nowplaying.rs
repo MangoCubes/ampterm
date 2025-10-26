@@ -38,12 +38,14 @@ impl Component for NowPlaying {
         }
     }
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        if let Action::FromPlayerWorker(FromPlayerWorker::StateChange(StateType::NowPlaying {
-            music,
-            index: _,
-        })) = action
+        if let Action::FromPlayerWorker(FromPlayerWorker::StateChange(StateType::NowPlaying(
+            now_playing,
+        ))) = action
         {
-            self.comp = Comp::Playing(Playing::new(music, 0.0, 0.0, Duration::from_secs(0)));
+            self.comp = match now_playing {
+                Some(n) => Comp::Playing(Playing::new(n.music, 0.0, 0.0, Duration::from_secs(0))),
+                None => Comp::Stopped(Stopped::new()),
+            };
             Ok(None)
         } else {
             if let Comp::Playing(comp) = &mut self.comp {

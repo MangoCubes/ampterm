@@ -9,15 +9,22 @@ use crate::queryworker::query::FromQueryWorker;
 use crate::{app::Mode, queryworker::query::ToQueryWorker};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NowPlaying {
+    pub music: Media,
+    pub index: usize,
+}
+
+impl NowPlaying {
+    pub fn new(music: Media, index: usize) -> Option<Self> {
+        Some(Self { music, index })
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum StateType {
     Queue(QueueChange),
     Position(std::time::Duration),
-    NowPlaying {
-        music: Media,
-        // Index is guaranteed to be in the range [0, items.len()]
-        // In other words, items[index] may be invalid because index goes out of bound by 1
-        index: usize,
-    },
+    NowPlaying(Option<NowPlaying>),
     Volume(f32),
     Speed(f32),
 }

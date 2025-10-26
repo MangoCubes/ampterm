@@ -295,7 +295,15 @@ impl PlayerWorker {
                     )));
                 self.state = WorkerState::Loading { current: cleaned };
             }
-            None => self.state = WorkerState::Idle { play_next: cleaned },
+            None => {
+                let _ =
+                    self.action_tx
+                        .send(Action::FromPlayerWorker(FromPlayerWorker::StateChange(
+                            StateType::NowPlaying(None),
+                        )));
+
+                self.state = WorkerState::Idle { play_next: cleaned };
+            }
         }
     }
     pub async fn run(&mut self) -> Result<()> {

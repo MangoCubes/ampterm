@@ -71,16 +71,25 @@ impl Component for Playing {
             areas[0],
         );
         if let Some(len) = self.music.duration {
-            let label = format!(
-                "{:02}:{:02} / {:02}:{:02}",
-                self.pos.as_secs() / 60,
-                self.pos.as_secs() % 60,
-                len / 60,
-                len % 60,
-            );
-            let percent = ((self.pos.as_secs() as i32 * 100) / len) as u16;
-            let adjusted = if percent > 100 { 100 } else { percent };
-            frame.render_widget(Gauge::default().label(label).percent(adjusted), areas[1]);
+            if len == 0 {
+                let label = format!(
+                    "{:02}:{:02} / 00:00",
+                    self.pos.as_secs() / 60,
+                    self.pos.as_secs() % 60,
+                );
+                frame.render_widget(Line::raw(label), areas[1]);
+            } else {
+                let label = format!(
+                    "{:02}:{:02} / {:02}:{:02}",
+                    self.pos.as_secs() / 60,
+                    self.pos.as_secs() % 60,
+                    len / 60,
+                    len % 60,
+                );
+                let percent = ((self.pos.as_secs() as i32 * 100) / len) as u16;
+                let adjusted = if percent > 100 { 100 } else { percent };
+                frame.render_widget(Gauge::default().label(label).percent(adjusted), areas[1]);
+            }
         } else {
             let label = format!(
                 "{:02}:{:02} / ??:??",

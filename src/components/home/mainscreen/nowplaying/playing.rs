@@ -8,9 +8,9 @@ use crate::{
 use color_eyre::Result;
 use ratatui::{
     layout::{Constraint, Layout, Rect},
-    style::{Style, Stylize},
+    style::Stylize,
     text::Line,
-    widgets::{Block, Gauge, Paragraph, Wrap},
+    widgets::{Gauge, Paragraph, Wrap},
     Frame,
 };
 
@@ -49,11 +49,8 @@ impl Component for Playing {
         Ok(None)
     }
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        let border = Block::bordered().border_style(Style::new().white());
-        let inner = border.inner(area);
         let vertical = Layout::vertical([Constraint::Min(1), Constraint::Length(1)]);
-        let areas = vertical.split(inner);
-        frame.render_widget(border, area);
+        let areas = vertical.split(area);
         frame.render_widget(
             Paragraph::new(vec![
                 Line::raw(format!(

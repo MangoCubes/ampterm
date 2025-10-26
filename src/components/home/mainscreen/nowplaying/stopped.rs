@@ -1,32 +1,21 @@
-use crate::components::traits::component::Component;
+use crate::components::{lib::centered::Centered, traits::component::Component};
 use color_eyre::Result;
-use ratatui::{
-    layout::{Alignment, Rect},
-    style::{Style, Stylize},
-    widgets::{Block, Padding, Paragraph, Wrap},
-    Frame,
-};
+use ratatui::{layout::Rect, Frame};
 
-pub struct Stopped {}
+pub struct Stopped {
+    comp: Centered,
+}
 
 impl Stopped {
     pub fn new() -> Self {
-        Self {}
-    }
-    fn gen_block() -> Block<'static> {
-        Block::bordered().border_style(Style::new().white())
+        Self {
+            comp: Centered::new(vec!["Select a music!".to_string()]),
+        }
     }
 }
 
 impl Component for Stopped {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        frame.render_widget(
-            Paragraph::new("Select a music!")
-                .block(Self::gen_block().padding(Padding::new(0, 0, area.height / 2 - 1, 0)))
-                .alignment(Alignment::Center)
-                .wrap(Wrap { trim: false }),
-            area,
-        );
-        Ok(())
+        self.comp.draw(frame, area)
     }
 }

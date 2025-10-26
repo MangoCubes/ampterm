@@ -1,3 +1,4 @@
+// mod bpmtoy;
 mod nowplaying;
 mod playlistlist;
 mod playlistqueue;
@@ -9,10 +10,8 @@ use crate::{
         Action, FromPlayerWorker,
     },
     app::Mode,
-    components::{
-        home::compid,
-        traits::{component::Component, focusable::Focusable},
-    },
+    compid::CompID,
+    components::traits::{component::Component, focusable::Focusable},
     queryworker::{highlevelquery::HighLevelQuery, query::ToQueryWorker},
 };
 use color_eyre::Result;
@@ -167,10 +166,10 @@ impl Component for MainScreen {
                 CurrentlySelected::Queue => self.queuelist.update(action),
             },
             Action::FromQueryWorker(res) => match res.dest {
-                compid::CompID::PlaylistList => self.pl_list.update(action.clone()),
-                compid::CompID::PlaylistQueue => self.pl_queue.update(action.clone()),
-                compid::CompID::QueueList => self.queuelist.update(action.clone()),
-                _ => panic!("Invalid routing detected!"),
+                CompID::PlaylistList => self.pl_list.update(action.clone()),
+                CompID::PlaylistQueue => self.pl_queue.update(action.clone()),
+                CompID::QueueList => self.queuelist.update(action.clone()),
+                _ => unreachable!("Action propagated to nonexistent component!"),
             },
             _ => {
                 let results: Vec<Action> = [

@@ -5,7 +5,13 @@ use std::time::Duration;
 
 use color_eyre::Result;
 use playing::Playing;
-use ratatui::{layout::Rect, Frame};
+use ratatui::{
+    layout::Rect,
+    style::{Style, Stylize},
+    text::Span,
+    widgets::Block,
+    Frame,
+};
 use stopped::Stopped;
 
 use crate::{
@@ -28,13 +34,19 @@ impl NowPlaying {
             comp: Comp::Stopped(Stopped::new()),
         }
     }
+    fn gen_block(&self) -> Block<'static> {
+        Block::bordered().border_style(Style::new().white())
+    }
 }
 
 impl Component for NowPlaying {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+        let block = self.gen_block();
+        let inner = block.inner(area);
+        frame.render_widget(block, area);
         match &mut self.comp {
-            Comp::Playing(playing) => playing.draw(frame, area),
-            Comp::Stopped(stopped) => stopped.draw(frame, area),
+            Comp::Playing(playing) => playing.draw(frame, inner),
+            Comp::Stopped(stopped) => stopped.draw(frame, inner),
         }
     }
     fn update(&mut self, action: Action) -> Result<Option<Action>> {

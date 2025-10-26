@@ -98,9 +98,10 @@ impl Component for Something {
                 match state_type {
                     StateType::Queue(queue_change) => match queue_change {
                         QueueChange::Add { items, at } => {
+                            let len = items.len();
                             self.list.splice(at..at, items);
                             self.table
-                                .add_rows_at(Self::gen_rows(&self.list, self.index), at);
+                                .add_rows_at(Self::gen_rows(&self.list, self.index), at, len);
                         }
                         QueueChange::Del { from, to } => todo!(),
                     },

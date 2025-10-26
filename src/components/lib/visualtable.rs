@@ -143,12 +143,11 @@ impl VisualTable {
     }
     /// Set all the rows with a new set of rows, then signal the table that there have been
     /// additional elements at the specified index
-    pub fn add_rows_at(&mut self, rows: Vec<Row<'static>>, at: usize) {
+    pub fn add_rows_at(&mut self, rows: Vec<Row<'static>>, at: usize, len: usize) {
         if self.rows.is_empty() {
-            self.selected = vec![false; rows.len()];
+            self.selected = vec![false; len];
             self.rows = rows;
         } else {
-            let len = rows.len();
             let cur = self.get_current().expect("Failed to get cursor location.");
             self.rows = rows;
             self.selected.splice(at..at, vec![false; len]);

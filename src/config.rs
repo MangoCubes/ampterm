@@ -549,7 +549,7 @@ mod tests {
             .keybindings
             .get(&Mode::Common)
             .unwrap()
-            .get(&parse_key_sequence("<q>").unwrap_or_default())
+            .get(&parse_key_sequence("<Ctrl-w><q>").unwrap_or_default())
             .unwrap();
         assert!(matches!(bound_action, Action::Quit));
         Ok(())

@@ -76,6 +76,8 @@
 
 	  "<Esc>": { User: { Global: "EndKeySeq" } },
 	  "<t>": { User: { Global: "TapToBPM" } },
+
+      "<Ctrl-w><q>": "Quit",
 	},
   },
   // Use legacy authentication that sends the password instead of token and salt

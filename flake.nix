@@ -23,11 +23,15 @@
         ];
       in
       {
+        homeManager = {
+          ampterm = ./nix/homeManager.nix;
+          default = self.homeManager."${pkgs.stdenv.hostPlatform.system}".ampterm;
+        };
         packages.default = pkgs.rustPlatform.buildRustPackage {
           inherit buildInputs nativeBuildInputs;
           src = ./.;
           name = "ampterm";
-          cargoHash = "sha256-VeE1kHrc4Q+naTaKLtrh2HA1CAakG43Wq5VvG+2I4iQ=";
+          cargoHash = "sha256-jG0J0g05+BZCtCzXOvO/3+Ytws02Cm4szRegfWjn9aw=";
         };
         devShells.default = pkgs.mkShell {
           packages = (

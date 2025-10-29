@@ -44,9 +44,10 @@
 	  "<Shift-v>": { User: { Normal: "SelectMode" } },
 	  "<Ctrl-v>": { User: { Normal: "DeselectMode" } },
 	},
-	// Keybinds that are always available
-	// Global indicates that the action will propagate to all elements
-	// Non-global actions (those that are not marked as "Global") will propagate to only current component.
+	// Keybinds that are always available (given it's valid in the current situation, otherwise it will be ignored)
+	// Global actions must be included in this section on order to make it work
+	// Global indicates that the action will propagate to a fixed element
+	// Non-global actions (those that are not marked as "Global") will propagate to a certain component depending on the program's state
     "Common": {
 	  // General movement
 	  "<k>": { User: { Common: "Up" } },
@@ -77,6 +78,7 @@
 	  "<Enter>": { User: { Common: "Confirm" } },
 	  "<q>": { User: { Common: "Cancel" } },
 
+	  // Global actions
 	  "<Esc>": { User: { Global: "EndKeySeq" } },
 	  "<t>": { User: { Global: "TapToBPM" } },
 

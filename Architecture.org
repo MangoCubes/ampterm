@@ -5,6 +5,12 @@
 * Note
 - This is mostly for me to keep my thoughts in order.
 
+* Action Management
+- Actions are how each components communicate with each other.
+- These are the actions users should use in their config:
+  - User.<Mode>.<Action>
+  - ToPlayerWorker.<Action>
+  - Quit
 * Component Design
 ** Variant Components
 - A component may have variant subcomponents, depending on its state

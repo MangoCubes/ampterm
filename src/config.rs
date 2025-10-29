@@ -46,6 +46,18 @@ pub struct AppConfig {
     pub use_legacy_auth: bool,
 }
 
+#[derive(Clone, Debug, Deserialize)]
+pub struct InitState {
+    #[serde(default)]
+    pub volume: f32,
+}
+
+impl Default for InitState {
+    fn default() -> Self {
+        Self { volume: 0.5 }
+    }
+}
+
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct Config {
     #[serde(default, flatten)]
@@ -58,6 +70,8 @@ pub struct Config {
     pub auth: Option<AuthConfig>,
     #[serde(default)]
     pub unsafe_auth: Option<UnsafeAuthConfig>,
+    #[serde(default)]
+    pub init_state: InitState,
 }
 
 lazy_static! {

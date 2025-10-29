@@ -405,6 +405,7 @@ impl PlayerWorker {
     ) -> Self {
         let (player_tx, player_rx) = mpsc::unbounded_channel();
         let sink = Arc::from(rodio::Sink::try_new(&handle).unwrap());
+        sink.set_volume(config.init_state.volume);
         Self {
             player_tx,
             player_rx,

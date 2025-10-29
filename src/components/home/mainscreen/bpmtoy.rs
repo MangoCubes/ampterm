@@ -53,16 +53,22 @@ impl BPMToy {
     }
     fn on_tick(&mut self) {
         match self.state {
-            State::NeedToTapMore { last_tap, comp: _ }
-            | State::Running {
+            State::NeedToTapMore { last_tap, comp: _ } => {
+                let elapsed = last_tap.elapsed();
+                if elapsed > Duration::from_secs(3) {
+                    self.state = State::Init(Centered::new(vec![self.init_msg.clone()]));
+                }
+            }
+            State::Running {
                 last_tap,
-                interval_count: _,
-                total_len: _,
+                interval_count,
+                total_len,
                 comp: _,
             } => {
                 let elapsed = last_tap.elapsed();
                 if elapsed > Duration::from_secs(3) {
-                    self.state = State::Init(Centered::new(vec![self.init_msg.clone()]));
+                    let bpm = 60.0 / (total_len / (interval_count as f64));
+                    self.state = State::Init(Centered::new(vec![format!("BPM: {:.2}", bpm)]));
                 }
             }
             _ => {}
@@ -93,7 +99,7 @@ impl Component for BPMToy {
                     last_tap: Instant::now(),
                     comp: Centered::new(vec!["Continue tapping...".to_string()]),
                 },
-                State::NeedToTapMore { last_tap, comp } => {
+                State::NeedToTapMore { last_tap, comp: _ } => {
                     let elapsed = last_tap.elapsed();
                     if elapsed > Duration::from_secs(3) {
                         State::NeedToTapMore {
@@ -112,7 +118,7 @@ impl Component for BPMToy {
                 State::Running {
                     last_tap,
                     total_len,
-                    comp,
+                    comp: _,
                     interval_count,
                 } => {
                     let elapsed = last_tap.elapsed();
@@ -128,7 +134,7 @@ impl Component for BPMToy {
                             interval_count: interval_count + 1,
                             last_tap: Instant::now(),
                             total_len,
-                            comp: Centered::new(vec![format!("BPM: {}", bpm)]),
+                            comp: Centered::new(vec![format!("BPM: {:.2}", bpm)]),
                         }
                     }
                 }

@@ -196,6 +196,7 @@ impl Component for MainScreen {
                     self.pl_queue.update(action.clone())?,
                     self.now_playing.update(action.clone())?,
                     self.queuelist.update(action.clone())?,
+                    self.bpmtoy.update(action)?,
                 ]
                 .into_iter()
                 .filter_map(|a| a)

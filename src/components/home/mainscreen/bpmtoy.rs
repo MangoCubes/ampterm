@@ -9,10 +9,9 @@ use ratatui::{
 
 use crate::{
     action::{
-        useraction::{Common, Global, Normal, UserAction},
+        useraction::{Global, UserAction},
         Action,
     },
-    app::Mode,
     components::{lib::centered::Centered, traits::component::Component},
     config::Config,
 };
@@ -34,6 +33,7 @@ enum State {
 
 pub struct BPMToy {
     state: State,
+    init_msg: String,
 }
 
 impl BPMToy {
@@ -41,14 +41,32 @@ impl BPMToy {
         let keys = config
             .keybindings
             .find_action_str(Action::User(UserAction::Global(Global::TapToBPM)), None);
+        let msg = match keys {
+            Some(t) => format!("Tap {} for BPM", t),
+            None => "Tap to BPM not bound!".to_string(),
+        };
+
         Self {
-            state: State::Init(Centered::new(vec![{
-                match keys {
-                    Some(t) => format!("Tap {} for BPM", t),
-                    None => "Tap to BPM not bound!".to_string(),
-                }
-            }])),
+            init_msg: msg.clone(),
+            state: State::Init(Centered::new(vec![msg])),
         }
+    }
+    fn on_tick(&mut self) {
+        match self.state {
+            State::NeedToTapMore { last_tap, comp: _ }
+            | State::Running {
+                last_tap,
+                interval_count: _,
+                total_len: _,
+                comp: _,
+            } => {
+                let elapsed = last_tap.elapsed();
+                if elapsed > Duration::from_secs(3) {
+                    self.state = State::Init(Centered::new(vec![self.init_msg.clone()]));
+                }
+            }
+            _ => {}
+        };
     }
 }
 
@@ -115,6 +133,9 @@ impl Component for BPMToy {
                     }
                 }
             };
+            Ok(None)
+        } else if Action::Tick == action {
+            self.on_tick();
             Ok(None)
         } else {
             Ok(None)

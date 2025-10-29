@@ -14,7 +14,7 @@ pub enum QueueLocation {
     Last,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ToPlayerWorker {
     /// Stop the player. Unlike pause, this resets the progress for the current song.
     Stop,

@@ -15,6 +15,7 @@ use crate::{
         home::mainscreen::bpmtoy::BPMToy,
         traits::{component::Component, focusable::Focusable},
     },
+    config::Config,
     queryworker::{highlevelquery::HighLevelQuery, query::ToQueryWorker},
 };
 use color_eyre::Result;
@@ -49,7 +50,7 @@ pub struct MainScreen {
 }
 
 impl MainScreen {
-    pub fn new() -> (Self, Action) {
+    pub fn new(config: Config) -> (Self, Action) {
         (
             Self {
                 state: CurrentlySelected::Playlists,
@@ -58,7 +59,7 @@ impl MainScreen {
                 pl_queue: PlaylistQueue::new(false),
                 queuelist: QueueList::new(false),
                 now_playing: NowPlaying::new(),
-                bpmtoy: BPMToy::new(),
+                bpmtoy: BPMToy::new(config),
                 message: "You are now logged in.".to_string(),
                 key_stack: vec![],
             },

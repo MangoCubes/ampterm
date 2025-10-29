@@ -4,7 +4,7 @@ use crate::playerworker::player::QueueLocation;
 
 /// Actions that are always available to the user regardless of what the user is currently
 /// focusing.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum Global {
     /// Action for deleting all key sequences currently stored
     /// It's like escape in Vim, and Ctrl+G in Emacs
@@ -14,7 +14,7 @@ pub enum Global {
 
 /// Common actions are actions that are applicable in more than one mode (Insert, Normal, etc), but
 /// must not propagate to more than one components.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum Common {
     Up,
     Down,
@@ -30,7 +30,7 @@ pub enum Common {
 }
 
 /// Visual mode exclusive actions
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum Visual {
     // Exit visual mode after applying changes
     ExitSave,
@@ -43,7 +43,7 @@ pub enum Visual {
 }
 
 /// Normal mode exclusive actions
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum Normal {
     // Action for moving between boxes
     WindowUp,
@@ -62,7 +62,7 @@ pub enum Normal {
 
 /// These actions corresponds to user actions
 /// Additionally, these actions are limited to the currently focused component only
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum UserAction {
     Common(Common),
     Normal(Normal),

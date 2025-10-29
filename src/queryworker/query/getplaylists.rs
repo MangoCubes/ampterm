@@ -23,7 +23,7 @@ impl From<PlaylistID> for String {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub enum GetPlaylistsResponse {
     Success(Vec<SimplePlaylist>),
     Failure(String),

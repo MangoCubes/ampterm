@@ -8,7 +8,7 @@ use crate::playerworker::player::ToPlayerWorker;
 use crate::queryworker::query::FromQueryWorker;
 use crate::{app::Mode, queryworker::query::ToQueryWorker};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct NowPlaying {
     pub music: Media,
     pub index: usize,
@@ -20,7 +20,7 @@ impl NowPlaying {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum StateType {
     Queue(QueueChange),
     Position(std::time::Duration),
@@ -36,7 +36,7 @@ pub enum PlayOrder {
     Reverse,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum QueueChange {
     Add { items: Vec<Media>, at: usize },
     Del { from: usize, to: usize },
@@ -55,7 +55,7 @@ impl QueueChange {
 }
 
 /// These actions are emitted by the playerworker.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum FromPlayerWorker {
     /// Send current state of the player
     StateChange(StateType),
@@ -66,7 +66,7 @@ pub enum FromPlayerWorker {
 
 /// FromQueryWorker enum is used to send responses from the QueryWorker to the components
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum Action {
     Suspend,
     Resume,

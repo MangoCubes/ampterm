@@ -14,7 +14,7 @@ use crate::{
 ///   - The purpose of the query, and how the response should be handled
 ///
 /// This information is needed to ensure the correct components are updated.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum HighLevelQuery {
     /// Given [`Media`] object, get its URL to play it with [`PlayerWorker`]
     PlayMusicFromURL(Media),

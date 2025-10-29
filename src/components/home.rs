@@ -12,7 +12,6 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
     action::Action,
-    compid,
     components::traits::component::Component,
     config::{get_config_dir, Config},
     queryworker::{
@@ -125,7 +124,7 @@ impl Component for Home {
                 match pr {
                     PingResponse::Success => {
                         // Switch child component to MainScreen
-                        let (comp, actions) = MainScreen::new();
+                        let (comp, actions) = MainScreen::new(self.config.clone());
                         self.component = Comp::Main(comp);
                         return Ok(Some(actions));
                     }

@@ -32,6 +32,36 @@ impl<'de> Deserialize<'de> for KeyBindings {
 }
 
 impl KeyBindings {
+    pub fn find_action_str(&self, action: Action, mode: Option<Mode>) -> Option<String> {
+        let strs: Vec<String> = self
+            .find_action(action, mode)?
+            .into_iter()
+            .map(|k| {
+                if k.modifiers == KeyModifiers::NONE {
+                    format!("<{}>", k.code)
+                } else {
+                    format!("<{}+{}>", k.modifiers, k.code)
+                }
+            })
+            .collect();
+        Some(strs.join(""))
+    }
+    pub fn find_action(&self, action: Action, mode: Option<Mode>) -> Option<Vec<KeyEvent>> {
+        let find_from = match mode {
+            Some(mode) => self.0.get(&mode)?,
+            None => self.0.get(&Mode::Common)?,
+        };
+
+        find_from.iter().find_map(|(key, val)| {
+            if action == val.clone() {
+                Some(key.clone())
+            } else {
+                None
+            }
+        })
+        // .iter()
+        // .find_map(|(key, &val)| if val == value { Some(key) } else { None })
+    }
     fn parse_key_code_with_modifiers(
         raw: &str,
         mut modifiers: KeyModifiers,

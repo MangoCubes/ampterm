@@ -4,7 +4,7 @@ use crate::queryworker::query::getplaylists::PlaylistID;
 
 use super::oserror::OSError;
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct SimplePlaylist {
     pub id: PlaylistID,
     pub name: String,

@@ -9,10 +9,12 @@ use ratatui::{
 
 use crate::{
     action::{
-        useraction::{Common, Global, UserAction},
+        useraction::{Common, Global, Normal, UserAction},
         Action,
     },
+    app::Mode,
     components::{lib::centered::Centered, traits::component::Component},
+    config::Config,
 };
 use color_eyre::Result;
 
@@ -35,9 +37,17 @@ pub struct BPMToy {
 }
 
 impl BPMToy {
-    pub fn new() -> Self {
+    pub fn new(config: Config) -> Self {
+        let keys = config
+            .keybindings
+            .find_action_str(Action::User(UserAction::Global(Global::TapToBPM)), None);
         Self {
-            state: State::Init(Centered::new(vec!["Tap [t] for BPM".to_string()])),
+            state: State::Init(Centered::new(vec![{
+                match keys {
+                    Some(t) => format!("Tap {} for BPM", t),
+                    None => "Tap to BPM not bound!".to_string(),
+                }
+            }])),
         }
     }
 }

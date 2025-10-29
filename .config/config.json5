@@ -44,6 +44,9 @@
 	  "<Shift-v>": { User: { Normal: "SelectMode" } },
 	  "<Ctrl-v>": { User: { Normal: "DeselectMode" } },
 	},
+	// Keybinds that are always available
+	// Global indicates that the action will propagate to all elements
+	// Non-global actions (those that are not marked as "Global") will propagate to only current component.
     "Common": {
 	  // General movement
 	  "<k>": { User: { Common: "Up" } },

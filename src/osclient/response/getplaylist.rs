@@ -4,7 +4,7 @@ use crate::queryworker::query::getplaylists::PlaylistID;
 
 use super::oserror::OSError;
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct Media {
     pub id: String,
     pub parent: Option<String>,
@@ -82,7 +82,7 @@ pub struct Media {
     #[serde(alias = "explicitStatus")]
     pub explicit_status: Option<String>,
 }
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct FullPlaylist {
     pub id: PlaylistID,
     pub name: String,

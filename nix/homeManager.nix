@@ -1,14 +1,26 @@
 {
   config,
-  self,
+  inputs,
   pkgs,
+  lib,
   ...
 }:
 let
-  cfg = config.niri-adv-rules;
+  cfg = config.ampterm;
 in
 {
-  home.packages = [
-    self.packages."${pkgs.stdenv.hostPlatform.system}".default
-  ];
+  options = {
+    programs.ampterm = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = ''Enable Ampterm, a TUI-based OpenSubsonic client.'';
+      };
+    };
+  };
+  config = lib.mkIf cfg.enable {
+    home.packages = [
+      inputs.ampterm.packages."${pkgs.stdenv.hostPlatform.system}".default
+    ];
+  };
 }

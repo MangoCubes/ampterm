@@ -176,10 +176,18 @@ impl Component for MainScreen {
                 CurrentlySelected::PlaylistQueue => self.pl_queue.update(action),
                 CurrentlySelected::Queue => self.queuelist.update(action),
             },
+            Action::ToQueryWorker(req) => match req.dest {
+                CompID::PlaylistList => self.pl_list.update(action.clone()),
+                CompID::PlaylistQueue => self.pl_queue.update(action.clone()),
+                CompID::QueueList => self.queuelist.update(action.clone()),
+                CompID::None => Ok(None),
+                _ => unreachable!("Action propagated to nonexistent component: {:?}", req.dest),
+            },
             Action::FromQueryWorker(res) => match res.dest {
                 CompID::PlaylistList => self.pl_list.update(action.clone()),
                 CompID::PlaylistQueue => self.pl_queue.update(action.clone()),
                 CompID::QueueList => self.queuelist.update(action.clone()),
+                CompID::None => Ok(None),
                 _ => unreachable!("Action propagated to nonexistent component!"),
             },
             _ => {

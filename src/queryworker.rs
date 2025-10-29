@@ -56,6 +56,9 @@ impl QueryWorker {
                             changed: p.changed,
                             song_count: p.song_count,
                             duration: p.duration,
+                            comment: p.comment,
+                            cover_art: p.cover_art,
+                            allowed_users: p.allowed_users,
                         })
                         .collect(),
                 ),

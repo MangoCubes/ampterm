@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use crate::queryworker::query::getplaylists::PlaylistID;
+use crate::{
+    osclient::response::getplaylists::SimplePlaylist, queryworker::query::getplaylists::PlaylistID,
+};
 
 use super::oserror::OSError;
 
@@ -102,10 +104,17 @@ pub struct FullPlaylist {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(untagged)]
+pub enum IndeterminedPlaylist {
+    FullPlaylist(FullPlaylist),
+    SimplePlaylist(Vec<SimplePlaylist>),
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "status")]
 pub enum GetPlaylist {
     #[serde(alias = "ok")]
-    Ok { playlist: FullPlaylist },
+    Ok { playlist: IndeterminedPlaylist },
     #[serde(alias = "failed")]
     Failed { error: OSError },
 }

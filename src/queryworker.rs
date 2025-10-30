@@ -7,7 +7,9 @@ use std::sync::Arc;
 use crate::action::Action;
 use crate::config::Config;
 use crate::osclient::response::empty::Empty;
-use crate::osclient::response::getplaylist::{FullPlaylist, GetPlaylist, Media};
+use crate::osclient::response::getplaylist::{
+    self, FullPlaylist, GetPlaylist, IndeterminedPlaylist, Media,
+};
 use crate::osclient::response::getplaylists::{GetPlaylists, SimplePlaylist};
 use crate::osclient::OSClient;
 use crate::playerworker::player::ToPlayerWorker;
@@ -188,16 +190,20 @@ impl QueryWorker {
                                     client.get_playlist(String::from(params.id.clone())).await;
                                 match res {
                                     Ok(c) => match c {
-                                        GetPlaylist::Ok { playlist } => {
-                                            tx.send(Action::FromQueryWorker(FromQueryWorker::new(
-                                                event.dest,
-                                                event.ticket,
-                                                ResponseType::GetPlaylist(
-                                                    GetPlaylistResponse::Success(FullPlaylist {
-                                                        entry: playlist
-                                                            .entry
-                                                            .into_iter()
-                                                            .map(|e| Media {
+                                        GetPlaylist::Ok { playlist } => match playlist {
+                                            IndeterminedPlaylist::FullPlaylist(full_playlist) => tx
+                                                .send(Action::FromQueryWorker(
+                                                    FromQueryWorker::new(
+                                                        event.dest,
+                                                        event.ticket,
+                                                        ResponseType::GetPlaylist(
+                                                            GetPlaylistResponse::Success(
+                                                                FullPlaylist {
+                                                                    entry: full_playlist
+                                                                        .entry
+                                                                        .into_iter()
+                                                                        .map(|e| {
+                                                                            Media {
                                                                 id: e.id,
                                                                 parent: e.parent,
                                                                 is_dir: e.is_dir,
@@ -247,23 +253,67 @@ impl QueryWorker {
                                                                     .display_composer,
                                                                 moods: e.moods,
                                                                 explicit_status: e.explicit_status,
-                                                            })
-                                                            .collect(),
+                                                            }
+                                                                        })
+                                                                        .collect(),
+                                                                    id: params.id,
+                                                                    name: full_playlist.name,
+                                                                    comment: full_playlist.comment,
+                                                                    owner: full_playlist.owner,
+                                                                    public: full_playlist.public,
+                                                                    song_count: full_playlist
+                                                                        .song_count,
+                                                                    duration: full_playlist
+                                                                        .duration,
+                                                                    created: full_playlist.created,
+                                                                    changed: full_playlist.changed,
+                                                                    cover_art: full_playlist
+                                                                        .cover_art,
+                                                                    allowed_users: full_playlist
+                                                                        .allowed_users,
+                                                                },
+                                                            ),
+                                                        ),
+                                                    ),
+                                                )),
+                                            IndeterminedPlaylist::SimplePlaylist(
+                                                simple_playlist,
+                                            ) => {
+                                                let res = match simple_playlist.get(0) {
+                                                    Some(playlist) => {
+                                                        let pl = playlist.to_owned();
+                                                        GetPlaylistResponse::Partial(
+                                                            SimplePlaylist {
+                                                                id: params.id,
+                                                                name: pl.name,
+                                                                comment: pl.comment,
+                                                                owner: pl.owner,
+                                                                public: pl.public,
+                                                                song_count: pl.song_count,
+                                                                duration: pl.duration,
+                                                                created: pl.created,
+                                                                changed: pl.changed,
+                                                                cover_art: pl.cover_art,
+                                                                allowed_users: pl.allowed_users,
+                                                            },
+                                                        )
+                                                    }
+
+                                                    None => GetPlaylistResponse::Failure {
                                                         id: params.id,
-                                                        name: playlist.name,
-                                                        comment: playlist.comment,
-                                                        owner: playlist.owner,
-                                                        public: playlist.public,
-                                                        song_count: playlist.song_count,
-                                                        duration: playlist.duration,
-                                                        created: playlist.created,
-                                                        changed: playlist.changed,
-                                                        cover_art: playlist.cover_art,
-                                                        allowed_users: playlist.allowed_users,
-                                                    }),
-                                                ),
-                                            )))
-                                        }
+                                                        name: params.name,
+                                                        msg: "Playlist not found!".to_string(),
+                                                    },
+                                                };
+                                                tx.send(Action::FromQueryWorker(
+                                                    FromQueryWorker::new(
+                                                        event.dest,
+                                                        event.ticket,
+                                                        ResponseType::GetPlaylist(res),
+                                                    ),
+                                                ))
+                                            }
+                                        },
 
                                         GetPlaylist::Failed { error } => {
                                             tx.send(Action::FromQueryWorker(FromQueryWorker::new(

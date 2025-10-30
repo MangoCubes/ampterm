@@ -161,7 +161,7 @@ impl OSClient {
         let response = r.map_err(handler)?;
         match response.error_for_status() {
             Ok(r) => {
-                let body = r.text().await.map_err(handler)?;
+                let body = trace_dbg!(r.text().await.map_err(handler)?);
                 let data = from_str::<Wrapper<T>>(&body).map_err(|e| ExternalError::decode(e))?;
                 Ok(trace_dbg!(data.subsonic_response))
             }

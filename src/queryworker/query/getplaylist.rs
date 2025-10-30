@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    osclient::response::getplaylist::FullPlaylist, queryworker::query::getplaylists::PlaylistID,
+    osclient::response::{getplaylist::FullPlaylist, getplaylists::SimplePlaylist},
+    queryworker::query::getplaylists::PlaylistID,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -14,6 +15,7 @@ pub struct GetPlaylistParams {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum GetPlaylistResponse {
     Success(FullPlaylist),
+    Partial(SimplePlaylist),
     Failure {
         id: PlaylistID,
         name: String,

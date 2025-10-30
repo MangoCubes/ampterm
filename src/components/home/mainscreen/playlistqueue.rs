@@ -8,6 +8,7 @@ use crate::{
     compid::CompID,
     components::{
         home::mainscreen::playlistqueue::loading::Loading,
+        lib::centered::Centered,
         traits::{component::Component, focusable::Focusable},
     },
     queryworker::{
@@ -32,6 +33,7 @@ enum Comp {
     Loaded(Loaded),
     Loading(Loading),
     NotSelected(NotSelected),
+    Empty(Centered),
 }
 
 pub struct PlaylistQueue {
@@ -72,6 +74,7 @@ impl Component for PlaylistQueue {
             Comp::Loaded(loaded) => loaded.draw(frame, area),
             Comp::Loading(loading) => loading.draw(frame, area),
             Comp::NotSelected(not_selected) => not_selected.draw(frame, area),
+            Comp::Empty(centered) => centered.draw(frame, area),
         }
     }
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
@@ -98,6 +101,12 @@ impl Component for PlaylistQueue {
                         GetPlaylistResponse::Failure { id, name, msg } => {
                             self.comp = Comp::Error(Error::new(id, name, msg, self.enabled));
                         }
+                        GetPlaylistResponse::Partial(simple_playlist) => {
+                            self.comp = Comp::Empty(Centered::new(vec![format!(
+                                "Playlist {} is empty!",
+                                simple_playlist.name
+                            )]))
+                        }
                     }
                 };
                 Ok(None)
@@ -120,6 +129,7 @@ impl Focusable for PlaylistQueue {
                 Comp::Loaded(loaded) => loaded.set_enabled(enable),
                 Comp::Loading(loading) => loading.set_enabled(enable),
                 Comp::NotSelected(not_selected) => not_selected.set_enabled(enable),
+                Comp::Empty(centered) => {}
             }
         };
     }

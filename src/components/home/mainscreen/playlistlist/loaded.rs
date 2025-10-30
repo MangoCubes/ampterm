@@ -105,6 +105,7 @@ impl Component for Loaded {
                             } => {
                                 error!("Failed to add playlist to queue: {msg}");
                             }
+                            GetPlaylistResponse::Partial(simple_playlist) => return Ok(None),
                         }
                     }
                 }

@@ -5,9 +5,6 @@
   lib,
   ...
 }:
-let
-  cfg = config.ampterm;
-in
 {
   options = {
     programs.ampterm = {
@@ -18,9 +15,13 @@ in
       };
     };
   };
-  config = lib.mkIf cfg.enable {
-    home.packages = [
-      inputs.ampterm.packages."${pkgs.stdenv.hostPlatform.system}".default
-    ];
-  };
+  config =
+    let
+      cfg = config.programs.ampterm;
+    in
+    lib.mkIf cfg.enable {
+      home.packages = [
+        inputs.ampterm.packages."${pkgs.stdenv.hostPlatform.system}".default
+      ];
+    };
 }

@@ -12,7 +12,12 @@
       nixpkgs,
       flake-utils,
     }:
-    flake-utils.lib.eachDefaultSystem (
+    {
+      homeManager = {
+        default = ./nix/homeManager.nix;
+      };
+    }
+    // flake-utils.lib.eachDefaultSystem (
       system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
@@ -23,9 +28,6 @@
         ];
       in
       {
-        homeManager = {
-          default = ./nix/homeManager.nix;
-        };
         packages.default = pkgs.rustPlatform.buildRustPackage {
           inherit buildInputs nativeBuildInputs;
           src = ./.;

@@ -24,8 +24,7 @@
       in
       {
         homeManager = {
-          ampterm = ./nix/homeManager.nix;
-          default = self.homeManager."${pkgs.stdenv.hostPlatform.system}".ampterm;
+          default = ./nix/homeManager.nix;
         };
         packages.default = pkgs.rustPlatform.buildRustPackage {
           inherit buildInputs nativeBuildInputs;

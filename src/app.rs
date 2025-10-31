@@ -2,7 +2,6 @@ use color_eyre::Result;
 
 use crossterm::event::KeyEvent;
 use ratatui::prelude::Rect;
-use rodio::OutputStream;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{self};
 use tracing::{debug, info};

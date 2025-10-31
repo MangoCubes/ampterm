@@ -136,40 +136,18 @@ impl Component for MainScreen {
         Ok(())
     }
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
-        if matches!(action, Action::EndKeySeq) {
-            self.key_stack.drain(..);
-        }
         match &action {
-            Action::FromPlayerWorker(pw) => {
-                if let FromPlayerWorker::Error(msg) | FromPlayerWorker::Message(msg) = pw {
+            Action::FromPlayerWorker(pw) => match pw {
+                FromPlayerWorker::StateChange(_) => self.queuelist.update(action),
+                FromPlayerWorker::Error(msg) | FromPlayerWorker::Message(msg) => {
                     self.message = msg.clone();
-                };
-            }
-            Action::User(UserAction::Normal(n)) => match n {
-                Normal::WindowLeft => {
-                    self.state = match self.state {
-                        CurrentlySelected::Playlists => CurrentlySelected::Queue,
-                        CurrentlySelected::Queue => CurrentlySelected::PlaylistQueue,
-                        CurrentlySelected::PlaylistQueue => CurrentlySelected::Playlists,
-                    };
-                    self.update_focus();
+                    Ok(None)
                 }
-                Normal::WindowRight => {
-                    self.state = match self.state {
-                        CurrentlySelected::Playlists => CurrentlySelected::PlaylistQueue,
-                        CurrentlySelected::PlaylistQueue => CurrentlySelected::Queue,
-                        CurrentlySelected::Queue => CurrentlySelected::Playlists,
-                    };
-                    self.update_focus();
-                }
-                _ => {}
             },
             Action::ChangeMode(m) => {
                 self.current_mode = *m;
+                Ok(None)
             }
-            _ => {}
-        };
-        match &action {
             Action::User(UserAction::Global(g)) => match g {
                 Global::TapToBPM => self.bpmtoy.update(action),
                 Global::FocusPlaylistList => {
@@ -187,8 +165,29 @@ impl Component for MainScreen {
                     self.update_focus();
                     Ok(None)
                 }
-                _ => Ok(None),
+                Global::EndKeySeq => {
+                    self.key_stack.drain(..);
+                    Ok(None)
+                }
             },
+            Action::User(UserAction::Normal(Normal::WindowLeft)) => {
+                self.state = match self.state {
+                    CurrentlySelected::Playlists => CurrentlySelected::Queue,
+                    CurrentlySelected::Queue => CurrentlySelected::PlaylistQueue,
+                    CurrentlySelected::PlaylistQueue => CurrentlySelected::Playlists,
+                };
+                self.update_focus();
+                Ok(None)
+            }
+            Action::User(UserAction::Normal(Normal::WindowRight)) => {
+                self.state = match self.state {
+                    CurrentlySelected::Playlists => CurrentlySelected::PlaylistQueue,
+                    CurrentlySelected::PlaylistQueue => CurrentlySelected::Queue,
+                    CurrentlySelected::Queue => CurrentlySelected::Playlists,
+                };
+                self.update_focus();
+                Ok(None)
+            }
             Action::User(_) => match self.state {
                 CurrentlySelected::Playlists => self.pl_list.update(action),
                 CurrentlySelected::PlaylistQueue => self.pl_queue.update(action),

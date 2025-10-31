@@ -10,6 +10,9 @@ pub enum Global {
     /// It's like escape in Vim, and Ctrl+G in Emacs
     EndKeySeq,
     TapToBPM,
+    FocusPlaylistList,
+    FocusPlaylistQueue,
+    FocusQueuelist,
 }
 
 /// Common actions are actions that are applicable in more than one mode (Insert, Normal, etc), but

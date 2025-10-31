@@ -55,7 +55,7 @@ impl MainScreen {
             Self {
                 state: CurrentlySelected::Playlists,
                 current_mode: Mode::Normal,
-                pl_list: PlaylistList::new(true),
+                pl_list: PlaylistList::new(config.clone(), true),
                 pl_queue: PlaylistQueue::new(false),
                 queuelist: QueueList::new(false),
                 now_playing: NowPlaying::new(),
@@ -170,7 +170,22 @@ impl Component for MainScreen {
             _ => {}
         };
         match &action {
-            Action::User(UserAction::Global(Global::TapToBPM)) => self.bpmtoy.update(action),
+            Action::User(UserAction::Global(g)) => match g {
+                Global::TapToBPM => self.bpmtoy.update(action),
+                Global::FocusPlaylistList => {
+                    self.state = CurrentlySelected::Playlists;
+                    Ok(None)
+                }
+                Global::FocusPlaylistQueue => {
+                    self.state = CurrentlySelected::PlaylistQueue;
+                    Ok(None)
+                }
+                Global::FocusQueuelist => {
+                    self.state = CurrentlySelected::Queue;
+                    Ok(None)
+                }
+                _ => Ok(None),
+            },
             Action::User(_) => match self.state {
                 CurrentlySelected::Playlists => self.pl_list.update(action),
                 CurrentlySelected::PlaylistQueue => self.pl_queue.update(action),

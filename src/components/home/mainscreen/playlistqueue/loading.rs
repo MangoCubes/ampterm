@@ -1,9 +1,5 @@
 use color_eyre::Result;
-use ratatui::{
-    layout::{Alignment, Rect},
-    widgets::{Padding, Paragraph, Wrap},
-    Frame,
-};
+use ratatui::{layout::Rect, Frame};
 
 use crate::{
     components::{

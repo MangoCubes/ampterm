@@ -5,6 +5,7 @@ use crate::{
     },
     components::{
         home::mainscreen::playlistqueue::PlaylistQueue,
+        lib::centered::Centered,
         traits::{component::Component, focusable::Focusable},
     },
     queryworker::{
@@ -13,17 +14,12 @@ use crate::{
     },
 };
 use color_eyre::Result;
-use ratatui::{
-    layout::{Alignment, Rect},
-    text::Line,
-    widgets::{Padding, Paragraph},
-    Frame,
-};
+use ratatui::{layout::Rect, Frame};
 
 pub struct Error {
     id: PlaylistID,
     name: String,
-    error: String,
+    comp: Centered,
     enabled: bool,
 }
 
@@ -32,7 +28,11 @@ impl Error {
         Self {
             id,
             name,
-            error,
+            comp: Centered::new(vec![
+                "Error!".to_string(),
+                format!("{}", error),
+                "Reload with 'R'".to_string(),
+            ]),
             enabled,
         }
     }
@@ -40,25 +40,12 @@ impl Error {
 
 impl Component for Error {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        frame.render_widget(
-            Paragraph::new(vec![
-                Line::raw("Error!"),
-                Line::raw(format!("{}", self.error)),
-                Line::raw(format!("Reload with 'R'")),
-            ])
-            .block(
-                PlaylistQueue::gen_block(self.enabled, self.name.clone()).padding(Padding::new(
-                    0,
-                    0,
-                    (area.height / 2) - 1,
-                    0,
-                )),
-            )
-            .alignment(Alignment::Center),
-            area,
-        );
-        Ok(())
+        let border = PlaylistQueue::gen_block(self.enabled, self.name.clone());
+        let inner = border.inner(area);
+        frame.render_widget(border, area);
+        self.comp.draw(frame, inner)
     }
+
     fn update(&mut self, action: crate::action::Action) -> Result<Option<Action>> {
         if let Action::User(UserAction::Common(Common::Refresh)) = action {
             Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(

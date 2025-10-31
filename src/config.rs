@@ -1,6 +1,7 @@
 #![allow(dead_code)] // Remove this once you start using the code
 
 mod appconfig;
+mod authconfig;
 mod keybindings;
 
 use keybindings::KeyBindings;
@@ -15,30 +16,15 @@ use ratatui::style::{Color, Modifier, Style};
 use serde::{de::Deserializer, Deserialize};
 use tracing::error;
 
-use crate::{app::Mode, config::appconfig::AppConfig};
+use crate::{
+    app::Mode,
+    config::{
+        appconfig::AppConfig,
+        authconfig::{AuthConfig, UnsafeAuthConfig},
+    },
+};
 
 const CONFIG: &str = include_str!("../.config/config.json5");
-
-#[derive(Clone, Debug, Deserialize, Default)]
-pub struct AuthConfig {
-    #[serde(default)]
-    pub url_command: String,
-    #[serde(default)]
-    pub username_command: String,
-    #[serde(default)]
-    pub password_command: String,
-}
-
-// Unsafe settings, but in case you need these
-#[derive(Clone, Debug, Deserialize, Default)]
-pub struct UnsafeAuthConfig {
-    #[serde(default)]
-    pub url: String,
-    #[serde(default)]
-    pub username: String,
-    #[serde(default)]
-    pub password: String,
-}
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct InitState {

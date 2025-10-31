@@ -1,29 +1,28 @@
-use color_eyre::Result;
-use ratatui::{layout::Rect, Frame};
-
 use crate::components::{
     home::mainscreen::playlistqueue::PlaylistQueue,
     lib::centered::Centered,
     traits::{component::Component, focusable::Focusable},
 };
+use color_eyre::Result;
+use ratatui::{layout::Rect, Frame};
 
-pub struct Loading {
+pub struct Empty {
     name: String,
-    enabled: bool,
     comp: Centered,
+    enabled: bool,
 }
 
-impl Loading {
+impl Empty {
     pub fn new(name: String, enabled: bool) -> Self {
         Self {
             name,
-            comp: Centered::new(vec!["Loading...".to_string()]),
+            comp: Centered::new(vec!["Playlist is empty!".to_string()]),
             enabled,
         }
     }
 }
 
-impl Component for Loading {
+impl Component for Empty {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let border = PlaylistQueue::gen_block(self.enabled, self.name.clone());
         let inner = border.inner(area);
@@ -32,7 +31,7 @@ impl Component for Loading {
     }
 }
 
-impl Focusable for Loading {
+impl Focusable for Empty {
     fn set_enabled(&mut self, enable: bool) {
         self.enabled = enable;
     }

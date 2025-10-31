@@ -1,3 +1,4 @@
+mod empty;
 mod error;
 mod loaded;
 mod loading;
@@ -7,7 +8,7 @@ use crate::{
     action::Action,
     compid::CompID,
     components::{
-        home::mainscreen::playlistqueue::loading::Loading,
+        home::mainscreen::playlistqueue::{empty::Empty, loading::Loading},
         lib::centered::Centered,
         traits::{component::Component, focusable::Focusable},
     },
@@ -33,7 +34,7 @@ enum Comp {
     Loaded(Loaded),
     Loading(Loading),
     NotSelected(NotSelected),
-    Empty(Centered),
+    Empty(Empty),
 }
 
 pub struct PlaylistQueue {
@@ -82,8 +83,7 @@ impl Component for PlaylistQueue {
             Action::ToQueryWorker(qw) => {
                 if qw.dest == CompID::PlaylistQueue {
                     if let HighLevelQuery::SelectPlaylist(params) = qw.query {
-                        self.comp =
-                            Comp::Loading(Loading::new(params.id, params.name, self.enabled));
+                        self.comp = Comp::Loading(Loading::new(params.name, self.enabled));
                     }
                 }
                 Ok(None)
@@ -102,10 +102,7 @@ impl Component for PlaylistQueue {
                             self.comp = Comp::Error(Error::new(id, name, msg, self.enabled));
                         }
                         GetPlaylistResponse::Partial(simple_playlist) => {
-                            self.comp = Comp::Empty(Centered::new(vec![format!(
-                                "Playlist {} is empty!",
-                                simple_playlist.name
-                            )]))
+                            self.comp = Comp::Empty(Empty::new(simple_playlist.name, self.enabled))
                         }
                     }
                 };
@@ -129,7 +126,7 @@ impl Focusable for PlaylistQueue {
                 Comp::Loaded(loaded) => loaded.set_enabled(enable),
                 Comp::Loading(loading) => loading.set_enabled(enable),
                 Comp::NotSelected(not_selected) => not_selected.set_enabled(enable),
-                Comp::Empty(centered) => {}
+                Comp::Empty(empty) => empty.set_enabled(enable),
             }
         };
     }

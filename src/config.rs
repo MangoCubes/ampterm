@@ -1,6 +1,8 @@
 #![allow(dead_code)] // Remove this once you start using the code
 
+mod appconfig;
 mod keybindings;
+
 use keybindings::KeyBindings;
 use std::{collections::HashMap, env, path::PathBuf};
 
@@ -13,7 +15,7 @@ use ratatui::style::{Color, Modifier, Style};
 use serde::{de::Deserializer, Deserialize};
 use tracing::error;
 
-use crate::app::Mode;
+use crate::{app::Mode, config::appconfig::AppConfig};
 
 const CONFIG: &str = include_str!("../.config/config.json5");
 
@@ -36,16 +38,6 @@ pub struct UnsafeAuthConfig {
     pub username: String,
     #[serde(default)]
     pub password: String,
-}
-
-#[derive(Clone, Debug, Deserialize, Default)]
-pub struct AppConfig {
-    #[serde(default)]
-    pub data_dir: PathBuf,
-    #[serde(default)]
-    pub config_dir: PathBuf,
-    #[serde(default)]
-    pub use_legacy_auth: bool,
 }
 
 #[derive(Clone, Debug, Deserialize)]

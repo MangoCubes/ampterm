@@ -8,7 +8,6 @@ use playing::Playing;
 use ratatui::{
     layout::Rect,
     style::{Style, Stylize},
-    text::Span,
     widgets::Block,
     Frame,
 };

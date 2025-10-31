@@ -2,10 +2,11 @@ use std::collections::HashMap;
 
 use crate::{
     action::{
-        useraction::{Common, Normal, UserAction},
+        useraction::{Common, Global, Normal, UserAction},
         Action,
     },
     components::traits::component::Component,
+    config::Config,
     osclient::response::getplaylists::SimplePlaylist,
     playerworker::player::{QueueLocation, ToPlayerWorker},
     queryworker::{
@@ -27,6 +28,7 @@ use ratatui::{
 use tracing::error;
 
 pub struct Loaded {
+    config: Config,
     comp: List<'static>,
     list: Vec<SimplePlaylist>,
     state: ListState,
@@ -38,9 +40,18 @@ impl Loaded {
         if let Some(pos) = self.state.selected() {
             let key = self.list[pos].id.clone();
             let name = self.list[pos].name.clone();
-            Some(Action::ToQueryWorker(ToQueryWorker::new(
-                HighLevelQuery::SelectPlaylist(GetPlaylistParams { name, id: key }),
-            )))
+            if self.config.config.auto_focus {
+                Some(Action::Multiple(vec![
+                    Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::SelectPlaylist(
+                        GetPlaylistParams { name, id: key },
+                    ))),
+                    Action::User(UserAction::Global(Global::FocusPlaylistQueue)),
+                ]))
+            } else {
+                Some(Action::ToQueryWorker(ToQueryWorker::new(
+                    HighLevelQuery::SelectPlaylist(GetPlaylistParams { name, id: key }),
+                )))
+            }
         } else {
             None
         }
@@ -54,12 +65,13 @@ impl Loaded {
             .highlight_symbol(">")
     }
 
-    pub fn new(list: Vec<SimplePlaylist>, state: ListState) -> Self {
+    pub fn new(config: Config, list: Vec<SimplePlaylist>, state: ListState) -> Self {
         Self {
             comp: Self::gen_list(&list),
             list,
             state,
             callback: HashMap::new(),
+            config,
         }
     }
     pub fn add_to_queue(&mut self, ql: QueueLocation) -> Option<Action> {
@@ -105,7 +117,8 @@ impl Component for Loaded {
                             } => {
                                 error!("Failed to add playlist to queue: {msg}");
                             }
-                            GetPlaylistResponse::Partial(simple_playlist) => return Ok(None),
+                            // This implies that the returned playlist is empty
+                            GetPlaylistResponse::Partial(_simple_playlist) => return Ok(None),
                         }
                     }
                 }

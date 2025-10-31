@@ -174,14 +174,17 @@ impl Component for MainScreen {
                 Global::TapToBPM => self.bpmtoy.update(action),
                 Global::FocusPlaylistList => {
                     self.state = CurrentlySelected::Playlists;
+                    self.update_focus();
                     Ok(None)
                 }
                 Global::FocusPlaylistQueue => {
                     self.state = CurrentlySelected::PlaylistQueue;
+                    self.update_focus();
                     Ok(None)
                 }
                 Global::FocusQueuelist => {
                     self.state = CurrentlySelected::Queue;
+                    self.update_focus();
                     Ok(None)
                 }
                 _ => Ok(None),

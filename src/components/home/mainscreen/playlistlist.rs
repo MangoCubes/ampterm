@@ -8,6 +8,7 @@ use crate::{
         home::mainscreen::playlistlist::{error::Error, loaded::Loaded, loading::Loading},
         traits::{component::Component, focusable::Focusable},
     },
+    config::Config,
     queryworker::query::{getplaylists::GetPlaylistsResponse, ResponseType},
 };
 use color_eyre::Result;
@@ -28,13 +29,15 @@ enum Comp {
 pub struct PlaylistList {
     comp: Comp,
     enabled: bool,
+    config: Config,
 }
 
 impl PlaylistList {
-    pub fn new(enabled: bool) -> Self {
+    pub fn new(config: Config, enabled: bool) -> Self {
         Self {
             comp: Comp::Loading(Loading::new()),
             enabled,
+            config,
         }
     }
     fn gen_block(&self) -> Block<'static> {
@@ -73,6 +76,7 @@ impl Component for PlaylistList {
                     match res {
                         GetPlaylistsResponse::Success(simple_playlists) => {
                             self.comp = Comp::Loaded(Loaded::new(
+                                self.config.clone(),
                                 simple_playlists,
                                 ListState::default().with_selected(Some(0)),
                             ));

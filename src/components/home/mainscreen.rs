@@ -136,6 +136,9 @@ impl Component for MainScreen {
         Ok(())
     }
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
+        if matches!(action, Action::User(_)) {
+            self.key_stack.drain(..);
+        };
         match &action {
             Action::FromPlayerWorker(pw) => match pw {
                 FromPlayerWorker::StateChange(_) => self.queuelist.update(action),
@@ -165,10 +168,7 @@ impl Component for MainScreen {
                     self.update_focus();
                     Ok(None)
                 }
-                Global::EndKeySeq => {
-                    self.key_stack.drain(..);
-                    Ok(None)
-                }
+                Global::EndKeySeq => Ok(None),
             },
             Action::User(UserAction::Normal(Normal::WindowLeft)) => {
                 self.state = match self.state {

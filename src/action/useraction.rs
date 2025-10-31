@@ -2,8 +2,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::playerworker::player::QueueLocation;
 
-/// Actions that are always available to the user regardless of what the user is currently
-/// focusing.
+/// Global actions are actions that are always available to the user, and has the same overall
+/// effect regardless of what component is currently being focused at the time of triggering the
+/// action.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum Global {
     /// Action for deleting all key sequences currently stored
@@ -15,8 +16,12 @@ pub enum Global {
     FocusQueuelist,
 }
 
-/// Common actions are actions that are applicable in more than one mode (Insert, Normal, etc), but
-/// must not propagate to more than one components.
+/// Common actions are actions that are generally available to the user in any mode, but have
+/// different effect depending on the current state of the program, such as what the user is
+/// currently focused at. For example, when the currently focused element is PlaylistQueue, then
+/// action [`Common::Up`] would move the cursor in PlaylistQueue. However, when PlaylistList is
+/// currently being focused, [`Common::Up`] moves the cursor in PlaylistList instead. They have
+/// similar meaning, but ultimately different actions depending on the program state.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum Common {
     Up,
@@ -32,7 +37,7 @@ pub enum Common {
     Help,
 }
 
-/// Visual mode exclusive actions
+/// These actions are relevant only when the program is in Visual mode.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum Visual {
     // Exit visual mode after applying changes
@@ -45,7 +50,7 @@ pub enum Visual {
     Delete,
 }
 
-/// Normal mode exclusive actions
+/// Similarly, these actions are relevant only when the program is in Normal mode.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum Normal {
     // Action for moving between boxes

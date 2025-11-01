@@ -46,3 +46,17 @@ impl HighLevelQuery {
         }
     }
 }
+
+impl ToString for HighLevelQuery {
+    fn to_string(&self) -> String {
+        match self {
+            HighLevelQuery::PlayMusicFromURL(_) => "Loading media from URL",
+            HighLevelQuery::CheckCredentialValidity => "Checking if credentials is valid",
+            HighLevelQuery::SelectPlaylist(_) => "Fetching playlist content",
+            HighLevelQuery::AddPlaylistToQueue(_) => "Adding playlist to the queue",
+            HighLevelQuery::ListPlaylists => "Fetching all playlists",
+            HighLevelQuery::SetCredential(_) => "Setting credentials",
+        }
+        .to_string()
+    }
+}

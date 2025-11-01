@@ -1,9 +1,10 @@
 use color_eyre::eyre::Result;
 use ratatui::{
+    layout::{Constraint, Flex, Layout},
     prelude::Rect,
     style::{Modifier, Style, Stylize},
     text::Span,
-    widgets::Block,
+    widgets::{Block, Clear},
     Frame,
 };
 
@@ -29,6 +30,11 @@ impl Tasks {
 
 impl Component for Tasks {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+        let vertical = Layout::vertical([Constraint::Percentage(80)]).flex(Flex::Center);
+        let horizontal = Layout::horizontal([Constraint::Percentage(80)]).flex(Flex::Center);
+        let [area] = vertical.areas(area);
+        let [area] = horizontal.areas(area);
+        frame.render_widget(Clear, area);
         frame.render_widget(&self.border, area);
         Ok(())
     }

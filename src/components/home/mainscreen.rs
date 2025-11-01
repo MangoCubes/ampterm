@@ -44,7 +44,7 @@ pub struct MainScreen {
     pl_list: PlaylistList,
     pl_queue: PlaylistQueue,
     now_playing: NowPlaying,
-    tasks: Popup<Tasks>,
+    tasks: Tasks,
     show_tasks: bool,
     bpmtoy: BPMToy,
     playqueue: PlayQueue,
@@ -77,7 +77,7 @@ impl MainScreen {
                 bpmtoy: BPMToy::new(config),
                 message: "You are now logged in.".to_string(),
                 key_stack: vec![],
-                tasks: Popup::new(Tasks::new(), 80, 80),
+                tasks: Tasks::new(),
                 show_tasks: false,
             },
             Action::Multiple(vec![

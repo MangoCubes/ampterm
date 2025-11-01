@@ -2,7 +2,8 @@ mod bpmtoy;
 mod nowplaying;
 mod playlistlist;
 mod playlistqueue;
-mod queuelist;
+mod playqueue;
+mod tasks;
 
 use crate::{
     action::{
@@ -23,7 +24,7 @@ use crossterm::event::{KeyEvent, KeyModifiers};
 use nowplaying::NowPlaying;
 use playlistlist::PlaylistList;
 use playlistqueue::PlaylistQueue;
-use queuelist::QueueList;
+use playqueue::PlayQueue;
 use ratatui::{
     layout::{Constraint, Layout, Rect},
     widgets::{Paragraph, Wrap},
@@ -32,9 +33,9 @@ use ratatui::{
 
 #[derive(PartialEq)]
 enum CurrentlySelected {
-    Playlists,
-    PlaylistQueue,
-    Queue,
+    PlaylistList,
+    Playlist,
+    PlayQueue,
 }
 
 pub struct MainScreen {
@@ -43,7 +44,7 @@ pub struct MainScreen {
     pl_queue: PlaylistQueue,
     now_playing: NowPlaying,
     bpmtoy: BPMToy,
-    queuelist: QueueList,
+    playqueue: PlayQueue,
     message: String,
     key_stack: Vec<String>,
     current_mode: Mode,
@@ -52,19 +53,19 @@ pub struct MainScreen {
 impl MainScreen {
     fn propagate_to_focused_component(&mut self, action: Action) -> Result<Option<Action>> {
         match self.state {
-            CurrentlySelected::Playlists => self.pl_list.update(action),
-            CurrentlySelected::PlaylistQueue => self.pl_queue.update(action),
-            CurrentlySelected::Queue => self.queuelist.update(action),
+            CurrentlySelected::PlaylistList => self.pl_list.update(action),
+            CurrentlySelected::Playlist => self.pl_queue.update(action),
+            CurrentlySelected::PlayQueue => self.playqueue.update(action),
         }
     }
     pub fn new(config: Config) -> (Self, Action) {
         (
             Self {
-                state: CurrentlySelected::Playlists,
+                state: CurrentlySelected::PlaylistList,
                 current_mode: Mode::Normal,
                 pl_list: PlaylistList::new(config.clone(), true),
                 pl_queue: PlaylistQueue::new(false),
-                queuelist: QueueList::new(false),
+                playqueue: PlayQueue::new(false),
                 now_playing: NowPlaying::new(),
                 bpmtoy: BPMToy::new(config),
                 message: "You are now logged in.".to_string(),
@@ -78,11 +79,11 @@ impl MainScreen {
     }
     fn update_focus(&mut self) {
         self.pl_list
-            .set_enabled(self.state == CurrentlySelected::Playlists);
+            .set_enabled(self.state == CurrentlySelected::PlaylistList);
         self.pl_queue
-            .set_enabled(self.state == CurrentlySelected::PlaylistQueue);
-        self.queuelist
-            .set_enabled(self.state == CurrentlySelected::Queue);
+            .set_enabled(self.state == CurrentlySelected::Playlist);
+        self.playqueue
+            .set_enabled(self.state == CurrentlySelected::PlayQueue);
     }
 }
 
@@ -101,6 +102,7 @@ impl Component for MainScreen {
     }
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let vertical = Layout::vertical([
+            Constraint::Length(1),
             Constraint::Min(0),
             Constraint::Length(10),
             Constraint::Length(1),
@@ -118,19 +120,19 @@ impl Component for MainScreen {
         let bottom_layout =
             Layout::horizontal([Constraint::Percentage(75), Constraint::Percentage(25)]);
         let areas = vertical.split(area);
-        let listareas = horizontal.split(areas[0]);
-        let text_areas = text_layout.split(areas[2]);
-        let bottom_areas = bottom_layout.split(areas[1]);
+        let listareas = horizontal.split(areas[1]);
+        let text_areas = text_layout.split(areas[3]);
+        let bottom_areas = bottom_layout.split(areas[2]);
         self.pl_list.draw(frame, listareas[0])?;
         self.pl_queue.draw(frame, listareas[1])?;
-        self.queuelist.draw(frame, listareas[2])?;
+        self.playqueue.draw(frame, listareas[2])?;
         self.now_playing.draw(frame, bottom_areas[0])?;
         self.bpmtoy.draw(frame, bottom_areas[1])?;
 
         frame.render_widget(
-            Paragraph::new(format!("[{}]", self.current_mode.to_string()))
+            Paragraph::new(format!("Ampache {}", env!("CARGO_PKG_VERSION")))
                 .wrap(Wrap { trim: false }),
-            text_areas[0],
+            areas[0],
         );
         frame.render_widget(
             Paragraph::new(self.message.clone()).wrap(Wrap { trim: false }),
@@ -149,7 +151,7 @@ impl Component for MainScreen {
         };
         match &action {
             Action::FromPlayerWorker(pw) => match pw {
-                FromPlayerWorker::StateChange(_) => self.queuelist.update(action),
+                FromPlayerWorker::StateChange(_) => self.playqueue.update(action),
                 FromPlayerWorker::Error(msg) | FromPlayerWorker::Message(msg) => {
                     self.message = msg.clone();
                     Ok(None)
@@ -163,18 +165,18 @@ impl Component for MainScreen {
                 UserAction::Normal(normal) => match normal {
                     Normal::WindowLeft => {
                         self.state = match self.state {
-                            CurrentlySelected::Playlists => CurrentlySelected::Queue,
-                            CurrentlySelected::Queue => CurrentlySelected::PlaylistQueue,
-                            CurrentlySelected::PlaylistQueue => CurrentlySelected::Playlists,
+                            CurrentlySelected::PlaylistList => CurrentlySelected::PlayQueue,
+                            CurrentlySelected::PlayQueue => CurrentlySelected::Playlist,
+                            CurrentlySelected::Playlist => CurrentlySelected::PlaylistList,
                         };
                         self.update_focus();
                         Ok(None)
                     }
                     Normal::WindowRight => {
                         self.state = match self.state {
-                            CurrentlySelected::Playlists => CurrentlySelected::PlaylistQueue,
-                            CurrentlySelected::PlaylistQueue => CurrentlySelected::Queue,
-                            CurrentlySelected::Queue => CurrentlySelected::Playlists,
+                            CurrentlySelected::PlaylistList => CurrentlySelected::Playlist,
+                            CurrentlySelected::Playlist => CurrentlySelected::PlayQueue,
+                            CurrentlySelected::PlayQueue => CurrentlySelected::PlaylistList,
                         };
                         self.update_focus();
                         Ok(None)
@@ -184,17 +186,17 @@ impl Component for MainScreen {
                 UserAction::Global(global) => match global {
                     Global::TapToBPM => self.bpmtoy.update(action),
                     Global::FocusPlaylistList => {
-                        self.state = CurrentlySelected::Playlists;
+                        self.state = CurrentlySelected::PlaylistList;
                         self.update_focus();
                         Ok(None)
                     }
                     Global::FocusPlaylistQueue => {
-                        self.state = CurrentlySelected::PlaylistQueue;
+                        self.state = CurrentlySelected::Playlist;
                         self.update_focus();
                         Ok(None)
                     }
-                    Global::FocusQueuelist => {
-                        self.state = CurrentlySelected::Queue;
+                    Global::FocusPlayQueue => {
+                        self.state = CurrentlySelected::PlayQueue;
                         self.update_focus();
                         Ok(None)
                     }
@@ -205,14 +207,14 @@ impl Component for MainScreen {
             Action::ToQueryWorker(req) => match req.dest {
                 CompID::PlaylistList => self.pl_list.update(action),
                 CompID::PlaylistQueue => self.pl_queue.update(action),
-                CompID::QueueList => self.queuelist.update(action),
+                CompID::PlayQueue => self.playqueue.update(action),
                 CompID::None => Ok(None),
                 _ => unreachable!("Action propagated to nonexistent component: {:?}", req.dest),
             },
             Action::FromQueryWorker(res) => match res.dest {
                 CompID::PlaylistList => self.pl_list.update(action),
                 CompID::PlaylistQueue => self.pl_queue.update(action),
-                CompID::QueueList => self.queuelist.update(action),
+                CompID::PlayQueue => self.playqueue.update(action),
                 CompID::None => Ok(None),
                 _ => unreachable!("Action propagated to nonexistent component!"),
             },
@@ -221,7 +223,7 @@ impl Component for MainScreen {
                     self.pl_list.update(action.clone())?,
                     self.pl_queue.update(action.clone())?,
                     self.now_playing.update(action.clone())?,
-                    self.queuelist.update(action.clone())?,
+                    self.playqueue.update(action.clone())?,
                     self.bpmtoy.update(action)?,
                 ]
                 .into_iter()

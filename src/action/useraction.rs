@@ -13,7 +13,7 @@ pub enum Global {
     TapToBPM,
     FocusPlaylistList,
     FocusPlaylistQueue,
-    FocusQueuelist,
+    FocusPlayQueue,
 }
 
 impl ToString for Global {
@@ -23,7 +23,7 @@ impl ToString for Global {
             Global::TapToBPM => "Tap to BPM".to_string(),
             Global::FocusPlaylistList => "Focus playlist list".to_string(),
             Global::FocusPlaylistQueue => "Focus playlist queue".to_string(),
-            Global::FocusQueuelist => "Focus queue list".to_string(),
+            Global::FocusPlayQueue => "Focus play queue".to_string(),
         }
     }
 }

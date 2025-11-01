@@ -3,7 +3,7 @@ use ratatui::{layout::Rect, Frame};
 use color_eyre::Result;
 
 use crate::components::{
-    home::mainscreen::queuelist::QueueList,
+    home::mainscreen::playqueue::PlayQueue,
     lib::centered::Centered,
     traits::{component::Component, focusable::Focusable},
 };
@@ -24,7 +24,7 @@ impl Nothing {
 
 impl Component for Nothing {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        let border = QueueList::gen_block(self.enabled, "Queue".to_string());
+        let border = PlayQueue::gen_block(self.enabled, "Queue".to_string());
         let inner = border.inner(area);
         frame.render_widget(border, area);
         self.comp.draw(frame, inner)

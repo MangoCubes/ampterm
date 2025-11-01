@@ -9,7 +9,6 @@ use crate::{
     compid::CompID,
     components::{
         home::mainscreen::playlistqueue::{empty::Empty, loading::Loading},
-        lib::centered::Centered,
         traits::{component::Component, focusable::Focusable},
     },
     queryworker::{

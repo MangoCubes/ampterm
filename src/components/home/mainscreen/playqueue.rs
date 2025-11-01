@@ -9,7 +9,7 @@ use ratatui::{
 use crate::{
     action::{Action, FromPlayerWorker, QueueChange, StateType},
     components::{
-        home::mainscreen::queuelist::{nothing::Nothing, something::Something},
+        home::mainscreen::playqueue::{nothing::Nothing, something::Something},
         traits::{component::Component, focusable::Focusable},
     },
 };
@@ -23,12 +23,12 @@ enum Comp {
     Something(Something),
 }
 
-pub struct QueueList {
+pub struct PlayQueue {
     comp: Comp,
     enabled: bool,
 }
 
-impl QueueList {
+impl PlayQueue {
     fn gen_block(enabled: bool, title: String) -> Block<'static> {
         let style = if enabled {
             Style::new().white()
@@ -54,7 +54,7 @@ impl QueueList {
     }
 }
 
-impl Component for QueueList {
+impl Component for PlayQueue {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         match &mut self.comp {
             Comp::Nothing(nothing) => nothing.draw(frame, area),
@@ -82,7 +82,7 @@ impl Component for QueueList {
         }
     }
 }
-impl Focusable for QueueList {
+impl Focusable for PlayQueue {
     fn set_enabled(&mut self, enable: bool) {
         if self.enabled != enable {
             self.enabled = enable;

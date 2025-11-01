@@ -24,14 +24,19 @@ pub enum CompID {
     MainScreen,
     PlaylistList,
     PlaylistQueue,
-    QueueList,
+    PlayQueue,
+    Tasks,
     NowPlaying,
     All,
 }
 
 macro_rules! mainscreen_comps {
     () => {
-        CompID::PlaylistList | CompID::PlaylistQueue | CompID::QueueList | CompID::NowPlaying
+        CompID::PlaylistList
+            | CompID::PlaylistQueue
+            | CompID::PlayQueue
+            | CompID::Tasks
+            | CompID::NowPlaying
     };
 }
 

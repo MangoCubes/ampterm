@@ -9,7 +9,7 @@ use ratatui::{
 use crate::{
     action::{Action, FromPlayerWorker, NowPlaying, QueueChange, StateType},
     components::{
-        home::mainscreen::queuelist::QueueList,
+        home::mainscreen::playqueue::PlayQueue,
         lib::visualtable::VisualTable,
         traits::{component::Component, focusable::Focusable},
     },
@@ -112,7 +112,7 @@ impl Component for Something {
         } else {
             format!("Queue ({})", self.list.len())
         };
-        let border = QueueList::gen_block(self.enabled, title);
+        let border = PlayQueue::gen_block(self.enabled, title);
         let inner = border.inner(area);
         frame.render_widget(border, area);
         self.table.draw(frame, inner)

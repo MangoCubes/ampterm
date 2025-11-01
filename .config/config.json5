@@ -81,6 +81,7 @@
 	  // Global actions
 	  "<Esc>": { User: { Global: "EndKeySeq" } },
 	  "<t>": { User: { Global: "TapToBPM" } },
+	  "<Shift-t>": { User: { Global: "ToggleTasks" } },
 
       "<Ctrl-w><q>": "Quit",
 	},

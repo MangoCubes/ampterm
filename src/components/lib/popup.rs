@@ -5,38 +5,25 @@ use ratatui::{
     Frame,
 };
 
-use crate::components::traits::{component::Component, focusable::Focusable};
-pub struct Popup {
-    visible: bool,
+use crate::components::traits::component::Component;
+pub struct Popup<T: Component> {
     width: u16,
     height: u16,
-    comp: Box<dyn Component>,
+    comp: T,
 }
 
-impl Popup {
-    pub fn new(comp: Box<dyn Component>, width: u16, height: u16) -> Self {
+impl<T: Component> Popup<T> {
+    pub fn new(comp: T, width: u16, height: u16) -> Self {
         Self {
-            visible: false,
             width,
             height,
             comp,
         }
     }
-    pub fn default(comp: Box<dyn Component>) -> Self {
-        Self {
-            visible: false,
-            width: 50,
-            height: 30,
-            comp,
-        }
-    }
 }
 
-impl Component for Popup {
+impl<T: Component> Component for Popup<T> {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        if !self.visible {
-            return Ok(());
-        }
         let vertical = Layout::vertical([Constraint::Percentage(self.width)]).flex(Flex::Center);
         let horizontal =
             Layout::horizontal([Constraint::Percentage(self.height)]).flex(Flex::Center);
@@ -44,11 +31,5 @@ impl Component for Popup {
         let [area] = horizontal.areas(area);
         frame.render_widget(Clear, area);
         self.comp.draw(frame, area)
-    }
-}
-
-impl Focusable for Popup {
-    fn set_enabled(&mut self, enable: bool) {
-        self.visible = enable;
     }
 }

@@ -13,7 +13,8 @@ use crate::{
     app::Mode,
     compid::CompID,
     components::{
-        home::mainscreen::bpmtoy::BPMToy,
+        home::mainscreen::{bpmtoy::BPMToy, tasks::Tasks},
+        lib::popup::Popup,
         traits::{component::Component, focusable::Focusable},
     },
     config::Config,
@@ -43,6 +44,8 @@ pub struct MainScreen {
     pl_list: PlaylistList,
     pl_queue: PlaylistQueue,
     now_playing: NowPlaying,
+    tasks: Popup<Tasks>,
+    show_tasks: bool,
     bpmtoy: BPMToy,
     playqueue: PlayQueue,
     message: String,
@@ -52,10 +55,14 @@ pub struct MainScreen {
 
 impl MainScreen {
     fn propagate_to_focused_component(&mut self, action: Action) -> Result<Option<Action>> {
-        match self.state {
-            CurrentlySelected::PlaylistList => self.pl_list.update(action),
-            CurrentlySelected::Playlist => self.pl_queue.update(action),
-            CurrentlySelected::PlayQueue => self.playqueue.update(action),
+        if self.show_tasks {
+            self.tasks.update(action)
+        } else {
+            match self.state {
+                CurrentlySelected::PlaylistList => self.pl_list.update(action),
+                CurrentlySelected::Playlist => self.pl_queue.update(action),
+                CurrentlySelected::PlayQueue => self.playqueue.update(action),
+            }
         }
     }
     pub fn new(config: Config) -> (Self, Action) {
@@ -70,6 +77,8 @@ impl MainScreen {
                 bpmtoy: BPMToy::new(config),
                 message: "You are now logged in.".to_string(),
                 key_stack: vec![],
+                tasks: Popup::new(Tasks::new(), 80, 80),
+                show_tasks: false,
             },
             Action::Multiple(vec![
                 Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::ListPlaylists)),
@@ -128,6 +137,16 @@ impl Component for MainScreen {
         self.playqueue.draw(frame, listareas[2])?;
         self.now_playing.draw(frame, bottom_areas[0])?;
         self.bpmtoy.draw(frame, bottom_areas[1])?;
+
+        if self.show_tasks {
+            self.tasks.draw(frame, area)?;
+        }
+
+        frame.render_widget(
+            Paragraph::new(format!("[{}]", self.current_mode.to_string()))
+                .wrap(Wrap { trim: false }),
+            text_areas[0],
+        );
 
         frame.render_widget(
             Paragraph::new(format!("Ampache {}", env!("CARGO_PKG_VERSION")))
@@ -201,29 +220,48 @@ impl Component for MainScreen {
                         Ok(None)
                     }
                     Global::EndKeySeq => Ok(None),
+                    Global::OpenTasks => {
+                        self.show_tasks = true;
+                        Ok(None)
+                    }
+                    Global::CloseTasks => {
+                        self.show_tasks = false;
+                        Ok(None)
+                    }
+                    Global::ToggleTasks => {
+                        self.show_tasks = !self.show_tasks;
+                        Ok(None)
+                    }
                 },
                 _ => self.propagate_to_focused_component(action),
             },
-            Action::ToQueryWorker(req) => match req.dest {
-                CompID::PlaylistList => self.pl_list.update(action),
-                CompID::PlaylistQueue => self.pl_queue.update(action),
-                CompID::PlayQueue => self.playqueue.update(action),
-                CompID::None => Ok(None),
-                _ => unreachable!("Action propagated to nonexistent component: {:?}", req.dest),
-            },
-            Action::FromQueryWorker(res) => match res.dest {
-                CompID::PlaylistList => self.pl_list.update(action),
-                CompID::PlaylistQueue => self.pl_queue.update(action),
-                CompID::PlayQueue => self.playqueue.update(action),
-                CompID::None => Ok(None),
-                _ => unreachable!("Action propagated to nonexistent component!"),
-            },
+            Action::ToQueryWorker(req) => {
+                let _ = self.tasks.update(action.clone());
+                match req.dest {
+                    CompID::PlaylistList => self.pl_list.update(action),
+                    CompID::PlaylistQueue => self.pl_queue.update(action),
+                    CompID::PlayQueue => self.playqueue.update(action),
+                    CompID::None => Ok(None),
+                    _ => unreachable!("Action propagated to nonexistent component: {:?}", req.dest),
+                }
+            }
+            Action::FromQueryWorker(res) => {
+                let _ = self.tasks.update(action.clone());
+                match res.dest {
+                    CompID::PlaylistList => self.pl_list.update(action),
+                    CompID::PlaylistQueue => self.pl_queue.update(action),
+                    CompID::PlayQueue => self.playqueue.update(action),
+                    CompID::None => Ok(None),
+                    _ => unreachable!("Action propagated to nonexistent component!"),
+                }
+            }
             _ => {
                 let results: Vec<Action> = [
                     self.pl_list.update(action.clone())?,
                     self.pl_queue.update(action.clone())?,
                     self.now_playing.update(action.clone())?,
                     self.playqueue.update(action.clone())?,
+                    self.tasks.update(action.clone())?,
                     self.bpmtoy.update(action)?,
                 ]
                 .into_iter()

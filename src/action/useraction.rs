@@ -14,6 +14,9 @@ pub enum Global {
     FocusPlaylistList,
     FocusPlaylistQueue,
     FocusPlayQueue,
+    OpenTasks,
+    CloseTasks,
+    ToggleTasks,
 }
 
 impl ToString for Global {
@@ -24,6 +27,9 @@ impl ToString for Global {
             Global::FocusPlaylistList => "Focus playlist list".to_string(),
             Global::FocusPlaylistQueue => "Focus playlist queue".to_string(),
             Global::FocusPlayQueue => "Focus play queue".to_string(),
+            Global::OpenTasks => "Open tasks view".to_string(),
+            Global::CloseTasks => "Close tasks view".to_string(),
+            Global::ToggleTasks => "Toggle tasks view".to_string(),
         }
     }
 }

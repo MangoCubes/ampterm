@@ -15,7 +15,7 @@ use crate::{
     config::Config,
     queryworker::{
         highlevelquery::HighLevelQuery,
-        query::{setcredential::Credential, FromQueryWorker, ResponseType, ToQueryWorker},
+        query::{setcredential::Credential, ResponseType, ToQueryWorker},
     },
 };
 
@@ -211,6 +211,7 @@ impl Component for Login {
         frame.render_widget(
             Paragraph::new(vec![
                 Line::raw("Enter: Submit"),
+                Line::raw("Space: Toggle checkbox"),
                 Line::raw("Tab or arrow keys: Navigate"),
             ])
             .centered(),

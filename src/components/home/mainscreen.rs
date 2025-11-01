@@ -236,7 +236,7 @@ impl Component for MainScreen {
                 _ => self.propagate_to_focused_component(action),
             },
             Action::ToQueryWorker(req) => {
-                let _ = self.tasks.update(action.clone());
+                let _ = self.tasks.register_task(req.clone());
                 match req.dest {
                     CompID::PlaylistList => self.pl_list.update(action),
                     CompID::PlaylistQueue => self.pl_queue.update(action),
@@ -246,7 +246,7 @@ impl Component for MainScreen {
                 }
             }
             Action::FromQueryWorker(res) => {
-                let _ = self.tasks.update(action.clone());
+                let _ = self.tasks.unregister_task(res);
                 match res.dest {
                     CompID::PlaylistList => self.pl_list.update(action),
                     CompID::PlaylistQueue => self.pl_queue.update(action),

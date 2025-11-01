@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use color_eyre::eyre::Result;
 use ratatui::{
     layout::{Constraint, Flex, Layout},
@@ -10,15 +12,13 @@ use ratatui::{
 
 use crate::{
     components::traits::component::Component,
-    queryworker::{
-        highlevelquery::HighLevelQuery,
-        query::{FromQueryWorker, ResponseType, ToQueryWorker},
-    },
+    queryworker::query::{FromQueryWorker, ResponseType, ToQueryWorker},
 };
 
 pub struct Tasks {
     border: Block<'static>,
     table: Table<'static>,
+    tasks: HashMap<usize, ToQueryWorker>,
 }
 
 impl Tasks {
@@ -27,8 +27,9 @@ impl Tasks {
             border: Self::gen_block(),
             table: Table::new(
                 [Row::new(vec!["ID", "Task", "Status"])],
-                [Constraint::Max(4), Constraint::Min(1), Constraint::Max(7)],
+                [Constraint::Max(4), Constraint::Min(1), Constraint::Max(10)],
             ),
+            tasks: HashMap::new(),
         }
     }
 
@@ -38,26 +39,37 @@ impl Tasks {
         Block::bordered().title(title).border_style(style)
     }
 
-    pub fn register_task(&self, task: &ToQueryWorker) {
-        match &task.query {
-            HighLevelQuery::PlayMusicFromURL(media) => todo!(),
-            HighLevelQuery::CheckCredentialValidity => todo!(),
-            HighLevelQuery::SelectPlaylist(get_playlist_params) => todo!(),
-            HighLevelQuery::AddPlaylistToQueue(get_playlist_params) => todo!(),
-            HighLevelQuery::ListPlaylists => todo!(),
-            HighLevelQuery::SetCredential(credential) => {}
-        };
+    fn gen_rows(&self) -> Vec<Row<'static>> {
+        let mut rows: Vec<Row<'static>> = self
+            .tasks
+            .clone()
+            .into_iter()
+            .map(|(id, t)| {
+                Row::new(vec![
+                    id.to_string(),
+                    t.query.to_string(),
+                    "Running".to_string(),
+                ])
+            })
+            .collect();
+        rows.insert(0, Row::new(vec!["ID", "Task", "Status"]));
+        rows
     }
 
-    pub fn unregister_task(&self, task: &FromQueryWorker) {
-        match &task.res {
-            ResponseType::Ping(ping_response) => todo!(),
-            ResponseType::GetPlaylists(get_playlists_response) => {
-                todo!()
-            }
-            ResponseType::GetPlaylist(get_playlist_response) => todo!(),
-            ResponseType::SetCredential(_) => todo!(),
-        }
+    pub fn register_task(&mut self, task: ToQueryWorker) {
+        self.tasks.insert(task.ticket, task);
+        self.table = Table::new(
+            self.gen_rows(),
+            [Constraint::Max(4), Constraint::Min(1), Constraint::Max(10)],
+        );
+    }
+
+    pub fn unregister_task(&mut self, task: &FromQueryWorker) {
+        self.tasks.remove(&task.ticket);
+        self.table = Table::new(
+            self.gen_rows(),
+            [Constraint::Max(4), Constraint::Min(1), Constraint::Max(10)],
+        );
     }
 }
 

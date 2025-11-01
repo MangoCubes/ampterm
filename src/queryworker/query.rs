@@ -1,6 +1,5 @@
 pub mod getplaylist;
 pub mod getplaylists;
-pub mod ping;
 pub mod setcredential;
 use serde::{Deserialize, Serialize};
 
@@ -8,10 +7,7 @@ use crate::{
     compid::CompID,
     queryworker::{
         highlevelquery::HighLevelQuery,
-        query::{
-            getplaylist::GetPlaylistResponse, getplaylists::GetPlaylistsResponse,
-            ping::PingResponse,
-        },
+        query::{getplaylist::GetPlaylistResponse, getplaylists::GetPlaylistsResponse},
         QueryWorker,
     },
 };
@@ -42,7 +38,8 @@ impl ToQueryWorker {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ResponseType {
     // Responses from the queries
-    Ping(PingResponse),
+    Star(Result<(), String>),
+    Ping(Result<(), String>),
     GetPlaylists(GetPlaylistsResponse),
     GetPlaylist(GetPlaylistResponse),
     SetCredential(Result<(), String>),

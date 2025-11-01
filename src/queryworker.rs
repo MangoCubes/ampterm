@@ -14,7 +14,6 @@ use crate::playerworker::player::ToPlayerWorker;
 use crate::queryworker::highlevelquery::HighLevelQuery;
 use crate::queryworker::query::getplaylist::GetPlaylistResponse;
 use crate::queryworker::query::getplaylists::GetPlaylistsResponse;
-use crate::queryworker::query::ping::PingResponse;
 use crate::queryworker::query::setcredential::Credential;
 use crate::queryworker::query::{FromQueryWorker, ResponseType};
 use crate::trace_dbg;
@@ -128,16 +127,14 @@ impl QueryWorker {
                                             tx.send(Action::FromQueryWorker(FromQueryWorker::new(
                                                 event.dest,
                                                 event.ticket,
-                                                ResponseType::Ping(PingResponse::Success),
+                                                ResponseType::Ping(Ok(())),
                                             )))
                                         }
                                         Empty::Failed { error } => {
                                             tx.send(Action::FromQueryWorker(FromQueryWorker::new(
                                                 event.dest,
                                                 event.ticket,
-                                                ResponseType::Ping(PingResponse::Failure(
-                                                    error.to_string(),
-                                                )),
+                                                ResponseType::Ping(Err(error.to_string())),
                                             )))
                                         }
                                     },
@@ -145,10 +142,7 @@ impl QueryWorker {
                                         tx.send(Action::FromQueryWorker(FromQueryWorker::new(
                                             event.dest,
                                             event.ticket,
-                                            ResponseType::Ping(PingResponse::Failure(format!(
-                                                "{}",
-                                                e
-                                            ))),
+                                            ResponseType::Ping(Err(e.to_string())),
                                         )))
                                     }
                                 }

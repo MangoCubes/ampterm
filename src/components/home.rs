@@ -16,7 +16,7 @@ use crate::{
     config::{get_config_dir, Config},
     queryworker::{
         highlevelquery::HighLevelQuery,
-        query::{ping::PingResponse, setcredential::Credential, ResponseType, ToQueryWorker},
+        query::{setcredential::Credential, ResponseType, ToQueryWorker},
     },
     tui::Event,
 };
@@ -122,13 +122,13 @@ impl Component for Home {
         if let Action::FromQueryWorker(res) = &action {
             if let ResponseType::Ping(pr) = &res.res {
                 match pr {
-                    PingResponse::Success => {
+                    Ok(()) => {
                         // Switch child component to MainScreen
                         let (comp, actions) = MainScreen::new(self.config.clone());
                         self.component = Comp::Main(comp);
                         return Ok(Some(actions));
                     }
-                    PingResponse::Failure(err) => {
+                    Err(err) => {
                         if let Comp::Loading(l) = &self.component {
                             // Switch child component to Login
                             let (comp, action) = Login::new(

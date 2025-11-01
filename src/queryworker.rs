@@ -45,25 +45,7 @@ impl QueryWorker {
     pub async fn get_playlists(c: Arc<OSClient>) -> GetPlaylistsResponse {
         match c.get_playlists().await {
             Ok(r) => match r {
-                GetPlaylists::Ok { playlists } => GetPlaylistsResponse::Success(
-                    playlists
-                        .playlist
-                        .into_iter()
-                        .map(|p| SimplePlaylist {
-                            id: p.id,
-                            name: p.name,
-                            owner: p.owner,
-                            public: p.public,
-                            created: p.created,
-                            changed: p.changed,
-                            song_count: p.song_count,
-                            duration: p.duration,
-                            comment: p.comment,
-                            cover_art: p.cover_art,
-                            allowed_users: p.allowed_users,
-                        })
-                        .collect(),
-                ),
+                GetPlaylists::Ok { playlists } => GetPlaylistsResponse::Success(playlists.playlist),
                 GetPlaylists::Failed { error } => GetPlaylistsResponse::Failure(error.to_string()),
             },
             Err(e) => GetPlaylistsResponse::Failure(e.to_string()),
@@ -198,80 +180,7 @@ impl QueryWorker {
                                                         event.ticket,
                                                         ResponseType::GetPlaylist(
                                                             GetPlaylistResponse::Success(
-                                                                FullPlaylist {
-                                                                    entry: full_playlist
-                                                                        .entry
-                                                                        .into_iter()
-                                                                        .map(|e| {
-                                                                            Media {
-                                                                id: e.id,
-                                                                parent: e.parent,
-                                                                is_dir: e.is_dir,
-                                                                title: e.title,
-                                                                album: e.album,
-                                                                artist: e.artist,
-                                                                track: e.track,
-                                                                year: e.year,
-                                                                genre: e.genre,
-                                                                cover_art: e.cover_art,
-                                                                size: e.size,
-                                                                content_type: e.content_type,
-                                                                suffix: e.suffix,
-                                                                transcoded_content_type: e
-                                                                    .transcoded_content_type,
-                                                                transcoded_suffix: e
-                                                                    .transcoded_suffix,
-                                                                duration: e.duration,
-                                                                bit_rate: e.bit_rate,
-                                                                bit_depth: e.bit_depth,
-                                                                sampling_rate: e.sampling_rate,
-                                                                channel_count: e.channel_count,
-                                                                path: e.path,
-                                                                is_video: e.is_video,
-                                                                user_rating: e.user_rating,
-                                                                average_rating: e.average_rating,
-                                                                play_count: e.play_count,
-                                                                disc_number: e.disc_number,
-                                                                created: e.created,
-                                                                starred: e.starred,
-                                                                album_id: e.album_id,
-                                                                artist_id: e.artist_id,
-                                                                media_type: e.media_type,
-                                                                bookmark_position: e
-                                                                    .bookmark_position,
-                                                                original_width: e.original_width,
-                                                                original_height: e.original_height,
-                                                                played: e.played,
-                                                                bpm: e.bpm,
-                                                                comment: e.comment,
-                                                                sort_name: e.sort_name,
-                                                                music_brainz_id: e.music_brainz_id,
-                                                                display_artist: e.display_artist,
-                                                                display_album_artist: e
-                                                                    .display_album_artist,
-                                                                display_composer: e
-                                                                    .display_composer,
-                                                                moods: e.moods,
-                                                                explicit_status: e.explicit_status,
-                                                            }
-                                                                        })
-                                                                        .collect(),
-                                                                    id: params.id,
-                                                                    name: full_playlist.name,
-                                                                    comment: full_playlist.comment,
-                                                                    owner: full_playlist.owner,
-                                                                    public: full_playlist.public,
-                                                                    song_count: full_playlist
-                                                                        .song_count,
-                                                                    duration: full_playlist
-                                                                        .duration,
-                                                                    created: full_playlist.created,
-                                                                    changed: full_playlist.changed,
-                                                                    cover_art: full_playlist
-                                                                        .cover_art,
-                                                                    allowed_users: full_playlist
-                                                                        .allowed_users,
-                                                                },
+                                                                full_playlist,
                                                             ),
                                                         ),
                                                     ),
@@ -282,21 +191,7 @@ impl QueryWorker {
                                                 let res = match simple_playlist.get(0) {
                                                     Some(playlist) => {
                                                         let pl = playlist.to_owned();
-                                                        GetPlaylistResponse::Partial(
-                                                            SimplePlaylist {
-                                                                id: params.id,
-                                                                name: pl.name,
-                                                                comment: pl.comment,
-                                                                owner: pl.owner,
-                                                                public: pl.public,
-                                                                song_count: pl.song_count,
-                                                                duration: pl.duration,
-                                                                created: pl.created,
-                                                                changed: pl.changed,
-                                                                cover_art: pl.cover_art,
-                                                                allowed_users: pl.allowed_users,
-                                                            },
-                                                        )
+                                                        GetPlaylistResponse::Partial(pl)
                                                     }
 
                                                     None => GetPlaylistResponse::Failure {

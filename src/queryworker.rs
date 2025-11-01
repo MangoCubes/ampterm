@@ -251,6 +251,7 @@ impl QueryWorker {
                         ),
                     };
                 }
+                HighLevelQuery::SetStar { media, star } => todo!(),
             };
             if self.should_quit {
                 break;

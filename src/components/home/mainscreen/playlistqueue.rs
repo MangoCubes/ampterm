@@ -80,7 +80,7 @@ impl Component for PlaylistQueue {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::ToQueryWorker(qw) => {
-                if qw.dest == CompID::PlaylistQueue {
+                if qw.dest.contains(&CompID::PlaylistQueue) {
                     if let HighLevelQuery::SelectPlaylist(params) = qw.query {
                         self.comp = Comp::Loading(Loading::new(params.name, self.enabled));
                     }

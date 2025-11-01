@@ -17,7 +17,7 @@ pub struct ToQueryWorker {
     /// Specifies the component that should be alerted when the request is both initialised and completed
     /// This ID is limited to a Ratatui component, as requests to [`PlayerWorker`] are implied with
     /// using [`ToPlayerWorker`]
-    pub dest: CompID,
+    pub dest: Vec<CompID>,
     /// Uniquely identifies the request and response
     pub ticket: usize,
     /// Query parameters
@@ -48,7 +48,7 @@ pub enum ResponseType {
 pub struct FromQueryWorker {
     /// When a query is completed, the value in [`dest`] specifies which component should be
     /// notified. This value should be the same as the corresponding [`ToQueryWorker`] request.
-    pub dest: CompID,
+    pub dest: Vec<CompID>,
     /// Uniquely identifies the request and response
     pub ticket: usize,
     /// Actual response body
@@ -56,7 +56,7 @@ pub struct FromQueryWorker {
 }
 
 impl FromQueryWorker {
-    pub fn new(dest: CompID, ticket: usize, res: ResponseType) -> Self {
+    pub fn new(dest: Vec<CompID>, ticket: usize, res: ResponseType) -> Self {
         Self { dest, ticket, res }
     }
 }

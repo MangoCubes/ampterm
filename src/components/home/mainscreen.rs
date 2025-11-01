@@ -236,23 +236,39 @@ impl Component for MainScreen {
             },
             Action::ToQueryWorker(req) => {
                 let _ = self.tasks.register_task(req.clone());
-                match req.dest {
-                    CompID::PlaylistList => self.pl_list.update(action),
-                    CompID::PlaylistQueue => self.pl_queue.update(action),
-                    CompID::PlayQueue => self.playqueue.update(action),
-                    CompID::None => Ok(None),
-                    _ => unreachable!("Action propagated to nonexistent component: {:?}", req.dest),
+                let mut results = vec![];
+
+                for dest in &req.dest {
+                    let res = match dest {
+                        CompID::PlaylistList => self.pl_list.update(action.clone()),
+                        CompID::PlaylistQueue => self.pl_queue.update(action.clone()),
+                        CompID::PlayQueue => self.playqueue.update(action.clone()),
+                        CompID::None => Ok(None),
+                        _ => unreachable!("Action propagated to nonexistent component: {:?}", dest),
+                    }?;
+                    if let Some(a) = res {
+                        results.push(a);
+                    }
                 }
+                Ok(Some(Action::Multiple(results)))
             }
             Action::FromQueryWorker(res) => {
                 let _ = self.tasks.unregister_task(res);
-                match res.dest {
-                    CompID::PlaylistList => self.pl_list.update(action),
-                    CompID::PlaylistQueue => self.pl_queue.update(action),
-                    CompID::PlayQueue => self.playqueue.update(action),
-                    CompID::None => Ok(None),
-                    _ => unreachable!("Action propagated to nonexistent component!"),
+                let mut results = vec![];
+
+                for dest in &res.dest {
+                    let res = match dest {
+                        CompID::PlaylistList => self.pl_list.update(action.clone()),
+                        CompID::PlaylistQueue => self.pl_queue.update(action.clone()),
+                        CompID::PlayQueue => self.playqueue.update(action.clone()),
+                        CompID::None => Ok(None),
+                        _ => unreachable!("Action propagated to nonexistent component: {:?}", dest),
+                    }?;
+                    if let Some(a) = res {
+                        results.push(a);
+                    }
                 }
+                Ok(Some(Action::Multiple(results)))
             }
             _ => {
                 let results: Vec<Action> = [

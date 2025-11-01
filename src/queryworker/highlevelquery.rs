@@ -31,40 +31,35 @@ pub enum HighLevelQuery {
     /// component changes the login credentials, and there may be errors when parsing the
     /// credentials. The error messages are sent as a response to this query.
     SetCredential(Credential),
+    /// Stars/unstars a music
+    SetStar { media: Media, star: bool },
 }
 
 impl HighLevelQuery {
-    pub fn get_dest(&self) -> CompID {
+    pub fn get_dest(&self) -> Vec<CompID> {
         match self {
-            HighLevelQuery::PlayMusicFromURL(_) => CompID::None,
-            HighLevelQuery::CheckCredentialValidity => CompID::Home,
-            HighLevelQuery::SelectPlaylist(_) => CompID::PlaylistQueue,
+            HighLevelQuery::PlayMusicFromURL(_) => vec![CompID::None],
+            HighLevelQuery::CheckCredentialValidity => vec![CompID::Home],
+            HighLevelQuery::SelectPlaylist(_) => vec![CompID::PlaylistQueue],
             HighLevelQuery::AddPlaylistToQueue(_) | HighLevelQuery::ListPlaylists => {
-                CompID::PlaylistList
+                vec![CompID::PlaylistList]
             }
-            HighLevelQuery::SetCredential(_) => CompID::Login,
+            HighLevelQuery::SetCredential(_) => vec![CompID::Login],
+            HighLevelQuery::SetStar { media: _, star: _ } => {
+                vec![CompID::PlaylistQueue, CompID::PlayQueue]
+            }
         }
     }
 
     pub fn is_internal(&self) -> bool {
-        match self {
-            HighLevelQuery::PlayMusicFromURL(_) | HighLevelQuery::SetCredential(_) => true,
-            HighLevelQuery::SelectPlaylist(_)
-            | HighLevelQuery::AddPlaylistToQueue(_)
-            | HighLevelQuery::ListPlaylists
-            | HighLevelQuery::CheckCredentialValidity => false,
-        }
+        matches!(
+            self,
+            HighLevelQuery::PlayMusicFromURL(_) | HighLevelQuery::SetCredential(_)
+        )
     }
 
     pub fn has_reply(&self) -> bool {
-        match self {
-            HighLevelQuery::PlayMusicFromURL(_) => false,
-            HighLevelQuery::CheckCredentialValidity
-            | HighLevelQuery::SelectPlaylist(_)
-            | HighLevelQuery::AddPlaylistToQueue(_)
-            | HighLevelQuery::ListPlaylists
-            | HighLevelQuery::SetCredential(_) => true,
-        }
+        !matches!(self, HighLevelQuery::PlayMusicFromURL(_))
     }
 }
 
@@ -77,6 +72,7 @@ impl ToString for HighLevelQuery {
             HighLevelQuery::AddPlaylistToQueue(_) => "Adding playlist to the queue",
             HighLevelQuery::ListPlaylists => "Fetching all playlists",
             HighLevelQuery::SetCredential(_) => "Setting credentials",
+            HighLevelQuery::SetStar { media: _, star: _ } => "Toggle favourite status of a music",
         }
         .to_string()
     }

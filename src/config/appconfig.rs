@@ -16,4 +16,6 @@ pub struct AppConfig {
     pub use_legacy_auth: bool,
     #[serde(default = "default_true")]
     pub auto_focus: bool,
+    #[serde(default)]
+    pub show_internal_tasks: bool,
 }

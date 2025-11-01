@@ -12,17 +12,18 @@ use ratatui::{
 
 use crate::{
     components::traits::component::Component,
-    queryworker::query::{FromQueryWorker, ResponseType, ToQueryWorker},
+    queryworker::query::{FromQueryWorker, ToQueryWorker},
 };
 
 pub struct Tasks {
     border: Block<'static>,
     table: Table<'static>,
     tasks: HashMap<usize, ToQueryWorker>,
+    show_internal: bool,
 }
 
 impl Tasks {
-    pub fn new() -> Self {
+    pub fn new(show_internal: bool) -> Self {
         Self {
             border: Self::gen_block(),
             table: Table::new(
@@ -30,6 +31,7 @@ impl Tasks {
                 [Constraint::Max(4), Constraint::Min(1), Constraint::Max(10)],
             ),
             tasks: HashMap::new(),
+            show_internal,
         }
     }
 
@@ -57,6 +59,12 @@ impl Tasks {
     }
 
     pub fn register_task(&mut self, task: ToQueryWorker) {
+        if !task.query.has_reply() {
+            return;
+        }
+        if task.query.is_internal() && !self.show_internal {
+            return;
+        }
         self.tasks.insert(task.ticket, task);
         self.table = Table::new(
             self.gen_rows(),

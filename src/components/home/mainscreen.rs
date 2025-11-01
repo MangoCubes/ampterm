@@ -14,7 +14,6 @@ use crate::{
     compid::CompID,
     components::{
         home::mainscreen::{bpmtoy::BPMToy, tasks::Tasks},
-        lib::popup::Popup,
         traits::{component::Component, focusable::Focusable},
     },
     config::Config,
@@ -74,10 +73,10 @@ impl MainScreen {
                 pl_queue: PlaylistQueue::new(false),
                 playqueue: PlayQueue::new(false),
                 now_playing: NowPlaying::new(),
+                tasks: Tasks::new(config.config.show_internal_tasks),
                 bpmtoy: BPMToy::new(config),
                 message: "You are now logged in.".to_string(),
                 key_stack: vec![],
-                tasks: Tasks::new(),
                 show_tasks: false,
             },
             Action::Multiple(vec![

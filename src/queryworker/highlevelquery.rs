@@ -45,6 +45,27 @@ impl HighLevelQuery {
             HighLevelQuery::SetCredential(_) => CompID::Login,
         }
     }
+
+    pub fn is_internal(&self) -> bool {
+        match self {
+            HighLevelQuery::PlayMusicFromURL(_) | HighLevelQuery::SetCredential(_) => true,
+            HighLevelQuery::SelectPlaylist(_)
+            | HighLevelQuery::AddPlaylistToQueue(_)
+            | HighLevelQuery::ListPlaylists
+            | HighLevelQuery::CheckCredentialValidity => false,
+        }
+    }
+
+    pub fn has_reply(&self) -> bool {
+        match self {
+            HighLevelQuery::PlayMusicFromURL(_) => false,
+            HighLevelQuery::CheckCredentialValidity
+            | HighLevelQuery::SelectPlaylist(_)
+            | HighLevelQuery::AddPlaylistToQueue(_)
+            | HighLevelQuery::ListPlaylists
+            | HighLevelQuery::SetCredential(_) => true,
+        }
+    }
 }
 
 impl ToString for HighLevelQuery {

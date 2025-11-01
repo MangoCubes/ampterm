@@ -7,10 +7,8 @@ use std::sync::Arc;
 use crate::action::Action;
 use crate::config::Config;
 use crate::osclient::response::empty::Empty;
-use crate::osclient::response::getplaylist::{
-    self, FullPlaylist, GetPlaylist, IndeterminedPlaylist, Media,
-};
-use crate::osclient::response::getplaylists::{GetPlaylists, SimplePlaylist};
+use crate::osclient::response::getplaylist::{GetPlaylist, IndeterminedPlaylist};
+use crate::osclient::response::getplaylists::GetPlaylists;
 use crate::osclient::OSClient;
 use crate::playerworker::player::ToPlayerWorker;
 use crate::queryworker::highlevelquery::HighLevelQuery;

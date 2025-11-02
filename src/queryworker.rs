@@ -55,6 +55,33 @@ impl QueryWorker {
                 break;
             };
             match event.query {
+                HighLevelQuery::SetStar { media, star } => {
+                    let tx = self.action_tx.clone();
+                    match &self.client {
+                        Some(c) => {
+                            let cc = c.clone();
+                            tokio::spawn(async move {
+                                let req = if star {
+                                    cc.star(media.id).await
+                                } else {
+                                    cc.unstar(media.id).await
+                                };
+                                let result = match req {
+                                    Ok(_) => ResponseType::Star(Ok(())),
+                                    Err(err) => ResponseType::Star(Err(err.to_string())),
+                                };
+                                tx.send(Action::FromQueryWorker(FromQueryWorker::new(
+                                    event.dest,
+                                    event.ticket,
+                                    result,
+                                )))
+                            });
+                        }
+                        None => tracing::error!(
+                            "Invalid state: Tried querying, but client does not exist!"
+                        ),
+                    };
+                }
                 HighLevelQuery::SetCredential(creds) => {
                     let client = match creds {
                         Credential::Password {
@@ -251,7 +278,6 @@ impl QueryWorker {
                         ),
                     };
                 }
-                HighLevelQuery::SetStar { media, star } => todo!(),
             };
             if self.should_quit {
                 break;

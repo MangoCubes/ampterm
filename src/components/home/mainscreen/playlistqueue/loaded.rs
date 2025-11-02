@@ -148,6 +148,20 @@ impl Component for Loaded {
                     _ => self.table.update(Action::User(UserAction::Common(a))),
                 },
                 UserAction::Normal(a) => match a {
+                    Normal::ToggleStar => {
+                        let Some(idx) = self.table.get_current() else {
+                            return Ok(None);
+                        };
+                        let Some(media) = self.playlist.entry.get(idx) else {
+                            return Ok(None);
+                        };
+                        Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
+                            HighLevelQuery::SetStar {
+                                media: media.clone(),
+                                star: media.starred.is_none(),
+                            },
+                        ))))
+                    }
                     Normal::Add(queue_location) => Ok(self.add_selection_to_queue(queue_location)),
                     _ => self.table.update(Action::User(UserAction::Normal(a))),
                 },

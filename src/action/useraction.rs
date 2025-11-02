@@ -113,20 +113,24 @@ pub enum Normal {
     Add(QueueLocation),
     // Delete a selected region
     Delete,
+    // Adds/removes a song from favourites
+    ToggleStar,
 }
 
 impl ToString for Normal {
     fn to_string(&self) -> String {
         match self {
-            Normal::WindowUp => "Move window up".to_string(),
-            Normal::WindowDown => "Move window down".to_string(),
-            Normal::WindowLeft => "Move window left".to_string(),
-            Normal::WindowRight => "Move window right".to_string(),
-            Normal::SelectMode => "Enter visual mode (select)".to_string(),
-            Normal::DeselectMode => "Enter visual mode (deselect)".to_string(),
-            Normal::Add(_) => "Add to queue".to_string(),
-            Normal::Delete => "Delete selected items".to_string(),
+            Normal::WindowUp => "Move window up",
+            Normal::WindowDown => "Move window down",
+            Normal::WindowLeft => "Move window left",
+            Normal::WindowRight => "Move window right",
+            Normal::SelectMode => "Enter visual mode (select)",
+            Normal::DeselectMode => "Enter visual mode (deselect)",
+            Normal::Add(_) => "Add to queue",
+            Normal::Delete => "Delete selected items",
+            Normal::ToggleStar => "Toggle favourite",
         }
+        .to_string()
     }
 }
 

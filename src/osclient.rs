@@ -75,6 +75,14 @@ impl OSClient {
     pub async fn ping(&self) -> Result<Empty, ExternalError> {
         self.query_auth::<Empty>(Method::GET, "ping", None).await
     }
+    pub async fn star(&self, id: String) -> Result<Empty, ExternalError> {
+        self.query_auth::<Empty>(Method::GET, "star", Some(vec![("id", &id)]))
+            .await
+    }
+    pub async fn unstar(&self, id: String) -> Result<Empty, ExternalError> {
+        self.query_auth::<Empty>(Method::GET, "unstar", Some(vec![("id", &id)]))
+            .await
+    }
     fn get_path(&self, path: &str, query: Option<Vec<(&str, &str)>>) -> Url {
         let (mut params, mut url): (Vec<(&str, &str)>, Url) = match &self.auth {
             Credential::Password {

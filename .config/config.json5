@@ -39,6 +39,9 @@
 	  "<d>": { User: { Normal: "Delete" } },
 	  "<Shift-a>": { User: { Normal: { Add: "Last" } } },
 
+  	  "<Shift-f>": { User: { Normal: "ToggleStar" } },
+
+
 	  // Visual mode entry
 	  "<v>": { User: { Normal: "SelectMode" } },
 	  "<Shift-v>": { User: { Normal: "SelectMode" } },

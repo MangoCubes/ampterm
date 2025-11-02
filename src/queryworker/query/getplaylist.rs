@@ -5,6 +5,9 @@ use crate::{
     queryworker::query::getplaylists::PlaylistID,
 };
 
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
+pub struct MediaID(pub String);
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GetPlaylistParams {
     // This field is not necessary, but is used to inform user whenever the query fails

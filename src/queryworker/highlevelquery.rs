@@ -3,7 +3,10 @@ use serde::{Deserialize, Serialize};
 use crate::{
     compid::CompID,
     osclient::response::getplaylist::Media,
-    queryworker::query::{getplaylist::GetPlaylistParams, setcredential::Credential},
+    queryworker::query::{
+        getplaylist::{GetPlaylistParams, MediaID},
+        setcredential::Credential,
+    },
 };
 
 /// [`HighLevelQuery`] are sort of a wrapper of normal HTTP queries. These correspond more closely
@@ -32,7 +35,7 @@ pub enum HighLevelQuery {
     /// credentials. The error messages are sent as a response to this query.
     SetCredential(Credential),
     /// Stars/unstars a music
-    SetStar { media: Media, star: bool },
+    SetStar { media: MediaID, star: bool },
 }
 
 impl HighLevelQuery {

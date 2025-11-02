@@ -157,7 +157,7 @@ impl Component for Loaded {
                         };
                         Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
                             HighLevelQuery::SetStar {
-                                media: media.clone(),
+                                media: media.id.clone(),
                                 star: media.starred.is_none(),
                             },
                         ))))

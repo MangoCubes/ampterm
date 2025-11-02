@@ -1,14 +1,15 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    osclient::response::getplaylists::SimplePlaylist, queryworker::query::getplaylists::PlaylistID,
+    osclient::response::getplaylists::SimplePlaylist,
+    queryworker::query::{getplaylist::MediaID, getplaylists::PlaylistID},
 };
 
 use super::oserror::OSError;
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct Media {
-    pub id: String,
+    pub id: MediaID,
     pub parent: Option<String>,
     #[serde(alias = "isDir")]
     pub is_dir: bool,

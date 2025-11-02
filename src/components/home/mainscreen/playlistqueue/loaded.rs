@@ -13,7 +13,10 @@ use crate::{
     playerworker::player::{QueueLocation, ToPlayerWorker},
     queryworker::{
         highlevelquery::HighLevelQuery,
-        query::{getplaylist::GetPlaylistParams, ToQueryWorker},
+        query::{
+            getplaylist::{GetPlaylistParams, MediaID},
+            ToQueryWorker,
+        },
     },
 };
 use color_eyre::Result;
@@ -110,6 +113,29 @@ impl Loaded {
             playlist: list,
             table,
         }
+    }
+
+    pub fn set_star(&mut self, media: MediaID, star: bool) -> Option<Action> {
+        let updated = self
+            .playlist
+            .entry
+            .clone()
+            .into_iter()
+            .map(|mut m| {
+                if m.id == media {
+                    m.starred = if star {
+                        Some("Starred".to_string())
+                    } else {
+                        None
+                    };
+                }
+                m
+            })
+            .collect();
+        self.playlist.entry = updated;
+        let rows = Self::gen_rows(&self.playlist.entry);
+        self.table.set_rows(rows);
+        None
     }
 }
 

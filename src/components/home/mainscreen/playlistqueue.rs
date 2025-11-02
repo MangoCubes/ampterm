@@ -81,11 +81,23 @@ impl Component for PlaylistQueue {
         match action {
             Action::ToQueryWorker(qw) => {
                 if qw.dest.contains(&CompID::PlaylistQueue) {
-                    if let HighLevelQuery::SelectPlaylist(params) = qw.query {
-                        self.comp = Comp::Loading(Loading::new(params.name, self.enabled));
+                    match qw.query {
+                        HighLevelQuery::SelectPlaylist(params) => {
+                            self.comp = Comp::Loading(Loading::new(params.name, self.enabled));
+                            Ok(None)
+                        }
+                        HighLevelQuery::SetStar { media, star } => {
+                            if let Comp::Loaded(loaded) = &mut self.comp {
+                                Ok(loaded.set_star(media, star))
+                            } else {
+                                Ok(None)
+                            }
+                        }
+                        _ => Ok(None),
                     }
+                } else {
+                    Ok(None)
                 }
-                Ok(None)
             }
             Action::FromQueryWorker(qw) => {
                 if let ResponseType::GetPlaylist(res) = qw.res {

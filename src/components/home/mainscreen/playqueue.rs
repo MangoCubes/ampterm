@@ -12,6 +12,10 @@ use crate::{
         home::mainscreen::playqueue::{nothing::Nothing, something::Something},
         traits::{component::Component, focusable::Focusable},
     },
+    queryworker::{
+        highlevelquery::HighLevelQuery,
+        query::{FromQueryWorker, ResponseType, ToQueryWorker},
+    },
 };
 use color_eyre::Result;
 
@@ -66,19 +70,15 @@ impl Component for PlayQueue {
             s.update(action)
         } else {
             match action {
-                Action::FromPlayerWorker(a) => match a {
-                    FromPlayerWorker::StateChange(StateType::Queue(QueueChange::Add {
-                        items,
-                        at,
-                    })) => {
-                        let comp = Something::new(self.enabled, items);
-                        self.comp = Comp::Something(comp)
-                    }
-                    _ => {}
-                },
-                _ => {}
+                Action::FromPlayerWorker(FromPlayerWorker::StateChange(StateType::Queue(
+                    QueueChange::Add { items, at },
+                ))) => {
+                    let comp = Something::new(self.enabled, items);
+                    self.comp = Comp::Something(comp);
+                    Ok(None)
+                }
+                _ => Ok(None),
             }
-            Ok(None)
         }
     }
 }

@@ -14,6 +14,10 @@ use crate::{
         traits::{component::Component, focusable::Focusable},
     },
     osclient::response::getplaylist::Media,
+    queryworker::{
+        highlevelquery::HighLevelQuery,
+        query::{getplaylist::MediaID, ToQueryWorker},
+    },
 };
 
 pub struct Something {
@@ -51,6 +55,27 @@ impl Something {
             list,
             index: Some(0),
         }
+    }
+    pub fn set_star(&mut self, media: MediaID, star: bool) -> Option<Action> {
+        let updated = self
+            .list
+            .clone()
+            .into_iter()
+            .map(|mut m| {
+                if m.id == media {
+                    m.starred = if star {
+                        Some("Starred".to_string())
+                    } else {
+                        None
+                    };
+                }
+                m
+            })
+            .collect();
+        self.list = updated;
+        let rows = Self::gen_rows(&self.list, self.index);
+        self.table.set_rows(rows);
+        None
     }
     fn gen_rows(items: &Vec<Media>, index: Option<usize>) -> Vec<Row<'static>> {
         let len = items.len();
@@ -119,6 +144,14 @@ impl Component for Something {
     }
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
+            Action::ToQueryWorker(ToQueryWorker {
+                dest: _,
+                ticket: _,
+                query,
+            }) => match query {
+                HighLevelQuery::SetStar { media, star } => Ok(self.set_star(media, star)),
+                _ => Ok(None),
+            },
             Action::FromPlayerWorker(FromPlayerWorker::StateChange(state_type)) => {
                 match state_type {
                     StateType::Queue(queue_change) => match queue_change {

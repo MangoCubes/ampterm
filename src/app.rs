@@ -118,7 +118,7 @@ impl App {
         match event {
             Event::Quit => action_tx.send(Action::Quit)?,
             Event::Tick => self.component.on_tick(),
-            Event::Render => action_tx.send(Action::Render)?,
+            Event::Render => self.render(tui)?,
             Event::Resize(x, y) => action_tx.send(Action::Resize(x, y))?,
             Event::Key(key) => self.handle_key_event(key)?,
             _ => {}
@@ -165,12 +165,7 @@ impl App {
 
     async fn handle_actions(&mut self, tui: &mut Tui) -> Result<()> {
         while let Ok(action) = self.action_rx.try_recv() {
-            match &action {
-                Action::Render => {}
-                _ => {
-                    debug!("{action:?}");
-                }
-            }
+            debug!("{action:?}");
             if let Action::Multiple(actions) = action {
                 for a in actions {
                     self.action_tx.send(a)?
@@ -193,7 +188,6 @@ impl App {
                 Action::Resume => self.should_suspend = false,
                 Action::ClearScreen => tui.terminal.clear()?,
                 Action::Resize(w, h) => self.handle_resize(tui, *w, *h)?,
-                Action::Render => self.render(tui)?,
                 Action::ChangeMode(mode) => {
                     self.mode = *mode;
                 }

@@ -84,7 +84,6 @@ pub enum Action {
 
     // Anything below this should not be used for keybinds, but feel free to experiment. Most are used to notify the system
     // System actions
-    Tick,
     Render,
     Resize(u16, u16),
     Error(String),

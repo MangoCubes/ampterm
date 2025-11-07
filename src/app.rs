@@ -8,7 +8,10 @@ use tracing::{debug, info};
 
 use crate::{
     action::Action,
-    components::{home::Home, traits::component::Component},
+    components::{
+        home::Home,
+        traits::{component::Component, ontick::OnTick},
+    },
     config::Config,
     playerworker::player::ToPlayerWorker,
     queryworker::query::ToQueryWorker,
@@ -114,7 +117,7 @@ impl App {
         let action_tx = self.action_tx.clone();
         match event {
             Event::Quit => action_tx.send(Action::Quit)?,
-            Event::Tick => action_tx.send(Action::Tick)?,
+            Event::Tick => self.component.on_tick(),
             Event::Render => action_tx.send(Action::Render)?,
             Event::Resize(x, y) => action_tx.send(Action::Resize(x, y))?,
             Event::Key(key) => self.handle_key_event(key)?,
@@ -163,7 +166,7 @@ impl App {
     async fn handle_actions(&mut self, tui: &mut Tui) -> Result<()> {
         while let Ok(action) = self.action_rx.try_recv() {
             match &action {
-                Action::Tick | Action::Render => {}
+                Action::Render => {}
                 _ => {
                     debug!("{action:?}");
                 }

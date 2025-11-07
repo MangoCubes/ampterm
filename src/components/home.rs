@@ -12,7 +12,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
     action::Action,
-    components::traits::component::Component,
+    components::traits::{component::Component, ontick::OnTick},
     config::Config,
     queryworker::{
         highlevelquery::HighLevelQuery,
@@ -31,6 +31,14 @@ pub struct Home {
     action_tx: UnboundedSender<Action>,
     component: Comp,
     config: Config,
+}
+
+impl OnTick for Home {
+    fn on_tick(&mut self) {
+        if let Comp::Main(main_screen) = &mut self.component {
+            main_screen.on_tick();
+        };
+    }
 }
 
 impl Home {

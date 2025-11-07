@@ -12,7 +12,10 @@ use crate::{
         useraction::{Global, UserAction},
         Action,
     },
-    components::{lib::centered::Centered, traits::component::Component},
+    components::{
+        lib::centered::Centered,
+        traits::{component::Component, ontick::OnTick},
+    },
     config::Config,
 };
 use color_eyre::Result;
@@ -36,21 +39,7 @@ pub struct BPMToy {
     init_msg: String,
 }
 
-impl BPMToy {
-    pub fn new(config: Config) -> Self {
-        let keys = config
-            .keybindings
-            .find_action_str(Action::User(UserAction::Global(Global::TapToBPM)), None);
-        let msg = match keys {
-            Some(t) => format!("Tap {} for BPM", t),
-            None => "Tap to BPM not bound!".to_string(),
-        };
-
-        Self {
-            init_msg: msg.clone(),
-            state: State::Init(Centered::new(vec![msg])),
-        }
-    }
+impl OnTick for BPMToy {
     fn on_tick(&mut self) {
         match self.state {
             State::NeedToTapMore { last_tap, comp: _ } => {
@@ -73,6 +62,23 @@ impl BPMToy {
             }
             _ => {}
         };
+    }
+}
+
+impl BPMToy {
+    pub fn new(config: Config) -> Self {
+        let keys = config
+            .keybindings
+            .find_action_str(Action::User(UserAction::Global(Global::TapToBPM)), None);
+        let msg = match keys {
+            Some(t) => format!("Tap {} for BPM", t),
+            None => "Tap to BPM not bound!".to_string(),
+        };
+
+        Self {
+            init_msg: msg.clone(),
+            state: State::Init(Centered::new(vec![msg])),
+        }
     }
 }
 
@@ -139,9 +145,6 @@ impl Component for BPMToy {
                     }
                 }
             };
-            Ok(None)
-        } else if Action::Tick == action {
-            self.on_tick();
             Ok(None)
         } else {
             Ok(None)

@@ -14,7 +14,7 @@ use crate::{
     compid::CompID,
     components::{
         home::mainscreen::{bpmtoy::BPMToy, tasks::Tasks},
-        traits::{component::Component, focusable::Focusable},
+        traits::{component::Component, focusable::Focusable, ontick::OnTick},
     },
     config::Config,
     queryworker::{highlevelquery::HighLevelQuery, query::ToQueryWorker},
@@ -50,6 +50,12 @@ pub struct MainScreen {
     message: String,
     key_stack: Vec<String>,
     current_mode: Mode,
+}
+
+impl OnTick for MainScreen {
+    fn on_tick(&mut self) {
+        self.bpmtoy.on_tick();
+    }
 }
 
 impl MainScreen {

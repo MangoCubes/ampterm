@@ -186,18 +186,40 @@ impl Component for Loaded {
                 },
                 UserAction::Normal(a) => match a {
                     Normal::ToggleStar => {
-                        let Some(idx) = self.table.get_current() else {
-                            return Ok(None);
-                        };
-                        let Some(media) = self.playlist.entry.get(idx) else {
-                            return Ok(None);
-                        };
-                        Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
-                            HighLevelQuery::SetStar {
-                                media: media.id.clone(),
-                                star: media.starred.is_none(),
-                            },
-                        ))))
+                        let selection = self.table.get_current_selection();
+                        let targets: Vec<Action> = selection
+                            .into_iter()
+                            .enumerate()
+                            .filter_map(|(idx, include)| {
+                                if *include {
+                                    self.playlist.entry.get(idx)
+                                } else {
+                                    None
+                                }
+                            })
+                            .map(|m| {
+                                Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::SetStar {
+                                    media: m.id.clone(),
+                                    star: m.starred == None,
+                                }))
+                            })
+                            .collect();
+                        if targets.len() == 0 {
+                            let Some(idx) = self.table.get_current() else {
+                                return Ok(None);
+                            };
+                            let Some(media) = self.playlist.entry.get(idx) else {
+                                return Ok(None);
+                            };
+                            Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
+                                HighLevelQuery::SetStar {
+                                    media: media.id.clone(),
+                                    star: media.starred.is_none(),
+                                },
+                            ))))
+                        } else {
+                            Ok(Some(Action::Multiple(targets)))
+                        }
                     }
                     Normal::Add(queue_location) => Ok(self.add_selection_to_queue(queue_location)),
                     _ => self.table.update(Action::User(UserAction::Normal(a))),

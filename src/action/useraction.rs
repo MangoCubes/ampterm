@@ -53,23 +53,31 @@ pub enum Common {
     Refresh,
     ResetState,
     Help,
+    // Add to the queue
+    Add(QueueLocation),
 }
 
 impl ToString for Common {
     fn to_string(&self) -> String {
         match self {
-            Common::Up => "Move up".to_string(),
-            Common::Down => "Move down".to_string(),
-            Common::Left => "Move left".to_string(),
-            Common::Right => "Move right".to_string(),
-            Common::Confirm => "Confirm selection".to_string(),
-            Common::Cancel => "Cancel action".to_string(),
-            Common::Top => "Go to top".to_string(),
-            Common::Bottom => "Go to bottom".to_string(),
-            Common::Refresh => "Refresh content".to_string(),
-            Common::ResetState => "Reset to default state".to_string(),
-            Common::Help => "Display help".to_string(),
+            Common::Up => "Move up",
+            Common::Down => "Move down",
+            Common::Left => "Move left",
+            Common::Right => "Move right",
+            Common::Confirm => "Confirm selection",
+            Common::Cancel => "Cancel action",
+            Common::Top => "Go to top",
+            Common::Bottom => "Go to bottom",
+            Common::Refresh => "Refresh content",
+            Common::ResetState => "Reset to default state",
+            Common::Help => "Display help",
+            Common::Add(l) => match l {
+                QueueLocation::Front => "Play items",
+                QueueLocation::Next => "Play items next",
+                QueueLocation::Last => "Add items to the end of queue",
+            },
         }
+        .to_string()
     }
 }
 
@@ -80,8 +88,6 @@ pub enum Visual {
     ExitSave,
     // Exit visual mode after discarding changes
     ExitDiscard,
-    // Add current selection to the queue, and discards the changes
-    Add(QueueLocation),
     // Delete a temporarily selected region, exiting visual mode
     Delete,
 }
@@ -91,7 +97,6 @@ impl ToString for Visual {
         match self {
             Visual::ExitSave => "Exit visual mode, saving selection".to_string(),
             Visual::ExitDiscard => "Exit visual mode, discarding selection".to_string(),
-            Visual::Add(_) => "Add selected elements".to_string(),
             Visual::Delete => "Delete selected elements".to_string(),
         }
     }
@@ -109,8 +114,6 @@ pub enum Normal {
     SelectMode,
     // Enter visual mode to deselect items
     DeselectMode,
-    // Add to the queue
-    Add(QueueLocation),
     // Delete a selected region
     Delete,
     // Adds/removes a song from favourites
@@ -126,7 +129,6 @@ impl ToString for Normal {
             Normal::WindowRight => "Move window right",
             Normal::SelectMode => "Enter visual mode (select)",
             Normal::DeselectMode => "Enter visual mode (deselect)",
-            Normal::Add(_) => "Add to queue",
             Normal::Delete => "Delete selected items",
             Normal::ToggleStar => "Toggle favourite",
         }

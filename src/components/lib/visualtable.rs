@@ -134,6 +134,9 @@ impl Component for VisualTable {
 }
 
 impl VisualTable {
+    pub fn in_visual_mode(&self) -> bool {
+        matches!(self.mode, VisualMode::Off)
+    }
     /// Set all the rows with a new set of rows
     pub fn set_rows(&mut self, rows: Vec<Row<'static>>) {
         self.rows = rows;

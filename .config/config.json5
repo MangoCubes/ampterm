@@ -2,14 +2,6 @@
   "keybindings": {
     // In visual mode, these keybindings are used
     "Visual": {
-	  // These are similar to Normal's playlist manipulation binding
-	  // But these work on temporarily selected items and exits the visual mode, and does not update the overall selection
-	  // Additionally, these do not take previous selections into consideration
-	  "<i>": { User: { Visual: { Add: "Front" } } },
-	  "<Shift-i>": { User: { Visual: { Add: "Front" } } },
-	  "<a>": { User: { Visual: { Add: "Next" } } },
-	  "<Shift-a>": { User: { Visual: { Add: "Last" } } },
-
 	  "<Esc>": { User: { Visual: "ExitDiscard" } },
 	  // All 3 can be used to exit visual mode whilst confirming the selection
 	  "<v>": { User: { Visual: "ExitSave" } },
@@ -31,16 +23,7 @@
 	  "<Ctrl-w><k>": { User: { Normal: "WindowUp" } },
 	  "<Ctrl-w><j>": { User: { Normal: "WindowDown" } },
 
-	  // Playlist manipulation
-	  // Note that both i and Shift+i are mapped to the same key
-	  "<i>": { User: { Normal: { Add: "Front" } } },
-	  "<Shift-i>": { User: { Normal: { Add: "Front" } } },
-	  "<a>": { User: { Normal: { Add: "Next" } } },
-	  "<d>": { User: { Normal: "Delete" } },
-	  "<Shift-a>": { User: { Normal: { Add: "Last" } } },
-
   	  "<Shift-f>": { User: { Normal: "ToggleStar" } },
-
 
 	  // Visual mode entry
 	  "<v>": { User: { Normal: "SelectMode" } },
@@ -80,6 +63,14 @@
 	  "<Shift-r>": { User: { Common: "Refresh" } },
 	  "<Enter>": { User: { Common: "Confirm" } },
 	  "<q>": { User: { Common: "Cancel" } },
+
+	  // Playlist manipulation
+	  // Note that both i and Shift+i are mapped to the same key
+	  "<i>": { User: { Common: { Add: "Front" } } },
+	  "<Shift-i>": { User: { Common: { Add: "Front" } } },
+	  "<a>": { User: { Common: { Add: "Next" } } },
+	  "<d>": { User: { Normal: "Delete" } },
+	  "<Shift-a>": { User: { Common: { Add: "Last" } } },
 
 	  // Global actions
 	  "<Esc>": { User: { Global: "EndKeySeq" } },

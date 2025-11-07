@@ -126,6 +126,7 @@ impl Component for Loaded {
             }
             Action::User(UserAction::Common(local)) => {
                 match local {
+                    Common::Add(pos) => Ok(self.add_to_queue(pos)),
                     Common::Up => {
                         self.state.select_previous();
                         Ok(None)
@@ -145,13 +146,6 @@ impl Component for Loaded {
                     }
                     // TODO: Add horizontal text scrolling
                     _ => Ok(None),
-                }
-            }
-            Action::User(UserAction::Normal(normal)) => {
-                if let Normal::Add(pos) = normal {
-                    Ok(self.add_to_queue(pos))
-                } else {
-                    Ok(None)
                 }
             }
             _ => Ok(None),

@@ -176,6 +176,24 @@ impl Component for Loaded {
         if let Action::User(ua) = action {
             match ua {
                 UserAction::Common(a) => match a {
+                    Common::Add(pos) => match self.table.in_visual_mode() {
+                        true => {
+                            if let Some(range) = self.table.get_temp_range() {
+                                let temp_action = self.add_temp_items_to_queue(range, pos);
+                                if let Some(a) = temp_action {
+                                    Ok(Some(Action::Multiple(vec![
+                                        a,
+                                        Action::ChangeMode(Mode::Normal),
+                                    ])))
+                                } else {
+                                    Ok(Some(Action::ChangeMode(Mode::Normal)))
+                                }
+                            } else {
+                                Ok(None)
+                            }
+                        }
+                        false => Ok(self.add_selection_to_queue(pos)),
+                    },
                     Common::Refresh => Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
                         HighLevelQuery::SelectPlaylist(GetPlaylistParams {
                             name: self.name.to_string(),
@@ -221,27 +239,9 @@ impl Component for Loaded {
                             Ok(Some(Action::Multiple(targets)))
                         }
                     }
-                    Normal::Add(queue_location) => Ok(self.add_selection_to_queue(queue_location)),
                     _ => self.table.update(Action::User(UserAction::Normal(a))),
                 },
-                UserAction::Visual(a) => match a {
-                    Visual::Add(queue_location) => {
-                        if let Some(range) = self.table.get_temp_range() {
-                            let temp_action = self.add_temp_items_to_queue(range, queue_location);
-                            if let Some(a) = temp_action {
-                                Ok(Some(Action::Multiple(vec![
-                                    a,
-                                    Action::ChangeMode(Mode::Normal),
-                                ])))
-                            } else {
-                                Ok(Some(Action::ChangeMode(Mode::Normal)))
-                            }
-                        } else {
-                            Ok(None)
-                        }
-                    }
-                    _ => self.table.update(Action::User(UserAction::Visual(a))),
-                },
+                UserAction::Visual(a) => self.table.update(Action::User(UserAction::Visual(a))),
                 _ => Ok(None),
             }
         } else {

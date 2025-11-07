@@ -85,7 +85,6 @@ pub enum Action {
     // Anything below this should not be used for keybinds, but feel free to experiment. Most are used to notify the system
     // System actions
     Resize(u16, u16),
-    Error(String),
     Multiple(Vec<Action>),
     // This action is fired from the components to the app
     ChangeMode(Mode),

@@ -210,9 +210,7 @@ impl App {
     fn render(&mut self, tui: &mut Tui) -> Result<()> {
         tui.draw(|frame| {
             if let Err(err) = self.component.draw(frame, frame.area()) {
-                let _ = self
-                    .action_tx
-                    .send(Action::Error(format!("Failed to draw: {:?}", err)));
+                panic!("Failed to draw: {:?}", err);
             }
         })?;
         Ok(())

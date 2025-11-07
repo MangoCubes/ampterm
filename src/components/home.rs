@@ -13,7 +13,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use crate::{
     action::Action,
     components::traits::component::Component,
-    config::{get_config_dir, Config},
+    config::Config,
     queryworker::{
         highlevelquery::HighLevelQuery,
         query::{setcredential::Credential, ResponseType, ToQueryWorker},
@@ -76,7 +76,7 @@ impl Home {
                 let (comp, action) = Login::new(
                     Some(vec![
                         "No credentials detected in the config.".to_string(),
-                        format!("(Loaded config from {:?})", get_config_dir()),
+                        format!("(Loaded config from {:?})", Config::get_config_dir()),
                     ]),
                     config.clone(),
                 );

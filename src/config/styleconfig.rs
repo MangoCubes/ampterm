@@ -1,0 +1,108 @@
+use ratatui::style::{Color, Modifier, Style};
+
+pub struct StyleConfig {}
+
+impl StyleConfig {
+    pub fn parse_style(line: &str) -> Style {
+        let (foreground, background) =
+            line.split_at(line.to_lowercase().find("on ").unwrap_or(line.len()));
+        let foreground = Self::process_color_string(foreground);
+        let background = Self::process_color_string(&background.replace("on ", ""));
+
+        let mut style = Style::default();
+        if let Some(fg) = Self::parse_color(&foreground.0) {
+            style = style.fg(fg);
+        }
+        if let Some(bg) = Self::parse_color(&background.0) {
+            style = style.bg(bg);
+        }
+        style = style.add_modifier(foreground.1 | background.1);
+        style
+    }
+
+    pub fn process_color_string(color_str: &str) -> (String, Modifier) {
+        let color = color_str
+            .replace("grey", "gray")
+            .replace("bright ", "")
+            .replace("bold ", "")
+            .replace("underline ", "")
+            .replace("inverse ", "");
+
+        let mut modifiers = Modifier::empty();
+        if color_str.contains("underline") {
+            modifiers |= Modifier::UNDERLINED;
+        }
+        if color_str.contains("bold") {
+            modifiers |= Modifier::BOLD;
+        }
+        if color_str.contains("inverse") {
+            modifiers |= Modifier::REVERSED;
+        }
+
+        (color, modifiers)
+    }
+    pub fn parse_color(s: &str) -> Option<Color> {
+        let s = s.trim_start();
+        let s = s.trim_end();
+        if s.contains("bright color") {
+            let s = s.trim_start_matches("bright ");
+            let c = s
+                .trim_start_matches("color")
+                .parse::<u8>()
+                .unwrap_or_default();
+            Some(Color::Indexed(c.wrapping_shl(8)))
+        } else if s.contains("color") {
+            let c = s
+                .trim_start_matches("color")
+                .parse::<u8>()
+                .unwrap_or_default();
+            Some(Color::Indexed(c))
+        } else if s.contains("gray") {
+            let c = 232
+                + s.trim_start_matches("gray")
+                    .parse::<u8>()
+                    .unwrap_or_default();
+            Some(Color::Indexed(c))
+        } else if s.contains("rgb") {
+            let red = (s.as_bytes()[3] as char).to_digit(10).unwrap_or_default() as u8;
+            let green = (s.as_bytes()[4] as char).to_digit(10).unwrap_or_default() as u8;
+            let blue = (s.as_bytes()[5] as char).to_digit(10).unwrap_or_default() as u8;
+            let c = 16 + red * 36 + green * 6 + blue;
+            Some(Color::Indexed(c))
+        } else if s == "bold black" {
+            Some(Color::Indexed(8))
+        } else if s == "bold red" {
+            Some(Color::Indexed(9))
+        } else if s == "bold green" {
+            Some(Color::Indexed(10))
+        } else if s == "bold yellow" {
+            Some(Color::Indexed(11))
+        } else if s == "bold blue" {
+            Some(Color::Indexed(12))
+        } else if s == "bold magenta" {
+            Some(Color::Indexed(13))
+        } else if s == "bold cyan" {
+            Some(Color::Indexed(14))
+        } else if s == "bold white" {
+            Some(Color::Indexed(15))
+        } else if s == "black" {
+            Some(Color::Indexed(0))
+        } else if s == "red" {
+            Some(Color::Indexed(1))
+        } else if s == "green" {
+            Some(Color::Indexed(2))
+        } else if s == "yellow" {
+            Some(Color::Indexed(3))
+        } else if s == "blue" {
+            Some(Color::Indexed(4))
+        } else if s == "magenta" {
+            Some(Color::Indexed(5))
+        } else if s == "cyan" {
+            Some(Color::Indexed(6))
+        } else if s == "white" {
+            Some(Color::Indexed(7))
+        } else {
+            None
+        }
+    }
+}

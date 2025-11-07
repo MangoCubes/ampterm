@@ -32,17 +32,74 @@ impl<'de> Deserialize<'de> for KeyBindings {
 }
 
 impl KeyBindings {
+    pub fn key_event_to_string(key_event: &KeyEvent) -> String {
+        let char;
+        let key_code = match key_event.code {
+            KeyCode::Backspace => "backspace",
+            KeyCode::Enter => "enter",
+            KeyCode::Left => "left",
+            KeyCode::Right => "right",
+            KeyCode::Up => "up",
+            KeyCode::Down => "down",
+            KeyCode::Home => "home",
+            KeyCode::End => "end",
+            KeyCode::PageUp => "pageup",
+            KeyCode::PageDown => "pagedown",
+            KeyCode::Tab => "tab",
+            KeyCode::BackTab => "backtab",
+            KeyCode::Delete => "delete",
+            KeyCode::Insert => "insert",
+            KeyCode::F(c) => {
+                char = format!("f({c})");
+                &char
+            }
+            KeyCode::Char(' ') => "space",
+            KeyCode::Char(c) => {
+                char = c.to_string();
+                &char
+            }
+            KeyCode::Esc => "esc",
+            KeyCode::Null => "",
+            KeyCode::CapsLock => "",
+            KeyCode::Menu => "",
+            KeyCode::ScrollLock => "",
+            KeyCode::Media(_) => "",
+            KeyCode::NumLock => "",
+            KeyCode::PrintScreen => "",
+            KeyCode::Pause => "",
+            KeyCode::KeypadBegin => "",
+            KeyCode::Modifier(_) => "",
+        };
+
+        let mut modifiers = Vec::with_capacity(3);
+
+        if key_event.modifiers.intersects(KeyModifiers::CONTROL) {
+            modifiers.push("ctrl");
+        }
+
+        if key_event.modifiers.intersects(KeyModifiers::SHIFT) {
+            modifiers.push("shift");
+        }
+
+        if key_event.modifiers.intersects(KeyModifiers::ALT) {
+            modifiers.push("alt");
+        }
+
+        let mut key = modifiers.join("-");
+
+        if !key.is_empty() {
+            key.push('-');
+        }
+        key.push_str(key_code);
+
+        key
+    }
+
     pub fn find_action_str(&self, action: Action, mode: Option<Mode>) -> Option<String> {
         let strs: Vec<String> = self
             .find_action(action, mode)?
             .into_iter()
-            .map(|k| {
-                if k.modifiers == KeyModifiers::NONE {
-                    format!("<{}>", k.code)
-                } else {
-                    format!("<{}+{}>", k.modifiers, k.code)
-                }
-            })
+            .map(|k| Self::key_event_to_string(&k))
             .collect();
         Some(strs.join(""))
     }

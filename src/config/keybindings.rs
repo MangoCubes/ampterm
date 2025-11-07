@@ -35,37 +35,37 @@ impl KeyBindings {
     pub fn key_event_to_string(key_event: &KeyEvent) -> String {
         let char;
         let key_code = match key_event.code {
-            KeyCode::Backspace => "backspace",
-            KeyCode::Enter => "enter",
-            KeyCode::Left => "left",
-            KeyCode::Right => "right",
-            KeyCode::Up => "up",
-            KeyCode::Down => "down",
-            KeyCode::Home => "home",
-            KeyCode::End => "end",
-            KeyCode::PageUp => "pageup",
-            KeyCode::PageDown => "pagedown",
-            KeyCode::Tab => "tab",
-            KeyCode::BackTab => "backtab",
-            KeyCode::Delete => "delete",
-            KeyCode::Insert => "insert",
+            KeyCode::Backspace => "Backspace",
+            KeyCode::Enter => "Enter",
+            KeyCode::Left => "Left",
+            KeyCode::Right => "Right",
+            KeyCode::Up => "Up",
+            KeyCode::Down => "Down",
+            KeyCode::Home => "Home",
+            KeyCode::End => "End",
+            KeyCode::PageUp => "PageUp",
+            KeyCode::PageDown => "PageDown",
+            KeyCode::Tab => "Tab",
+            KeyCode::BackTab => "Backtab",
+            KeyCode::Delete => "Delete",
+            KeyCode::Insert => "Insert",
             KeyCode::F(c) => {
                 char = format!("f({c})");
                 &char
             }
-            KeyCode::Char(' ') => "space",
+            KeyCode::Char(' ') => "Space",
             KeyCode::Char(c) => {
                 char = c.to_string();
                 &char
             }
-            KeyCode::Esc => "esc",
+            KeyCode::Esc => "Esc",
             KeyCode::Null => "",
-            KeyCode::CapsLock => "",
-            KeyCode::Menu => "",
-            KeyCode::ScrollLock => "",
-            KeyCode::Media(_) => "",
-            KeyCode::NumLock => "",
-            KeyCode::PrintScreen => "",
+            KeyCode::CapsLock => "CapsLock",
+            KeyCode::Menu => "Menu",
+            KeyCode::ScrollLock => "ScrLk",
+            KeyCode::Media(k) => &k.to_string(),
+            KeyCode::NumLock => "NumLk",
+            KeyCode::PrintScreen => "PrntSc",
             KeyCode::Pause => "",
             KeyCode::KeypadBegin => "",
             KeyCode::Modifier(_) => "",

@@ -88,7 +88,13 @@ impl Loaded {
     pub fn gen_rows(items: &Vec<Media>) -> Vec<Row<'static>> {
         items
             .iter()
-            .map(|item| Row::new(vec![item.title.clone(), item.get_fav_marker()]))
+            .map(|item| {
+                Row::new(vec![
+                    item.artist.clone().unwrap_or("Unknown".to_string()),
+                    item.title.clone(),
+                    item.get_fav_marker(),
+                ])
+            })
             .collect()
     }
 
@@ -101,7 +107,12 @@ impl Loaded {
         let rows = Self::gen_rows(&list.entry);
         let table = VisualTable::new(
             rows,
-            [Constraint::Min(0), Constraint::Max(1)].to_vec(),
+            [
+                Constraint::Ratio(1, 3),
+                Constraint::Ratio(2, 3),
+                Constraint::Min(1),
+            ]
+            .to_vec(),
             table_proc,
         );
         let mut tablestate = TableState::default();

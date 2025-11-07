@@ -93,9 +93,9 @@
   // This may be necessary if you are using servers like Ampache, which does not support token-based authentication yet
   "use_legacy_auth": false,
   "auth": {
-    "url_command": "",
-    "username_command": "",
-    "password_command": "",
+    "url": "echo URL",
+    "username": "echo USERNAME",
+    "password": "echo PASSWORD",
   },
   "unsafe_auth": {
     "url": "",

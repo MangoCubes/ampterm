@@ -2,6 +2,11 @@ mod loading;
 mod login;
 mod mainscreen;
 
+use std::{
+    io,
+    process::{Command, Stdio},
+};
+
 use color_eyre::Result;
 use crossterm::event::KeyEvent;
 use loading::Loading;
@@ -45,13 +50,30 @@ impl Home {
     pub fn new(action_tx: UnboundedSender<Action>, config: Config) -> (Self, Vec<Action>) {
         let auth = config.clone().auth;
         let config_creds = if let Some(creds) = auth {
-            Some(Credential::Password {
-                url: todo!(),
-                secure: todo!(),
-                username: todo!(),
-                password: todo!(),
-                legacy: todo!(),
-            })
+            fn run_cmd(cmd: &String) -> Result<String> {
+                let exec = Command::new("sh").arg("-c").arg(cmd).output()?;
+                let stdout = String::from_utf8_lossy(&exec.stdout);
+                Ok(stdout.trim().to_string())
+            }
+            if let Ok(url) = run_cmd(&creds.url) {
+                if let Ok(username) = run_cmd(&creds.username) {
+                    if let Ok(password) = run_cmd(&creds.password) {
+                        Some(Credential::Password {
+                            url,
+                            secure: true,
+                            username,
+                            password,
+                            legacy: config.config.use_legacy_auth,
+                        })
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
         } else {
             match config.clone().unsafe_auth {
                 Some(unsafe_creds) => Some(Credential::Password {

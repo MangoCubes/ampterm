@@ -35,54 +35,57 @@ impl KeyBindings {
     pub fn key_event_to_string(key_event: &KeyEvent) -> String {
         let char;
         let key_code = match key_event.code {
-            KeyCode::Backspace => "backspace",
-            KeyCode::Enter => "enter",
-            KeyCode::Left => "left",
-            KeyCode::Right => "right",
-            KeyCode::Up => "up",
-            KeyCode::Down => "down",
-            KeyCode::Home => "home",
-            KeyCode::End => "end",
-            KeyCode::PageUp => "pageup",
-            KeyCode::PageDown => "pagedown",
-            KeyCode::Tab => "tab",
-            KeyCode::BackTab => "backtab",
-            KeyCode::Delete => "delete",
-            KeyCode::Insert => "insert",
+            KeyCode::Backspace => "Backspace",
+            KeyCode::Enter => "Enter",
+            KeyCode::Left => "Left",
+            KeyCode::Right => "Right",
+            KeyCode::Up => "Up",
+            KeyCode::Down => "Down",
+            KeyCode::Home => "Home",
+            KeyCode::End => "End",
+            KeyCode::PageUp => "PageUp",
+            KeyCode::PageDown => "PageDown",
+            KeyCode::Tab => "Tab",
+            KeyCode::BackTab => "Backtab",
+            KeyCode::Delete => "Delete",
+            KeyCode::Insert => "Insert",
             KeyCode::F(c) => {
                 char = format!("f({c})");
                 &char
             }
-            KeyCode::Char(' ') => "space",
+            KeyCode::Char(' ') => "Space",
             KeyCode::Char(c) => {
                 char = c.to_string();
                 &char
             }
-            KeyCode::Esc => "esc",
+            KeyCode::Esc => "Esc",
             KeyCode::Null => "",
-            KeyCode::CapsLock => "",
-            KeyCode::Menu => "",
-            KeyCode::ScrollLock => "",
-            KeyCode::Media(_) => "",
-            KeyCode::NumLock => "",
-            KeyCode::PrintScreen => "",
-            KeyCode::Pause => "",
-            KeyCode::KeypadBegin => "",
+            KeyCode::CapsLock => "CapsLock",
+            KeyCode::Menu => "Menu",
+            KeyCode::ScrollLock => "ScrLk",
+            KeyCode::Media(k) => {
+                char = k.to_string();
+                &char
+            }
+            KeyCode::NumLock => "NumLk",
+            KeyCode::PrintScreen => "PrtSc",
+            KeyCode::Pause => "Pause",
+            KeyCode::KeypadBegin => "KpBeg",
             KeyCode::Modifier(_) => "",
         };
 
         let mut modifiers = Vec::with_capacity(3);
 
         if key_event.modifiers.intersects(KeyModifiers::CONTROL) {
-            modifiers.push("ctrl");
+            modifiers.push("Ctrl");
         }
 
         if key_event.modifiers.intersects(KeyModifiers::SHIFT) {
-            modifiers.push("shift");
+            modifiers.push("Shift");
         }
 
         if key_event.modifiers.intersects(KeyModifiers::ALT) {
-            modifiers.push("alt");
+            modifiers.push("Alt");
         }
 
         let mut key = modifiers.join("-");
@@ -101,7 +104,7 @@ impl KeyBindings {
             .into_iter()
             .map(|k| Self::key_event_to_string(&k))
             .collect();
-        Some(strs.join(""))
+        Some(format!("<{}>", strs.join("")))
     }
     pub fn find_action(&self, action: Action, mode: Option<Mode>) -> Option<Vec<KeyEvent>> {
         let find_from = match mode {

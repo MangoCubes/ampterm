@@ -95,6 +95,10 @@ impl Component for VisualTable {
                             self.select_last();
                             Ok(None)
                         }
+                        Common::ResetState => {
+                            self.reset();
+                            Ok(None)
+                        }
                         _ => Ok(None),
                     },
 

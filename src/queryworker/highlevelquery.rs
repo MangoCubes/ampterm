@@ -54,7 +54,7 @@ impl HighLevelQuery {
             HighLevelQuery::SetStar { media: _, star: _ } => {
                 vec![CompID::PlaylistQueue, CompID::PlayQueue]
             }
-            HighLevelQuery::GetLyrics(_) => todo!(),
+            HighLevelQuery::GetLyrics(_) => vec![CompID::NowPlaying],
         }
     }
 

@@ -38,19 +38,19 @@ impl LyricsClient for LrcLib {
         url.set_path("api/search");
         url.query_pairs_mut()
             .append_pair("track_name", &params.track_name);
-        if let Some(an) = params.artist_name {
-            url.query_pairs_mut().append_pair("artist_name", &an);
-        }
-        if let Some(an) = params.album_name {
-            url.query_pairs_mut().append_pair("album_name", &an);
-        }
+        // if let Some(an) = params.artist_name {
+        //     url.query_pairs_mut().append_pair("artist_name", &an);
+        // }
+        // if let Some(an) = params.album_name {
+        //     url.query_pairs_mut().append_pair("album_name", &an);
+        // }
         let res = match self.client.request(Method::GET, url).send().await {
             Ok(res) => res,
             Err(err) => {
                 return Err(FailReason::Querying(err));
             }
         };
-        return match res.error_for_status() {
+        match res.error_for_status() {
             Ok(r) => {
                 let Ok(body) = r.text().await else {
                     return Err(FailReason::Text);
@@ -61,10 +61,19 @@ impl LyricsClient for LrcLib {
                 if data.len() == 0 {
                     return Ok(None);
                 }
-                let default = data[0].clone();
-                match data.into_iter().find(|item| !item.instrumental) {
-                    Some(hit) => Ok(Some(hit)),
-                    None => Ok(Some(default)),
+                let synced = data
+                    .iter()
+                    .find(|item| matches!(item.synced_lyrics, Some(_)));
+                if let Some(found) = synced {
+                    return Ok(Some(found.clone()));
+                }
+                let plain = data
+                    .iter()
+                    .find(|item| matches!(item.plain_lyrics, Some(_)));
+                if let Some(found) = plain {
+                    return Ok(Some(found.clone()));
+                } else {
+                    return Ok(None);
                 }
             }
             Err(status) => {

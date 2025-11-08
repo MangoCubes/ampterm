@@ -15,7 +15,7 @@ use stopped::Stopped;
 
 use crate::{
     action::{Action, FromPlayerWorker, StateType},
-    components::traits::{renderable::Renderable, simplecomp::SimpleComp},
+    components::traits::{fullcomp::FullComp, renderable::Renderable, simplecomp::SimpleComp},
 };
 
 enum Comp {
@@ -38,19 +38,27 @@ impl NowPlaying {
     }
 }
 
-impl SimpleComp for NowPlaying {
-    fn update(&mut self, action: Action) {
-        if let Action::FromPlayerWorker(FromPlayerWorker::StateChange(StateType::NowPlaying(
-            now_playing,
-        ))) = action
-        {
-            self.comp = match now_playing {
-                Some(n) => Comp::Playing(Playing::new(n.music, 0.0, 0.0, Duration::from_secs(0))),
-                None => Comp::Stopped(Stopped::new()),
-            };
-        } else {
-            if let Comp::Playing(comp) = &mut self.comp {
-                comp.update(action);
+impl FullComp for NowPlaying {
+    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+        match action {
+            Action::FromPlayerWorker(FromPlayerWorker::StateChange(StateType::NowPlaying(
+                now_playing,
+            ))) => match now_playing {
+                Some(n) => {
+                    let (comp, action) = Playing::new(n.music, 0.0, 0.0, Duration::from_secs(0));
+                    self.comp = Comp::Playing(comp);
+                    Ok(Some(action))
+                }
+                None => {
+                    self.comp = Comp::Stopped(Stopped::new());
+                    Ok(None)
+                }
+            },
+            _ => {
+                if let Comp::Playing(comp) = &mut self.comp {
+                    comp.update(action);
+                }
+                Ok(None)
             }
         }
     }

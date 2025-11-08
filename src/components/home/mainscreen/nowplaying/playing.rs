@@ -1,51 +1,113 @@
+mod lyrics;
 use std::time::Duration;
 
 use crate::{
     action::{Action, FromPlayerWorker, StateType},
-    components::traits::{renderable::Renderable, simplecomp::SimpleComp},
+    components::{
+        home::mainscreen::nowplaying::playing::lyrics::Lyrics,
+        lib::centered::Centered,
+        traits::{renderable::Renderable, simplecomp::SimpleComp},
+    },
     helper::strings::trim_long_str,
+    lyricsclient::getlyrics::GetLyricsParams,
     osclient::response::getplaylist::Media,
+    queryworker::{
+        highlevelquery::HighLevelQuery,
+        query::{ResponseType, ToQueryWorker},
+    },
 };
 use color_eyre::Result;
 use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::Stylize,
     text::Line,
-    widgets::{Gauge, Paragraph, Wrap},
+    widgets::Gauge,
     Frame,
 };
+
+enum LyricsSpace {
+    Found(Lyrics),
+    Fetching(Centered),
+    NotFound(Centered),
+    Error(Centered),
+    Plain(Centered),
+}
 
 pub struct Playing {
     vol: f32,
     speed: f32,
     pos: Duration,
     music: Media,
+    lyrics: LyricsSpace,
 }
 
 impl Playing {
-    pub fn new(music: Media, vol: f32, speed: f32, pos: Duration) -> Self {
-        Self {
-            vol,
-            speed,
-            pos,
-            music,
-        }
+    pub fn new(music: Media, vol: f32, speed: f32, pos: Duration) -> (Self, Action) {
+        (
+            Self {
+                vol,
+                speed,
+                pos,
+                music: music.clone(),
+                lyrics: LyricsSpace::Fetching(Centered::new(vec![format!(
+                    "Searching for lyrics for {}...",
+                    music.title
+                )])),
+            },
+            Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::GetLyrics(
+                GetLyricsParams {
+                    track_name: music.title,
+                    artist_name: music.artist,
+                    album_name: music.album,
+                },
+            ))),
+        )
     }
 }
 
 impl SimpleComp for Playing {
     fn update(&mut self, action: Action) {
-        if let Action::FromPlayerWorker(FromPlayerWorker::StateChange(s)) = action {
+        if let Action::FromQueryWorker(res) = action {
+            if let ResponseType::GetLyrics(lyrics) = res.res {
+                self.lyrics = match lyrics {
+                    Ok(content) => match content {
+                        Some(found) => {
+                            if let Some(synced) = found.synced_lyrics {
+                                LyricsSpace::Found(Lyrics::new(synced))
+                            } else if let Some(plain) = found.plain_lyrics {
+                                LyricsSpace::Plain(Centered::new(vec![
+                                    "Lyrics does not have timestamp.".to_string(),
+                                ]))
+                            } else {
+                                LyricsSpace::NotFound(Centered::new(vec![
+                                    "Lyrics not found!".to_string()
+                                ]))
+                            }
+                        }
+                        None => LyricsSpace::NotFound(Centered::new(vec![
+                            "Lyrics not found!".to_string()
+                        ])),
+                    },
+                    Err(e) => LyricsSpace::Error(Centered::new(vec![format!(
+                        "Failed to find lyrics! Reason: {}",
+                        e
+                    )])),
+                }
+            }
+        } else if let Action::FromPlayerWorker(FromPlayerWorker::StateChange(s)) = &action {
             match s {
-                StateType::Position(pos) => self.pos = pos,
-                StateType::Volume(v) => self.vol = v,
-                StateType::Speed(s) => self.speed = s,
+                StateType::Position(pos) => self.pos = *pos,
+                StateType::Volume(v) => self.vol = *v,
+                StateType::Speed(s) => self.speed = *s,
                 StateType::Queue(_queue_change) => {}
                 StateType::NowPlaying(Some(now_playing)) => {
-                    self.music = now_playing.music;
+                    self.music = now_playing.music.clone();
                 }
                 _ => {}
             };
+            if let LyricsSpace::Found(l) = &mut self.lyrics {
+                l.update(action);
+            }
         }
     }
 }
@@ -55,6 +117,7 @@ impl Renderable for Playing {
         let vertical = Layout::vertical([
             Constraint::Max(1),
             Constraint::Max(1),
+            Constraint::Length(3),
             Constraint::Length(1),
         ]);
         let areas = vertical.split(area);
@@ -85,7 +148,7 @@ impl Renderable for Playing {
                     self.pos.as_secs() / 60,
                     self.pos.as_secs() % 60,
                 );
-                frame.render_widget(Line::raw(label), areas[2]);
+                frame.render_widget(Line::raw(label), areas[3]);
             } else {
                 let label = format!(
                     "{:02}:{:02} / {:02}:{:02}",
@@ -96,7 +159,7 @@ impl Renderable for Playing {
                 );
                 let percent = ((self.pos.as_secs() as i32 * 100) / len) as u16;
                 let adjusted = if percent > 100 { 100 } else { percent };
-                frame.render_widget(Gauge::default().label(label).percent(adjusted), areas[2]);
+                frame.render_widget(Gauge::default().label(label).percent(adjusted), areas[3]);
             }
         } else {
             let label = format!(
@@ -106,7 +169,12 @@ impl Renderable for Playing {
             );
             frame.render_widget(Line::raw(label), areas[1]);
         }
-
-        Ok(())
+        match &mut self.lyrics {
+            LyricsSpace::Found(lyrics) => lyrics.draw(frame, areas[2]),
+            LyricsSpace::Plain(lyrics) => todo!(),
+            LyricsSpace::Fetching(centered)
+            | LyricsSpace::NotFound(centered)
+            | LyricsSpace::Error(centered) => centered.draw(frame, areas[2]),
+        }
     }
 }

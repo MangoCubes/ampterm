@@ -7,7 +7,11 @@ use ratatui::{
 };
 
 use crate::{
-    action::{Action, FromPlayerWorker, QueueChange, StateType},
+    action::{
+        useraction::{Common, UserAction},
+        Action, FromPlayerWorker, QueueChange, StateType,
+    },
+    app::Mode,
     components::{
         home::mainscreen::playqueue::PlayQueue,
         lib::visualtable::VisualTable,
@@ -182,6 +186,71 @@ impl FullComp for Something {
                 }
                 Ok(None)
             }
+            Action::User(UserAction::Common(a)) => match a {
+                Common::Delete => todo!(),
+                Common::ToggleStar => {
+                    if let Some(range) = self.table.get_temp_range() {
+                        self.table.disable_visual_discard();
+                        if range.is_select {
+                            let slice = &self.list[range.start..=range.end];
+                            let mut actions: Vec<Action> = slice
+                                .into_iter()
+                                .map(|m| {
+                                    Action::ToQueryWorker(ToQueryWorker::new(
+                                        HighLevelQuery::SetStar {
+                                            media: m.id.clone(),
+                                            star: m.starred == None,
+                                        },
+                                    ))
+                                })
+                                .collect();
+                            actions.push(Action::ChangeMode(Mode::Normal));
+
+                            Ok(Some(Action::Multiple(actions)))
+                        } else {
+                            Ok(Some(Action::ChangeMode(Mode::Normal)))
+                        }
+                    } else {
+                        let selection = self.table.get_current_selection();
+                        let targets: Vec<Action> = selection
+                            .into_iter()
+                            .enumerate()
+                            .filter_map(
+                                |(idx, include)| {
+                                    if *include {
+                                        self.list.get(idx)
+                                    } else {
+                                        None
+                                    }
+                                },
+                            )
+                            .map(|m| {
+                                Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::SetStar {
+                                    media: m.id.clone(),
+                                    star: m.starred == None,
+                                }))
+                            })
+                            .collect();
+                        if targets.len() == 0 {
+                            let Some(idx) = self.table.get_current() else {
+                                return Ok(None);
+                            };
+                            let Some(media) = self.list.get(idx) else {
+                                return Ok(None);
+                            };
+                            Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
+                                HighLevelQuery::SetStar {
+                                    media: media.id.clone(),
+                                    star: media.starred.is_none(),
+                                },
+                            ))))
+                        } else {
+                            Ok(Some(Action::Multiple(targets)))
+                        }
+                    }
+                }
+                _ => self.table.update(Action::User(UserAction::Common(a))),
+            },
             _ => self.table.update(action),
         }
     }

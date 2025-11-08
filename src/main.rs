@@ -61,7 +61,7 @@ async fn main() -> Result<()> {
     let host = cpal::default_host();
     let device = host.default_output_device().unwrap();
     let default_config = device.default_output_config()?;
-    let (stream, handle) = rodio::OutputStream::try_from_device_config(
+    let (_stream, handle) = rodio::OutputStream::try_from_device_config(
         &device,
         SupportedStreamConfig::new(
             default_config.channels(),

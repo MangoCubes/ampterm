@@ -40,26 +40,26 @@ impl Renderable for Lyrics {
         let (prev, current, next) = self.lyrics.get_lyrics(self.current_time);
         frame.render_widget(
             Line::raw(if let Some(l) = prev {
-                l.lyric
+                format!("  {}", l.lyric)
             } else {
-                "𝆺𝅥𝅮𝆺𝅥𝅮𝆺𝅥𝅮𝆺𝅥𝅮".to_string()
+                "  𝆺𝅥𝅮𝆺𝅥𝅮𝆺𝅥𝅮𝆺𝅥𝅮".to_string()
             }),
             areas[0],
         );
         frame.render_widget(
             Line::raw(if let Some(l) = current {
-                l.lyric
+                format!("> {}", l.lyric)
             } else {
-                "𝆺𝅥𝅮𝆺𝅥𝅮𝆺𝅥𝅮𝆺𝅥𝅮".to_string()
+                "> 𝆺𝅥𝅮𝆺𝅥𝅮𝆺𝅥𝅮𝆺𝅥𝅮".to_string()
             })
             .bold(),
             areas[1],
         );
         frame.render_widget(
             Line::raw(if let Some(l) = next {
-                l.lyric
+                format!("  {}", l.lyric)
             } else {
-                "𝆺𝅥𝅮𝆺𝅥𝅮𝆺𝅥𝅮𝆺𝅥𝅮".to_string()
+                "  𝆺𝅥𝅮𝆺𝅥𝅮𝆺𝅥𝅮𝆺𝅥𝅮".to_string()
             }),
             areas[2],
         );

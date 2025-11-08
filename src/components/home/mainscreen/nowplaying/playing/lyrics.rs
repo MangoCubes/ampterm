@@ -1,10 +1,13 @@
 use std::time::Duration;
 
-use color_eyre::eyre::Result;
+use color_eyre::{
+    eyre::Result,
+    owo_colors::{colors::css::Grey, OwoColorize},
+};
 use ratatui::{
     layout::{Constraint, Layout},
     prelude::Rect,
-    style::Stylize,
+    style::{Color, Style, Stylize},
     text::Line,
     Frame,
 };
@@ -34,11 +37,32 @@ impl Renderable for Lyrics {
         let vertical =
             Layout::vertical([Constraint::Max(1), Constraint::Max(1), Constraint::Max(1)]);
         let areas = vertical.split(area);
-        if let Some(l) = self.lyrics.get_lyrics(self.current_time) {
-            frame.render_widget(Line::raw(l.lyric).bold(), areas[0]);
-        } else {
-            frame.render_widget(Line::raw("𝆺𝅥𝅮𝆺𝅥𝅮𝆺𝅥𝅮𝆺𝅥𝅮").bold(), areas[0]);
-        }
+        let (prev, current, next) = self.lyrics.get_lyrics(self.current_time);
+        frame.render_widget(
+            Line::raw(if let Some(l) = prev {
+                l.lyric
+            } else {
+                "𝆺𝅥𝅮𝆺𝅥𝅮𝆺𝅥𝅮𝆺𝅥𝅮".to_string()
+            }),
+            areas[0],
+        );
+        frame.render_widget(
+            Line::raw(if let Some(l) = current {
+                l.lyric
+            } else {
+                "𝆺𝅥𝅮𝆺𝅥𝅮𝆺𝅥𝅮𝆺𝅥𝅮".to_string()
+            })
+            .bold(),
+            areas[1],
+        );
+        frame.render_widget(
+            Line::raw(if let Some(l) = next {
+                l.lyric
+            } else {
+                "𝆺𝅥𝅮𝆺𝅥𝅮𝆺𝅥𝅮𝆺𝅥𝅮".to_string()
+            }),
+            areas[2],
+        );
         Ok(())
     }
 }

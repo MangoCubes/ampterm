@@ -72,14 +72,45 @@ impl ParsedLyrics {
         ParsedLyrics { lyrics }
     }
 
-    pub fn get_lyrics(&self, now: Duration) -> Option<LyricLine> {
-        for i in 1..self.lyrics.len() {
-            let current = self.lyrics.get(i - 1)?;
-            let next = self.lyrics.get(i)?;
-            if next.time >= now {
-                return Some(current.clone());
+    pub fn get_lyrics(
+        &self,
+        now: Duration,
+    ) -> (Option<LyricLine>, Option<LyricLine>, Option<LyricLine>) {
+        let len = self.lyrics.len();
+        // No lyrics
+        if len == 0 {
+            return (None, None, None);
+        }
+        let current = &self.lyrics[0];
+        // Before the first line
+        if current.time >= now {
+            return (None, None, Some(current.clone()));
+        } else {
+            // Edge case where there is only one lyric line
+            if len == 1 {
+                return (None, Some(current.clone()), None);
             }
         }
-        None
+        let next = &self.lyrics[1];
+        if next.time >= now {
+            return (None, Some(current.clone()), Some(next.clone()));
+        }
+
+        for i in 2..(len - 1) {
+            let prev = self.lyrics.get(i - 2);
+            let current = self.lyrics.get(i - 1);
+            let next = self
+                .lyrics
+                .get(i)
+                .expect("Lyrics for this index should exist, but for some reason it doesn't...");
+            if next.time >= now {
+                return (prev.cloned(), current.cloned(), Some(next.clone()));
+            }
+        }
+        (
+            self.lyrics.get(len - 2).cloned(),
+            self.lyrics.get(len - 1).cloned(),
+            None,
+        )
     }
 }

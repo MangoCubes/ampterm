@@ -1,13 +1,12 @@
 use color_eyre::Result;
 use crossterm::event::{KeyEvent, MouseEvent};
-use ratatui::{layout::Rect, Frame};
 
-use crate::{action::Action, tui::Event};
+use crate::{action::Action, components::traits::renderable::Renderable, tui::Event};
 /// `Component` is a trait that represents a visual and interactive element of the user interface.
 ///
 /// Implementors of this trait can be registered with the main application loop and will be able to
 /// receive events, update state, and be rendered on the screen.
-pub trait Component {
+pub trait FullComp: Renderable {
     /// Handle incoming events and produce actions if necessary.
     ///
     /// # Arguments
@@ -51,17 +50,6 @@ pub trait Component {
         let _ = mouse; // to appease clippy
         Ok(None)
     }
-    /// Render the component on the screen. (REQUIRED)
-    ///
-    /// # Arguments
-    ///
-    /// * `f` - A frame used for rendering.
-    /// * `area` - The area in which the component should be drawn.
-    ///
-    /// # Returns
-    ///
-    /// * `Result<()>` - An Ok result or an error.
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()>;
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         let _ = action; // to appease clippy
         Ok(None)

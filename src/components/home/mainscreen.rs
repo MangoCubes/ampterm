@@ -14,7 +14,10 @@ use crate::{
     compid::CompID,
     components::{
         home::mainscreen::{bpmtoy::BPMToy, tasks::Tasks},
-        traits::{component::Component, focusable::Focusable, ontick::OnTick},
+        traits::{
+            focusable::Focusable, fullcomp::FullComp, ontick::OnTick, renderable::Renderable,
+            simplecomp::SimpleComp,
+        },
     },
     config::Config,
     queryworker::{highlevelquery::HighLevelQuery, query::ToQueryWorker},
@@ -61,7 +64,8 @@ impl OnTick for MainScreen {
 impl MainScreen {
     fn propagate_to_focused_component(&mut self, action: Action) -> Result<Option<Action>> {
         if self.show_tasks {
-            self.tasks.update(action)
+            // self.tasks.update(action)
+            Ok(None)
         } else {
             match self.state {
                 CurrentlySelected::PlaylistList => self.pl_list.update(action),
@@ -101,19 +105,7 @@ impl MainScreen {
     }
 }
 
-impl Component for MainScreen {
-    fn handle_key_event(&mut self, key: KeyEvent) -> Result<Option<Action>> {
-        self.key_stack.push(format!(
-            "{}{}",
-            key.code.to_string(),
-            if key.modifiers == KeyModifiers::NONE {
-                ""
-            } else {
-                "+"
-            },
-        ));
-        Ok(None)
-    }
+impl Renderable for MainScreen {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let vertical = Layout::vertical([
             Constraint::Length(1),
@@ -154,8 +146,12 @@ impl Component for MainScreen {
         );
 
         frame.render_widget(
-            Paragraph::new(format!("Ampache {}", env!("CARGO_PKG_VERSION")))
-                .wrap(Wrap { trim: false }),
+            Paragraph::new(format!(
+                "Ampache {} | Tasks: {}",
+                env!("CARGO_PKG_VERSION"),
+                self.tasks.get_task_count()
+            ))
+            .wrap(Wrap { trim: false }),
             areas[0],
         );
         frame.render_widget(
@@ -168,6 +164,21 @@ impl Component for MainScreen {
         );
         Ok(())
     }
+}
+
+impl FullComp for MainScreen {
+    fn handle_key_event(&mut self, key: KeyEvent) -> Result<Option<Action>> {
+        self.key_stack.push(format!(
+            "{}{}",
+            key.code.to_string(),
+            if key.modifiers == KeyModifiers::NONE {
+                ""
+            } else {
+                "+"
+            },
+        ));
+        Ok(None)
+    }
 
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         if matches!(action, Action::User(_)) {
@@ -175,7 +186,10 @@ impl Component for MainScreen {
         };
         match &action {
             Action::FromPlayerWorker(pw) => match pw {
-                FromPlayerWorker::StateChange(_) => self.playqueue.update(action),
+                FromPlayerWorker::StateChange(_) => {
+                    self.now_playing.update(action.clone());
+                    self.playqueue.update(action)
+                }
                 FromPlayerWorker::Error(msg) | FromPlayerWorker::Message(msg) => {
                     self.message = msg.clone();
                     Ok(None)
@@ -208,7 +222,10 @@ impl Component for MainScreen {
                     _ => self.propagate_to_focused_component(action),
                 },
                 UserAction::Global(global) => match global {
-                    Global::TapToBPM => self.bpmtoy.update(action),
+                    Global::TapToBPM => {
+                        self.bpmtoy.update(action);
+                        Ok(None)
+                    }
                     Global::FocusPlaylistList => {
                         self.state = CurrentlySelected::PlaylistList;
                         self.update_focus();
@@ -277,13 +294,13 @@ impl Component for MainScreen {
                 Ok(Some(Action::Multiple(results)))
             }
             _ => {
+                self.now_playing.update(action.clone());
+                self.bpmtoy.update(action.clone());
                 let results: Vec<Action> = [
                     self.pl_list.update(action.clone())?,
                     self.pl_queue.update(action.clone())?,
-                    self.now_playing.update(action.clone())?,
-                    self.playqueue.update(action.clone())?,
-                    self.tasks.update(action.clone())?,
-                    self.bpmtoy.update(action)?,
+                    self.playqueue.update(action)?,
+                    // self.tasks.update(action.clone())?,
                 ]
                 .into_iter()
                 .filter_map(|a| a)

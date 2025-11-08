@@ -315,7 +315,7 @@ impl PlayerWorker {
             match event {
                 ToPlayerWorker::Stop => todo!(),
                 ToPlayerWorker::Pause => self.pause_stream(),
-                ToPlayerWorker::Continue => self.continue_stream(),
+                ToPlayerWorker::Resume => self.continue_stream(),
                 ToPlayerWorker::Kill => self.should_quit = true,
                 ToPlayerWorker::Skip => self.skip(1),
                 ToPlayerWorker::AddToQueue { music: items, pos } => {
@@ -387,6 +387,13 @@ impl PlayerWorker {
                     let _ = self.action_tx.send(Action::FromPlayerWorker(
                         FromPlayerWorker::StateChange(StateType::Volume(cleaned)),
                     ));
+                }
+                ToPlayerWorker::ResumeOrPause => {
+                    if self.sink.is_paused() {
+                        self.continue_stream();
+                    } else {
+                        self.pause_stream();
+                    }
                 }
             };
             if self.should_quit {

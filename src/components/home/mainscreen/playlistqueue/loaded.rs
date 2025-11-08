@@ -1,13 +1,13 @@
 use crate::{
     action::{
-        useraction::{Common, Normal, UserAction, Visual},
+        useraction::{Common, UserAction},
         Action,
     },
     app::Mode,
     components::{
         home::mainscreen::playlistqueue::PlaylistQueue,
         lib::visualtable::{TempSelection, VisualTable},
-        traits::{component::Component, focusable::Focusable},
+        traits::{focusable::Focusable, fullcomp::FullComp, renderable::Renderable},
     },
     osclient::response::getplaylist::{FullPlaylist, Media},
     playerworker::player::{QueueLocation, ToPlayerWorker},
@@ -88,7 +88,13 @@ impl Loaded {
     pub fn gen_rows(items: &Vec<Media>) -> Vec<Row<'static>> {
         items
             .iter()
-            .map(|item| Row::new(vec![item.title.clone(), item.get_fav_marker()]))
+            .map(|item| {
+                Row::new(vec![
+                    item.artist.clone().unwrap_or("Unknown".to_string()),
+                    item.title.clone(),
+                    item.get_fav_marker(),
+                ])
+            })
             .collect()
     }
 
@@ -101,7 +107,12 @@ impl Loaded {
         let rows = Self::gen_rows(&list.entry);
         let table = VisualTable::new(
             rows,
-            [Constraint::Min(0), Constraint::Max(1)].to_vec(),
+            [
+                Constraint::Ratio(1, 3),
+                Constraint::Ratio(2, 3),
+                Constraint::Min(1),
+            ]
+            .to_vec(),
             table_proc,
         );
         let mut tablestate = TableState::default();
@@ -139,7 +150,7 @@ impl Loaded {
     }
 }
 
-impl Component for Loaded {
+impl Renderable for Loaded {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let title = if let Some(pos) = self.table.get_current() {
             let len = self.playlist.entry.len();
@@ -161,40 +172,77 @@ impl Component for Loaded {
         frame.render_widget(border, area);
         self.table.draw(frame, inner)
     }
+}
+
+impl FullComp for Loaded {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         if let Action::User(ua) = action {
             match ua {
                 UserAction::Common(a) => match a {
-                    Common::Refresh => Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
-                        HighLevelQuery::SelectPlaylist(GetPlaylistParams {
-                            name: self.name.to_string(),
-                            id: self.playlist.id.clone(),
-                        }),
-                    )))),
-                    _ => self.table.update(Action::User(UserAction::Common(a))),
-                },
-                UserAction::Normal(a) => match a {
-                    Normal::ToggleStar => {
-                        let Some(idx) = self.table.get_current() else {
-                            return Ok(None);
-                        };
-                        let Some(media) = self.playlist.entry.get(idx) else {
-                            return Ok(None);
-                        };
-                        Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
-                            HighLevelQuery::SetStar {
-                                media: media.id.clone(),
-                                star: media.starred.is_none(),
-                            },
-                        ))))
-                    }
-                    Normal::Add(queue_location) => Ok(self.add_selection_to_queue(queue_location)),
-                    _ => self.table.update(Action::User(UserAction::Normal(a))),
-                },
-                UserAction::Visual(a) => match a {
-                    Visual::Add(queue_location) => {
+                    Common::ToggleStar => {
                         if let Some(range) = self.table.get_temp_range() {
-                            let temp_action = self.add_temp_items_to_queue(range, queue_location);
+                            self.table.disable_visual_discard();
+                            if range.is_select {
+                                let slice = &self.playlist.entry[range.start..=range.end];
+                                let mut actions: Vec<Action> = slice
+                                    .into_iter()
+                                    .map(|m| {
+                                        Action::ToQueryWorker(ToQueryWorker::new(
+                                            HighLevelQuery::SetStar {
+                                                media: m.id.clone(),
+                                                star: m.starred == None,
+                                            },
+                                        ))
+                                    })
+                                    .collect();
+                                actions.push(Action::ChangeMode(Mode::Normal));
+
+                                Ok(Some(Action::Multiple(actions)))
+                            } else {
+                                Ok(Some(Action::ChangeMode(Mode::Normal)))
+                            }
+                        } else {
+                            let selection = self.table.get_current_selection();
+                            let targets: Vec<Action> = selection
+                                .into_iter()
+                                .enumerate()
+                                .filter_map(|(idx, include)| {
+                                    if *include {
+                                        self.playlist.entry.get(idx)
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .map(|m| {
+                                    Action::ToQueryWorker(ToQueryWorker::new(
+                                        HighLevelQuery::SetStar {
+                                            media: m.id.clone(),
+                                            star: m.starred == None,
+                                        },
+                                    ))
+                                })
+                                .collect();
+                            if targets.len() == 0 {
+                                let Some(idx) = self.table.get_current() else {
+                                    return Ok(None);
+                                };
+                                let Some(media) = self.playlist.entry.get(idx) else {
+                                    return Ok(None);
+                                };
+                                Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
+                                    HighLevelQuery::SetStar {
+                                        media: media.id.clone(),
+                                        star: media.starred.is_none(),
+                                    },
+                                ))))
+                            } else {
+                                Ok(Some(Action::Multiple(targets)))
+                            }
+                        }
+                    }
+                    Common::Add(pos) => {
+                        if let Some(range) = self.table.get_temp_range() {
+                            let temp_action = self.add_temp_items_to_queue(range, pos);
                             if let Some(a) = temp_action {
                                 Ok(Some(Action::Multiple(vec![
                                     a,
@@ -204,11 +252,20 @@ impl Component for Loaded {
                                 Ok(Some(Action::ChangeMode(Mode::Normal)))
                             }
                         } else {
-                            Ok(None)
+                            Ok(self.add_selection_to_queue(pos))
                         }
                     }
-                    _ => self.table.update(Action::User(UserAction::Visual(a))),
+                    Common::Refresh => Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
+                        HighLevelQuery::SelectPlaylist(GetPlaylistParams {
+                            name: self.name.to_string(),
+                            id: self.playlist.id.clone(),
+                        }),
+                    )))),
+                    _ => self.table.update(Action::User(UserAction::Common(a))),
                 },
+                UserAction::Visual(_) | UserAction::Normal(_) => {
+                    self.table.update(Action::User(ua))
+                }
                 _ => Ok(None),
             }
         } else {

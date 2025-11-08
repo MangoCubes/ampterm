@@ -21,7 +21,9 @@ pub enum ToPlayerWorker {
     /// Stops the player, and preserves the progress for the current song.
     Pause,
     /// Resumes the player.
-    Continue,
+    Resume,
+    /// Pauses or resumes the player depending on the current playing state.
+    ResumeOrPause,
     /// Go to the previous song.
     Previous,
     /// Go to the start of the current song.

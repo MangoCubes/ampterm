@@ -15,7 +15,7 @@ use stopped::Stopped;
 
 use crate::{
     action::{Action, FromPlayerWorker, StateType},
-    components::traits::component::Component,
+    components::traits::{renderable::Renderable, simplecomp::SimpleComp},
 };
 
 enum Comp {
@@ -38,17 +38,8 @@ impl NowPlaying {
     }
 }
 
-impl Component for NowPlaying {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        let block = self.gen_block();
-        let inner = block.inner(area);
-        frame.render_widget(block, area);
-        match &mut self.comp {
-            Comp::Playing(playing) => playing.draw(frame, inner),
-            Comp::Stopped(stopped) => stopped.draw(frame, inner),
-        }
-    }
-    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+impl SimpleComp for NowPlaying {
+    fn update(&mut self, action: Action) {
         if let Action::FromPlayerWorker(FromPlayerWorker::StateChange(StateType::NowPlaying(
             now_playing,
         ))) = action
@@ -57,13 +48,22 @@ impl Component for NowPlaying {
                 Some(n) => Comp::Playing(Playing::new(n.music, 0.0, 0.0, Duration::from_secs(0))),
                 None => Comp::Stopped(Stopped::new()),
             };
-            Ok(None)
         } else {
             if let Comp::Playing(comp) = &mut self.comp {
-                comp.update(action)
-            } else {
-                Ok(None)
+                comp.update(action);
             }
+        }
+    }
+}
+
+impl Renderable for NowPlaying {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+        let block = self.gen_block();
+        let inner = block.inner(area);
+        frame.render_widget(block, area);
+        match &mut self.comp {
+            Comp::Playing(playing) => playing.draw(frame, inner),
+            Comp::Stopped(stopped) => stopped.draw(frame, inner),
         }
     }
 }

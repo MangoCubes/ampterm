@@ -13,7 +13,7 @@ use crate::{
         Action,
     },
     app::Mode,
-    components::traits::component::Component,
+    components::traits::{fullcomp::FullComp, renderable::Renderable},
 };
 
 /// Struct that contains the state of the current temporary selection
@@ -62,13 +62,15 @@ pub struct VisualTable {
     rows: Vec<Row<'static>>,
 }
 
-/// For consistency, do not use [`VisualTable::regen_table`] here
-impl Component for VisualTable {
+impl Renderable for VisualTable {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         frame.render_stateful_widget(&self.table, area, &mut self.tablestate);
         Ok(())
     }
+}
 
+/// For consistency, do not use [`VisualTable::regen_table`] here
+impl FullComp for VisualTable {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::User(ua) => {
@@ -95,6 +97,10 @@ impl Component for VisualTable {
                             self.select_last();
                             Ok(None)
                         }
+                        Common::ResetState => {
+                            self.reset();
+                            Ok(None)
+                        }
                         _ => Ok(None),
                     },
 
@@ -118,7 +124,6 @@ impl Component for VisualTable {
                             self.disable_visual_discard();
                             Ok(Some(Action::ChangeMode(Mode::Normal)))
                         }
-                        _ => Ok(None),
                     },
                     _ => Ok(None),
                 };
@@ -130,6 +135,10 @@ impl Component for VisualTable {
 }
 
 impl VisualTable {
+    /// Returns true if the table is currently in Visual mode (both select and unselect)
+    pub fn in_visual_mode(&self) -> bool {
+        matches!(self.mode, VisualMode::Off)
+    }
     /// Set all the rows with a new set of rows
     pub fn set_rows(&mut self, rows: Vec<Row<'static>>) {
         self.rows = rows;

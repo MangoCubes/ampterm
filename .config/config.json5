@@ -2,20 +2,11 @@
   "keybindings": {
     // In visual mode, these keybindings are used
     "Visual": {
-	  // These are similar to Normal's playlist manipulation binding
-	  // But these work on temporarily selected items and exits the visual mode, and does not update the overall selection
-	  // Additionally, these do not take previous selections into consideration
-	  "<i>": { User: { Visual: { Add: "Front" } } },
-	  "<Shift-i>": { User: { Visual: { Add: "Front" } } },
-	  "<a>": { User: { Visual: { Add: "Next" } } },
-	  "<Shift-a>": { User: { Visual: { Add: "Last" } } },
-
 	  "<Esc>": { User: { Visual: "ExitDiscard" } },
 	  // All 3 can be used to exit visual mode whilst confirming the selection
 	  "<v>": { User: { Visual: "ExitSave" } },
 	  "<Shift-v>": { User: { Visual: "ExitSave" } },
 	  "<Ctrl-v>": { User: { Visual: "ExitSave" } },
-	  "<d>": { User: { Visual: "Delete" } },
     },
 	// This keybinding is exclusive to normal mode.
 	"Normal": {
@@ -30,17 +21,6 @@
 	  "<Ctrl-w><l>": { User: { Normal: "WindowRight" } },
 	  "<Ctrl-w><k>": { User: { Normal: "WindowUp" } },
 	  "<Ctrl-w><j>": { User: { Normal: "WindowDown" } },
-
-	  // Playlist manipulation
-	  // Note that both i and Shift+i are mapped to the same key
-	  "<i>": { User: { Normal: { Add: "Front" } } },
-	  "<Shift-i>": { User: { Normal: { Add: "Front" } } },
-	  "<a>": { User: { Normal: { Add: "Next" } } },
-	  "<d>": { User: { Normal: "Delete" } },
-	  "<Shift-a>": { User: { Normal: { Add: "Last" } } },
-
-  	  "<Shift-f>": { User: { Normal: "ToggleStar" } },
-
 
 	  // Visual mode entry
 	  "<v>": { User: { Normal: "SelectMode" } },
@@ -70,8 +50,9 @@
 	  "<Shift-k>": { ToPlayerWorker: "Previous" },
 	  "<$>": { ToPlayerWorker: "Skip" },
 	  "<Shift-j>": { ToPlayerWorker: "Skip" },
-	  "<c>": { ToPlayerWorker: "Continue" },
+	  "<c>": { ToPlayerWorker: "Resume" },
 	  "<Shift-c>": { ToPlayerWorker: "Pause" },
+	  "<Space>": { ToPlayerWorker: "ResumeOrPause" },
 
 	  // Advanced Movements
 	  "<Shift-g>": { User: { Common: "Bottom" } },
@@ -80,6 +61,15 @@
 	  "<Shift-r>": { User: { Common: "Refresh" } },
 	  "<Enter>": { User: { Common: "Confirm" } },
 	  "<q>": { User: { Common: "Cancel" } },
+
+	  // Playlist manipulation
+	  // Note that both i and Shift+i are mapped to the same key
+	  "<i>": { User: { Common: { Add: "Front" } } },
+	  "<Shift-i>": { User: { Common: { Add: "Front" } } },
+	  "<a>": { User: { Common: { Add: "Next" } } },
+	  "<d>": { User: { Common: "Delete" } },
+	  "<Shift-a>": { User: { Common: { Add: "Last" } } },
+  	  "<Shift-f>": { User: { Common: "ToggleStar" } },
 
 	  // Global actions
 	  "<Esc>": { User: { Global: "EndKeySeq" } },
@@ -93,9 +83,9 @@
   // This may be necessary if you are using servers like Ampache, which does not support token-based authentication yet
   "use_legacy_auth": false,
   "auth": {
-    "url_command": "",
-    "username_command": "",
-    "password_command": "",
+    "url": "echo URL",
+    "username": "echo USERNAME",
+    "password": "echo PASSWORD",
   },
   "unsafe_auth": {
     "url": "",

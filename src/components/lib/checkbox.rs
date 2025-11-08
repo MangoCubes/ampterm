@@ -5,7 +5,7 @@ use ratatui::{
     text::Line,
 };
 
-use crate::components::traits::{component::Component, focusable::Focusable};
+use crate::components::traits::{focusable::Focusable, fullcomp::FullComp, renderable::Renderable};
 
 /// Checkbox element
 /// Can be toggled with space
@@ -35,16 +35,7 @@ impl Checkbox {
     }
 }
 
-impl Component for Checkbox {
-    fn handle_key_event(
-        &mut self,
-        key: crossterm::event::KeyEvent,
-    ) -> color_eyre::eyre::Result<Option<crate::action::Action>> {
-        if let KeyCode::Char(' ') = key.code {
-            self.toggle()
-        };
-        Ok(None)
-    }
+impl Renderable for Checkbox {
     fn draw(
         &mut self,
         frame: &mut ratatui::Frame,
@@ -59,6 +50,18 @@ impl Component for Checkbox {
         }
         frame.render_widget(checkbox, areas[1]);
         Ok(())
+    }
+}
+
+impl FullComp for Checkbox {
+    fn handle_key_event(
+        &mut self,
+        key: crossterm::event::KeyEvent,
+    ) -> color_eyre::eyre::Result<Option<crate::action::Action>> {
+        if let KeyCode::Char(' ') = key.code {
+            self.toggle()
+        };
+        Ok(None)
     }
 }
 

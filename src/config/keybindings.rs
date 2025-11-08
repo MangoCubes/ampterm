@@ -63,26 +63,29 @@ impl KeyBindings {
             KeyCode::CapsLock => "CapsLock",
             KeyCode::Menu => "Menu",
             KeyCode::ScrollLock => "ScrLk",
-            KeyCode::Media(k) => &k.to_string(),
+            KeyCode::Media(k) => {
+                char = k.to_string();
+                &char
+            }
             KeyCode::NumLock => "NumLk",
-            KeyCode::PrintScreen => "PrntSc",
-            KeyCode::Pause => "",
-            KeyCode::KeypadBegin => "",
+            KeyCode::PrintScreen => "PrtSc",
+            KeyCode::Pause => "Pause",
+            KeyCode::KeypadBegin => "KpBeg",
             KeyCode::Modifier(_) => "",
         };
 
         let mut modifiers = Vec::with_capacity(3);
 
         if key_event.modifiers.intersects(KeyModifiers::CONTROL) {
-            modifiers.push("ctrl");
+            modifiers.push("Ctrl");
         }
 
         if key_event.modifiers.intersects(KeyModifiers::SHIFT) {
-            modifiers.push("shift");
+            modifiers.push("Shift");
         }
 
         if key_event.modifiers.intersects(KeyModifiers::ALT) {
-            modifiers.push("alt");
+            modifiers.push("Alt");
         }
 
         let mut key = modifiers.join("-");
@@ -101,7 +104,7 @@ impl KeyBindings {
             .into_iter()
             .map(|k| Self::key_event_to_string(&k))
             .collect();
-        Some(strs.join(""))
+        Some(format!("<{}>", strs.join("")))
     }
     pub fn find_action(&self, action: Action, mode: Option<Mode>) -> Option<Vec<KeyEvent>> {
         let find_from = match mode {

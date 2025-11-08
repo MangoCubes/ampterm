@@ -2,10 +2,10 @@ use std::collections::HashMap;
 
 use crate::{
     action::{
-        useraction::{Common, Global, Normal, UserAction},
+        useraction::{Common, Global, UserAction},
         Action,
     },
-    components::traits::component::Component,
+    components::traits::{fullcomp::FullComp, renderable::Renderable},
     config::Config,
     osclient::response::getplaylists::SimplePlaylist,
     playerworker::player::{QueueLocation, ToPlayerWorker},
@@ -91,11 +91,14 @@ impl Loaded {
     }
 }
 
-impl Component for Loaded {
+impl Renderable for Loaded {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         frame.render_stateful_widget(&self.comp, area, &mut self.state);
         Ok(())
     }
+}
+
+impl FullComp for Loaded {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::FromQueryWorker(res) => {
@@ -126,6 +129,7 @@ impl Component for Loaded {
             }
             Action::User(UserAction::Common(local)) => {
                 match local {
+                    Common::Add(pos) => Ok(self.add_to_queue(pos)),
                     Common::Up => {
                         self.state.select_previous();
                         Ok(None)
@@ -145,13 +149,6 @@ impl Component for Loaded {
                     }
                     // TODO: Add horizontal text scrolling
                     _ => Ok(None),
-                }
-            }
-            Action::User(UserAction::Normal(normal)) => {
-                if let Normal::Add(pos) = normal {
-                    Ok(self.add_to_queue(pos))
-                } else {
-                    Ok(None)
                 }
             }
             _ => Ok(None),

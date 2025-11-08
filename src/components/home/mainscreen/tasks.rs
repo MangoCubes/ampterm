@@ -11,7 +11,7 @@ use ratatui::{
 };
 
 use crate::{
-    components::traits::component::Component,
+    components::traits::renderable::Renderable,
     queryworker::query::{FromQueryWorker, ToQueryWorker},
 };
 
@@ -79,9 +79,13 @@ impl Tasks {
             [Constraint::Max(4), Constraint::Min(1), Constraint::Max(10)],
         );
     }
+
+    pub fn get_task_count(&self) -> usize {
+        self.tasks.len()
+    }
 }
 
-impl Component for Tasks {
+impl Renderable for Tasks {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let vertical = Layout::vertical([Constraint::Percentage(80)]).flex(Flex::Center);
         let horizontal = Layout::horizontal([Constraint::Percentage(80)]).flex(Flex::Center);

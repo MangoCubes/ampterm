@@ -11,7 +11,10 @@ use tui_textarea::{CursorMove, TextArea};
 
 use crate::{
     action::Action,
-    components::{lib::checkbox::Checkbox, traits::focusable::Focusable},
+    components::{
+        lib::checkbox::Checkbox,
+        traits::{focusable::Focusable, renderable::Renderable},
+    },
     config::Config,
     queryworker::{
         highlevelquery::HighLevelQuery,
@@ -19,7 +22,7 @@ use crate::{
     },
 };
 
-use super::Component;
+use super::FullComp;
 #[derive(Default, PartialEq)]
 enum Status {
     #[default]
@@ -149,7 +152,48 @@ impl Login {
     }
 }
 
-impl Component for Login {
+impl Renderable for Login {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+        let [horizontal] = Layout::horizontal([Constraint::Percentage(50)])
+            .flex(Flex::Center)
+            .areas(area);
+        let [centered] = Layout::vertical([Constraint::Percentage(50)])
+            .flex(Flex::Center)
+            .areas(horizontal);
+        let layout = Layout::default().constraints([
+            Constraint::Length(3),
+            Constraint::Length(3),
+            Constraint::Length(3),
+            Constraint::Length(3),
+            Constraint::Length(3),
+            Constraint::Min(1),
+        ]);
+        let areas = layout.split(centered);
+        frame.render_widget(&self.url, areas[0]);
+        frame.render_widget(&self.username, areas[1]);
+        frame.render_widget(&self.password, areas[2]);
+        frame.render_widget(
+            Paragraph::new(vec![
+                Line::raw("Enter: Submit"),
+                Line::raw("Space: Toggle checkbox"),
+                Line::raw("Tab or arrow keys: Navigate"),
+            ])
+            .centered(),
+            areas[4],
+        );
+        self.legacy.draw(frame, areas[3])?;
+        if let Some(msg) = &self.status_msg {
+            let text: Vec<Line> = msg.iter().map(|l| Line::raw(l)).collect();
+            frame.render_widget(
+                Paragraph::new(text).centered().wrap(Wrap { trim: false }),
+                areas[5],
+            );
+        }
+        Ok(())
+    }
+}
+
+impl FullComp for Login {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         if let Action::FromQueryWorker(res) = action {
             if let ResponseType::SetCredential(Err(msg)) = res.res {
@@ -188,43 +232,5 @@ impl Component for Login {
                 Mode::LegacyToggle => self.legacy.handle_key_event(key),
             },
         }
-    }
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        let [horizontal] = Layout::horizontal([Constraint::Percentage(50)])
-            .flex(Flex::Center)
-            .areas(area);
-        let [centered] = Layout::vertical([Constraint::Percentage(50)])
-            .flex(Flex::Center)
-            .areas(horizontal);
-        let layout = Layout::default().constraints([
-            Constraint::Length(3),
-            Constraint::Length(3),
-            Constraint::Length(3),
-            Constraint::Length(3),
-            Constraint::Length(3),
-            Constraint::Min(1),
-        ]);
-        let areas = layout.split(centered);
-        frame.render_widget(&self.url, areas[0]);
-        frame.render_widget(&self.username, areas[1]);
-        frame.render_widget(&self.password, areas[2]);
-        frame.render_widget(
-            Paragraph::new(vec![
-                Line::raw("Enter: Submit"),
-                Line::raw("Space: Toggle checkbox"),
-                Line::raw("Tab or arrow keys: Navigate"),
-            ])
-            .centered(),
-            areas[4],
-        );
-        self.legacy.draw(frame, areas[3])?;
-        if let Some(msg) = &self.status_msg {
-            let text: Vec<Line> = msg.iter().map(|l| Line::raw(l)).collect();
-            frame.render_widget(
-                Paragraph::new(text).centered().wrap(Wrap { trim: false }),
-                areas[5],
-            );
-        }
-        Ok(())
     }
 }

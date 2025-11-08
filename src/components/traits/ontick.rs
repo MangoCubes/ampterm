@@ -1,5 +1,5 @@
-use crate::components::traits::component::Component;
+use crate::components::traits::renderable::Renderable;
 
-pub trait OnTick: Component {
+pub trait OnTick: Renderable {
     fn on_tick(&mut self);
 }

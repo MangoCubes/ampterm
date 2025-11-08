@@ -2,6 +2,8 @@ mod loading;
 mod login;
 mod mainscreen;
 
+use std::process::Command;
+
 use color_eyre::Result;
 use crossterm::event::KeyEvent;
 use loading::Loading;
@@ -12,7 +14,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
     action::Action,
-    components::traits::{component::Component, ontick::OnTick},
+    components::traits::{fullcomp::FullComp, ontick::OnTick, renderable::Renderable},
     config::Config,
     queryworker::{
         highlevelquery::HighLevelQuery,
@@ -28,7 +30,6 @@ enum Comp {
 }
 
 pub struct Home {
-    action_tx: UnboundedSender<Action>,
     component: Comp,
     config: Config,
 }
@@ -42,16 +43,33 @@ impl OnTick for Home {
 }
 
 impl Home {
-    pub fn new(action_tx: UnboundedSender<Action>, config: Config) -> (Self, Vec<Action>) {
+    pub fn new(config: Config) -> (Self, Vec<Action>) {
         let auth = config.clone().auth;
         let config_creds = if let Some(creds) = auth {
-            Some(Credential::Password {
-                url: todo!(),
-                secure: todo!(),
-                username: todo!(),
-                password: todo!(),
-                legacy: todo!(),
-            })
+            fn run_cmd(cmd: &String) -> Result<String> {
+                let exec = Command::new("sh").arg("-c").arg(cmd).output()?;
+                let stdout = String::from_utf8_lossy(&exec.stdout);
+                Ok(stdout.trim().to_string())
+            }
+            if let Ok(url) = run_cmd(&creds.url) {
+                if let Ok(username) = run_cmd(&creds.username) {
+                    if let Ok(password) = run_cmd(&creds.password) {
+                        Some(Credential::Password {
+                            url,
+                            secure: true,
+                            username,
+                            password,
+                            legacy: config.config.use_legacy_auth,
+                        })
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
         } else {
             match config.clone().unsafe_auth {
                 Some(unsafe_creds) => Some(Credential::Password {
@@ -93,7 +111,6 @@ impl Home {
         };
         (
             Self {
-                action_tx,
                 component: comp,
                 config,
             },
@@ -102,19 +119,22 @@ impl Home {
     }
 }
 
-impl Component for Home {
-    fn handle_events(&mut self, event: Event) -> Result<Option<Action>> {
-        if let Comp::Main(c) = &mut self.component {
-            c.handle_events(event)
-        } else {
-            Ok(None)
-        }
-    }
+impl Renderable for Home {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         match &mut self.component {
             Comp::Loading(c) => c.draw(frame, area),
             Comp::Login(c) => c.draw(frame, area),
             Comp::Main(c) => c.draw(frame, area),
+        }
+    }
+}
+
+impl FullComp for Home {
+    fn handle_events(&mut self, event: Event) -> Result<Option<Action>> {
+        if let Comp::Main(c) = &mut self.component {
+            c.handle_events(event)
+        } else {
+            Ok(None)
         }
     }
     fn handle_key_event(&mut self, key: KeyEvent) -> Result<Option<Action>> {

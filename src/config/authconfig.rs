@@ -3,11 +3,11 @@ use serde::Deserialize;
 #[derive(Clone, Debug, Deserialize, Default)]
 pub struct AuthConfig {
     #[serde(default)]
-    pub url_command: String,
+    pub url: String,
     #[serde(default)]
-    pub username_command: String,
+    pub username: String,
     #[serde(default)]
-    pub password_command: String,
+    pub password: String,
 }
 
 // Unsafe settings, but in case you need these

@@ -4,6 +4,7 @@ use crate::{
     compid::CompID,
     osclient::response::getplaylist::Media,
     queryworker::query::{
+        getlyrics::GetLyricsParams,
         getplaylist::{GetPlaylistParams, MediaID},
         setcredential::Credential,
     },
@@ -36,6 +37,8 @@ pub enum HighLevelQuery {
     SetCredential(Credential),
     /// Stars/unstars a music
     SetStar { media: MediaID, star: bool },
+    /// Fetch lyrics from lrclib.net
+    GetLyrics(GetLyricsParams),
 }
 
 impl HighLevelQuery {
@@ -51,6 +54,7 @@ impl HighLevelQuery {
             HighLevelQuery::SetStar { media: _, star: _ } => {
                 vec![CompID::PlaylistQueue, CompID::PlayQueue]
             }
+            HighLevelQuery::GetLyrics(_) => todo!(),
         }
     }
 
@@ -76,6 +80,7 @@ impl ToString for HighLevelQuery {
             HighLevelQuery::ListPlaylists => "Fetching all playlists",
             HighLevelQuery::SetCredential(_) => "Setting credentials",
             HighLevelQuery::SetStar { media: _, star: _ } => "Toggle favourite status of a music",
+            HighLevelQuery::GetLyrics(_) => "Fetching lyrics",
         }
         .to_string()
     }

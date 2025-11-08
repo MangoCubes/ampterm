@@ -1,3 +1,4 @@
+pub mod getlyrics;
 pub mod getplaylist;
 pub mod getplaylists;
 pub mod setcredential;
@@ -7,7 +8,10 @@ use crate::{
     compid::CompID,
     queryworker::{
         highlevelquery::HighLevelQuery,
-        query::{getplaylist::GetPlaylistResponse, getplaylists::GetPlaylistsResponse},
+        query::{
+            getlyrics::GetLyricsResponse, getplaylist::GetPlaylistResponse,
+            getplaylists::GetPlaylistsResponse,
+        },
         QueryWorker,
     },
 };
@@ -43,6 +47,7 @@ pub enum ResponseType {
     GetPlaylists(GetPlaylistsResponse),
     GetPlaylist(GetPlaylistResponse),
     SetCredential(Result<(), String>),
+    GetLyrics(Result<GetLyricsResponse, String>),
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct FromQueryWorker {

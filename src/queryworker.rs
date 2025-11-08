@@ -278,6 +278,7 @@ impl QueryWorker {
                         ),
                     };
                 }
+                HighLevelQuery::GetLyrics(get_lyrics_params) => todo!(),
             };
             if self.should_quit {
                 break;

@@ -31,7 +31,7 @@ use ratatui::{
 enum Comp {
     Error(Error),
     Loaded(Loaded),
-    Loading(Loading),
+    Loading(Loading, usize),
     NotSelected(NotSelected),
     Empty(Empty),
 }
@@ -72,7 +72,7 @@ impl Renderable for PlaylistQueue {
         match &mut self.comp {
             Comp::Error(error) => error.draw(frame, area),
             Comp::Loaded(loaded) => loaded.draw(frame, area),
-            Comp::Loading(loading) => loading.draw(frame, area),
+            Comp::Loading(loading, _) => loading.draw(frame, area),
             Comp::NotSelected(not_selected) => not_selected.draw(frame, area),
             Comp::Empty(centered) => centered.draw(frame, area),
         }
@@ -86,7 +86,8 @@ impl FullComp for PlaylistQueue {
                 if qw.dest.contains(&CompID::PlaylistQueue) {
                     match qw.query {
                         HighLevelQuery::SelectPlaylist(params) => {
-                            self.comp = Comp::Loading(Loading::new(params.name, self.enabled));
+                            self.comp =
+                                Comp::Loading(Loading::new(params.name, self.enabled), qw.ticket);
                             Ok(None)
                         }
                         HighLevelQuery::SetStar { media, star } => {
@@ -106,11 +107,15 @@ impl FullComp for PlaylistQueue {
                 if let ResponseType::GetPlaylist(res) = qw.res {
                     match res {
                         GetPlaylistResponse::Success(full_playlist) => {
-                            self.comp = Comp::Loaded(Loaded::new(
-                                full_playlist.name.clone(),
-                                full_playlist,
-                                self.enabled,
-                            ));
+                            if let Comp::Loading(_, ticket) = self.comp {
+                                if ticket == qw.ticket {
+                                    self.comp = Comp::Loaded(Loaded::new(
+                                        full_playlist.name.clone(),
+                                        full_playlist,
+                                        self.enabled,
+                                    ));
+                                }
+                            }
                         }
                         GetPlaylistResponse::Failure { id, name, msg } => {
                             self.comp = Comp::Error(Error::new(id, name, msg, self.enabled));
@@ -138,7 +143,7 @@ impl Focusable for PlaylistQueue {
             match &mut self.comp {
                 Comp::Error(error) => error.set_enabled(enable),
                 Comp::Loaded(loaded) => loaded.set_enabled(enable),
-                Comp::Loading(loading) => loading.set_enabled(enable),
+                Comp::Loading(loading, _) => loading.set_enabled(enable),
                 Comp::NotSelected(not_selected) => not_selected.set_enabled(enable),
                 Comp::Empty(empty) => empty.set_enabled(enable),
             }

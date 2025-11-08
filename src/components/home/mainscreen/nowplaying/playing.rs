@@ -115,9 +115,11 @@ impl SimpleComp for Playing {
 impl Renderable for Playing {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let vertical = Layout::vertical([
+            Constraint::Length(1),
             Constraint::Max(1),
-            Constraint::Max(1),
+            Constraint::Length(1), // Padding
             Constraint::Length(3),
+            Constraint::Length(1), // Padding
             Constraint::Length(1),
         ]);
         let areas = vertical.split(area);
@@ -141,6 +143,13 @@ impl Renderable for Playing {
             )),
             areas[1],
         );
+        let res = match &mut self.lyrics {
+            LyricsSpace::Found(lyrics) => lyrics.draw(frame, areas[3]),
+            LyricsSpace::Plain(lyrics) => todo!(),
+            LyricsSpace::Fetching(centered)
+            | LyricsSpace::NotFound(centered)
+            | LyricsSpace::Error(centered) => centered.draw(frame, areas[3]),
+        };
         if let Some(len) = self.music.duration {
             if len == 0 {
                 let label = format!(
@@ -148,7 +157,7 @@ impl Renderable for Playing {
                     self.pos.as_secs() / 60,
                     self.pos.as_secs() % 60,
                 );
-                frame.render_widget(Line::raw(label), areas[3]);
+                frame.render_widget(Line::raw(label), areas[5]);
             } else {
                 let label = format!(
                     "{:02}:{:02} / {:02}:{:02}",
@@ -159,7 +168,7 @@ impl Renderable for Playing {
                 );
                 let percent = ((self.pos.as_secs() as i32 * 100) / len) as u16;
                 let adjusted = if percent > 100 { 100 } else { percent };
-                frame.render_widget(Gauge::default().label(label).percent(adjusted), areas[3]);
+                frame.render_widget(Gauge::default().label(label).percent(adjusted), areas[5]);
             }
         } else {
             let label = format!(
@@ -167,14 +176,8 @@ impl Renderable for Playing {
                 self.pos.as_secs() / 60,
                 self.pos.as_secs() % 60,
             );
-            frame.render_widget(Line::raw(label), areas[1]);
+            frame.render_widget(Line::raw(label), areas[5]);
         }
-        match &mut self.lyrics {
-            LyricsSpace::Found(lyrics) => lyrics.draw(frame, areas[2]),
-            LyricsSpace::Plain(lyrics) => todo!(),
-            LyricsSpace::Fetching(centered)
-            | LyricsSpace::NotFound(centered)
-            | LyricsSpace::Error(centered) => centered.draw(frame, areas[2]),
-        }
+        res
     }
 }

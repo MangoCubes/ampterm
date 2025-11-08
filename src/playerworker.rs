@@ -160,7 +160,7 @@ impl PlayerWorker {
     /// Main playing thread spawns a polling thread, and then runs `select!` macro to wait for the
     /// music stream to complete.
     ///
-    /// Polling thread sends out current player position every 500 miliseconds. This is run in a
+    /// Polling thread sends out current player position every 100 miliseconds. This is run in a
     /// loop, and should never complete.
     ///
     /// The `select!` macro waits for 3 different things:
@@ -209,7 +209,7 @@ impl PlayerWorker {
                     let _ = action_tx2.send(Action::FromPlayerWorker(
                         FromPlayerWorker::StateChange(StateType::Position(sink2.get_pos())),
                     ));
-                    sleep(Duration::from_millis(500)).await;
+                    sleep(Duration::from_millis(100)).await;
                 }
             });
             select! {

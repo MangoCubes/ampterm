@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     compid::CompID,
+    lyricsclient::getlyrics::GetLyricsParams,
     osclient::response::getplaylist::Media,
     queryworker::query::{
         getplaylist::{GetPlaylistParams, MediaID},
@@ -36,6 +37,8 @@ pub enum HighLevelQuery {
     SetCredential(Credential),
     /// Stars/unstars a music
     SetStar { media: MediaID, star: bool },
+    /// Fetch lyrics from lrclib.net
+    GetLyrics(GetLyricsParams),
 }
 
 impl HighLevelQuery {
@@ -51,6 +54,7 @@ impl HighLevelQuery {
             HighLevelQuery::SetStar { media: _, star: _ } => {
                 vec![CompID::PlaylistQueue, CompID::PlayQueue]
             }
+            HighLevelQuery::GetLyrics(_) => vec![CompID::NowPlaying],
         }
     }
 
@@ -76,6 +80,7 @@ impl ToString for HighLevelQuery {
             HighLevelQuery::ListPlaylists => "Fetching all playlists",
             HighLevelQuery::SetCredential(_) => "Setting credentials",
             HighLevelQuery::SetStar { media: _, star: _ } => "Toggle favourite status of a music",
+            HighLevelQuery::GetLyrics(_) => "Fetching lyrics",
         }
         .to_string()
     }

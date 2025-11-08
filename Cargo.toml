@@ -35,6 +35,7 @@ libc = "0.2.161"
 pretty_assertions = "1.4.1"
 ratatui = { version = "0.29.0", features = ["serde", "macros"] }
 ratatui-image = "8.0.1"
+regex = "1.12.2"
 reqwest = { version = "0.12.15", features = ["json"] }
 rodio = { version = "0.20.1", features = ["symphonia-aac", "symphonia-alac", "symphonia-flac", "symphonia-mp3", "symphonia-vorbis", "symphonia-wav"] }
 serde = { version = "1.0.211", features = ["derive"] }

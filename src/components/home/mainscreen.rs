@@ -147,7 +147,7 @@ impl Renderable for MainScreen {
 
         frame.render_widget(
             Paragraph::new(format!(
-                "Ampache {} | Tasks: {}",
+                "Ampterm {} | Tasks: {}",
                 env!("CARGO_PKG_VERSION"),
                 self.tasks.get_task_count()
             ))
@@ -187,8 +187,15 @@ impl FullComp for MainScreen {
         match &action {
             Action::FromPlayerWorker(pw) => match pw {
                 FromPlayerWorker::StateChange(_) => {
-                    self.now_playing.update(action.clone());
-                    self.playqueue.update(action)
+                    let results: Vec<Action> = [
+                        self.now_playing.update(action.clone())?,
+                        self.playqueue.update(action)?,
+                    ]
+                    .into_iter()
+                    .filter_map(|a| a)
+                    .collect();
+
+                    Ok(Some(Action::Multiple(results)))
                 }
                 FromPlayerWorker::Error(msg) | FromPlayerWorker::Message(msg) => {
                     self.message = msg.clone();
@@ -266,6 +273,7 @@ impl FullComp for MainScreen {
                         CompID::PlaylistList => self.pl_list.update(action.clone()),
                         CompID::PlaylistQueue => self.pl_queue.update(action.clone()),
                         CompID::PlayQueue => self.playqueue.update(action.clone()),
+                        CompID::NowPlaying => self.now_playing.update(action.clone()),
                         CompID::None => Ok(None),
                         _ => unreachable!("Action propagated to nonexistent component: {:?}", dest),
                     }?;
@@ -284,6 +292,7 @@ impl FullComp for MainScreen {
                         CompID::PlaylistList => self.pl_list.update(action.clone()),
                         CompID::PlaylistQueue => self.pl_queue.update(action.clone()),
                         CompID::PlayQueue => self.playqueue.update(action.clone()),
+                        CompID::NowPlaying => self.now_playing.update(action.clone()),
                         CompID::None => Ok(None),
                         _ => unreachable!("Action propagated to nonexistent component: {:?}", dest),
                     }?;
@@ -294,11 +303,11 @@ impl FullComp for MainScreen {
                 Ok(Some(Action::Multiple(results)))
             }
             _ => {
-                self.now_playing.update(action.clone());
                 self.bpmtoy.update(action.clone());
                 let results: Vec<Action> = [
                     self.pl_list.update(action.clone())?,
                     self.pl_queue.update(action.clone())?,
+                    self.now_playing.update(action.clone())?,
                     self.playqueue.update(action)?,
                     // self.tasks.update(action.clone())?,
                 ]

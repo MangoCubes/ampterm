@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     compid::CompID,
+    lyricsclient::getlyrics::GetLyricsResponse,
     queryworker::{
         highlevelquery::HighLevelQuery,
         query::{getplaylist::GetPlaylistResponse, getplaylists::GetPlaylistsResponse},
@@ -43,6 +44,7 @@ pub enum ResponseType {
     GetPlaylists(GetPlaylistsResponse),
     GetPlaylist(GetPlaylistResponse),
     SetCredential(Result<(), String>),
+    GetLyrics(Result<Option<GetLyricsResponse>, String>),
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct FromQueryWorker {

@@ -7,7 +7,6 @@
 	  "<v>": { User: { Visual: "ExitSave" } },
 	  "<Shift-v>": { User: { Visual: "ExitSave" } },
 	  "<Ctrl-v>": { User: { Visual: "ExitSave" } },
-	  "<d>": { User: { Visual: "Delete" } },
     },
 	// This keybinding is exclusive to normal mode.
 	"Normal": {
@@ -22,8 +21,6 @@
 	  "<Ctrl-w><l>": { User: { Normal: "WindowRight" } },
 	  "<Ctrl-w><k>": { User: { Normal: "WindowUp" } },
 	  "<Ctrl-w><j>": { User: { Normal: "WindowDown" } },
-
-  	  "<Shift-f>": { User: { Normal: "ToggleStar" } },
 
 	  // Visual mode entry
 	  "<v>": { User: { Normal: "SelectMode" } },
@@ -69,8 +66,9 @@
 	  "<i>": { User: { Common: { Add: "Front" } } },
 	  "<Shift-i>": { User: { Common: { Add: "Front" } } },
 	  "<a>": { User: { Common: { Add: "Next" } } },
-	  "<d>": { User: { Normal: "Delete" } },
+	  "<d>": { User: { Common: "Delete" } },
 	  "<Shift-a>": { User: { Common: { Add: "Last" } } },
+  	  "<Shift-f>": { User: { Common: "ToggleStar" } },
 
 	  // Global actions
 	  "<Esc>": { User: { Global: "EndKeySeq" } },

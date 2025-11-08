@@ -55,6 +55,10 @@ pub enum Common {
     Help,
     // Add to the queue
     Add(QueueLocation),
+    // Delete a selected region
+    Delete,
+    // Adds/removes a song from favourites
+    ToggleStar,
 }
 
 impl ToString for Common {
@@ -76,6 +80,8 @@ impl ToString for Common {
                 QueueLocation::Next => "Play items next",
                 QueueLocation::Last => "Add items to the end of queue",
             },
+            Common::Delete => "Delete selected elements",
+            Common::ToggleStar => "Toggle favourite",
         }
         .to_string()
     }
@@ -88,8 +94,6 @@ pub enum Visual {
     ExitSave,
     // Exit visual mode after discarding changes
     ExitDiscard,
-    // Delete a temporarily selected region, exiting visual mode
-    Delete,
 }
 
 impl ToString for Visual {
@@ -97,7 +101,6 @@ impl ToString for Visual {
         match self {
             Visual::ExitSave => "Exit visual mode, saving selection".to_string(),
             Visual::ExitDiscard => "Exit visual mode, discarding selection".to_string(),
-            Visual::Delete => "Delete selected elements".to_string(),
         }
     }
 }
@@ -114,10 +117,6 @@ pub enum Normal {
     SelectMode,
     // Enter visual mode to deselect items
     DeselectMode,
-    // Delete a selected region
-    Delete,
-    // Adds/removes a song from favourites
-    ToggleStar,
 }
 
 impl ToString for Normal {
@@ -129,8 +128,6 @@ impl ToString for Normal {
             Normal::WindowRight => "Move window right",
             Normal::SelectMode => "Enter visual mode (select)",
             Normal::DeselectMode => "Enter visual mode (deselect)",
-            Normal::Delete => "Delete selected items",
-            Normal::ToggleStar => "Toggle favourite",
         }
         .to_string()
     }

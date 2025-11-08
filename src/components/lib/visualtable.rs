@@ -134,6 +134,7 @@ impl Component for VisualTable {
 }
 
 impl VisualTable {
+    /// Returns true if the table is currently in Visual mode (both select and unselect)
     pub fn in_visual_mode(&self) -> bool {
         matches!(self.mode, VisualMode::Off)
     }

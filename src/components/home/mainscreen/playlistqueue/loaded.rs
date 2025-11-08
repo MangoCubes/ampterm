@@ -176,24 +176,82 @@ impl Component for Loaded {
         if let Action::User(ua) = action {
             match ua {
                 UserAction::Common(a) => match a {
-                    Common::Add(pos) => match self.table.in_visual_mode() {
-                        true => {
-                            if let Some(range) = self.table.get_temp_range() {
-                                let temp_action = self.add_temp_items_to_queue(range, pos);
-                                if let Some(a) = temp_action {
-                                    Ok(Some(Action::Multiple(vec![
-                                        a,
-                                        Action::ChangeMode(Mode::Normal),
-                                    ])))
-                                } else {
-                                    Ok(Some(Action::ChangeMode(Mode::Normal)))
-                                }
+                    Common::ToggleStar => {
+                        if let Some(range) = self.table.get_temp_range() {
+                            self.table.disable_visual_discard();
+                            if range.is_select {
+                                let slice = &self.playlist.entry[range.start..=range.end];
+                                let mut actions: Vec<Action> = slice
+                                    .into_iter()
+                                    .map(|m| {
+                                        Action::ToQueryWorker(ToQueryWorker::new(
+                                            HighLevelQuery::SetStar {
+                                                media: m.id.clone(),
+                                                star: m.starred == None,
+                                            },
+                                        ))
+                                    })
+                                    .collect();
+                                actions.push(Action::ChangeMode(Mode::Normal));
+
+                                Ok(Some(Action::Multiple(actions)))
                             } else {
-                                Ok(None)
+                                Ok(Some(Action::ChangeMode(Mode::Normal)))
+                            }
+                        } else {
+                            let selection = self.table.get_current_selection();
+                            let targets: Vec<Action> = selection
+                                .into_iter()
+                                .enumerate()
+                                .filter_map(|(idx, include)| {
+                                    if *include {
+                                        self.playlist.entry.get(idx)
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .map(|m| {
+                                    Action::ToQueryWorker(ToQueryWorker::new(
+                                        HighLevelQuery::SetStar {
+                                            media: m.id.clone(),
+                                            star: m.starred == None,
+                                        },
+                                    ))
+                                })
+                                .collect();
+                            if targets.len() == 0 {
+                                let Some(idx) = self.table.get_current() else {
+                                    return Ok(None);
+                                };
+                                let Some(media) = self.playlist.entry.get(idx) else {
+                                    return Ok(None);
+                                };
+                                Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
+                                    HighLevelQuery::SetStar {
+                                        media: media.id.clone(),
+                                        star: media.starred.is_none(),
+                                    },
+                                ))))
+                            } else {
+                                Ok(Some(Action::Multiple(targets)))
                             }
                         }
-                        false => Ok(self.add_selection_to_queue(pos)),
-                    },
+                    }
+                    Common::Add(pos) => {
+                        if let Some(range) = self.table.get_temp_range() {
+                            let temp_action = self.add_temp_items_to_queue(range, pos);
+                            if let Some(a) = temp_action {
+                                Ok(Some(Action::Multiple(vec![
+                                    a,
+                                    Action::ChangeMode(Mode::Normal),
+                                ])))
+                            } else {
+                                Ok(Some(Action::ChangeMode(Mode::Normal)))
+                            }
+                        } else {
+                            Ok(self.add_selection_to_queue(pos))
+                        }
+                    }
                     Common::Refresh => Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
                         HighLevelQuery::SelectPlaylist(GetPlaylistParams {
                             name: self.name.to_string(),
@@ -202,46 +260,9 @@ impl Component for Loaded {
                     )))),
                     _ => self.table.update(Action::User(UserAction::Common(a))),
                 },
-                UserAction::Normal(a) => match a {
-                    Normal::ToggleStar => {
-                        let selection = self.table.get_current_selection();
-                        let targets: Vec<Action> = selection
-                            .into_iter()
-                            .enumerate()
-                            .filter_map(|(idx, include)| {
-                                if *include {
-                                    self.playlist.entry.get(idx)
-                                } else {
-                                    None
-                                }
-                            })
-                            .map(|m| {
-                                Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::SetStar {
-                                    media: m.id.clone(),
-                                    star: m.starred == None,
-                                }))
-                            })
-                            .collect();
-                        if targets.len() == 0 {
-                            let Some(idx) = self.table.get_current() else {
-                                return Ok(None);
-                            };
-                            let Some(media) = self.playlist.entry.get(idx) else {
-                                return Ok(None);
-                            };
-                            Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
-                                HighLevelQuery::SetStar {
-                                    media: media.id.clone(),
-                                    star: media.starred.is_none(),
-                                },
-                            ))))
-                        } else {
-                            Ok(Some(Action::Multiple(targets)))
-                        }
-                    }
-                    _ => self.table.update(Action::User(UserAction::Normal(a))),
-                },
-                UserAction::Visual(a) => self.table.update(Action::User(UserAction::Visual(a))),
+                UserAction::Visual(_) | UserAction::Normal(_) => {
+                    self.table.update(Action::User(ua))
+                }
                 _ => Ok(None),
             }
         } else {

@@ -6,7 +6,7 @@ use crate::{
     action::Action,
     components::{
         home::mainscreen::playlistlist::{error::Error, loaded::Loaded, loading::Loading},
-        traits::{component::Component, focusable::Focusable},
+        traits::{component::Component, focusable::Focusable, simplecomponent::SimpleComponent},
     },
     config::Config,
     queryworker::query::{getplaylists::GetPlaylistsResponse, ResponseType},
@@ -96,7 +96,6 @@ impl Component for PlaylistList {
             }
             _ => match &mut self.comp {
                 Comp::Loaded(comp) => comp.update(action),
-                Comp::Error(comp) => comp.update(action),
                 _ => Ok(None),
             },
         }

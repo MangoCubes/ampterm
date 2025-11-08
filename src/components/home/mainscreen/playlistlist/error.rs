@@ -1,4 +1,4 @@
-use crate::components::traits::component::Component;
+use crate::components::traits::simplecomponent::SimpleComponent;
 use color_eyre::Result;
 use ratatui::{
     layout::{Alignment, Rect},
@@ -17,7 +17,7 @@ impl Error {
     }
 }
 
-impl Component for Error {
+impl SimpleComponent for Error {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         frame.render_widget(
             Paragraph::new(vec![

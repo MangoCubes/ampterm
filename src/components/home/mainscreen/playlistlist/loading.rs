@@ -1,4 +1,4 @@
-use crate::components::traits::component::Component;
+use crate::components::traits::simplecomponent::SimpleComponent;
 use color_eyre::Result;
 use ratatui::{
     layout::{Alignment, Rect},
@@ -14,7 +14,7 @@ impl Loading {
     }
 }
 
-impl Component for Loading {
+impl SimpleComponent for Loading {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         frame.render_widget(
             Paragraph::new("Loading...")

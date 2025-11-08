@@ -79,6 +79,10 @@ impl Tasks {
             [Constraint::Max(4), Constraint::Min(1), Constraint::Max(10)],
         );
     }
+
+    pub fn get_task_count(&self) -> usize {
+        self.tasks.len()
+    }
 }
 
 impl Renderable for Tasks {

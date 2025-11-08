@@ -146,8 +146,12 @@ impl Renderable for MainScreen {
         );
 
         frame.render_widget(
-            Paragraph::new(format!("Ampache {}", env!("CARGO_PKG_VERSION")))
-                .wrap(Wrap { trim: false }),
+            Paragraph::new(format!(
+                "Ampache {} | Tasks: {}",
+                env!("CARGO_PKG_VERSION"),
+                self.tasks.get_task_count()
+            ))
+            .wrap(Wrap { trim: false }),
             areas[0],
         );
         frame.render_widget(

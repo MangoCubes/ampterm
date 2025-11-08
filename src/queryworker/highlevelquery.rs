@@ -2,9 +2,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     compid::CompID,
+    lyricsclient::getlyrics::GetLyricsParams,
     osclient::response::getplaylist::Media,
     queryworker::query::{
-        getlyrics::GetLyricsParams,
         getplaylist::{GetPlaylistParams, MediaID},
         setcredential::Credential,
     },

@@ -1,4 +1,5 @@
 pub mod highlevelquery;
+mod lyricsclient;
 pub mod query;
 
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -19,6 +20,7 @@ use crate::queryworker::query::{FromQueryWorker, ResponseType};
 use crate::trace_dbg;
 use color_eyre::Result;
 use query::ToQueryWorker;
+use reqwest::{Client, Method, Url};
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
 pub struct QueryWorker {
@@ -278,7 +280,10 @@ impl QueryWorker {
                         ),
                     };
                 }
-                HighLevelQuery::GetLyrics(get_lyrics_params) => todo!(),
+                HighLevelQuery::GetLyrics(params) => {
+                    let c = self.lyrics_client.clone();
+                    let tx = self.action_tx.clone();
+                }
             };
             if self.should_quit {
                 break;

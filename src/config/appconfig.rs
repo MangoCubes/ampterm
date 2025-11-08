@@ -2,6 +2,10 @@ use std::path::PathBuf;
 
 use serde::Deserialize;
 
+fn default_lrclib() -> String {
+    "https://lrclib.net".to_string()
+}
+
 fn default_true() -> bool {
     true
 }
@@ -18,4 +22,6 @@ pub struct AppConfig {
     pub auto_focus: bool,
     #[serde(default)]
     pub show_internal_tasks: bool,
+    #[serde(default = "default_lrclib")]
+    pub lrc_url: String,
 }

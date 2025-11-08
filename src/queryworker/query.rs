@@ -1,4 +1,3 @@
-pub mod getlyrics;
 pub mod getplaylist;
 pub mod getplaylists;
 pub mod setcredential;
@@ -6,12 +5,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     compid::CompID,
+    lyricsclient::getlyrics::GetLyricsResponse,
     queryworker::{
         highlevelquery::HighLevelQuery,
-        query::{
-            getlyrics::GetLyricsResponse, getplaylist::GetPlaylistResponse,
-            getplaylists::GetPlaylistsResponse,
-        },
+        query::{getplaylist::GetPlaylistResponse, getplaylists::GetPlaylistsResponse},
         QueryWorker,
     },
 };

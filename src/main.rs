@@ -18,6 +18,7 @@ mod components;
 mod config;
 mod errors;
 mod logging;
+mod lyricsclient;
 mod osclient;
 mod playerworker;
 mod queryworker;

@@ -50,8 +50,9 @@
 	  "<Shift-k>": { ToPlayerWorker: "Previous" },
 	  "<$>": { ToPlayerWorker: "Skip" },
 	  "<Shift-j>": { ToPlayerWorker: "Skip" },
-	  "<c>": { ToPlayerWorker: "Continue" },
+	  "<c>": { ToPlayerWorker: "Resume" },
 	  "<Shift-c>": { ToPlayerWorker: "Pause" },
+	  "<Space>": { ToPlayerWorker: "ResumeOrPause" },
 
 	  // Advanced Movements
 	  "<Shift-g>": { User: { Common: "Bottom" } },

@@ -310,7 +310,7 @@ mod tests {
                 KeyCode::Char('a'),
                 KeyModifiers::CONTROL | KeyModifiers::ALT
             )),
-            "ctrl-alt-a".to_string()
+            "Ctrl-Alt-a".to_string()
         );
     }
 

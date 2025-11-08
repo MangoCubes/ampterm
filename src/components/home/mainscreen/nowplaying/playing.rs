@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use crate::{
     action::{Action, FromPlayerWorker, StateType},
-    components::traits::component::Component,
+    components::traits::simplecomponent::SimpleComponent,
     osclient::response::getplaylist::Media,
 };
 use color_eyre::Result;
@@ -32,8 +32,8 @@ impl Playing {
     }
 }
 
-impl Component for Playing {
-    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+impl SimpleComponent for Playing {
+    fn update(&mut self, action: Action) {
         if let Action::FromPlayerWorker(FromPlayerWorker::StateChange(s)) = action {
             match s {
                 StateType::Position(pos) => self.pos = pos,
@@ -46,7 +46,6 @@ impl Component for Playing {
                 _ => {}
             };
         }
-        Ok(None)
     }
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let vertical = Layout::vertical([Constraint::Min(1), Constraint::Length(1)]);

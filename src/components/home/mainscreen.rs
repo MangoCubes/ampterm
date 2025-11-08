@@ -14,7 +14,10 @@ use crate::{
     compid::CompID,
     components::{
         home::mainscreen::{bpmtoy::BPMToy, tasks::Tasks},
-        traits::{component::Component, focusable::Focusable, ontick::OnTick},
+        traits::{
+            component::Component, focusable::Focusable, ontick::OnTick,
+            simplecomponent::SimpleComponent,
+        },
     },
     config::Config,
     queryworker::{highlevelquery::HighLevelQuery, query::ToQueryWorker},
@@ -175,7 +178,10 @@ impl Component for MainScreen {
         };
         match &action {
             Action::FromPlayerWorker(pw) => match pw {
-                FromPlayerWorker::StateChange(_) => self.playqueue.update(action),
+                FromPlayerWorker::StateChange(_) => {
+                    self.now_playing.update(action.clone());
+                    self.playqueue.update(action)
+                }
                 FromPlayerWorker::Error(msg) | FromPlayerWorker::Message(msg) => {
                     self.message = msg.clone();
                     Ok(None)
@@ -277,10 +283,10 @@ impl Component for MainScreen {
                 Ok(Some(Action::Multiple(results)))
             }
             _ => {
+                self.now_playing.update(action.clone());
                 let results: Vec<Action> = [
                     self.pl_list.update(action.clone())?,
                     self.pl_queue.update(action.clone())?,
-                    self.now_playing.update(action.clone())?,
                     self.playqueue.update(action.clone())?,
                     self.tasks.update(action.clone())?,
                     self.bpmtoy.update(action)?,

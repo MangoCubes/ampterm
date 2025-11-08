@@ -6,7 +6,7 @@ use crate::{
     action::Action,
     components::{
         home::mainscreen::playlistlist::{error::Error, loaded::Loaded, loading::Loading},
-        traits::{component::Component, focusable::Focusable, simplecomponent::SimpleComponent},
+        traits::{fullcomp::FullComp, focusable::Focusable, renderable::Renderable},
     },
     config::Config,
     queryworker::query::{getplaylists::GetPlaylistsResponse, ResponseType},
@@ -58,7 +58,7 @@ impl PlaylistList {
     }
 }
 
-impl Component for PlaylistList {
+impl FullComp for PlaylistList {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let block = self.gen_block();
         let inner = block.inner(area);

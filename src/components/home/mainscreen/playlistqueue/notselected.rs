@@ -7,7 +7,7 @@ use ratatui::{
 
 use crate::components::{
     home::mainscreen::playlistqueue::PlaylistQueue,
-    traits::{component::Component, focusable::Focusable},
+    traits::{fullcomp::FullComp, focusable::Focusable},
 };
 
 pub struct NotSelected {
@@ -20,7 +20,7 @@ impl NotSelected {
     }
 }
 
-impl Component for NotSelected {
+impl FullComp for NotSelected {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         frame.render_widget(
             Paragraph::new("Choose a playlist!")

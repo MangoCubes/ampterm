@@ -7,7 +7,7 @@ use crate::{action::Action, tui::Event};
 ///
 /// Implementors of this trait can be registered with the main application loop and will be able to
 /// receive events, update state, and be rendered on the screen.
-pub trait Component {
+pub trait FullComp {
     /// Handle incoming events and produce actions if necessary.
     ///
     /// # Arguments

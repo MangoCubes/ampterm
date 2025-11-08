@@ -11,7 +11,7 @@ use crate::{
     components::{
         home::mainscreen::playqueue::PlayQueue,
         lib::visualtable::VisualTable,
-        traits::{component::Component, focusable::Focusable},
+        traits::{focusable::Focusable, fullcomp::FullComp},
     },
     osclient::response::getplaylist::Media,
     queryworker::{
@@ -121,7 +121,7 @@ impl Something {
     }
 }
 
-impl Component for Something {
+impl FullComp for Something {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let title = if let Some(pos) = self.table.get_current() {
             let len = self.list.len();

@@ -14,7 +14,7 @@ use crate::{
     },
     components::{
         lib::centered::Centered,
-        traits::{component::Component, ontick::OnTick},
+        traits::{fullcomp::FullComp, ontick::OnTick},
     },
     config::Config,
 };
@@ -82,7 +82,7 @@ impl BPMToy {
     }
 }
 
-impl Component for BPMToy {
+impl FullComp for BPMToy {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let block = Block::bordered().border_style(Style::new().white());
         let inner = block.inner(area);

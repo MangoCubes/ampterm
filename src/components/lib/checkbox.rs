@@ -5,7 +5,7 @@ use ratatui::{
     text::Line,
 };
 
-use crate::components::traits::{component::Component, focusable::Focusable};
+use crate::components::traits::{fullcomp::FullComp, focusable::Focusable};
 
 /// Checkbox element
 /// Can be toggled with space
@@ -35,7 +35,7 @@ impl Checkbox {
     }
 }
 
-impl Component for Checkbox {
+impl FullComp for Checkbox {
     fn handle_key_event(
         &mut self,
         key: crossterm::event::KeyEvent,

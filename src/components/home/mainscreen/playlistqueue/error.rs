@@ -6,7 +6,7 @@ use crate::{
     components::{
         home::mainscreen::playlistqueue::PlaylistQueue,
         lib::centered::Centered,
-        traits::{component::Component, focusable::Focusable},
+        traits::{fullcomp::FullComp, focusable::Focusable},
     },
     queryworker::{
         highlevelquery::HighLevelQuery,
@@ -38,7 +38,7 @@ impl Error {
     }
 }
 
-impl Component for Error {
+impl FullComp for Error {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let border = PlaylistQueue::gen_block(self.enabled, self.name.clone());
         let inner = border.inner(area);

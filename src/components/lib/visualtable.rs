@@ -13,7 +13,7 @@ use crate::{
         Action,
     },
     app::Mode,
-    components::traits::component::Component,
+    components::traits::fullcomp::FullComp,
 };
 
 /// Struct that contains the state of the current temporary selection
@@ -63,7 +63,7 @@ pub struct VisualTable {
 }
 
 /// For consistency, do not use [`VisualTable::regen_table`] here
-impl Component for VisualTable {
+impl FullComp for VisualTable {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         frame.render_stateful_widget(&self.table, area, &mut self.tablestate);
         Ok(())

@@ -7,7 +7,7 @@ use crate::{
     components::{
         home::mainscreen::playlistqueue::PlaylistQueue,
         lib::visualtable::{TempSelection, VisualTable},
-        traits::{component::Component, focusable::Focusable},
+        traits::{fullcomp::FullComp, focusable::Focusable},
     },
     osclient::response::getplaylist::{FullPlaylist, Media},
     playerworker::player::{QueueLocation, ToPlayerWorker},
@@ -150,7 +150,7 @@ impl Loaded {
     }
 }
 
-impl Component for Loaded {
+impl FullComp for Loaded {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let title = if let Some(pos) = self.table.get_current() {
             let len = self.playlist.entry.len();

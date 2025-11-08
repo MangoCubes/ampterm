@@ -10,7 +10,7 @@ use crate::{
     action::Action,
     components::{
         home::Home,
-        traits::{component::Component, ontick::OnTick},
+        traits::{fullcomp::FullComp, ontick::OnTick},
     },
     config::Config,
     playerworker::player::ToPlayerWorker,

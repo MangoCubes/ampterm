@@ -19,7 +19,7 @@ use crate::{
     },
 };
 
-use super::Component;
+use super::FullComp;
 #[derive(Default, PartialEq)]
 enum Status {
     #[default]
@@ -149,7 +149,7 @@ impl Login {
     }
 }
 
-impl Component for Login {
+impl FullComp for Login {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         if let Action::FromQueryWorker(res) = action {
             if let ResponseType::SetCredential(Err(msg)) = res.res {

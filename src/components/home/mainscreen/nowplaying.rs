@@ -15,7 +15,7 @@ use stopped::Stopped;
 
 use crate::{
     action::{Action, FromPlayerWorker, StateType},
-    components::traits::{component::Component, simplecomponent::SimpleComponent},
+    components::traits::{fullcomp::FullComp, renderable::Renderable},
 };
 
 enum Comp {
@@ -38,7 +38,7 @@ impl NowPlaying {
     }
 }
 
-impl SimpleComponent for NowPlaying {
+impl Renderable for NowPlaying {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let block = self.gen_block();
         let inner = block.inner(area);

@@ -1,5 +1,5 @@
-use crate::components::traits::component::Component;
+use crate::components::traits::fullcomp::FullComp;
 
-pub trait OnTick: Component {
+pub trait OnTick: FullComp {
     fn on_tick(&mut self);
 }

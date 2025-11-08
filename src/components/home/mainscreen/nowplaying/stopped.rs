@@ -1,6 +1,6 @@
 use crate::components::{
     lib::centered::Centered,
-    traits::{component::Component, simplecomponent::SimpleComponent},
+    traits::{fullcomp::FullComp, renderable::Renderable},
 };
 use color_eyre::Result;
 use ratatui::{layout::Rect, Frame};
@@ -17,7 +17,7 @@ impl Stopped {
     }
 }
 
-impl SimpleComponent for Stopped {
+impl Renderable for Stopped {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         self.comp.draw(frame, area)
     }

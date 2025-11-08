@@ -1,5 +1,5 @@
-use crate::components::traits::component::Component;
+use crate::components::traits::fullcomp::FullComp;
 
-pub trait Focusable: Component {
+pub trait Focusable: FullComp {
     fn set_enabled(&mut self, enable: bool);
 }

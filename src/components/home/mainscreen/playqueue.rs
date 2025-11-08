@@ -10,7 +10,7 @@ use crate::{
     action::{Action, FromPlayerWorker, QueueChange, StateType},
     components::{
         home::mainscreen::playqueue::{nothing::Nothing, something::Something},
-        traits::{component::Component, focusable::Focusable},
+        traits::{fullcomp::FullComp, focusable::Focusable},
     },
     queryworker::{
         highlevelquery::HighLevelQuery,
@@ -58,7 +58,7 @@ impl PlayQueue {
     }
 }
 
-impl Component for PlayQueue {
+impl FullComp for PlayQueue {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         match &mut self.comp {
             Comp::Nothing(nothing) => nothing.draw(frame, area),

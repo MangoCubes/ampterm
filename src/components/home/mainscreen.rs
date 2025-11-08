@@ -15,8 +15,7 @@ use crate::{
     components::{
         home::mainscreen::{bpmtoy::BPMToy, tasks::Tasks},
         traits::{
-            component::Component, focusable::Focusable, ontick::OnTick,
-            simplecomponent::SimpleComponent,
+            fullcomp::FullComp, focusable::Focusable, ontick::OnTick, renderable::Renderable,
         },
     },
     config::Config,
@@ -104,7 +103,7 @@ impl MainScreen {
     }
 }
 
-impl Component for MainScreen {
+impl FullComp for MainScreen {
     fn handle_key_event(&mut self, key: KeyEvent) -> Result<Option<Action>> {
         self.key_stack.push(format!(
             "{}{}",

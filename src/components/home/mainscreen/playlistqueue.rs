@@ -9,7 +9,7 @@ use crate::{
     compid::CompID,
     components::{
         home::mainscreen::playlistqueue::{empty::Empty, loading::Loading},
-        traits::{component::Component, focusable::Focusable},
+        traits::{fullcomp::FullComp, focusable::Focusable},
     },
     queryworker::{
         highlevelquery::HighLevelQuery,
@@ -67,7 +67,7 @@ impl PlaylistQueue {
     }
 }
 
-impl Component for PlaylistQueue {
+impl FullComp for PlaylistQueue {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         match &mut self.comp {
             Comp::Error(error) => error.draw(frame, area),

@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use crate::{
     action::{Action, FromPlayerWorker, StateType},
-    components::traits::simplecomponent::SimpleComponent,
+    components::traits::renderable::Renderable,
     osclient::response::getplaylist::Media,
 };
 use color_eyre::Result;
@@ -32,7 +32,7 @@ impl Playing {
     }
 }
 
-impl SimpleComponent for Playing {
+impl Renderable for Playing {
     fn update(&mut self, action: Action) {
         if let Action::FromPlayerWorker(FromPlayerWorker::StateChange(s)) = action {
             match s {

@@ -3,7 +3,7 @@ use ratatui::{layout::Rect, Frame};
 
 use crate::action::Action;
 
-pub trait SimpleComponent {
+pub trait Renderable {
     /// Render the component on the screen. (REQUIRED)
     ///
     /// # Arguments

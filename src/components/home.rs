@@ -2,10 +2,7 @@ mod loading;
 mod login;
 mod mainscreen;
 
-use std::{
-    io,
-    process::{Command, Stdio},
-};
+use std::process::Command;
 
 use color_eyre::Result;
 use crossterm::event::KeyEvent;
@@ -17,7 +14,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
     action::Action,
-    components::traits::{component::Component, ontick::OnTick},
+    components::traits::{fullcomp::FullComp, ontick::OnTick},
     config::Config,
     queryworker::{
         highlevelquery::HighLevelQuery,
@@ -124,7 +121,7 @@ impl Home {
     }
 }
 
-impl Component for Home {
+impl FullComp for Home {
     fn handle_events(&mut self, event: Event) -> Result<Option<Action>> {
         if let Comp::Main(c) = &mut self.component {
             c.handle_events(event)

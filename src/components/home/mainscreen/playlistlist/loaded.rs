@@ -5,7 +5,7 @@ use crate::{
         useraction::{Common, Global, Normal, UserAction},
         Action,
     },
-    components::traits::component::Component,
+    components::traits::fullcomp::FullComp,
     config::Config,
     osclient::response::getplaylists::SimplePlaylist,
     playerworker::player::{QueueLocation, ToPlayerWorker},
@@ -91,7 +91,7 @@ impl Loaded {
     }
 }
 
-impl Component for Loaded {
+impl FullComp for Loaded {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         frame.render_stateful_widget(&self.comp, area, &mut self.state);
         Ok(())

@@ -3,6 +3,7 @@ use std::time::Duration;
 use crate::{
     action::{Action, FromPlayerWorker, StateType},
     components::traits::{renderable::Renderable, simplecomp::SimpleComp},
+    helper::strings::trim_long_str,
     osclient::response::getplaylist::Media,
 };
 use color_eyre::Result;
@@ -51,23 +52,31 @@ impl SimpleComp for Playing {
 
 impl Renderable for Playing {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        let vertical = Layout::vertical([Constraint::Min(1), Constraint::Length(1)]);
+        let vertical = Layout::vertical([
+            Constraint::Max(1),
+            Constraint::Max(1),
+            Constraint::Length(1),
+        ]);
         let areas = vertical.split(area);
         frame.render_widget(
-            Paragraph::new(vec![
-                Line::raw(format!(
-                    "{} - {}",
+            Line::raw(format!(
+                "{} - {}",
+                trim_long_str(
                     self.music.artist.clone().unwrap_or("Unknown".to_string()),
-                    self.music.title
-                ))
-                .bold(),
-                Line::raw(format!(
-                    "{}",
-                    self.music.album.clone().unwrap_or("Unknown".to_string())
-                )),
-            ])
-            .wrap(Wrap { trim: false }),
+                    // Need to be a multiple of 30 to ensure the character bound thing is satisfied
+                    30
+                ),
+                self.music.title
+            ))
+            .bold(),
             areas[0],
+        );
+        frame.render_widget(
+            Line::raw(format!(
+                "{}",
+                self.music.album.clone().unwrap_or("Unknown".to_string())
+            )),
+            areas[1],
         );
         if let Some(len) = self.music.duration {
             if len == 0 {
@@ -76,7 +85,7 @@ impl Renderable for Playing {
                     self.pos.as_secs() / 60,
                     self.pos.as_secs() % 60,
                 );
-                frame.render_widget(Line::raw(label), areas[1]);
+                frame.render_widget(Line::raw(label), areas[2]);
             } else {
                 let label = format!(
                     "{:02}:{:02} / {:02}:{:02}",
@@ -87,7 +96,7 @@ impl Renderable for Playing {
                 );
                 let percent = ((self.pos.as_secs() as i32 * 100) / len) as u16;
                 let adjusted = if percent > 100 { 100 } else { percent };
-                frame.render_widget(Gauge::default().label(label).percent(adjusted), areas[1]);
+                frame.render_widget(Gauge::default().label(label).percent(adjusted), areas[2]);
             }
         } else {
             let label = format!(

@@ -17,6 +17,7 @@ mod compid;
 mod components;
 mod config;
 mod errors;
+mod helper;
 mod logging;
 mod lyricsclient;
 mod osclient;

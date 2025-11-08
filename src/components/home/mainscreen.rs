@@ -15,7 +15,8 @@ use crate::{
     components::{
         home::mainscreen::{bpmtoy::BPMToy, tasks::Tasks},
         traits::{
-            fullcomp::FullComp, focusable::Focusable, ontick::OnTick, renderable::Renderable,
+            focusable::Focusable, fullcomp::FullComp, ontick::OnTick, renderable::Renderable,
+            simplecomp::SimpleComp,
         },
     },
     config::Config,
@@ -63,7 +64,8 @@ impl OnTick for MainScreen {
 impl MainScreen {
     fn propagate_to_focused_component(&mut self, action: Action) -> Result<Option<Action>> {
         if self.show_tasks {
-            self.tasks.update(action)
+            // self.tasks.update(action)
+            Ok(None)
         } else {
             match self.state {
                 CurrentlySelected::PlaylistList => self.pl_list.update(action),
@@ -103,19 +105,7 @@ impl MainScreen {
     }
 }
 
-impl FullComp for MainScreen {
-    fn handle_key_event(&mut self, key: KeyEvent) -> Result<Option<Action>> {
-        self.key_stack.push(format!(
-            "{}{}",
-            key.code.to_string(),
-            if key.modifiers == KeyModifiers::NONE {
-                ""
-            } else {
-                "+"
-            },
-        ));
-        Ok(None)
-    }
+impl Renderable for MainScreen {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let vertical = Layout::vertical([
             Constraint::Length(1),
@@ -170,6 +160,21 @@ impl FullComp for MainScreen {
         );
         Ok(())
     }
+}
+
+impl FullComp for MainScreen {
+    fn handle_key_event(&mut self, key: KeyEvent) -> Result<Option<Action>> {
+        self.key_stack.push(format!(
+            "{}{}",
+            key.code.to_string(),
+            if key.modifiers == KeyModifiers::NONE {
+                ""
+            } else {
+                "+"
+            },
+        ));
+        Ok(None)
+    }
 
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         if matches!(action, Action::User(_)) {
@@ -213,7 +218,10 @@ impl FullComp for MainScreen {
                     _ => self.propagate_to_focused_component(action),
                 },
                 UserAction::Global(global) => match global {
-                    Global::TapToBPM => self.bpmtoy.update(action),
+                    Global::TapToBPM => {
+                        self.bpmtoy.update(action);
+                        Ok(None)
+                    }
                     Global::FocusPlaylistList => {
                         self.state = CurrentlySelected::PlaylistList;
                         self.update_focus();
@@ -283,12 +291,12 @@ impl FullComp for MainScreen {
             }
             _ => {
                 self.now_playing.update(action.clone());
+                self.bpmtoy.update(action.clone());
                 let results: Vec<Action> = [
                     self.pl_list.update(action.clone())?,
                     self.pl_queue.update(action.clone())?,
-                    self.playqueue.update(action.clone())?,
-                    self.tasks.update(action.clone())?,
-                    self.bpmtoy.update(action)?,
+                    self.playqueue.update(action)?,
+                    // self.tasks.update(action.clone())?,
                 ]
                 .into_iter()
                 .filter_map(|a| a)

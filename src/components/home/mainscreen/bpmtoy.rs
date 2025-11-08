@@ -14,7 +14,7 @@ use crate::{
     },
     components::{
         lib::centered::Centered,
-        traits::{fullcomp::FullComp, ontick::OnTick},
+        traits::{ontick::OnTick, renderable::Renderable, simplecomp::SimpleComp},
     },
     config::Config,
 };
@@ -81,8 +81,7 @@ impl BPMToy {
         }
     }
 }
-
-impl FullComp for BPMToy {
+impl Renderable for BPMToy {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let block = Block::bordered().border_style(Style::new().white());
         let inner = block.inner(area);
@@ -98,7 +97,10 @@ impl FullComp for BPMToy {
             } => comp.draw(frame, inner),
         }
     }
-    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+}
+
+impl SimpleComp for BPMToy {
+    fn update(&mut self, action: Action) {
         if let Action::User(UserAction::Global(Global::TapToBPM)) = action {
             self.state = match &self.state {
                 State::Init(_centered) => State::NeedToTapMore {
@@ -145,9 +147,6 @@ impl FullComp for BPMToy {
                     }
                 }
             };
-            Ok(None)
-        } else {
-            Ok(None)
         }
     }
 }

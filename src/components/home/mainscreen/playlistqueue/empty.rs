@@ -1,7 +1,7 @@
 use crate::components::{
     home::mainscreen::playlistqueue::PlaylistQueue,
     lib::centered::Centered,
-    traits::{fullcomp::FullComp, focusable::Focusable},
+    traits::{focusable::Focusable, renderable::Renderable},
 };
 use color_eyre::Result;
 use ratatui::{layout::Rect, Frame};
@@ -22,7 +22,7 @@ impl Empty {
     }
 }
 
-impl FullComp for Empty {
+impl Renderable for Empty {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let border = PlaylistQueue::gen_block(self.enabled, self.name.clone());
         let inner = border.inner(area);

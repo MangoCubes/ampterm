@@ -6,7 +6,7 @@ use crate::{
     components::{
         home::mainscreen::playlistqueue::PlaylistQueue,
         lib::centered::Centered,
-        traits::{fullcomp::FullComp, focusable::Focusable},
+        traits::{focusable::Focusable, fullcomp::FullComp, renderable::Renderable},
     },
     queryworker::{
         highlevelquery::HighLevelQuery,
@@ -38,14 +38,16 @@ impl Error {
     }
 }
 
-impl FullComp for Error {
+impl Renderable for Error {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let border = PlaylistQueue::gen_block(self.enabled, self.name.clone());
         let inner = border.inner(area);
         frame.render_widget(border, area);
         self.comp.draw(frame, inner)
     }
+}
 
+impl FullComp for Error {
     fn update(&mut self, action: crate::action::Action) -> Result<Option<Action>> {
         if let Action::User(UserAction::Common(Common::Refresh)) = action {
             Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(

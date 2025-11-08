@@ -7,11 +7,11 @@ use ratatui::{
 };
 
 use crate::{
-    action::{Action, FromPlayerWorker, NowPlaying, QueueChange, StateType},
+    action::{Action, FromPlayerWorker, QueueChange, StateType},
     components::{
         home::mainscreen::playqueue::PlayQueue,
         lib::visualtable::VisualTable,
-        traits::{focusable::Focusable, fullcomp::FullComp},
+        traits::{focusable::Focusable, fullcomp::FullComp, renderable::Renderable},
     },
     osclient::response::getplaylist::Media,
     queryworker::{
@@ -121,7 +121,7 @@ impl Something {
     }
 }
 
-impl FullComp for Something {
+impl Renderable for Something {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let title = if let Some(pos) = self.table.get_current() {
             let len = self.list.len();
@@ -142,6 +142,9 @@ impl FullComp for Something {
         frame.render_widget(border, area);
         self.table.draw(frame, inner)
     }
+}
+
+impl FullComp for Something {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::ToQueryWorker(ToQueryWorker {

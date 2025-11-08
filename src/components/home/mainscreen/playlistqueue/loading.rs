@@ -4,7 +4,7 @@ use ratatui::{layout::Rect, Frame};
 use crate::components::{
     home::mainscreen::playlistqueue::PlaylistQueue,
     lib::centered::Centered,
-    traits::{fullcomp::FullComp, focusable::Focusable},
+    traits::{focusable::Focusable, renderable::Renderable},
 };
 
 pub struct Loading {
@@ -23,7 +23,7 @@ impl Loading {
     }
 }
 
-impl FullComp for Loading {
+impl Renderable for Loading {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let border = PlaylistQueue::gen_block(self.enabled, self.name.clone());
         let inner = border.inner(area);

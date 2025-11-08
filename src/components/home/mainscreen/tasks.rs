@@ -11,7 +11,7 @@ use ratatui::{
 };
 
 use crate::{
-    components::traits::fullcomp::FullComp,
+    components::traits::renderable::Renderable,
     queryworker::query::{FromQueryWorker, ToQueryWorker},
 };
 
@@ -81,7 +81,7 @@ impl Tasks {
     }
 }
 
-impl FullComp for Tasks {
+impl Renderable for Tasks {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let vertical = Layout::vertical([Constraint::Percentage(80)]).flex(Flex::Center);
         let horizontal = Layout::horizontal([Constraint::Percentage(80)]).flex(Flex::Center);

@@ -13,7 +13,7 @@ use crate::{
         Action,
     },
     app::Mode,
-    components::traits::fullcomp::FullComp,
+    components::traits::{fullcomp::FullComp, renderable::Renderable},
 };
 
 /// Struct that contains the state of the current temporary selection
@@ -62,13 +62,15 @@ pub struct VisualTable {
     rows: Vec<Row<'static>>,
 }
 
-/// For consistency, do not use [`VisualTable::regen_table`] here
-impl FullComp for VisualTable {
+impl Renderable for VisualTable {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         frame.render_stateful_widget(&self.table, area, &mut self.tablestate);
         Ok(())
     }
+}
 
+/// For consistency, do not use [`VisualTable::regen_table`] here
+impl FullComp for VisualTable {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::User(ua) => {
@@ -122,7 +124,6 @@ impl FullComp for VisualTable {
                             self.disable_visual_discard();
                             Ok(Some(Action::ChangeMode(Mode::Normal)))
                         }
-                        _ => Ok(None),
                     },
                     _ => Ok(None),
                 };

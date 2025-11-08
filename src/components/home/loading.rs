@@ -1,7 +1,7 @@
 use color_eyre::Result;
 use ratatui::{layout::Rect, Frame};
 
-use crate::components::{lib::centered::Centered, traits::fullcomp::FullComp};
+use crate::components::{lib::centered::Centered, traits::renderable::Renderable};
 
 pub struct Loading {
     comp: Centered,
@@ -17,7 +17,7 @@ impl Loading {
         Self { comp }
     }
 }
-impl FullComp for Loading {
+impl Renderable for Loading {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         self.comp.draw(frame, area)
     }

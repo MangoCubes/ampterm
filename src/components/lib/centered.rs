@@ -6,7 +6,7 @@ use ratatui::{
     Frame,
 };
 
-use crate::components::traits::fullcomp::FullComp;
+use crate::components::traits::renderable::Renderable;
 
 pub struct Centered {
     paragraph: Paragraph<'static>,
@@ -21,7 +21,7 @@ impl Centered {
     }
 }
 
-impl FullComp for Centered {
+impl Renderable for Centered {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let [horizontal] = Layout::horizontal([Constraint::Percentage(100)])
             .flex(Flex::Center)

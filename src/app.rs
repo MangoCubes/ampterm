@@ -10,7 +10,7 @@ use crate::{
     action::Action,
     components::{
         home::Home,
-        traits::{fullcomp::FullComp, ontick::OnTick},
+        traits::{fullcomp::FullComp, ontick::OnTick, renderable::Renderable},
     },
     config::Config,
     playerworker::player::ToPlayerWorker,
@@ -63,9 +63,9 @@ impl App {
         tick_rate: f64,
         frame_rate: f64,
     ) -> Result<Self> {
-        let (component, actions) = Home::new(action_tx.clone(), config.clone());
+        let (component, actions) = Home::new(config.clone());
         actions.into_iter().for_each(|a| {
-            action_tx.send(a);
+            let _ = action_tx.send(a);
         });
         Ok(Self {
             tick_rate,

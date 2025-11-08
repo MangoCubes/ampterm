@@ -1,13 +1,13 @@
 use crate::{
     action::{
-        useraction::{Common, Normal, UserAction, Visual},
+        useraction::{Common, UserAction},
         Action,
     },
     app::Mode,
     components::{
         home::mainscreen::playlistqueue::PlaylistQueue,
         lib::visualtable::{TempSelection, VisualTable},
-        traits::{fullcomp::FullComp, focusable::Focusable},
+        traits::{focusable::Focusable, fullcomp::FullComp, renderable::Renderable},
     },
     osclient::response::getplaylist::{FullPlaylist, Media},
     playerworker::player::{QueueLocation, ToPlayerWorker},
@@ -150,7 +150,7 @@ impl Loaded {
     }
 }
 
-impl FullComp for Loaded {
+impl Renderable for Loaded {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let title = if let Some(pos) = self.table.get_current() {
             let len = self.playlist.entry.len();
@@ -172,6 +172,9 @@ impl FullComp for Loaded {
         frame.render_widget(border, area);
         self.table.draw(frame, inner)
     }
+}
+
+impl FullComp for Loaded {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         if let Action::User(ua) = action {
             match ua {

@@ -10,11 +10,7 @@ use crate::{
     action::{Action, FromPlayerWorker, QueueChange, StateType},
     components::{
         home::mainscreen::playqueue::{nothing::Nothing, something::Something},
-        traits::{fullcomp::FullComp, focusable::Focusable},
-    },
-    queryworker::{
-        highlevelquery::HighLevelQuery,
-        query::{FromQueryWorker, ResponseType, ToQueryWorker},
+        traits::{focusable::Focusable, fullcomp::FullComp, renderable::Renderable},
     },
 };
 use color_eyre::Result;
@@ -58,13 +54,16 @@ impl PlayQueue {
     }
 }
 
-impl FullComp for PlayQueue {
+impl Renderable for PlayQueue {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         match &mut self.comp {
             Comp::Nothing(nothing) => nothing.draw(frame, area),
             Comp::Something(something) => something.draw(frame, area),
         }
     }
+}
+
+impl FullComp for PlayQueue {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         if let Comp::Something(s) = &mut self.comp {
             s.update(action)
@@ -82,6 +81,7 @@ impl FullComp for PlayQueue {
         }
     }
 }
+
 impl Focusable for PlayQueue {
     fn set_enabled(&mut self, enable: bool) {
         if self.enabled != enable {

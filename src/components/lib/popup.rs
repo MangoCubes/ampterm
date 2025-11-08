@@ -5,14 +5,14 @@ use ratatui::{
     Frame,
 };
 
-use crate::components::traits::fullcomp::FullComp;
-pub struct Popup<T: FullComp> {
+use crate::components::traits::renderable::Renderable;
+pub struct Popup<T: Renderable> {
     width: u16,
     height: u16,
     comp: T,
 }
 
-impl<T: FullComp> Popup<T> {
+impl<T: Renderable> Popup<T> {
     pub fn new(comp: T, width: u16, height: u16) -> Self {
         Self {
             width,
@@ -22,7 +22,7 @@ impl<T: FullComp> Popup<T> {
     }
 }
 
-impl<T: FullComp> FullComp for Popup<T> {
+impl<T: Renderable> Renderable for Popup<T> {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let vertical = Layout::vertical([Constraint::Percentage(self.width)]).flex(Flex::Center);
         let horizontal =

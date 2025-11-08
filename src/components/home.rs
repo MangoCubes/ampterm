@@ -14,7 +14,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
     action::Action,
-    components::traits::{fullcomp::FullComp, ontick::OnTick},
+    components::traits::{fullcomp::FullComp, ontick::OnTick, renderable::Renderable},
     config::Config,
     queryworker::{
         highlevelquery::HighLevelQuery,
@@ -30,7 +30,6 @@ enum Comp {
 }
 
 pub struct Home {
-    action_tx: UnboundedSender<Action>,
     component: Comp,
     config: Config,
 }
@@ -44,7 +43,7 @@ impl OnTick for Home {
 }
 
 impl Home {
-    pub fn new(action_tx: UnboundedSender<Action>, config: Config) -> (Self, Vec<Action>) {
+    pub fn new(config: Config) -> (Self, Vec<Action>) {
         let auth = config.clone().auth;
         let config_creds = if let Some(creds) = auth {
             fn run_cmd(cmd: &String) -> Result<String> {
@@ -112,12 +111,21 @@ impl Home {
         };
         (
             Self {
-                action_tx,
                 component: comp,
                 config,
             },
             actions,
         )
+    }
+}
+
+impl Renderable for Home {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+        match &mut self.component {
+            Comp::Loading(c) => c.draw(frame, area),
+            Comp::Login(c) => c.draw(frame, area),
+            Comp::Main(c) => c.draw(frame, area),
+        }
     }
 }
 
@@ -127,13 +135,6 @@ impl FullComp for Home {
             c.handle_events(event)
         } else {
             Ok(None)
-        }
-    }
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        match &mut self.component {
-            Comp::Loading(c) => c.draw(frame, area),
-            Comp::Login(c) => c.draw(frame, area),
-            Comp::Main(c) => c.draw(frame, area),
         }
     }
     fn handle_key_event(&mut self, key: KeyEvent) -> Result<Option<Action>> {

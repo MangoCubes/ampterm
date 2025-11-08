@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use reqwest::{Client, Method, Url};
 use serde_json::from_str;
 
@@ -11,7 +9,7 @@ use crate::{
     },
 };
 
-struct LrcLib {
+pub struct LrcLib {
     client: Client,
     config: Config,
 }

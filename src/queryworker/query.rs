@@ -44,7 +44,7 @@ pub enum ResponseType {
     GetPlaylists(GetPlaylistsResponse),
     GetPlaylist(GetPlaylistResponse),
     SetCredential(Result<(), String>),
-    GetLyrics(Result<GetLyricsResponse, String>),
+    GetLyrics(Result<Option<GetLyricsResponse>, String>),
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct FromQueryWorker {

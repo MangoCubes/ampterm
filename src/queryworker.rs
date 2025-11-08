@@ -1,5 +1,4 @@
 pub mod highlevelquery;
-mod lyricsclient;
 pub mod query;
 
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -7,6 +6,8 @@ use std::sync::Arc;
 
 use crate::action::Action;
 use crate::config::Config;
+use crate::lyricsclient::lrclib::LrcLib;
+use crate::lyricsclient::LyricsClient;
 use crate::osclient::response::empty::Empty;
 use crate::osclient::response::getplaylist::{GetPlaylist, IndeterminedPlaylist};
 use crate::osclient::response::getplaylists::GetPlaylists;
@@ -20,11 +21,11 @@ use crate::queryworker::query::{FromQueryWorker, ResponseType};
 use crate::trace_dbg;
 use color_eyre::Result;
 use query::ToQueryWorker;
-use reqwest::{Client, Method, Url};
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
 pub struct QueryWorker {
     client: Option<Arc<OSClient>>,
+    lyrics: Arc<LrcLib>,
     req_tx: UnboundedSender<ToQueryWorker>,
     req_rx: UnboundedReceiver<ToQueryWorker>,
     action_tx: UnboundedSender<Action>,
@@ -281,8 +282,19 @@ impl QueryWorker {
                     };
                 }
                 HighLevelQuery::GetLyrics(params) => {
-                    let c = self.lyrics_client.clone();
+                    let c = self.lyrics.clone();
                     let tx = self.action_tx.clone();
+                    tokio::spawn(async move {
+                        let res = FromQueryWorker::new(
+                            event.dest,
+                            event.ticket,
+                            ResponseType::GetLyrics(match c.search(params).await {
+                                Ok(success) => Ok(success),
+                                Err(failed) => Err(failed.to_string()),
+                            }),
+                        );
+                        let _ = tx.send(Action::FromQueryWorker(res));
+                    });
                 }
             };
             if self.should_quit {
@@ -297,6 +309,7 @@ impl QueryWorker {
     pub fn new(sender: UnboundedSender<Action>, config: Config) -> Self {
         let (req_tx, req_rx) = mpsc::unbounded_channel();
         Self {
+            lyrics: Arc::new(LrcLib::new(config.clone())),
             client: None,
             req_tx,
             req_rx,

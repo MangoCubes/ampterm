@@ -147,7 +147,7 @@ impl Renderable for MainScreen {
 
         frame.render_widget(
             Paragraph::new(format!(
-                "Ampache {} | Tasks: {}",
+                "Ampterm {} | Tasks: {}",
                 env!("CARGO_PKG_VERSION"),
                 self.tasks.get_task_count()
             ))

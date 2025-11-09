@@ -59,6 +59,7 @@ impl Playing {
                     track_name: music.title,
                     artist_name: music.artist,
                     album_name: music.album,
+                    length: music.duration,
                 },
             ))),
         )

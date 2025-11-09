@@ -61,15 +61,20 @@ impl LyricsClient for LrcLib {
                 if data.len() == 0 {
                     return Ok(None);
                 }
-                let synced = data
-                    .iter()
+                let mut iter = data.iter().filter(|item| {
+                    let Some(song_len) = params.length else {
+                        return true;
+                    };
+                    let diff = (item.duration as i32) - song_len;
+                    diff < 3 && diff > -3
+                });
+                let synced = iter
+                    .clone()
                     .find(|item| matches!(item.synced_lyrics, Some(_)));
                 if let Some(found) = synced {
                     return Ok(Some(found.clone()));
                 }
-                let plain = data
-                    .iter()
-                    .find(|item| matches!(item.plain_lyrics, Some(_)));
+                let plain = iter.find(|item| matches!(item.plain_lyrics, Some(_)));
                 if let Some(found) = plain {
                     return Ok(Some(found.clone()));
                 } else {

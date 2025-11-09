@@ -8,6 +8,7 @@ pub struct GetLyricsParams {
     pub track_name: String,
     pub artist_name: Option<String>,
     pub album_name: Option<String>,
+    pub length: Option<i32>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]

@@ -1,13 +1,10 @@
 use std::time::Duration;
 
-use color_eyre::{
-    eyre::Result,
-    owo_colors::{colors::css::Grey, OwoColorize},
-};
+use color_eyre::eyre::Result;
 use ratatui::{
     layout::{Constraint, Layout},
     prelude::Rect,
-    style::{Color, Style, Stylize},
+    style::Stylize,
     text::Line,
     Frame,
 };
@@ -18,12 +15,12 @@ use crate::{
     lyricsclient::getlyrics::ParsedLyrics,
 };
 
-pub struct Lyrics {
+pub struct Synced {
     lyrics: ParsedLyrics,
     current_time: Duration,
 }
 
-impl Lyrics {
+impl Synced {
     pub fn new(found: String) -> Self {
         Self {
             lyrics: ParsedLyrics::from(found),
@@ -32,7 +29,7 @@ impl Lyrics {
     }
 }
 
-impl Renderable for Lyrics {
+impl Renderable for Synced {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let vertical =
             Layout::vertical([Constraint::Max(1), Constraint::Max(1), Constraint::Max(1)]);
@@ -67,7 +64,7 @@ impl Renderable for Lyrics {
     }
 }
 
-impl SimpleComp for Lyrics {
+impl SimpleComp for Synced {
     fn update(&mut self, action: Action) {
         if let Action::FromPlayerWorker(FromPlayerWorker::StateChange(StateType::Position(d))) =
             action

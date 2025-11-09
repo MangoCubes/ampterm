@@ -38,9 +38,9 @@ impl LyricsClient for LrcLib {
         url.set_path("api/search");
         url.query_pairs_mut()
             .append_pair("track_name", &params.track_name);
-        // if let Some(an) = params.artist_name {
-        //     url.query_pairs_mut().append_pair("artist_name", &an);
-        // }
+        if let Some(an) = params.artist_name {
+            url.query_pairs_mut().append_pair("artist_name", &an);
+        }
         // if let Some(an) = params.album_name {
         //     url.query_pairs_mut().append_pair("album_name", &an);
         // }

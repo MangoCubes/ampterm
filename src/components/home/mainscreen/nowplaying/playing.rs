@@ -1,10 +1,11 @@
-mod lyrics;
+mod synced;
+mod unsynced;
 use std::time::Duration;
 
 use crate::{
     action::{Action, FromPlayerWorker, StateType},
     components::{
-        home::mainscreen::nowplaying::playing::lyrics::Lyrics,
+        home::mainscreen::nowplaying::playing::{synced::Synced, unsynced::Unsynced},
         lib::centered::Centered,
         traits::{renderable::Renderable, simplecomp::SimpleComp},
     },
@@ -26,11 +27,11 @@ use ratatui::{
 };
 
 enum LyricsSpace {
-    Found(Lyrics),
+    Found(Synced),
     Fetching(Centered),
     NotFound(Centered),
     Error(Centered),
-    Plain(Centered),
+    Plain(Unsynced),
 }
 
 pub struct Playing {
@@ -74,11 +75,9 @@ impl SimpleComp for Playing {
                     Ok(content) => match content {
                         Some(found) => {
                             if let Some(synced) = found.synced_lyrics {
-                                LyricsSpace::Found(Lyrics::new(synced))
+                                LyricsSpace::Found(Synced::new(synced))
                             } else if let Some(plain) = found.plain_lyrics {
-                                LyricsSpace::Plain(Centered::new(vec![
-                                    "Lyrics does not have timestamp.".to_string(),
-                                ]))
+                                LyricsSpace::Plain(Unsynced::new(plain))
                             } else {
                                 LyricsSpace::NotFound(Centered::new(vec![
                                     "Lyrics not found!".to_string()
@@ -107,7 +106,14 @@ impl SimpleComp for Playing {
                 _ => {}
             };
             if let LyricsSpace::Found(l) = &mut self.lyrics {
-                l.update(action);
+                l.update(action.clone());
+            }
+        } else if matches!(action, Action::User(_)) {
+            match &mut self.lyrics {
+                LyricsSpace::Plain(l) => {
+                    l.update(action);
+                }
+                _ => {}
             }
         }
     }
@@ -146,7 +152,7 @@ impl Renderable for Playing {
         );
         let res = match &mut self.lyrics {
             LyricsSpace::Found(lyrics) => lyrics.draw(frame, areas[3]),
-            LyricsSpace::Plain(lyrics) => todo!(),
+            LyricsSpace::Plain(lyrics) => lyrics.draw(frame, areas[3]),
             LyricsSpace::Fetching(centered)
             | LyricsSpace::NotFound(centered)
             | LyricsSpace::Error(centered) => centered.draw(frame, areas[3]),

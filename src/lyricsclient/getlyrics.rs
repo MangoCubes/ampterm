@@ -96,7 +96,7 @@ impl ParsedLyrics {
             return (None, Some(current.clone()), Some(next.clone()));
         }
 
-        for i in 2..(len - 1) {
+        for i in 2..len {
             let prev = self.lyrics.get(i - 2);
             let current = self.lyrics.get(i - 1);
             let next = self

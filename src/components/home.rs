@@ -10,7 +10,6 @@ use loading::Loading;
 use login::Login;
 use mainscreen::MainScreen;
 use ratatui::{layout::Rect, Frame};
-use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
     action::Action,

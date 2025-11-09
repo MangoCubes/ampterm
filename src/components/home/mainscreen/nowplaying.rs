@@ -15,7 +15,9 @@ use stopped::Stopped;
 
 use crate::{
     action::{Action, FromPlayerWorker, StateType},
-    components::traits::{fullcomp::FullComp, renderable::Renderable, simplecomp::SimpleComp},
+    components::traits::{
+        focusable::Focusable, fullcomp::FullComp, renderable::Renderable, simplecomp::SimpleComp,
+    },
 };
 
 enum Comp {
@@ -25,16 +27,24 @@ enum Comp {
 
 pub struct NowPlaying {
     comp: Comp,
+    enabled: bool,
 }
 
 impl NowPlaying {
-    pub fn new() -> Self {
+    pub fn new(enabled: bool) -> Self {
         Self {
+            enabled,
             comp: Comp::Stopped(Stopped::new()),
         }
     }
     fn gen_block(&self) -> Block<'static> {
-        Block::bordered().border_style(Style::new().white())
+        let style = if self.enabled {
+            Style::new().white()
+        } else {
+            Style::new().dark_gray()
+        };
+
+        Block::bordered().border_style(style)
     }
 }
 
@@ -73,5 +83,13 @@ impl Renderable for NowPlaying {
             Comp::Playing(playing) => playing.draw(frame, inner),
             Comp::Stopped(stopped) => stopped.draw(frame, inner),
         }
+    }
+}
+
+impl Focusable for NowPlaying {
+    fn set_enabled(&mut self, enable: bool) {
+        if self.enabled != enable {
+            self.enabled = enable;
+        };
     }
 }

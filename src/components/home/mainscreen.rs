@@ -34,11 +34,19 @@ use ratatui::{
     Frame,
 };
 
+#[derive(PartialEq, Clone)]
+enum LastSelected {
+    PlaylistList,
+    Playlist,
+    PlayQueue,
+}
+
 #[derive(PartialEq)]
 enum CurrentlySelected {
     PlaylistList,
     Playlist,
     PlayQueue,
+    NowPlaying(LastSelected),
 }
 
 pub struct MainScreen {
@@ -71,6 +79,7 @@ impl MainScreen {
                 CurrentlySelected::PlaylistList => self.pl_list.update(action),
                 CurrentlySelected::Playlist => self.pl_queue.update(action),
                 CurrentlySelected::PlayQueue => self.playqueue.update(action),
+                CurrentlySelected::NowPlaying(_) => self.now_playing.update(action),
             }
         }
     }
@@ -82,7 +91,7 @@ impl MainScreen {
                 pl_list: PlaylistList::new(config.clone(), true),
                 pl_queue: PlaylistQueue::new(false),
                 playqueue: PlayQueue::new(false),
-                now_playing: NowPlaying::new(),
+                now_playing: NowPlaying::new(false),
                 tasks: Tasks::new(config.config.show_internal_tasks),
                 bpmtoy: BPMToy::new(config),
                 message: "You are now logged in.".to_string(),
@@ -102,6 +111,8 @@ impl MainScreen {
             .set_enabled(self.state == CurrentlySelected::Playlist);
         self.playqueue
             .set_enabled(self.state == CurrentlySelected::PlayQueue);
+        self.now_playing
+            .set_enabled(matches!(self.state, CurrentlySelected::NowPlaying(_)));
     }
 }
 
@@ -208,20 +219,54 @@ impl FullComp for MainScreen {
             }
             Action::User(u) => match u {
                 UserAction::Normal(normal) => match normal {
+                    Normal::WindowUp | Normal::WindowDown => {
+                        self.state = match &self.state {
+                            CurrentlySelected::PlaylistList => {
+                                CurrentlySelected::NowPlaying(LastSelected::PlaylistList)
+                            }
+                            CurrentlySelected::Playlist => {
+                                CurrentlySelected::NowPlaying(LastSelected::Playlist)
+                            }
+                            CurrentlySelected::PlayQueue => {
+                                CurrentlySelected::NowPlaying(LastSelected::PlayQueue)
+                            }
+                            CurrentlySelected::NowPlaying(last_selected) => match last_selected {
+                                LastSelected::PlaylistList => CurrentlySelected::PlaylistList,
+                                LastSelected::Playlist => CurrentlySelected::Playlist,
+                                LastSelected::PlayQueue => CurrentlySelected::PlayQueue,
+                            },
+                        };
+                        self.update_focus();
+                        Ok(None)
+                    }
                     Normal::WindowLeft => {
-                        self.state = match self.state {
-                            CurrentlySelected::PlaylistList => CurrentlySelected::PlayQueue,
-                            CurrentlySelected::PlayQueue => CurrentlySelected::Playlist,
-                            CurrentlySelected::Playlist => CurrentlySelected::PlaylistList,
+                        match &self.state {
+                            CurrentlySelected::PlaylistList => {
+                                self.state = CurrentlySelected::PlayQueue;
+                            }
+                            CurrentlySelected::PlayQueue => {
+                                self.state = CurrentlySelected::Playlist;
+                            }
+                            CurrentlySelected::Playlist => {
+                                self.state = CurrentlySelected::PlaylistList;
+                            }
+                            CurrentlySelected::NowPlaying(_) => {}
                         };
                         self.update_focus();
                         Ok(None)
                     }
                     Normal::WindowRight => {
-                        self.state = match self.state {
-                            CurrentlySelected::PlaylistList => CurrentlySelected::Playlist,
-                            CurrentlySelected::Playlist => CurrentlySelected::PlayQueue,
-                            CurrentlySelected::PlayQueue => CurrentlySelected::PlaylistList,
+                        match &self.state {
+                            CurrentlySelected::PlaylistList => {
+                                self.state = CurrentlySelected::Playlist;
+                            }
+                            CurrentlySelected::Playlist => {
+                                self.state = CurrentlySelected::PlayQueue;
+                            }
+                            CurrentlySelected::PlayQueue => {
+                                self.state = CurrentlySelected::PlaylistList;
+                            }
+                            CurrentlySelected::NowPlaying(_) => {}
                         };
                         self.update_focus();
                         Ok(None)

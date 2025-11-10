@@ -60,31 +60,33 @@ const CONFIG: &str = include_str!("../.config/config.json5");
 impl Config {
     pub fn new(paths: PathConfig) -> Result<Self, config::ConfigError> {
         let default_config: Config = json5::from_str(CONFIG).unwrap();
-        let mut builder = config::Config::builder()
-            .set_default("data_dir", paths.data.to_str().unwrap())?
-            .set_default("config_dir", paths.config.to_str().unwrap())?;
+        let mut builder =
+            config::Config::builder().set_default("data_dir", paths.data.to_str().unwrap())?;
+        if let Some(c) = paths.config {
+            builder = builder.set_default("config_dir", c.to_str().unwrap())?;
 
-        let config_files = [
-            ("config.json5", config::FileFormat::Json5),
-            ("config.json", config::FileFormat::Json),
-            ("config.yaml", config::FileFormat::Yaml),
-            ("config.toml", config::FileFormat::Toml),
-            ("config.ini", config::FileFormat::Ini),
-        ];
-        let mut found_config = false;
-        for (file, format) in &config_files {
-            let source = config::File::from(paths.config.join(file))
-                .format(*format)
-                .required(false);
-            builder = builder.add_source(source);
-            if paths.config.join(file).exists() {
-                found_config = true;
+            let config_files = [
+                ("config.json5", config::FileFormat::Json5),
+                ("config.json", config::FileFormat::Json),
+                ("config.yaml", config::FileFormat::Yaml),
+                ("config.toml", config::FileFormat::Toml),
+                ("config.ini", config::FileFormat::Ini),
+            ];
+            let mut found_config = false;
+            for (file, format) in &config_files {
+                let source = config::File::from(c.join(file))
+                    .format(*format)
+                    .required(false);
+                builder = builder.add_source(source);
+                if c.join(file).exists() {
+                    found_config = true;
+                }
             }
-        }
 
-        if !found_config {
-            error!("No configuration file found. Application may not behave as expected");
-        }
+            if !found_config {
+                error!("No configuration file found. Application may not behave as expected");
+            }
+        };
 
         let mut cfg: Self = builder.build()?.try_deserialize()?;
 

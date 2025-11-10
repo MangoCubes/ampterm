@@ -65,7 +65,12 @@ async fn main() -> Result<()> {
     if let Some(msg) = args.is_valid() {
         return Err(eyre!(msg));
     }
-    let config = Config::new(PathConfig::new(args.data, args.config))?;
+    let config = Config::new(PathConfig::new(
+        args.data,
+        args.no_data,
+        args.config,
+        args.no_config,
+    ))?;
 
     // Set up audio stuff
     let host = cpal::default_host();

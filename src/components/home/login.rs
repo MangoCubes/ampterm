@@ -129,10 +129,7 @@ impl Login {
         self.status = Status::Pending(q.ticket);
         self.status_msg = Some(vec!["Logging in...".to_string()]);
         self.update_style();
-        Ok(Some(Action::Multiple(vec![
-            Action::ToQueryWorker(q),
-            Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::CheckCredentialValidity)),
-        ])))
+        Ok(Some(Action::ToQueryWorker(q)))
     }
     pub fn new(msg: Option<Vec<String>>, config: Config) -> (Self, Action) {
         let mut res = Self {
@@ -196,10 +193,28 @@ impl Renderable for Login {
 impl FullComp for Login {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         if let Action::FromQueryWorker(res) = action {
-            if let ResponseType::SetCredential(Err(msg)) = res.res {
-                self.status_msg = Some(vec!["Failed to log in! Error:".to_string(), msg]);
-                self.status = Status::Error;
-                self.update_style();
+            if let Status::Pending(ticket) = self.status {
+                if ticket == res.ticket {
+                    if let ResponseType::SetCredential(r) = res.res {
+                        match r {
+                            Ok(()) => {
+                                let q = ToQueryWorker::new(HighLevelQuery::CheckCredentialValidity);
+                                self.status = Status::Pending(q.ticket);
+                                return Ok(Some(Action::ToQueryWorker(q)));
+                            }
+                            Err(msg) => {
+                                self.status_msg =
+                                    Some(vec!["Failed to log in! Error:".to_string(), msg]);
+                                self.status = Status::Error;
+                                self.update_style();
+                            }
+                        }
+                    } else if let ResponseType::Ping(Err(msg)) = res.res {
+                        self.status_msg = Some(vec!["Failed to log in! Error:".to_string(), msg]);
+                        self.status = Status::Error;
+                        self.update_style();
+                    }
+                }
             }
         }
         Ok(None)

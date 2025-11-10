@@ -1,5 +1,7 @@
 use crate::trace_dbg;
 use error::externalerror::ExternalError;
+use rand::distr::Alphanumeric;
+use rand::{rng, Rng};
 use reqwest::{Client, Url};
 use reqwest::{Method, Response};
 use response::empty::Empty;
@@ -84,7 +86,9 @@ impl OSClient {
             .await
     }
     fn get_path(&self, path: &str, query: Option<Vec<(&str, &str)>>) -> Url {
-        let (mut params, mut url): (Vec<(&str, &str)>, Url) = match &self.auth {
+        let (mut params, mut url): (Vec<(&str, String)>, Url) = match &self.auth {
+            // Login credential format can be found here
+            // https://www.subsonic.org/pages/api.jsp
             Credential::Password {
                 url,
                 secure,
@@ -97,20 +101,27 @@ impl OSClient {
                 (
                     if *legacy {
                         vec![
-                            ("u", &username),
-                            ("p", &password),
-                            ("v", "1.16.1"),
-                            ("c", "ampterm-client"),
-                            ("f", "json"),
+                            ("u", username.clone()),
+                            ("p", password.clone()),
+                            ("v", "1.16.1".to_string()),
+                            ("c", "ampterm-client".to_string()),
+                            ("f", "json".to_string()),
                         ]
                     } else {
+                        let salt: String = (0..32)
+                            .map(|_| rng().sample(Alphanumeric) as char)
+                            .collect();
+                        let mut input = password.clone();
+                        input.push_str(&salt);
+                        let hash = String::from_utf8(md5::compute(input).to_ascii_lowercase())
+                            .expect("Failed to calculate MD5 hash!");
                         vec![
-                            ("u", &username),
-                            ("t", todo!()),
-                            ("s", todo!()),
-                            ("v", "1.16.1"),
-                            ("c", "ampterm-client"),
-                            ("f", "json"),
+                            ("u", username.clone()),
+                            ("t", hash),
+                            ("s", salt),
+                            ("v", "1.16.1".to_string()),
+                            ("c", "ampterm-client".to_string()),
+                            ("f", "json".to_string()),
                         ]
                     },
                     ret,
@@ -126,23 +137,24 @@ impl OSClient {
                 let _ = ret.set_scheme(if *secure { "https" } else { "http" });
                 (
                     vec![
-                        ("u", &username),
-                        ("apiKey", &apikey),
-                        ("v", "1.16.1"),
-                        ("c", "ampterm-client"),
-                        ("f", "json"),
+                        ("u", username.clone()),
+                        ("apiKey", apikey.clone()),
+                        ("v", "1.16.1".to_string()),
+                        ("c", "ampterm-client".to_string()),
+                        ("f", "json".to_string()),
                     ],
                     ret,
                 )
             }
         };
         if let Some(a) = query {
-            params.extend(a);
+            a.into_iter()
+                .for_each(|i| params.push((i.0, i.1.to_string())));
         };
         let path = &format!("rest/{}", path);
         url.set_path(path);
         params.into_iter().for_each(|(k, v)| {
-            url.query_pairs_mut().append_pair(k, v);
+            url.query_pairs_mut().append_pair(k, &v);
         });
         url
     }

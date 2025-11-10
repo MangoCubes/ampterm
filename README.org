@@ -1,13 +1,37 @@
 :PROPERTIES:
 :ID:       ab803af1-3eca-4f97-a436-da828c101fa7
 :END:
-#+TITLE: OpenSubsonic-Compatible TUI Music Player
+#+TITLE: Ampterm: OpenSubsonic-Compatible TUI Music Player
 TUI music player for your self-hosted music servers that provides OpenSubsonic API
+* Compatible Servers
+This program is personally tested against [[https://ampache.org/][Ampache]], a feature-rich OpenSubsonic-compatible music server. The program is occasionally tested against [[https://www.navidrome.org/][Navidrome]] too.
+* Features
+- Vim-like keybindings by default, though you are free to customise them however you want
+  - Every actions in this program can be done with keyboard!
+  - Select multiple items with Visual mode
+  - Use insert-mode keys (a, i, A, I) to add items to your play queue
+  - Check =/.config= to see the full list of default keybindings!
+- View playlists on the server
+- Play music from the playlist
+- Star or unstar songs with F
+- Synchronised lyrics provided by [[https://lrclib.net/][LRCLIB]] if it exists
+  - Plain lyrics is also supported, but will not scroll automatically
+- BPM toy: Tap a key (T by default) to the beat to see its BPM
+* Configuration
+The program comes with a set of default keybindings, which can be seen in =/.config=. However, you can put more keybindings in =~/.config/ampache/config.json= to add to them, or override existing ones.
+* Planned Features
+** Short-term
+- Local lyrics database
+- MPRIS compatibility
+- Playlist Manager
+** Long-term
+- Extended features depending on the server you are using
+  Ampache, for instance, allows users to modify some metadata over the web. I plan to add some metadata editing tools if the server allows them.
+- Offline playlist support
+  This should allow you to play musics you have on your device locally!
 * How to build
 #+BEGIN_SRC shell
-cargo build --release
+  cargo build --release
+  # Output binary should be in ./target/release/ampterm
 #+END_SRC
-* Notes
-- Name is subject to change
-- I might take out the =OSClient= part of this project to a separate library
 

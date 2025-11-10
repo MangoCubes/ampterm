@@ -66,10 +66,18 @@ lazy_static! {
 }
 
 impl Config {
-    pub fn new() -> Result<Self, config::ConfigError> {
+    pub fn new(data: Option<String>, config: Option<String>) -> Result<Self, config::ConfigError> {
         let default_config: Config = json5::from_str(CONFIG).unwrap();
-        let data_dir = Self::get_data_dir();
-        let config_dir = Self::get_config_dir();
+        let data_dir = if let Some(p) = data {
+            PathBuf::from(p)
+        } else {
+            Self::get_data_dir()
+        };
+        let config_dir = if let Some(p) = config {
+            PathBuf::from(p)
+        } else {
+            Self::get_config_dir()
+        };
         let mut builder = config::Config::builder()
             .set_default("data_dir", data_dir.to_str().unwrap())?
             .set_default("config_dir", config_dir.to_str().unwrap())?;
@@ -88,9 +96,10 @@ impl Config {
                 .required(false);
             builder = builder.add_source(source);
             if config_dir.join(file).exists() {
-                found_config = true
+                found_config = true;
             }
         }
+
         if !found_config {
             error!("No configuration file found. Application may not behave as expected");
         }
@@ -130,29 +139,27 @@ impl Config {
         Ok(cfg)
     }
     pub fn get_data_dir() -> PathBuf {
-        let directory = if let Some(s) = DATA_FOLDER.clone() {
+        if let Some(s) = DATA_FOLDER.clone() {
             s
         } else if let Some(proj_dirs) = Self::project_directory() {
             proj_dirs.data_local_dir().to_path_buf()
         } else {
             PathBuf::from(".").join(".data")
-        };
-        directory
+        }
     }
 
     pub fn get_config_dir() -> PathBuf {
-        let directory = if let Some(s) = CONFIG_FOLDER.clone() {
+        if let Some(s) = CONFIG_FOLDER.clone() {
             s
         } else if let Some(proj_dirs) = Self::project_directory() {
             proj_dirs.config_local_dir().to_path_buf()
         } else {
             PathBuf::from(".").join(".config")
-        };
-        directory
+        }
     }
 
     fn project_directory() -> Option<ProjectDirs> {
-        ProjectDirs::from("com", "kdheepak", env!("CARGO_PKG_NAME"))
+        ProjectDirs::from("ch", "skew", env!("CARGO_PKG_NAME"))
     }
 }
 
@@ -240,7 +247,7 @@ mod tests {
 
     #[test]
     fn test_config() -> Result<()> {
-        let c = Config::new()?;
+        let c = Config::new(None, None)?;
         let bound_action = c
             .keybindings
             .get(&Mode::Common)

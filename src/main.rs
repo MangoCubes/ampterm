@@ -57,7 +57,7 @@ async fn main() -> Result<()> {
     log_alsa_error();
 
     let args = Cli::parse();
-    let config = Config::new()?;
+    let config = Config::new(args.data, args.config)?;
 
     // Set up audio stuff
     let host = cpal::default_host();

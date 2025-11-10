@@ -12,6 +12,16 @@ pub struct Cli {
     /// Frame rate, i.e. number of frames per second
     #[arg(short, long, value_name = "FLOAT", default_value_t = 60.0)]
     pub frame_rate: f64,
+
+    /// Specifies the *directory* of the config to load. This directory is expected to contain
+    /// files like "config.json".
+    #[arg(short, long)]
+    pub config: Option<String>,
+
+    /// Specifies the *directory* of the data store. This directory is expected to contain the
+    /// database file.
+    #[arg(short, long)]
+    pub data: Option<String>,
 }
 
 const VERSION_MESSAGE: &str = concat!(

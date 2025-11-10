@@ -13,6 +13,11 @@
         default = false;
         description = ''Enable Ampterm, a TUI-based OpenSubsonic client.'';
       };
+      settings = lib.mkOption {
+        type = lib.types.attrs;
+        default = { };
+        description = ''Ampterm config'';
+      };
     };
   };
   config =
@@ -23,5 +28,6 @@
       home.packages = [
         inputs.ampterm.packages."${pkgs.stdenv.hostPlatform.system}".default
       ];
+      xdg.configFile."ampterm/config.json".text = (builtins.toJSON cfg.settings);
     };
 }

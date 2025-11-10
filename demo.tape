@@ -34,4 +34,4 @@ Up 14
 
 Type a
 
-Sleep 5s
+Sleep 10s

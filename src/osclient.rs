@@ -12,6 +12,7 @@ use serde::de::DeserializeOwned;
 use serde_json::from_str;
 use std::error::Error;
 use std::fmt::Debug;
+use tracing::{debug, info};
 
 mod error;
 pub mod response;
@@ -113,8 +114,7 @@ impl OSClient {
                             .collect();
                         let mut input = password.clone();
                         input.push_str(&salt);
-                        let hash = String::from_utf8(md5::compute(input).to_ascii_lowercase())
-                            .expect("Failed to calculate MD5 hash!");
+                        let hash = format!("{:x}", md5::compute(input));
                         vec![
                             ("u", username.clone()),
                             ("t", hash),
@@ -181,9 +181,10 @@ impl OSClient {
         let response = r.map_err(handler)?;
         match response.error_for_status() {
             Ok(r) => {
-                let body = trace_dbg!(r.text().await.map_err(handler)?);
+                let body = r.text().await.map_err(handler)?;
+                debug!("{body}");
                 let data = from_str::<Wrapper<T>>(&body).map_err(|e| ExternalError::decode(e))?;
-                Ok(trace_dbg!(data.subsonic_response))
+                Ok(data.subsonic_response)
             }
             Err(status) => {
                 if let Some(code) = status.status() {

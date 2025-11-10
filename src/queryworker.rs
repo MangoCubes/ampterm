@@ -207,9 +207,7 @@ impl QueryWorker {
                                                         ),
                                                     ),
                                                 )),
-                                            IndeterminedPlaylist::SimplePlaylist(
-                                                simple_playlist,
-                                            ) => {
+                                            IndeterminedPlaylist::AmpacheEmpty(simple_playlist) => {
                                                 let res = match simple_playlist.get(0) {
                                                     Some(playlist) => {
                                                         let pl = playlist.to_owned();
@@ -230,6 +228,19 @@ impl QueryWorker {
                                                     ),
                                                 ))
                                             }
+                                            IndeterminedPlaylist::NavidromeEmpty(
+                                                simple_playlist,
+                                            ) => tx.send(Action::FromQueryWorker(
+                                                FromQueryWorker::new(
+                                                    event.dest,
+                                                    event.ticket,
+                                                    ResponseType::GetPlaylist(
+                                                        GetPlaylistResponse::Partial(
+                                                            simple_playlist,
+                                                        ),
+                                                    ),
+                                                ),
+                                            )),
                                         },
 
                                         GetPlaylist::Failed { error } => {

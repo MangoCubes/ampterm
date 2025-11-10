@@ -104,11 +104,16 @@ pub struct FullPlaylist {
     pub entry: Vec<Media>,
 }
 
+/// Depending on the server, the way server responds with the empty playlist differs.
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(untagged)]
 pub enum IndeterminedPlaylist {
     FullPlaylist(FullPlaylist),
-    SimplePlaylist(Vec<SimplePlaylist>),
+    /// Ampache replies with a list of playlist that consists of one element that contains the
+    /// requested playlist when the playlist is empty.
+    AmpacheEmpty(Vec<SimplePlaylist>),
+    /// Navidrome replies with a single playlist details but without the entry parameter.
+    NavidromeEmpty(SimplePlaylist),
 }
 
 #[derive(Serialize, Deserialize, Debug)]

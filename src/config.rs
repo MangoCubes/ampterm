@@ -1,14 +1,14 @@
 mod appconfig;
 mod authconfig;
 mod keybindings;
+pub mod pathconfig;
 mod styleconfig;
 
 use keybindings::KeyBindings;
-use std::{collections::HashMap, env, path::PathBuf};
+use std::{collections::HashMap, env};
 
 use color_eyre::Result;
 use derive_deref::{Deref, DerefMut};
-use directories::ProjectDirs;
 use lazy_static::lazy_static;
 use ratatui::style::Style;
 use serde::{de::Deserializer, Deserialize};
@@ -19,11 +19,10 @@ use crate::{
     config::{
         appconfig::AppConfig,
         authconfig::{AuthConfig, UnsafeAuthConfig},
+        pathconfig::PathConfig,
         styleconfig::StyleConfig,
     },
 };
-
-const CONFIG: &str = include_str!("../.config/config.json5");
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct InitState {
@@ -55,32 +54,15 @@ pub struct Config {
 
 lazy_static! {
     pub static ref PROJECT_NAME: String = env!("CARGO_CRATE_NAME").to_uppercase().to_string();
-    pub static ref DATA_FOLDER: Option<PathBuf> =
-        env::var(format!("{}_DATA", PROJECT_NAME.clone()))
-            .ok()
-            .map(PathBuf::from);
-    pub static ref CONFIG_FOLDER: Option<PathBuf> =
-        env::var(format!("{}_CONFIG", PROJECT_NAME.clone()))
-            .ok()
-            .map(PathBuf::from);
 }
+const CONFIG: &str = include_str!("../.config/config.json5");
 
 impl Config {
-    pub fn new(data: Option<String>, config: Option<String>) -> Result<Self, config::ConfigError> {
+    pub fn new(paths: PathConfig) -> Result<Self, config::ConfigError> {
         let default_config: Config = json5::from_str(CONFIG).unwrap();
-        let data_dir = if let Some(p) = data {
-            PathBuf::from(p)
-        } else {
-            Self::get_data_dir()
-        };
-        let config_dir = if let Some(p) = config {
-            PathBuf::from(p)
-        } else {
-            Self::get_config_dir()
-        };
         let mut builder = config::Config::builder()
-            .set_default("data_dir", data_dir.to_str().unwrap())?
-            .set_default("config_dir", config_dir.to_str().unwrap())?;
+            .set_default("data_dir", paths.data.to_str().unwrap())?
+            .set_default("config_dir", paths.config.to_str().unwrap())?;
 
         let config_files = [
             ("config.json5", config::FileFormat::Json5),
@@ -91,11 +73,11 @@ impl Config {
         ];
         let mut found_config = false;
         for (file, format) in &config_files {
-            let source = config::File::from(config_dir.join(file))
+            let source = config::File::from(paths.config.join(file))
                 .format(*format)
                 .required(false);
             builder = builder.add_source(source);
-            if config_dir.join(file).exists() {
+            if paths.config.join(file).exists() {
                 found_config = true;
             }
         }
@@ -137,29 +119,6 @@ impl Config {
         }
 
         Ok(cfg)
-    }
-    pub fn get_data_dir() -> PathBuf {
-        if let Some(s) = DATA_FOLDER.clone() {
-            s
-        } else if let Some(proj_dirs) = Self::project_directory() {
-            proj_dirs.data_local_dir().to_path_buf()
-        } else {
-            PathBuf::from(".").join(".data")
-        }
-    }
-
-    pub fn get_config_dir() -> PathBuf {
-        if let Some(s) = CONFIG_FOLDER.clone() {
-            s
-        } else if let Some(proj_dirs) = Self::project_directory() {
-            proj_dirs.config_local_dir().to_path_buf()
-        } else {
-            PathBuf::from(".").join(".config")
-        }
-    }
-
-    fn project_directory() -> Option<ProjectDirs> {
-        ProjectDirs::from("ch", "skew", env!("CARGO_PKG_NAME"))
     }
 }
 
@@ -247,7 +206,7 @@ mod tests {
 
     #[test]
     fn test_config() -> Result<()> {
-        let c = Config::new(None, None)?;
+        let c = Config::new(PathConfig::default())?;
         let bound_action = c
             .keybindings
             .get(&Mode::Common)

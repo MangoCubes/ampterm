@@ -1,6 +1,8 @@
+use std::path::PathBuf;
+
 use clap::Parser;
 
-use crate::config::Config;
+use crate::config::{pathconfig::PathConfig, Config};
 
 #[derive(Parser, Debug)]
 #[command(author, version = version(), about)]
@@ -56,9 +58,8 @@ const VERSION_MESSAGE: &str = concat!(
 pub fn version() -> String {
     let author = clap::crate_authors!();
 
-    // let current_exe_path = PathBuf::from(clap::crate_name!()).display().to_string();
-    let config_dir_path = Config::get_config_dir().display().to_string();
-    let data_dir_path = Config::get_data_dir().display().to_string();
+    let config_dir_path = PathConfig::get_config_dir().display().to_string();
+    let data_dir_path = PathConfig::get_data_dir().display().to_string();
 
     format!(
         "\
@@ -66,7 +67,7 @@ pub fn version() -> String {
 
 Authors: {author}
 
-Config directory: {config_dir_path}
-Data directory: {data_dir_path}"
+Config directory (unless set with --config): {config_dir_path}
+Data directory (unless set with --data): {data_dir_path}"
     )
 }

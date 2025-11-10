@@ -8,7 +8,12 @@ use rodio::{
 use tokio::{sync::mpsc, task::JoinSet};
 use tracing::warn;
 
-use crate::{app::App, config::Config, playerworker::PlayerWorker, queryworker::QueryWorker};
+use crate::{
+    app::App,
+    config::{pathconfig::PathConfig, Config},
+    playerworker::PlayerWorker,
+    queryworker::QueryWorker,
+};
 
 mod action;
 mod app;
@@ -60,7 +65,7 @@ async fn main() -> Result<()> {
     if let Some(msg) = args.is_valid() {
         return Err(eyre!(msg));
     }
-    let config = Config::new(args.data, args.config)?;
+    let config = Config::new(PathConfig::new(args.data, args.config))?;
 
     // Set up audio stuff
     let host = cpal::default_host();

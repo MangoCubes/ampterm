@@ -14,7 +14,7 @@ use ratatui::{layout::Rect, Frame};
 use crate::{
     action::Action,
     components::traits::{fullcomp::FullComp, ontick::OnTick, renderable::Renderable},
-    config::Config,
+    config::{pathconfig::PathConfig, Config},
     queryworker::{
         highlevelquery::HighLevelQuery,
         query::{setcredential::Credential, ResponseType, ToQueryWorker},
@@ -101,7 +101,7 @@ impl Home {
                 let (comp, action) = Login::new(
                     Some(vec![
                         "No credentials detected in the config.".to_string(),
-                        format!("(Loaded config from {:?})", Config::get_config_dir()),
+                        format!("(Loaded config from {:?})", PathConfig::get_config_dir()),
                     ]),
                     config.clone(),
                 );

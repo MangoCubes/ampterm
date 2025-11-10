@@ -22,6 +22,26 @@ pub struct Cli {
     /// database file.
     #[arg(short, long)]
     pub data: Option<String>,
+
+    /// Do not use any config other than the preset. Incompatible with --config.
+    #[arg(long, default_value_t = false)]
+    pub no_config: bool,
+
+    /// Do not save any data to the database. Incompatible with --data.
+    #[arg(long, default_value_t = false)]
+    pub no_data: bool,
+}
+
+impl Cli {
+    pub fn is_valid(&self) -> Option<String> {
+        if matches!(self.config, Some(_)) && self.no_config {
+            return Some("Incompatible flags set: --config and --no-config".to_string());
+        };
+        if matches!(self.data, Some(_)) && self.no_data {
+            return Some("Incompatible flags set: --data and --no-data".to_string());
+        };
+        None
+    }
 }
 
 const VERSION_MESSAGE: &str = concat!(

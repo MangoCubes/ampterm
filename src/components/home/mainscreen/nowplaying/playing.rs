@@ -32,6 +32,7 @@ enum LyricsSpace {
     NotFound(Centered),
     Error(Centered),
     Plain(Unsynced),
+    Disabled,
 }
 
 pub struct Playing {
@@ -43,27 +44,46 @@ pub struct Playing {
 }
 
 impl Playing {
-    pub fn new(music: Media, vol: f32, speed: f32, pos: Duration) -> (Self, Action) {
-        (
-            Self {
-                vol,
-                speed,
-                pos,
-                music: music.clone(),
-                lyrics: LyricsSpace::Fetching(Centered::new(vec![format!(
-                    "Searching for lyrics for {}...",
-                    music.title
-                )])),
-            },
-            Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::GetLyrics(
-                GetLyricsParams {
-                    track_name: music.title,
-                    artist_name: music.artist,
-                    album_name: music.album,
-                    length: music.duration,
+    pub fn new(
+        music: Media,
+        vol: f32,
+        speed: f32,
+        pos: Duration,
+        enable_lyrics: bool,
+    ) -> (Self, Option<Action>) {
+        if enable_lyrics {
+            (
+                Self {
+                    vol,
+                    speed,
+                    pos,
+                    music: music.clone(),
+                    lyrics: LyricsSpace::Fetching(Centered::new(vec![format!(
+                        "Searching for lyrics for {}...",
+                        music.title
+                    )])),
                 },
-            ))),
-        )
+                Some(Action::ToQueryWorker(ToQueryWorker::new(
+                    HighLevelQuery::GetLyrics(GetLyricsParams {
+                        track_name: music.title,
+                        artist_name: music.artist,
+                        album_name: music.album,
+                        length: music.duration,
+                    }),
+                ))),
+            )
+        } else {
+            (
+                Self {
+                    vol,
+                    speed,
+                    pos,
+                    music: music.clone(),
+                    lyrics: LyricsSpace::Disabled,
+                },
+                None,
+            )
+        }
     }
 }
 
@@ -156,6 +176,7 @@ impl Renderable for Playing {
             LyricsSpace::Fetching(centered)
             | LyricsSpace::NotFound(centered)
             | LyricsSpace::Error(centered) => centered.draw(frame, areas[3]),
+            LyricsSpace::Disabled => Ok(()),
         };
         if let Some(len) = self.music.duration {
             if len == 0 {

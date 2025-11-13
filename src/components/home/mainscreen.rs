@@ -91,7 +91,7 @@ impl MainScreen {
                 pl_list: PlaylistList::new(config.clone(), true),
                 pl_queue: PlaylistQueue::new(false),
                 playqueue: PlayQueue::new(false),
-                now_playing: NowPlaying::new(false),
+                now_playing: NowPlaying::new(false, config.clone()),
                 tasks: Tasks::new(config.config.show_internal_tasks),
                 bpmtoy: BPMToy::new(config),
                 message: "You are now logged in.".to_string(),

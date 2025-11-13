@@ -163,7 +163,7 @@ impl FullComp for Something {
                 match state_type {
                     StateType::Queue(queue_change) => match queue_change {
                         QueueChange::Add { mut items, at } => {
-                            let len = items.len();
+                            let len = self.list.len();
                             if at > len {
                                 self.list.append(&mut items);
                             } else {

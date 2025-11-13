@@ -26,18 +26,18 @@ pub struct TempSelection {
     pub is_select: bool,
 }
 
-/// This value is returned to notify the component that uses VisualTable the range of items on
-/// which a certain action was applied.
-pub enum ActionAppliedOn {
-    /// An action was applied on a single item because the table was not in visual mode, and
-    /// nothing was selected at the time of invoking the action.
+/// Various types of selections that can happen in visual table
+pub enum SelectionType {
+    /// The table was not in visual mode, and nothing was selected. Defaulting to the item the
+    /// cursor is currently on top of.
     Single(usize),
-    /// An action was applied on a range of items because the table was in visual mode.
+    /// The table is currently in visual select mode.
     TempSelection(usize, usize),
-    /// An action was applied on multiple items because some items were already selected.
+    /// The table is currently not in visual mode, but some elements were selected from the
+    /// previous visual mode selections.
     Selection(Vec<bool>),
-    /// Action was not applied because there was nothing selected.
-    None,
+    /// Nothing selected because either the cursor does not exist on the table
+    None { unselect: bool },
 }
 
 impl TempSelection {
@@ -112,7 +112,7 @@ impl FullComp for VisualTable {
                             Ok(None)
                         }
                         Common::ResetState => {
-                            self.reset();
+                            self.reset_selections();
                             Ok(None)
                         }
                         _ => Ok(None),
@@ -185,47 +185,47 @@ impl VisualTable {
         self.table = self.regen_table();
     }
 
-    pub fn delete_row(&mut self, index: usize) {
+    /// Delete a row specified by the provided index
+    fn delete_row(&mut self, index: usize) {
         self.rows.remove(index);
         self.selected.remove(index);
         self.table = self.regen_table();
     }
 
-    pub fn delete(&mut self) -> ActionAppliedOn {
-        if let VisualMode::Select(_) = self.mode {
-            match self.delete_temp_selection() {
-                Some((start, end)) => ActionAppliedOn::TempSelection(start, end),
-                None => ActionAppliedOn::None,
+    /// Delete selected items
+    pub fn delete(&mut self) -> (SelectionType, Option<Action>) {
+        let (selection, action) = self.get_selection_reset();
+        match selection {
+            SelectionType::Single(index) => {
+                self.delete_row(index);
             }
-        } else {
-            let prev = self.selected.clone();
-            let deleted = self.delete_selection();
-            if deleted == 0 {
-                match self.get_current() {
-                    Some(index) => {
-                        self.delete_row(index);
-                        ActionAppliedOn::Single(index)
-                    }
-                    None => ActionAppliedOn::None,
-                }
-            } else {
-                ActionAppliedOn::Selection(prev)
+            SelectionType::TempSelection(_, _) => {
+                self.delete_temp_selection();
             }
-        }
+            SelectionType::Selection(_) => {
+                self.delete_selection();
+            }
+            _ => {}
+        };
+        (selection, action)
     }
 
     /// Delete a temporarily-selected region and return the range that got deleted.
-    pub fn delete_temp_selection(&mut self) -> Option<(usize, usize)> {
+    fn delete_temp_selection(&mut self) -> Option<TempSelection> {
         if let Some(range) = self.get_temp_range() {
-            self.rows.drain(range.start..=range.end);
-            self.selected.drain(range.start..=range.end);
-            self.table = self.regen_table();
-            Some((range.start, range.end))
+            if range.is_select {
+                self.rows.drain(range.start..=range.end);
+                self.selected.drain(range.start..=range.end);
+                self.table = self.regen_table();
+            };
+            Some(range)
         } else {
             None
         }
     }
-    pub fn delete_selection(&mut self) -> usize {
+
+    /// Delete selected rows, and return the number of rows affected
+    fn delete_selection(&mut self) -> usize {
         let mut count = 0;
         self.rows = self
             .rows
@@ -245,6 +245,55 @@ impl VisualTable {
         self.selected = vec![false; self.rows.len()];
         self.table = self.regen_table();
         count
+    }
+
+    /// Same as [`Self::get_selection`], except the selections are reset.
+    pub fn get_selection_reset(&mut self) -> (SelectionType, Option<Action>) {
+        let selection = self.get_selection();
+        match selection {
+            SelectionType::TempSelection(_, _) => {
+                self.disable_visual_discard();
+                (selection, Some(Action::ChangeMode(Mode::Normal)))
+            }
+            SelectionType::Selection(_) => {
+                self.reset_selections();
+                (selection, None)
+            }
+            _ => (selection, None),
+        }
+    }
+
+    /// Get current selection.
+    /// Priorities are as follows:
+    /// 1. If the table is currently in visual mode, return the start and end index of the current
+    ///    temporary selection. Return None if the current mode is visual deselect mode.
+    /// 2. If there are selected items, return them in the form of boolean array.
+    /// 3. If there are no rows selected, return the item selected by the cursor. Return None if
+    ///    there is no cursor present.
+    pub fn get_selection(&self) -> SelectionType {
+        if let Some(range) = self.get_temp_range() {
+            if range.is_select {
+                return SelectionType::TempSelection(range.start, range.end);
+            } else {
+                return SelectionType::None { unselect: true };
+            }
+        } else {
+            let mut count = 0;
+            for b in &self.selected {
+                if *b {
+                    count += 1;
+                }
+            }
+
+            if count == 0 {
+                match self.get_current() {
+                    Some(index) => SelectionType::Single(index),
+                    None => SelectionType::None { unselect: false },
+                }
+            } else {
+                SelectionType::Selection(self.selected.clone())
+            }
+        }
     }
 
     #[inline]
@@ -300,7 +349,7 @@ impl VisualTable {
     }
 
     /// Regenerate the table so that its look matches the table's internal state
-    pub fn regen_table(&self) -> Table<'static> {
+    fn regen_table(&self) -> Table<'static> {
         Self::gen_table(
             &self.constraints,
             self.rows.clone(),
@@ -379,7 +428,7 @@ impl VisualTable {
     /// If the third value is true, then the table is in select mode. If not, the table is in
     /// deselect mode.
     #[inline]
-    pub fn get_temp_range(&self) -> Option<TempSelection> {
+    fn get_temp_range(&self) -> Option<TempSelection> {
         let end = self
             .get_current()
             .expect("Cannot find the cursor location!");
@@ -395,12 +444,13 @@ impl VisualTable {
     }
     /// Get a reference to the selection toggle list
     #[inline]
-    pub fn get_current_selection(&self) -> &[bool] {
+    fn get_current_selection(&self) -> &[bool] {
         &self.selected
     }
+
     /// Reset all overall selection
     #[inline]
-    pub fn reset(&mut self) {
+    pub fn reset_selections(&mut self) {
         self.selected = vec![false; self.selected.len()];
         self.table = self.regen_table();
     }

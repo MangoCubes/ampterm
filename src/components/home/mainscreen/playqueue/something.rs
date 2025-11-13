@@ -14,7 +14,7 @@ use crate::{
     app::Mode,
     components::{
         home::mainscreen::playqueue::PlayQueue,
-        lib::visualtable::VisualTable,
+        lib::visualtable::{SelectionType, VisualTable},
         traits::{focusable::Focusable, fullcomp::FullComp, renderable::Renderable},
     },
     osclient::response::getplaylist::Media,
@@ -172,7 +172,7 @@ impl FullComp for Something {
                             self.table
                                 .add_rows_at(Self::gen_rows(&self.list, self.index), at, len);
                         }
-                        QueueChange::Del { from, to } => todo!(),
+                        QueueChange::Del { from, to } => {}
                     },
                     StateType::NowPlaying(now_playing) => {
                         self.index = if let Some(n) = now_playing {
@@ -189,65 +189,44 @@ impl FullComp for Something {
             Action::User(UserAction::Common(a)) => match a {
                 Common::Delete => todo!(),
                 Common::ToggleStar => {
-                    if let Some(range) = self.table.get_temp_range() {
-                        self.table.disable_visual_discard();
-                        if range.is_select {
-                            let slice = &self.list[range.start..=range.end];
-                            let mut actions: Vec<Action> = slice
-                                .into_iter()
-                                .map(|m| {
-                                    Action::ToQueryWorker(ToQueryWorker::new(
-                                        HighLevelQuery::SetStar {
-                                            media: m.id.clone(),
-                                            star: m.starred == None,
-                                        },
-                                    ))
-                                })
-                                .collect();
-                            actions.push(Action::ChangeMode(Mode::Normal));
-
-                            Ok(Some(Action::Multiple(actions)))
-                        } else {
-                            Ok(Some(Action::ChangeMode(Mode::Normal)))
+                    let (selection, action) = self.table.get_selection_reset();
+                    let mut items: Vec<Action> = match selection {
+                        SelectionType::Single(idx) => {
+                            let item = self.list[idx].clone();
+                            vec![(item.id, item.starred == None)]
                         }
-                    } else {
-                        let selection = self.table.get_current_selection();
-                        let targets: Vec<Action> = selection
-                            .into_iter()
-                            .enumerate()
-                            .filter_map(
-                                |(idx, include)| {
-                                    if *include {
-                                        self.list.get(idx)
-                                    } else {
-                                        None
-                                    }
-                                },
-                            )
-                            .map(|m| {
-                                Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::SetStar {
-                                    media: m.id.clone(),
-                                    star: m.starred == None,
-                                }))
+                        SelectionType::TempSelection(start, end) => self.list[start..=end]
+                            .iter()
+                            .map(|m| (m.id.clone(), m.starred == None))
+                            .collect(),
+                        SelectionType::Selection(items) => self
+                            .list
+                            .iter()
+                            .zip(items.iter())
+                            .filter_map(|(m, &selected)| {
+                                if selected {
+                                    Some((m.id.clone(), m.starred == None))
+                                } else {
+                                    None
+                                }
                             })
-                            .collect();
-                        if targets.len() == 0 {
-                            let Some(idx) = self.table.get_current() else {
-                                return Ok(None);
-                            };
-                            let Some(media) = self.list.get(idx) else {
-                                return Ok(None);
-                            };
-                            Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
-                                HighLevelQuery::SetStar {
-                                    media: media.id.clone(),
-                                    star: media.starred.is_none(),
-                                },
-                            ))))
-                        } else {
-                            Ok(Some(Action::Multiple(targets)))
-                        }
+                            .collect(),
+                        SelectionType::None { unselect: _ } => vec![],
                     }
+                    .into_iter()
+                    .map(|(id, star)| {
+                        Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::SetStar {
+                            media: id,
+                            star,
+                        }))
+                    })
+                    .collect();
+
+                    if let Some(a) = action {
+                        items.push(a);
+                    }
+
+                    Ok(Some(Action::Multiple(items)))
                 }
                 _ => self.table.update(Action::User(UserAction::Common(a))),
             },

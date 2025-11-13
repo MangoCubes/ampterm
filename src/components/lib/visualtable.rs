@@ -26,6 +26,20 @@ pub struct TempSelection {
     pub is_select: bool,
 }
 
+/// This value is returned to notify the component that uses VisualTable the range of items on
+/// which a certain action was applied.
+pub enum ActionAppliedOn {
+    /// An action was applied on a single item because the table was not in visual mode, and
+    /// nothing was selected at the time of invoking the action.
+    Single(usize),
+    /// An action was applied on a range of items because the table was in visual mode.
+    TempSelection(usize, usize),
+    /// An action was applied on multiple items because some items were already selected.
+    Selection(Vec<bool>),
+    /// Action was not applied because there was nothing selected.
+    None,
+}
+
 impl TempSelection {
     fn new(start: usize, end: usize, is_select: bool) -> Self {
         Self {
@@ -170,24 +184,67 @@ impl VisualTable {
         };
         self.table = self.regen_table();
     }
-    pub fn delete_temp_selection(&mut self) {
+
+    pub fn delete_row(&mut self, index: usize) {
+        self.rows.remove(index);
+        self.selected.remove(index);
+        self.table = self.regen_table();
+    }
+
+    pub fn delete(&mut self) -> ActionAppliedOn {
+        if let VisualMode::Select(_) = self.mode {
+            match self.delete_temp_selection() {
+                Some((start, end)) => ActionAppliedOn::TempSelection(start, end),
+                None => ActionAppliedOn::None,
+            }
+        } else {
+            let prev = self.selected.clone();
+            let deleted = self.delete_selection();
+            if deleted == 0 {
+                match self.get_current() {
+                    Some(index) => {
+                        self.delete_row(index);
+                        ActionAppliedOn::Single(index)
+                    }
+                    None => ActionAppliedOn::None,
+                }
+            } else {
+                ActionAppliedOn::Selection(prev)
+            }
+        }
+    }
+
+    /// Delete a temporarily-selected region and return the range that got deleted.
+    pub fn delete_temp_selection(&mut self) -> Option<(usize, usize)> {
         if let Some(range) = self.get_temp_range() {
             self.rows.drain(range.start..=range.end);
             self.selected.drain(range.start..=range.end);
             self.table = self.regen_table();
+            Some((range.start, range.end))
+        } else {
+            None
         }
     }
-    pub fn delete_selection(&mut self) {
+    pub fn delete_selection(&mut self) -> usize {
+        let mut count = 0;
         self.rows = self
             .rows
             .clone()
             .into_iter()
             .enumerate()
-            .filter(|(idx, _)| self.selected[*idx])
+            .filter(|(idx, _)| {
+                // Selected items should be deleted and should return false
+                let selected = self.selected[*idx];
+                if selected {
+                    count += 1;
+                }
+                !selected
+            })
             .map(|(_, row)| row)
             .collect();
         self.selected = vec![false; self.rows.len()];
         self.table = self.regen_table();
+        count
     }
 
     #[inline]

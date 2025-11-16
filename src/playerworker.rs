@@ -143,13 +143,18 @@ impl PlayerWorker {
                 break;
             };
             match event {
-                ToPlayerWorker::Stop => todo!(),
+                ToPlayerWorker::Stop => {
+                    self.sink.stop();
+                    if let WorkerState::Playing(token) = &self.state {
+                        token.cancel();
+                    };
+                }
                 ToPlayerWorker::Pause => self.pause_stream(),
                 ToPlayerWorker::Resume => self.continue_stream(),
                 ToPlayerWorker::Kill => self.should_quit = true,
                 ToPlayerWorker::PlayURL { music, url } => {
+                    self.sink.stop();
                     if let WorkerState::Playing(token) = &self.state {
-                        self.sink.stop();
                         token.cancel();
                     };
                     let _ =

@@ -89,10 +89,9 @@ impl FullComp for VisualTable {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::User(ua) => {
-                let cur_pos = self
-                    .tablestate
-                    .selected()
-                    .expect("Failed to get current cursor location.");
+                let Some(cur_pos) = self.tablestate.selected() else {
+                    return Ok(None);
+                };
 
                 let action = match ua {
                     UserAction::Common(local) => match local {
@@ -366,9 +365,9 @@ impl VisualTable {
     /// deselect mode.
     #[inline]
     fn get_temp_range(&self) -> Option<TempSelection> {
-        let end = self
-            .get_current()
-            .expect("Cannot find the cursor location!");
+        let Some(end) = self.get_current() else {
+            return None;
+        };
         if let Some((start, end, is_select)) = self.get_range(end) {
             if start > end {
                 Some(TempSelection::new(end, start, is_select))
@@ -394,9 +393,11 @@ impl VisualTable {
     /// Disable visual mode for the current table
     /// The current temporary selection is added to the overall selection
     pub fn disable_visual(&mut self) {
-        let end = self
-            .get_current()
-            .expect("Cannot find the cursor location!");
+        let Some(end) = self.get_current() else {
+            self.mode = VisualMode::Off;
+            self.table = self.regen_table();
+            return;
+        };
         if let VisualMode::Select(start) = self.mode {
             let (a, b) = if start < end {
                 (start, end)

@@ -10,10 +10,11 @@ use ratatui::{
 use crate::{
     action::{
         useraction::{Common, Normal, UserAction, Visual},
-        Action,
+        Action, Selection,
     },
     app::Mode,
     components::traits::{fullcomp::FullComp, renderable::Renderable},
+    helper::selection::ModifiableList,
 };
 
 /// Struct that contains the state of the current temporary selection
@@ -68,12 +69,12 @@ pub struct VisualTable {
     /// Current mode of the table
     mode: VisualMode,
     /// List of all selected items
-    selected: Vec<bool>,
+    selected: ModifiableList<bool>,
     table_proc: fn(Table<'static>) -> Table<'static>,
     constraints: Vec<Constraint>,
     table: Table<'static>,
     tablestate: TableState,
-    rows: Vec<Row<'static>>,
+    rows: ModifiableList<Row<'static>>,
 }
 
 impl Renderable for VisualTable {
@@ -155,77 +156,33 @@ impl VisualTable {
     }
     /// Set all the rows with a new set of rows
     pub fn set_rows(&mut self, rows: Vec<Row<'static>>) {
-        self.rows = rows;
+        self.rows = ModifiableList::new(rows);
         self.table = self.regen_table();
     }
     /// Resets the entire table, overwriting all existing rows with the new ones
     pub fn reset_rows(&mut self, rows: Vec<Row<'static>>) {
-        self.selected = vec![false; rows.len()];
-        self.rows = rows;
+        self.selected = ModifiableList::new(vec![false; rows.len()]);
+        self.rows = ModifiableList::new(rows);
         self.table = self.regen_table();
     }
     /// Set all the rows with a new set of rows, then signal the table that there have been
     /// additional elements at the specified index
-    pub fn add_rows_at(&mut self, rows: Vec<Row<'static>>, at: usize, len: usize) {
+    pub fn add_rows_at(&mut self, rows: Vec<Row<'static>>, at: usize) {
+        let len = rows.len();
+        self.rows.add_rows_at(rows, at);
+        self.selected.add_rows_at(vec![false; len], at);
         if self.rows.is_empty() {
-            self.selected = vec![false; len];
-            self.rows = rows;
-        } else {
             let cur = self.get_current().expect("Failed to get cursor location.");
-            self.rows = rows;
-            if at > self.selected.len() {
-                self.selected.append(&mut vec![false; len]);
-            } else {
-                self.selected.splice(at..at, vec![false; len]);
-            }
             if cur >= at {
                 self.tablestate.select(Some(cur + len));
             }
-        };
+        }
         self.table = self.regen_table();
     }
 
-    /// Delete a row specified by the provided index
-    pub fn delete_single(&mut self, index: usize) {
-        self.rows.remove(index);
-        self.selected.remove(index);
-        assert!(self.rows.len() == self.selected.len());
-        self.table = self.regen_table();
-    }
-
-    /// Delete a range
-    pub fn delete_range(&mut self, start: usize, end: usize) {
-        self.rows.drain(start..=end);
-        self.selected.drain(start..=end);
-        assert!(self.rows.len() == self.selected.len());
-        self.table = self.regen_table();
-    }
-
-    /// Delete rows where selected[index] is true
-    pub fn delete_multiple(&mut self, selected: &[bool]) {
-        self.rows = self
-            .rows
-            .clone()
-            .into_iter()
-            .enumerate()
-            .filter(|(idx, _)| {
-                // Selected items should be deleted and should return false
-                !selected[*idx]
-            })
-            .map(|(_, row)| row)
-            .collect();
-        self.selected = self
-            .selected
-            .clone()
-            .into_iter()
-            .enumerate()
-            .filter(|(idx, _)| {
-                // Selected items should be deleted and should return false
-                !selected[*idx]
-            })
-            .map(|(_, row)| row)
-            .collect();
-        assert!(self.rows.len() == self.selected.len());
+    pub fn delete(&mut self, selection: &Selection) {
+        self.selected.delete(selection);
+        self.rows.delete(selection);
         self.table = self.regen_table();
     }
 
@@ -261,7 +218,7 @@ impl VisualTable {
             }
         } else {
             let mut count = 0;
-            for b in &self.selected {
+            for b in &self.selected.0 {
                 if *b {
                     count += 1;
                 }
@@ -273,7 +230,7 @@ impl VisualTable {
                     None => VisualSelection::None { unselect: false },
                 }
             } else {
-                VisualSelection::Selection(self.selected.clone())
+                VisualSelection::Selection(self.selected.0.clone())
             }
         }
     }
@@ -334,9 +291,9 @@ impl VisualTable {
     fn regen_table(&self) -> Table<'static> {
         Self::gen_table(
             &self.constraints,
-            self.rows.clone(),
+            self.rows.0.clone(),
             self.get_temp_range(),
-            &self.get_current_selection(),
+            &self.selected.0,
             self.table_proc,
         )
     }
@@ -358,11 +315,11 @@ impl VisualTable {
         constraints: Vec<Constraint>,
         table_proc: fn(Table<'static>) -> Table<'static>,
     ) -> Self {
-        let selected = vec![false; rows.len()];
-        let table = Self::gen_table(&constraints, rows.clone(), None, &selected, table_proc);
+        let selected = ModifiableList::new(vec![false; rows.len()]);
+        let table = Self::gen_table(&constraints, rows.clone(), None, &selected.0, table_proc);
         Self {
             mode: VisualMode::Off,
-            rows,
+            rows: ModifiableList::new(rows),
             selected,
             table_proc,
             constraints,
@@ -424,16 +381,11 @@ impl VisualTable {
             None
         }
     }
-    /// Get a reference to the selection toggle list
-    #[inline]
-    fn get_current_selection(&self) -> &[bool] {
-        &self.selected
-    }
 
     /// Reset all overall selection
     #[inline]
     pub fn reset_selections(&mut self) {
-        self.selected = vec![false; self.selected.len()];
+        self.selected = ModifiableList::new(vec![false; self.selected.0.len()]);
         self.table = self.regen_table();
     }
     #[inline]
@@ -454,7 +406,7 @@ impl VisualTable {
                 (end, start)
             };
             for i in a..=b {
-                self.selected[i] = true;
+                self.selected.0[i] = true;
             }
         } else if let VisualMode::Deselect(start) = self.mode {
             let (a, b) = if start < end {
@@ -463,7 +415,7 @@ impl VisualTable {
                 (end, start)
             };
             for i in a..=b {
-                self.selected[i] = false;
+                self.selected.0[i] = false;
             }
         };
         self.mode = VisualMode::Off;

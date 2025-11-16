@@ -16,6 +16,7 @@ use crate::{
         lib::visualtable::{VisualSelection, VisualTable},
         traits::{focusable::Focusable, fullcomp::FullComp, renderable::Renderable},
     },
+    helper::selection::ModifiableList,
     osclient::response::getplaylist::Media,
     playerworker::player::ToPlayerWorker,
     queryworker::{
@@ -25,7 +26,7 @@ use crate::{
 };
 
 pub struct Something {
-    list: Vec<Media>,
+    list: ModifiableList<Media>,
     index: Option<usize>,
     table: VisualTable,
     enabled: bool,
@@ -52,17 +53,18 @@ impl Something {
         Self {
             enabled,
             table: VisualTable::new(
-                Self::gen_rows(&list, Some(0)),
+                Self::gen_rows_from(&list, Some(0), 0),
                 [Constraint::Max(1), Constraint::Min(0), Constraint::Max(1)].to_vec(),
                 table_proc,
             ),
-            list,
+            list: ModifiableList::new(list),
             index: Some(0),
         }
     }
     pub fn set_star(&mut self, media: MediaID, star: bool) -> Option<Action> {
-        let updated = self
+        self.list.0 = self
             .list
+            .0
             .clone()
             .into_iter()
             .map(|mut m| {
@@ -76,15 +78,18 @@ impl Something {
                 m
             })
             .collect();
-        self.list = updated;
-        let rows = Self::gen_rows(&self.list, self.index);
+        let rows = Self::gen_rows_from(&self.list.0, self.index, 0);
         self.table.set_rows(rows);
         None
     }
-    fn gen_rows(items: &Vec<Media>, index: Option<usize>) -> Vec<Row<'static>> {
+    fn gen_rows_from(
+        items: &Vec<Media>,
+        now_playing: Option<usize>,
+        starting_from: usize,
+    ) -> Vec<Row<'static>> {
         let len = items.len();
-        let before = Style::new().fg(Color::DarkGray);
-        let after = Style::new();
+        let played = Style::new().fg(Color::DarkGray);
+        let not_yet_played = Style::new();
         fn gen_rows_part(ms: &[Media], style: Style) -> Vec<Row<'static>> {
             ms.iter()
                 .map(|m| {
@@ -93,34 +98,52 @@ impl Something {
                 })
                 .collect()
         }
-        fn gen_current_item(ms: &Media) -> Row<'static> {
+        fn gen_playing_item(ms: &Media) -> Row<'static> {
             let current = Style::new().bold();
             Row::new(vec!["▶".to_string(), ms.title.clone(), ms.get_fav_marker()]).style(current)
         }
-        match index {
+        match now_playing {
             Some(idx) => match idx {
-                // Current item is the last item in the playlist
-                i if (len - 1) == idx => {
-                    let mut list = gen_rows_part(&items[..i], before);
-                    list.push(gen_current_item(&items[i]));
+                // This is the case where the currently plaing item's index matches the final item
+                // in the sublist this function received. Therefore, everything but the last
+                // element will be marked as "Played", and the last element will be marked as "Now
+                // playing".
+                i if (starting_from + len - 1) == idx => {
+                    let now_playing = i - starting_from;
+                    let mut list = gen_rows_part(&items[..now_playing], played);
+                    list.push(gen_playing_item(&items[now_playing]));
                     list
                 }
-                // Current item is the first element in the playlist
-                0 => {
-                    let mut list = gen_rows_part(&items[1..], after);
-                    list.insert(0, gen_current_item(&items[0]));
+                // This is the case where the currently playing item's index matches the first item
+                // in the sublist this function received. Therefore, everything but the first
+                // element will be marked as "Not played", and the first element will be marked as
+                // "Now playing".
+                _ if (starting_from == idx) => {
+                    let mut list = gen_rows_part(&items[1..], not_yet_played);
+                    list.insert(0, gen_playing_item(&items[0]));
                     list
                 }
-                // Every other cases
+                // This is the case where the sublist this function received is beyond the item
+                // that is currently being played. Therefore, everything will be marked as "Not
+                // played".
+                _ if (starting_from > idx) => gen_rows_part(&items, not_yet_played),
+                // This is the case where the entire sublist this function received is before the
+                // item that is currently being played. Everything will be marked as such.
+                _ if (starting_from + len - 1 < idx) => gen_rows_part(&items, played),
+                // This is the case where the sublist contains the music that is currently being
+                // played, but is not the start nor the end
                 i => {
-                    let mut list = gen_rows_part(&items[..i], before);
-                    list.append(&mut gen_rows_part(&items[(i + 1)..], after));
-                    list.insert(i, gen_current_item(&items[i]));
+                    let mut list = gen_rows_part(&items[..(i - starting_from)], played);
+                    list.append(&mut gen_rows_part(
+                        &items[(i - starting_from + 1)..],
+                        not_yet_played,
+                    ));
+                    list.insert(i, gen_playing_item(&items[i - starting_from]));
                     list
                 }
             },
             // Current item is beyond the current playlist
-            None => gen_rows_part(&items, before),
+            None => gen_rows_part(&items, played),
         }
     }
 }
@@ -128,7 +151,7 @@ impl Something {
 impl Renderable for Something {
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let title = if let Some(pos) = self.table.get_current() {
-            let len = self.list.len();
+            let len = self.list.0.len();
             format!(
                 "Queue ({}/{})",
                 if pos == usize::MAX || pos >= len {
@@ -139,7 +162,7 @@ impl Renderable for Something {
                 len
             )
         } else {
-            format!("Queue ({})", self.list.len())
+            format!("Queue ({})", self.list.0.len())
         };
         let border = PlayQueue::gen_block(self.enabled, title);
         let inner = border.inner(area);
@@ -162,38 +185,15 @@ impl FullComp for Something {
             Action::FromPlayerWorker(FromPlayerWorker::StateChange(state_type)) => {
                 match state_type {
                     StateType::Queue(queue_change) => match queue_change {
-                        QueueChange::Add { mut items, at } => {
-                            let len = self.list.len();
-                            if at > len {
-                                self.list.append(&mut items);
-                            } else {
-                                self.list.splice(at..at, items);
-                            }
+                        QueueChange::Add { items, at } => {
                             self.table
-                                .add_rows_at(Self::gen_rows(&self.list, self.index), at, len);
+                                .add_rows_at(Self::gen_rows_from(&items, self.index, at), at);
+                            self.list.add_rows_at(items, at);
                         }
-                        QueueChange::Del(sel) => match sel {
-                            Selection::Single(index) => {
-                                self.list.remove(index);
-                                self.table.delete_single(index);
-                            }
-                            Selection::Range(start, end) => {
-                                self.list.drain(start..=end);
-                                self.table.delete_range(start, end);
-                            }
-                            Selection::Multiple(items) => {
-                                self.list = self
-                                    .list
-                                    .clone()
-                                    .into_iter()
-                                    .enumerate()
-                                    .filter(|(idx, _)| !items[*idx])
-                                    .map(|(_, row)| row)
-                                    .collect();
-
-                                self.table.delete_multiple(&items);
-                            }
-                        },
+                        QueueChange::Del(sel) => {
+                            self.list.delete(&sel);
+                            self.table.delete(&sel);
+                        }
                     },
                     StateType::NowPlaying(now_playing) => {
                         self.index = if let Some(n) = now_playing {
@@ -201,7 +201,8 @@ impl FullComp for Something {
                         } else {
                             None
                         };
-                        self.table.set_rows(Self::gen_rows(&self.list, self.index));
+                        self.table
+                            .set_rows(Self::gen_rows_from(&self.list.0, self.index, 0));
                     }
                     StateType::Volume(_) | StateType::Position(_) | StateType::Speed(_) => {}
                 }
@@ -230,15 +231,16 @@ impl FullComp for Something {
                     let (selection, action) = self.table.get_selection_reset();
                     let mut items: Vec<Action> = match selection {
                         VisualSelection::Single(idx) => {
-                            let item = self.list[idx].clone();
+                            let item = self.list.0[idx].clone();
                             vec![(item.id, item.starred == None)]
                         }
-                        VisualSelection::TempSelection(start, end) => self.list[start..=end]
+                        VisualSelection::TempSelection(start, end) => self.list.0[start..=end]
                             .iter()
                             .map(|m| (m.id.clone(), m.starred == None))
                             .collect(),
                         VisualSelection::Selection(items) => self
                             .list
+                            .0
                             .iter()
                             .zip(items.iter())
                             .filter_map(|(m, &selected)| {

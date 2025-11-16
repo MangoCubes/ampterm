@@ -94,7 +94,7 @@ impl PlayerWorker {
             let _ = self
                 .action_tx
                 .send(Action::FromPlayerWorker(FromPlayerWorker::StateChange(
-                    StateType::Queue(QueueChange::add(items, 0)),
+                    StateType::Queue(QueueChange::Add { items, at: 0 }),
                 )));
             return;
         };
@@ -105,9 +105,10 @@ impl PlayerWorker {
                     | WorkerState::Loading { current } => {
                         self.queue.splice(current..current, items.clone());
                         let _ = self.action_tx.send(Action::FromPlayerWorker(
-                            FromPlayerWorker::StateChange(StateType::Queue(QueueChange::add(
-                                items, current,
-                            ))),
+                            FromPlayerWorker::StateChange(StateType::Queue(QueueChange::Add {
+                                items,
+                                at: current,
+                            })),
                         ));
 
                         // The music being played right now is being modified
@@ -116,9 +117,10 @@ impl PlayerWorker {
                     WorkerState::Idle { play_next } => {
                         self.queue.splice(play_next..play_next, items.clone());
                         let _ = self.action_tx.send(Action::FromPlayerWorker(
-                            FromPlayerWorker::StateChange(StateType::Queue(QueueChange::add(
-                                items, play_next,
-                            ))),
+                            FromPlayerWorker::StateChange(StateType::Queue(QueueChange::Add {
+                                items,
+                                at: play_next,
+                            })),
                         ));
                     }
                 };
@@ -130,29 +132,29 @@ impl PlayerWorker {
                         self.queue
                             .splice((current + 1)..(current + 1), items.clone());
                         let _ = self.action_tx.send(Action::FromPlayerWorker(
-                            FromPlayerWorker::StateChange(StateType::Queue(QueueChange::add(
+                            FromPlayerWorker::StateChange(StateType::Queue(QueueChange::Add {
                                 items,
-                                current + 1,
-                            ))),
+                                at: current + 1,
+                            })),
                         ));
                     }
                     WorkerState::Idle { play_next } => {
                         if play_next == self.queue.len() {
                             self.queue.append(&mut items.clone());
                             let _ = self.action_tx.send(Action::FromPlayerWorker(
-                                FromPlayerWorker::StateChange(StateType::Queue(QueueChange::add(
+                                FromPlayerWorker::StateChange(StateType::Queue(QueueChange::Add {
                                     items,
-                                    self.queue.len(),
-                                ))),
+                                    at: self.queue.len(),
+                                })),
                             ));
                         } else {
                             self.queue
                                 .splice((play_next + 1)..(play_next + 1), items.clone());
                             let _ = self.action_tx.send(Action::FromPlayerWorker(
-                                FromPlayerWorker::StateChange(StateType::Queue(QueueChange::add(
+                                FromPlayerWorker::StateChange(StateType::Queue(QueueChange::Add {
                                     items,
-                                    play_next + 1,
-                                ))),
+                                    at: play_next + 1,
+                                })),
                             ));
                         };
                     }
@@ -164,7 +166,7 @@ impl PlayerWorker {
                 let _ =
                     self.action_tx
                         .send(Action::FromPlayerWorker(FromPlayerWorker::StateChange(
-                            StateType::Queue(QueueChange::add(items, last)),
+                            StateType::Queue(QueueChange::Add { items, at: last }),
                         )));
             }
         };

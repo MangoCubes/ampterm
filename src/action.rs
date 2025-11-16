@@ -49,15 +49,6 @@ pub enum QueueChange {
     Del(Selection),
 }
 
-impl QueueChange {
-    pub fn init(items: Vec<Media>, at: usize) -> Self {
-        Self::Add { items, at }
-    }
-    pub fn add(items: Vec<Media>, at: usize) -> Self {
-        Self::Add { items, at }
-    }
-}
-
 /// These actions are emitted by the playerworker.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum FromPlayerWorker {

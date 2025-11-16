@@ -1,7 +1,7 @@
 use crate::{
     action::{
         useraction::{Common, UserAction},
-        Action,
+        Action, QueueAction,
     },
     components::{
         home::mainscreen::playlistqueue::PlaylistQueue,
@@ -38,19 +38,14 @@ impl Loaded {
     fn add_selection_to_queue(&mut self, playpos: QueueLocation) -> Option<Action> {
         let (selection, action) = self.table.get_selection_reset();
         let first = match selection {
-            VisualSelection::Single(index) => {
-                Some(Action::ToPlayerWorker(ToPlayerWorker::AddToQueue {
-                    pos: playpos,
-                    music: vec![self.playlist.entry[index].clone()],
-                }))
-            }
-            VisualSelection::TempSelection(start, end) => {
-                let slice = &self.playlist.entry[start..=end];
-                Some(Action::ToPlayerWorker(ToPlayerWorker::AddToQueue {
-                    pos: playpos,
-                    music: slice.to_vec(),
-                }))
-            }
+            VisualSelection::Single(index) => Some(Action::Queue(QueueAction::Add(
+                vec![self.playlist.entry[index].clone()],
+                playpos,
+            ))),
+            VisualSelection::TempSelection(start, end) => Some(Action::Queue(QueueAction::Add(
+                self.playlist.entry[start..=end].to_vec(),
+                playpos,
+            ))),
             VisualSelection::Selection(items) => {
                 let items: Vec<Media> = items
                     .into_iter()
@@ -59,10 +54,7 @@ impl Loaded {
                     .filter_map(|(idx, _)| self.playlist.entry.get(idx))
                     .map(|m| m.clone())
                     .collect();
-                Some(Action::ToPlayerWorker(ToPlayerWorker::AddToQueue {
-                    pos: playpos,
-                    music: items,
-                }))
+                Some(Action::Queue(QueueAction::Add(items, playpos)))
             }
             VisualSelection::None { unselect: _ } => None,
         };

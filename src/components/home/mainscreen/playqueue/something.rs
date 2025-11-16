@@ -9,7 +9,7 @@ use ratatui::{
 use crate::{
     action::{
         useraction::{Common, UserAction},
-        Action, FromPlayerWorker, QueueChange, Selection, StateType,
+        Action, FromPlayerWorker, QueueAction, Selection, StateType,
     },
     components::{
         home::mainscreen::playqueue::PlayQueue,
@@ -18,7 +18,7 @@ use crate::{
     },
     helper::selection::ModifiableList,
     osclient::response::getplaylist::Media,
-    playerworker::player::ToPlayerWorker,
+    playerworker::player::QueueLocation,
     queryworker::{
         highlevelquery::HighLevelQuery,
         query::{getplaylist::MediaID, ToQueryWorker},
@@ -27,7 +27,7 @@ use crate::{
 
 pub struct Something {
     list: ModifiableList<Media>,
-    index: Option<usize>,
+    now_playing: Option<usize>,
     table: VisualTable,
     enabled: bool,
 }
@@ -44,22 +44,28 @@ pub struct Something {
 ///
 /// As a result, a dedicated list component has to be made
 impl Something {
-    pub fn new(enabled: bool, list: Vec<Media>) -> Self {
+    pub fn new(enabled: bool, list: Vec<Media>) -> (Self, Action) {
         fn table_proc(table: Table<'static>) -> Table<'static> {
             table
                 .highlight_symbol(">")
                 .row_highlight_style(Style::new().reversed())
         }
-        Self {
-            enabled,
-            table: VisualTable::new(
-                Self::gen_rows_from(&list, Some(0), 0),
-                [Constraint::Max(1), Constraint::Min(0), Constraint::Max(1)].to_vec(),
-                table_proc,
-            ),
-            list: ModifiableList::new(list),
-            index: Some(0),
-        }
+        let action = Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::PlayMusicFromURL(
+            list[0].clone(),
+        )));
+        (
+            Self {
+                enabled,
+                table: VisualTable::new(
+                    Self::gen_rows_from(&list, Some(0), 0),
+                    [Constraint::Max(1), Constraint::Min(0), Constraint::Max(1)].to_vec(),
+                    table_proc,
+                ),
+                list: ModifiableList::new(list),
+                now_playing: Some(0),
+            },
+            action,
+        )
     }
     pub fn set_star(&mut self, media: MediaID, star: bool) -> Option<Action> {
         self.list.0 = self
@@ -78,7 +84,7 @@ impl Something {
                 m
             })
             .collect();
-        let rows = Self::gen_rows_from(&self.list.0, self.index, 0);
+        let rows = Self::gen_rows_from(&self.list.0, self.now_playing, 0);
         self.table.set_rows(rows);
         None
     }
@@ -174,6 +180,23 @@ impl Renderable for Something {
 impl FullComp for Something {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
+            Action::Queue(a) => match a {
+                QueueAction::Add(items, at) => {
+                    let max = self.list.0.len();
+                    let idx = match self.now_playing {
+                        Some(c) => match at {
+                            QueueLocation::Front => c,
+                            QueueLocation::Next => c + 1,
+                            QueueLocation::Last => max,
+                        },
+                        None => max,
+                    };
+                    self.table
+                        .add_rows_at(Self::gen_rows_from(&items, self.now_playing, idx), idx);
+                    self.list.add_rows_at(items, idx);
+                    Ok(None)
+                }
+            },
             Action::ToQueryWorker(ToQueryWorker {
                 dest: _,
                 ticket: _,
@@ -182,32 +205,40 @@ impl FullComp for Something {
                 HighLevelQuery::SetStar { media, star } => Ok(self.set_star(media, star)),
                 _ => Ok(None),
             },
-            Action::FromPlayerWorker(FromPlayerWorker::StateChange(state_type)) => {
-                match state_type {
-                    StateType::Queue(queue_change) => match queue_change {
-                        QueueChange::Add { items, at } => {
-                            self.table
-                                .add_rows_at(Self::gen_rows_from(&items, self.index, at), at);
-                            self.list.add_rows_at(items, at);
+            Action::FromPlayerWorker(a) => match a {
+                FromPlayerWorker::StateChange(state_type) => {
+                    match state_type {
+                        StateType::NowPlaying(now_playing) => {
+                            self.now_playing = if let Some(n) = now_playing {
+                                Some(n.index)
+                            } else {
+                                None
+                            };
+                            self.table.set_rows(Self::gen_rows_from(
+                                &self.list.0,
+                                self.now_playing,
+                                0,
+                            ));
                         }
-                        QueueChange::Del(sel) => {
-                            self.list.delete(&sel);
-                            self.table.delete(&sel);
-                        }
-                    },
-                    StateType::NowPlaying(now_playing) => {
-                        self.index = if let Some(n) = now_playing {
-                            Some(n.index)
-                        } else {
-                            None
-                        };
-                        self.table
-                            .set_rows(Self::gen_rows_from(&self.list.0, self.index, 0));
+                        StateType::Volume(_) | StateType::Position(_) | StateType::Speed(_) => {}
                     }
-                    StateType::Volume(_) | StateType::Position(_) | StateType::Speed(_) => {}
+                    Ok(None)
                 }
-                Ok(None)
-            }
+                FromPlayerWorker::Finished => {
+                    if let Some(idx) = self.now_playing {
+                        if let Some(i) = self.list.0.get(idx + 1) {
+                            self.now_playing = Some(idx + 1);
+                            return Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
+                                HighLevelQuery::PlayMusicFromURL(i.clone()),
+                            ))));
+                        } else {
+                            self.now_playing = None;
+                        }
+                    };
+                    Ok(None)
+                }
+                _ => Ok(None),
+            },
             Action::User(UserAction::Common(a)) => match a {
                 Common::Delete => {
                     let (selection, action) = self.table.get_selection_reset();
@@ -219,13 +250,8 @@ impl FullComp for Something {
                             return Ok(action);
                         }
                     };
-                    let del_action =
-                        Action::ToPlayerWorker(ToPlayerWorker::RemoveFromQueue(selection));
-                    if let Some(a) = action {
-                        Ok(Some(Action::Multiple(vec![del_action, a])))
-                    } else {
-                        Ok(Some(del_action))
-                    }
+                    self.list.delete(&selection);
+                    Ok(action)
                 }
                 Common::ToggleStar => {
                     let (selection, action) = self.table.get_selection_reset();

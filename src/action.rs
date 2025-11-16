@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::action::useraction::UserAction;
 use crate::osclient::response::getplaylist::Media;
-use crate::playerworker::player::ToPlayerWorker;
+use crate::playerworker::player::{QueueLocation, ToPlayerWorker};
 use crate::queryworker::query::FromQueryWorker;
 use crate::{app::Mode, queryworker::query::ToQueryWorker};
 
@@ -22,7 +22,6 @@ impl NowPlaying {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum StateType {
-    Queue(QueueChange),
     Position(std::time::Duration),
     NowPlaying(Option<NowPlaying>),
     Volume(f32),
@@ -43,20 +42,21 @@ pub enum Selection {
     Multiple(Vec<bool>),
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-pub enum QueueChange {
-    Add { items: Vec<Media>, at: usize },
-    Del(Selection),
-}
-
 /// These actions are emitted by the playerworker.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum FromPlayerWorker {
     /// Send current state of the player
     StateChange(StateType),
+    Finished,
     // Error sent out from the player to the components
     Error(String),
     Message(String),
+}
+
+/// These actions are all related to modifying the queue in one way or another.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum QueueAction {
+    Add(Vec<Media>, QueueLocation),
 }
 
 /// FromQueryWorker enum is used to send responses from the QueryWorker to the components
@@ -68,8 +68,8 @@ pub enum Action {
     Quit,
     ClearScreen,
 
-    // Guarantee: All user actions are under [`UserAction`]
     User(UserAction),
+    Queue(QueueAction),
 
     FromQueryWorker(FromQueryWorker),
     ToQueryWorker(ToQueryWorker),

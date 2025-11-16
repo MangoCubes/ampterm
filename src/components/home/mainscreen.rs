@@ -212,6 +212,7 @@ impl FullComp for MainScreen {
                     self.message = msg.clone();
                     Ok(None)
                 }
+                FromPlayerWorker::Finished => self.playqueue.update(action),
             },
             Action::ChangeMode(m) => {
                 self.current_mode = *m;
@@ -306,6 +307,7 @@ impl FullComp for MainScreen {
                         self.show_tasks = !self.show_tasks;
                         Ok(None)
                     }
+                    Global::Skip | Global::Previous => self.playqueue.update(action),
                 },
                 _ => self.propagate_to_focused_component(action),
             },

@@ -17,6 +17,9 @@ pub enum Global {
     OpenTasks,
     CloseTasks,
     ToggleTasks,
+
+    Skip,
+    Previous,
 }
 
 impl ToString for Global {
@@ -30,6 +33,8 @@ impl ToString for Global {
             Global::OpenTasks => "Open tasks view".to_string(),
             Global::CloseTasks => "Close tasks view".to_string(),
             Global::ToggleTasks => "Toggle tasks view".to_string(),
+            Global::Skip => "Skip to next music".to_string(),
+            Global::Previous => "Go back to previous music".to_string(),
         }
     }
 }

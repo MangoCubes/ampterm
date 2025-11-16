@@ -38,8 +38,7 @@ impl<T: Clone> ModifiableList<T> {
         self.0.is_empty()
     }
 
-    /// Set all the rows with a new set of rows, then signal the table that there have been
-    /// additional elements at the specified index
+    /// Add a number of rows at a specific index
     pub fn add_rows_at(&mut self, rows: Vec<T>, at: usize) {
         if self.0.is_empty() {
             self.0 = rows;

@@ -159,25 +159,23 @@ impl VisualTable {
         self.rows = ModifiableList::new(rows);
         self.table = self.regen_table();
     }
-    /// Resets the entire table, overwriting all existing rows with the new ones
-    pub fn reset_rows(&mut self, rows: Vec<Row<'static>>) {
-        self.selected = ModifiableList::new(vec![false; rows.len()]);
-        self.rows = ModifiableList::new(rows);
-        self.table = self.regen_table();
-    }
-    /// Set all the rows with a new set of rows, then signal the table that there have been
-    /// additional elements at the specified index
-    pub fn add_rows_at(&mut self, rows: Vec<Row<'static>>, at: usize) {
-        let len = rows.len();
-        self.rows.add_rows_at(rows, at);
+
+    /// This function is intended to be called whenever new rows are added to the table. However,
+    /// the table must be regenerated in full every update because the new item may affect other
+    /// rows too. (Example: "Play now" action causes the item that was being played to stop, and
+    /// that row needs to be updated)
+    /// 1. Receive a list, and overwrite the whole table with it
+    /// 2. With the information given through [`at`] and [`len`], update the current selection so
+    ///    that it correctly reflects the new
+    pub fn add_rows_at(&mut self, rows: Vec<Row<'static>>, at: usize, len: usize) {
         self.selected.add_rows_at(vec![false; len], at);
-        if self.rows.is_empty() {
+        if !self.rows.is_empty() {
             let cur = self.get_current().expect("Failed to get cursor location.");
             if cur >= at {
                 self.tablestate.select(Some(cur + len));
             }
-        }
-        self.table = self.regen_table();
+        };
+        self.set_rows(rows);
     }
 
     pub fn delete(&mut self, selection: &Selection) {

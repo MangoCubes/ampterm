@@ -57,7 +57,7 @@ impl Something {
             Self {
                 enabled,
                 table: VisualTable::new(
-                    Self::gen_rows_from(&list, Some(0), 0),
+                    Self::gen_rows_from(&list, Some(0)),
                     [Constraint::Max(1), Constraint::Min(0), Constraint::Max(1)].to_vec(),
                     table_proc,
                 ),
@@ -84,15 +84,17 @@ impl Something {
                 m
             })
             .collect();
-        let rows = Self::gen_rows_from(&self.list.0, self.now_playing, 0);
-        self.table.set_rows(rows);
+        self.regen_rows();
         None
     }
-    fn gen_rows_from(
-        items: &Vec<Media>,
-        now_playing: Option<usize>,
-        starting_from: usize,
-    ) -> Vec<Row<'static>> {
+
+    /// Regenerate all rows based on the current state, and rerender the table in full
+    fn regen_rows(&mut self) {
+        let rows = Self::gen_rows_from(&self.list.0, self.now_playing);
+        self.table.set_rows(rows);
+    }
+
+    fn gen_rows_from(items: &Vec<Media>, now_playing: Option<usize>) -> Vec<Row<'static>> {
         let len = items.len();
         let played = Style::new().fg(Color::DarkGray);
         let not_yet_played = Style::new();
@@ -114,37 +116,26 @@ impl Something {
                 // in the sublist this function received. Therefore, everything but the last
                 // element will be marked as "Played", and the last element will be marked as "Now
                 // playing".
-                i if (starting_from + len - 1) == idx => {
-                    let now_playing = i - starting_from;
-                    let mut list = gen_rows_part(&items[..now_playing], played);
-                    list.push(gen_playing_item(&items[now_playing]));
+                i if (len - 1) == idx => {
+                    let mut list = gen_rows_part(&items[..i], played);
+                    list.push(gen_playing_item(&items[i]));
                     list
                 }
                 // This is the case where the currently playing item's index matches the first item
                 // in the sublist this function received. Therefore, everything but the first
                 // element will be marked as "Not played", and the first element will be marked as
                 // "Now playing".
-                _ if (starting_from == idx) => {
+                0 => {
                     let mut list = gen_rows_part(&items[1..], not_yet_played);
                     list.insert(0, gen_playing_item(&items[0]));
                     list
                 }
-                // This is the case where the sublist this function received is beyond the item
-                // that is currently being played. Therefore, everything will be marked as "Not
-                // played".
-                _ if (starting_from > idx) => gen_rows_part(&items, not_yet_played),
-                // This is the case where the entire sublist this function received is before the
-                // item that is currently being played. Everything will be marked as such.
-                _ if (starting_from + len - 1 < idx) => gen_rows_part(&items, played),
                 // This is the case where the sublist contains the music that is currently being
                 // played, but is not the start nor the end
                 i => {
-                    let mut list = gen_rows_part(&items[..(i - starting_from)], played);
-                    list.append(&mut gen_rows_part(
-                        &items[(i - starting_from + 1)..],
-                        not_yet_played,
-                    ));
-                    list.insert(i, gen_playing_item(&items[i - starting_from]));
+                    let mut list = gen_rows_part(&items[..i], played);
+                    list.append(&mut gen_rows_part(&items[(i + 1)..], not_yet_played));
+                    list.insert(i, gen_playing_item(&items[i]));
                     list
                 }
             },
@@ -191,9 +182,10 @@ impl FullComp for Something {
                         },
                         None => max,
                     };
-                    self.table
-                        .add_rows_at(Self::gen_rows_from(&items, self.now_playing, idx), idx);
+                    let len = items.len();
                     self.list.add_rows_at(items, idx);
+                    let rows = Self::gen_rows_from(&self.list.0, self.now_playing);
+                    self.table.add_rows_at(rows, idx, len);
                     Ok(None)
                 }
             },
@@ -214,11 +206,7 @@ impl FullComp for Something {
                             } else {
                                 None
                             };
-                            self.table.set_rows(Self::gen_rows_from(
-                                &self.list.0,
-                                self.now_playing,
-                                0,
-                            ));
+                            self.regen_rows();
                         }
                         StateType::Volume(_) | StateType::Position(_) | StateType::Speed(_) => {}
                     }

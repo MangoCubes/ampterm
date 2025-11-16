@@ -186,6 +186,14 @@ impl FullComp for Something {
                     self.list.add_rows_at(items, idx);
                     let rows = Self::gen_rows_from(&self.list.0, self.now_playing);
                     self.table.add_rows_at(rows, idx, len);
+
+                    if let Some(c) = self.now_playing {
+                        if matches!(at, QueueLocation::Front) {
+                            return Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
+                                HighLevelQuery::PlayMusicFromURL(self.list.0[c].clone()),
+                            ))));
+                        }
+                    }
                     Ok(None)
                 }
             },

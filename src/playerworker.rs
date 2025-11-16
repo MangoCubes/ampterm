@@ -149,6 +149,7 @@ impl PlayerWorker {
                 ToPlayerWorker::Kill => self.should_quit = true,
                 ToPlayerWorker::PlayURL { music, url } => {
                     if let WorkerState::Playing(token) = &self.state {
+                        self.sink.stop();
                         token.cancel();
                     };
                     let _ =

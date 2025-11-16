@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
-use crate::osclient::response::getplaylist::Media;
+use crate::{action::Selection, osclient::response::getplaylist::Media};
 
 #[derive(Debug, Clone, PartialEq, Display, Serialize, Deserialize)]
 pub enum QueueLocation {
@@ -45,5 +45,6 @@ pub enum ToPlayerWorker {
         music: Media,
         url: String,
     },
+    RemoveFromQueue(Selection),
     Kill,
 }

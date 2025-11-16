@@ -27,7 +27,7 @@ pub struct TempSelection {
 }
 
 /// Various types of selections that can happen in visual table
-pub enum SelectionType {
+pub enum VisualSelection {
     /// The table was not in visual mode, and nothing was selected. Defaulting to the item the
     /// cursor is currently on top of.
     Single(usize),
@@ -186,47 +186,23 @@ impl VisualTable {
     }
 
     /// Delete a row specified by the provided index
-    fn delete_row(&mut self, index: usize) {
+    pub fn delete_single(&mut self, index: usize) {
         self.rows.remove(index);
         self.selected.remove(index);
+        assert!(self.rows.len() == self.selected.len());
         self.table = self.regen_table();
     }
 
-    /// Delete selected items
-    pub fn delete(&mut self) -> (SelectionType, Option<Action>) {
-        let (selection, action) = self.get_selection_reset();
-        match selection {
-            SelectionType::Single(index) => {
-                self.delete_row(index);
-            }
-            SelectionType::TempSelection(_, _) => {
-                self.delete_temp_selection();
-            }
-            SelectionType::Selection(_) => {
-                self.delete_selection();
-            }
-            _ => {}
-        };
-        (selection, action)
+    /// Delete a range
+    pub fn delete_range(&mut self, start: usize, end: usize) {
+        self.rows.drain(start..=end);
+        self.selected.drain(start..=end);
+        assert!(self.rows.len() == self.selected.len());
+        self.table = self.regen_table();
     }
 
-    /// Delete a temporarily-selected region and return the range that got deleted.
-    fn delete_temp_selection(&mut self) -> Option<TempSelection> {
-        if let Some(range) = self.get_temp_range() {
-            if range.is_select {
-                self.rows.drain(range.start..=range.end);
-                self.selected.drain(range.start..=range.end);
-                self.table = self.regen_table();
-            };
-            Some(range)
-        } else {
-            None
-        }
-    }
-
-    /// Delete selected rows, and return the number of rows affected
-    fn delete_selection(&mut self) -> usize {
-        let mut count = 0;
+    /// Delete rows where selected[index] is true
+    pub fn delete_multiple(&mut self, selected: &[bool]) {
         self.rows = self
             .rows
             .clone()
@@ -234,28 +210,34 @@ impl VisualTable {
             .enumerate()
             .filter(|(idx, _)| {
                 // Selected items should be deleted and should return false
-                let selected = self.selected[*idx];
-                if selected {
-                    count += 1;
-                }
-                !selected
+                !selected[*idx]
             })
             .map(|(_, row)| row)
             .collect();
-        self.selected = vec![false; self.rows.len()];
+        self.selected = self
+            .selected
+            .clone()
+            .into_iter()
+            .enumerate()
+            .filter(|(idx, _)| {
+                // Selected items should be deleted and should return false
+                !selected[*idx]
+            })
+            .map(|(_, row)| row)
+            .collect();
+        assert!(self.rows.len() == self.selected.len());
         self.table = self.regen_table();
-        count
     }
 
     /// Same as [`Self::get_selection`], except the selections are reset.
-    pub fn get_selection_reset(&mut self) -> (SelectionType, Option<Action>) {
+    pub fn get_selection_reset(&mut self) -> (VisualSelection, Option<Action>) {
         let selection = self.get_selection();
         match selection {
-            SelectionType::TempSelection(_, _) => {
+            VisualSelection::TempSelection(_, _) => {
                 self.disable_visual_discard();
                 (selection, Some(Action::ChangeMode(Mode::Normal)))
             }
-            SelectionType::Selection(_) => {
+            VisualSelection::Selection(_) => {
                 self.reset_selections();
                 (selection, None)
             }
@@ -270,12 +252,12 @@ impl VisualTable {
     /// 2. If there are selected items, return them in the form of boolean array.
     /// 3. If there are no rows selected, return the item selected by the cursor. Return None if
     ///    there is no cursor present.
-    pub fn get_selection(&self) -> SelectionType {
+    pub fn get_selection(&self) -> VisualSelection {
         if let Some(range) = self.get_temp_range() {
             if range.is_select {
-                return SelectionType::TempSelection(range.start, range.end);
+                return VisualSelection::TempSelection(range.start, range.end);
             } else {
-                return SelectionType::None { unselect: true };
+                return VisualSelection::None { unselect: true };
             }
         } else {
             let mut count = 0;
@@ -287,11 +269,11 @@ impl VisualTable {
 
             if count == 0 {
                 match self.get_current() {
-                    Some(index) => SelectionType::Single(index),
-                    None => SelectionType::None { unselect: false },
+                    Some(index) => VisualSelection::Single(index),
+                    None => VisualSelection::None { unselect: false },
                 }
             } else {
-                SelectionType::Selection(self.selected.clone())
+                VisualSelection::Selection(self.selected.clone())
             }
         }
     }

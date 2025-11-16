@@ -5,7 +5,7 @@ use crate::{
     },
     components::{
         home::mainscreen::playlistqueue::PlaylistQueue,
-        lib::visualtable::{SelectionType, VisualTable},
+        lib::visualtable::{VisualSelection, VisualTable},
         traits::{focusable::Focusable, fullcomp::FullComp, renderable::Renderable},
     },
     osclient::response::getplaylist::{FullPlaylist, Media},
@@ -38,20 +38,20 @@ impl Loaded {
     fn add_selection_to_queue(&mut self, playpos: QueueLocation) -> Option<Action> {
         let (selection, action) = self.table.get_selection_reset();
         let first = match selection {
-            SelectionType::Single(index) => {
+            VisualSelection::Single(index) => {
                 Some(Action::ToPlayerWorker(ToPlayerWorker::AddToQueue {
                     pos: playpos,
                     music: vec![self.playlist.entry[index].clone()],
                 }))
             }
-            SelectionType::TempSelection(start, end) => {
+            VisualSelection::TempSelection(start, end) => {
                 let slice = &self.playlist.entry[start..=end];
                 Some(Action::ToPlayerWorker(ToPlayerWorker::AddToQueue {
                     pos: playpos,
                     music: slice.to_vec(),
                 }))
             }
-            SelectionType::Selection(items) => {
+            VisualSelection::Selection(items) => {
                 let items: Vec<Media> = items
                     .into_iter()
                     .enumerate()
@@ -64,7 +64,7 @@ impl Loaded {
                     music: items,
                 }))
             }
-            SelectionType::None { unselect: _ } => None,
+            VisualSelection::None { unselect: _ } => None,
         };
         if let Some(a) = first {
             if let Some(b) = action {
@@ -179,16 +179,16 @@ impl FullComp for Loaded {
                     Common::ToggleStar => {
                         let (selection, action) = self.table.get_selection_reset();
                         let mut items: Vec<Action> = match selection {
-                            SelectionType::Single(idx) => {
+                            VisualSelection::Single(idx) => {
                                 let item = self.playlist.entry[idx].clone();
                                 vec![(item.id, item.starred == None)]
                             }
-                            SelectionType::TempSelection(start, end) => self.playlist.entry
+                            VisualSelection::TempSelection(start, end) => self.playlist.entry
                                 [start..=end]
                                 .iter()
                                 .map(|m| (m.id.clone(), m.starred == None))
                                 .collect(),
-                            SelectionType::Selection(items) => self
+                            VisualSelection::Selection(items) => self
                                 .playlist
                                 .entry
                                 .iter()
@@ -201,7 +201,7 @@ impl FullComp for Loaded {
                                     }
                                 })
                                 .collect(),
-                            SelectionType::None { unselect: _ } => vec![],
+                            VisualSelection::None { unselect: _ } => vec![],
                         }
                         .into_iter()
                         .map(|(id, star)| {

@@ -16,7 +16,7 @@ use tokio::task::JoinHandle;
 use tokio::time::sleep;
 use tokio_util::sync::CancellationToken;
 
-use crate::action::{Action, FromPlayerWorker, NowPlaying, QueueChange, StateType};
+use crate::action::{Action, FromPlayerWorker, NowPlaying, QueueChange, Selection, StateType};
 use crate::config::Config;
 use crate::osclient::response::getplaylist::Media;
 use crate::queryworker::highlevelquery::HighLevelQuery;
@@ -58,6 +58,32 @@ pub struct PlayerWorker {
 }
 
 impl PlayerWorker {
+    /// Delete multiple items from the queue. Music will continue to play if the currently playing
+    /// item is part of the deleted items.
+    fn delete_from_queue(&mut self, selection: &Selection) {
+        match selection {
+            Selection::Single(index) => {
+                self.queue.remove(*index);
+            }
+            Selection::Range(start, end) => {
+                self.queue.drain(start..=end);
+            }
+            Selection::Multiple(items) => {
+                self.queue = self
+                    .queue
+                    .clone()
+                    .into_iter()
+                    .enumerate()
+                    .filter(|(idx, _)| {
+                        // Selected items should be deleted and should return false
+                        !items[*idx]
+                    })
+                    .map(|(_, row)| row)
+                    .collect();
+            }
+        };
+    }
+
     /// Add a number of musics into a specific spot
     /// `items` specifies the list of musics to add
     /// `pos` specifies the exact position in which the musics will be added relative to the
@@ -394,6 +420,14 @@ impl PlayerWorker {
                     } else {
                         self.pause_stream();
                     }
+                }
+                ToPlayerWorker::RemoveFromQueue(selection) => {
+                    self.delete_from_queue(&selection);
+                    let _ = self.action_tx.send(Action::FromPlayerWorker(
+                        FromPlayerWorker::StateChange(StateType::Queue(QueueChange::Del(
+                            selection,
+                        ))),
+                    ));
                 }
             };
             if self.should_quit {

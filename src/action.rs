@@ -36,10 +36,17 @@ pub enum PlayOrder {
     Reverse,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum Selection {
+    Single(usize),
+    Range(usize, usize),
+    Multiple(Vec<bool>),
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum QueueChange {
     Add { items: Vec<Media>, at: usize },
-    Del { from: usize, to: usize },
+    Del(Selection),
 }
 
 impl QueueChange {
@@ -48,9 +55,6 @@ impl QueueChange {
     }
     pub fn add(items: Vec<Media>, at: usize) -> Self {
         Self::Add { items, at }
-    }
-    pub fn del(from: usize, to: usize) -> Self {
-        Self::Del { from, to }
     }
 }
 

@@ -9,15 +9,15 @@ use ratatui::{
 use crate::{
     action::{
         useraction::{Common, UserAction},
-        Action, FromPlayerWorker, QueueChange, StateType,
+        Action, FromPlayerWorker, QueueChange, Selection, StateType,
     },
-    app::Mode,
     components::{
         home::mainscreen::playqueue::PlayQueue,
-        lib::visualtable::{SelectionType, VisualTable},
+        lib::visualtable::{VisualSelection, VisualTable},
         traits::{focusable::Focusable, fullcomp::FullComp, renderable::Renderable},
     },
     osclient::response::getplaylist::Media,
+    playerworker::player::ToPlayerWorker,
     queryworker::{
         highlevelquery::HighLevelQuery,
         query::{getplaylist::MediaID, ToQueryWorker},
@@ -172,7 +172,28 @@ impl FullComp for Something {
                             self.table
                                 .add_rows_at(Self::gen_rows(&self.list, self.index), at, len);
                         }
-                        QueueChange::Del { from, to } => {}
+                        QueueChange::Del(sel) => match sel {
+                            Selection::Single(index) => {
+                                self.list.remove(index);
+                                self.table.delete_single(index);
+                            }
+                            Selection::Range(start, end) => {
+                                self.list.drain(start..=end);
+                                self.table.delete_range(start, end);
+                            }
+                            Selection::Multiple(items) => {
+                                self.list = self
+                                    .list
+                                    .clone()
+                                    .into_iter()
+                                    .enumerate()
+                                    .filter(|(idx, _)| !items[*idx])
+                                    .map(|(_, row)| row)
+                                    .collect();
+
+                                self.table.delete_multiple(&items);
+                            }
+                        },
                     },
                     StateType::NowPlaying(now_playing) => {
                         self.index = if let Some(n) = now_playing {
@@ -187,19 +208,36 @@ impl FullComp for Something {
                 Ok(None)
             }
             Action::User(UserAction::Common(a)) => match a {
-                Common::Delete => todo!(),
+                Common::Delete => {
+                    let (selection, action) = self.table.get_selection_reset();
+                    let selection = match selection {
+                        VisualSelection::Single(index) => Selection::Single(index),
+                        VisualSelection::TempSelection(start, end) => Selection::Range(start, end),
+                        VisualSelection::Selection(items) => Selection::Multiple(items),
+                        VisualSelection::None { unselect: _ } => {
+                            return Ok(action);
+                        }
+                    };
+                    let del_action =
+                        Action::ToPlayerWorker(ToPlayerWorker::RemoveFromQueue(selection));
+                    if let Some(a) = action {
+                        Ok(Some(Action::Multiple(vec![del_action, a])))
+                    } else {
+                        Ok(Some(del_action))
+                    }
+                }
                 Common::ToggleStar => {
                     let (selection, action) = self.table.get_selection_reset();
                     let mut items: Vec<Action> = match selection {
-                        SelectionType::Single(idx) => {
+                        VisualSelection::Single(idx) => {
                             let item = self.list[idx].clone();
                             vec![(item.id, item.starred == None)]
                         }
-                        SelectionType::TempSelection(start, end) => self.list[start..=end]
+                        VisualSelection::TempSelection(start, end) => self.list[start..=end]
                             .iter()
                             .map(|m| (m.id.clone(), m.starred == None))
                             .collect(),
-                        SelectionType::Selection(items) => self
+                        VisualSelection::Selection(items) => self
                             .list
                             .iter()
                             .zip(items.iter())
@@ -211,7 +249,7 @@ impl FullComp for Something {
                                 }
                             })
                             .collect(),
-                        SelectionType::None { unselect: _ } => vec![],
+                        VisualSelection::None { unselect: _ } => vec![],
                     }
                     .into_iter()
                     .map(|(id, star)| {

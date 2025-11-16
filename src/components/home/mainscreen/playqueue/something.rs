@@ -8,7 +8,7 @@ use ratatui::{
 
 use crate::{
     action::{
-        useraction::{Common, UserAction},
+        useraction::{Common, Global, UserAction},
         Action, FromPlayerWorker, QueueAction, Selection, StateType,
     },
     components::{
@@ -18,7 +18,7 @@ use crate::{
     },
     helper::selection::ModifiableList,
     osclient::response::getplaylist::Media,
-    playerworker::player::QueueLocation,
+    playerworker::player::{QueueLocation, ToPlayerWorker},
     queryworker::{
         highlevelquery::HighLevelQuery,
         query::{getplaylist::MediaID, ToQueryWorker},
@@ -94,8 +94,45 @@ impl Something {
         self.table.set_rows(rows);
     }
 
+    fn skip(&mut self, skip_by: i32) -> Action {
+        let max_len = self.list.0.len() as i32;
+        let index = match &self.now_playing {
+            Some(idx) => *idx as i32,
+            None => max_len,
+        } + skip_by;
+        let cleaned = if index >= 0 {
+            if index >= max_len {
+                // New index is beyond the current playlist
+                max_len as usize
+            } else {
+                // New index is okay as is
+                index as usize
+            }
+        } else {
+            // New index is negative
+            0
+        };
+        let action = match self.list.0.get(cleaned) {
+            Some(m) => {
+                self.now_playing = Some(cleaned);
+                Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::PlayMusicFromURL(
+                    m.clone(),
+                )))
+            }
+            None => {
+                self.now_playing = None;
+                Action::ToPlayerWorker(ToPlayerWorker::Stop)
+            }
+        };
+        self.regen_rows();
+        action
+    }
+
     fn gen_rows_from(items: &Vec<Media>, now_playing: Option<usize>) -> Vec<Row<'static>> {
         let len = items.len();
+        if len == 0 {
+            return vec![];
+        }
         let played = Style::new().fg(Color::DarkGray);
         let not_yet_played = Style::new();
         fn gen_rows_part(ms: &[Media], style: Style) -> Vec<Row<'static>> {
@@ -239,6 +276,11 @@ impl FullComp for Something {
                 }
                 _ => Ok(None),
             },
+            Action::User(UserAction::Global(a)) => match a {
+                Global::Skip => Ok(Some(self.skip(1))),
+                Global::Previous => Ok(Some(self.skip(-1))),
+                _ => Ok(None),
+            },
             Action::User(UserAction::Common(a)) => match a {
                 Common::Delete => {
                     let (selection, action) = self.table.get_selection_reset();
@@ -251,6 +293,8 @@ impl FullComp for Something {
                         }
                     };
                     self.list.delete(&selection);
+                    self.regen_rows();
+
                     Ok(action)
                 }
                 Common::ToggleStar => {

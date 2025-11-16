@@ -148,6 +148,9 @@ impl PlayerWorker {
                     if let WorkerState::Playing(token) = &self.state {
                         token.cancel();
                     };
+                    let _ = self.action_tx.send(Action::FromPlayerWorker(
+                        FromPlayerWorker::StateChange(StateType::NowPlaying(None)),
+                    ));
                 }
                 ToPlayerWorker::Pause => self.pause_stream(),
                 ToPlayerWorker::Resume => self.continue_stream(),
@@ -157,11 +160,9 @@ impl PlayerWorker {
                     if let WorkerState::Playing(token) = &self.state {
                         token.cancel();
                     };
-                    let _ =
-                        self.action_tx
-                            .send(Action::FromPlayerWorker(FromPlayerWorker::Message(
-                                "Starting...".to_string(),
-                            )));
+                    let _ = self.action_tx.send(Action::FromPlayerWorker(
+                        FromPlayerWorker::StateChange(StateType::NowPlaying(Some(music))),
+                    ));
                     let token = self.play_from_url(url);
                     self.state = WorkerState::Playing(token);
                 }

@@ -247,20 +247,6 @@ impl FullComp for Something {
                 _ => Ok(None),
             },
             Action::FromPlayerWorker(a) => match a {
-                FromPlayerWorker::StateChange(state_type) => {
-                    match state_type {
-                        StateType::NowPlaying(now_playing) => {
-                            self.now_playing = if let Some(n) = now_playing {
-                                Some(n.index)
-                            } else {
-                                None
-                            };
-                            self.regen_rows();
-                        }
-                        StateType::Volume(_) | StateType::Position(_) | StateType::Speed(_) => {}
-                    }
-                    Ok(None)
-                }
                 FromPlayerWorker::Finished => {
                     let action = if let Some(idx) = self.now_playing {
                         if let Some(i) = self.list.0.get(idx + 1) {

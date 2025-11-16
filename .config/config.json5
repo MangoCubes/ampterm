@@ -47,9 +47,11 @@
 	  "<Shift-Up>": { ToPlayerWorker: { ChangeVolume: 0.05 } },
 	  "<Shift-Down>": { ToPlayerWorker: { ChangeVolume: -0.05 } },
 	  "<0>": { ToPlayerWorker: "GoToStart" },
-	  "<Shift-k>": { ToPlayerWorker: "Previous" },
-	  "<$>": { ToPlayerWorker: "Skip" },
-	  "<Shift-j>": { ToPlayerWorker: "Skip" },
+
+	  "<Shift-k>": { User: { Global: "Previous" } },
+	  "<$>": { User: { Global: "Skip" } },
+	  "<Shift-j>": { User: { Global: "Skip" } },
+
 	  "<c>": { ToPlayerWorker: "Resume" },
 	  "<Shift-c>": { ToPlayerWorker: "Pause" },
 	  "<Space>": { ToPlayerWorker: "ResumeOrPause" },

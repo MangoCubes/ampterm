@@ -18,6 +18,7 @@ use crate::{
     components::traits::{
         focusable::Focusable, fullcomp::FullComp, renderable::Renderable, simplecomp::SimpleComp,
     },
+    config::Config,
 };
 
 enum Comp {
@@ -28,11 +29,13 @@ enum Comp {
 pub struct NowPlaying {
     comp: Comp,
     enabled: bool,
+    config: Config,
 }
 
 impl NowPlaying {
-    pub fn new(enabled: bool) -> Self {
+    pub fn new(enabled: bool, config: Config) -> Self {
         Self {
+            config,
             enabled,
             comp: Comp::Stopped(Stopped::new()),
         }
@@ -55,9 +58,15 @@ impl FullComp for NowPlaying {
                 now_playing,
             ))) => match now_playing {
                 Some(n) => {
-                    let (comp, action) = Playing::new(n.music, 0.0, 0.0, Duration::from_secs(0));
+                    let (comp, action) = Playing::new(
+                        n.music,
+                        0.0,
+                        0.0,
+                        Duration::from_secs(0),
+                        self.config.lyrics.enable,
+                    );
                     self.comp = Comp::Playing(comp);
-                    Ok(Some(action))
+                    Ok(action)
                 }
                 None => {
                     self.comp = Comp::Stopped(Stopped::new());

@@ -24,12 +24,8 @@ pub enum ToPlayerWorker {
     Resume,
     /// Pauses or resumes the player depending on the current playing state.
     ResumeOrPause,
-    /// Go to the previous song.
-    Previous,
     /// Go to the start of the current song.
     GoToStart,
-    /// Go to the next song.
-    Skip,
     /// Change the volume. Volume is represented as a decimal value between 0~1, and the passed value is added to the current volume.
     /// To reduce the value, pass a negative number.
     ChangeVolume(f32),
@@ -37,10 +33,6 @@ pub enum ToPlayerWorker {
     SetVolume(f32),
 
     /// Below should not be used by the user directly.
-    AddToQueue {
-        music: Vec<Media>,
-        pos: QueueLocation,
-    },
     PlayURL {
         music: Media,
         url: String,

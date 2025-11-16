@@ -10,10 +10,11 @@ use ratatui::{
 use crate::{
     action::{
         useraction::{Common, Normal, UserAction, Visual},
-        Action,
+        Action, Selection,
     },
     app::Mode,
     components::traits::{fullcomp::FullComp, renderable::Renderable},
+    helper::selection::ModifiableList,
 };
 
 /// Struct that contains the state of the current temporary selection
@@ -24,6 +25,20 @@ pub struct TempSelection {
     pub start: usize,
     pub end: usize,
     pub is_select: bool,
+}
+
+/// Various types of selections that can happen in visual table
+pub enum VisualSelection {
+    /// The table was not in visual mode, and nothing was selected. Defaulting to the item the
+    /// cursor is currently on top of.
+    Single(usize),
+    /// The table is currently in visual select mode.
+    TempSelection(usize, usize),
+    /// The table is currently not in visual mode, but some elements were selected from the
+    /// previous visual mode selections.
+    Selection(Vec<bool>),
+    /// Nothing selected because either the cursor does not exist on the table
+    None { unselect: bool },
 }
 
 impl TempSelection {
@@ -54,12 +69,12 @@ pub struct VisualTable {
     /// Current mode of the table
     mode: VisualMode,
     /// List of all selected items
-    selected: Vec<bool>,
+    selected: ModifiableList<bool>,
     table_proc: fn(Table<'static>) -> Table<'static>,
     constraints: Vec<Constraint>,
     table: Table<'static>,
     tablestate: TableState,
-    rows: Vec<Row<'static>>,
+    rows: ModifiableList<Row<'static>>,
 }
 
 impl Renderable for VisualTable {
@@ -74,10 +89,17 @@ impl FullComp for VisualTable {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::User(ua) => {
-                let cur_pos = self
-                    .tablestate
-                    .selected()
-                    .expect("Failed to get current cursor location.");
+                let cur_pos = match self.tablestate.selected() {
+                    Some(i) => i,
+                    None => {
+                        if self.rows.0.len() == 0 {
+                            return Ok(None);
+                        } else {
+                            self.tablestate.select(Some(0));
+                            0
+                        }
+                    }
+                };
 
                 let action = match ua {
                     UserAction::Common(local) => match local {
@@ -98,7 +120,7 @@ impl FullComp for VisualTable {
                             Ok(None)
                         }
                         Common::ResetState => {
-                            self.reset();
+                            self.reset_selections();
                             Ok(None)
                         }
                         _ => Ok(None),
@@ -141,53 +163,82 @@ impl VisualTable {
     }
     /// Set all the rows with a new set of rows
     pub fn set_rows(&mut self, rows: Vec<Row<'static>>) {
-        self.rows = rows;
+        self.rows = ModifiableList::new(rows);
         self.table = self.regen_table();
     }
-    /// Resets the entire table, overwriting all existing rows with the new ones
-    pub fn reset_rows(&mut self, rows: Vec<Row<'static>>) {
-        self.selected = vec![false; rows.len()];
-        self.rows = rows;
-        self.table = self.regen_table();
-    }
-    /// Set all the rows with a new set of rows, then signal the table that there have been
-    /// additional elements at the specified index
+
+    /// This function is intended to be called whenever new rows are added to the table. However,
+    /// the table must be regenerated in full every update because the new item may affect other
+    /// rows too. (Example: "Play now" action causes the item that was being played to stop, and
+    /// that row needs to be updated)
+    /// 1. Receive a list, and overwrite the whole table with it
+    /// 2. With the information given through [`at`] and [`len`], update the current selection so
+    ///    that it correctly reflects the new
     pub fn add_rows_at(&mut self, rows: Vec<Row<'static>>, at: usize, len: usize) {
-        if self.rows.is_empty() {
-            self.selected = vec![false; len];
-            self.rows = rows;
-        } else {
-            let cur = self.get_current().expect("Failed to get cursor location.");
-            self.rows = rows;
-            if at > self.selected.len() {
-                self.selected.append(&mut vec![false; len]);
-            } else {
-                self.selected.splice(at..at, vec![false; len]);
-            }
-            if cur >= at {
-                self.tablestate.select(Some(cur + len));
+        self.selected.add_rows_at(vec![false; len], at);
+        if !self.rows.is_empty() {
+            if let Some(cur) = self.get_current() {
+                if cur >= at {
+                    self.tablestate.select(Some(cur + len));
+                }
             }
         };
+        self.set_rows(rows);
+    }
+
+    pub fn delete(&mut self, selection: &Selection) {
+        self.selected.delete(selection);
+        self.rows.delete(selection);
         self.table = self.regen_table();
     }
-    pub fn delete_temp_selection(&mut self) {
-        if let Some(range) = self.get_temp_range() {
-            self.rows.drain(range.start..=range.end);
-            self.selected.drain(range.start..=range.end);
-            self.table = self.regen_table();
+
+    /// Same as [`Self::get_selection`], except the selections are reset.
+    pub fn get_selection_reset(&mut self) -> (VisualSelection, Option<Action>) {
+        let selection = self.get_selection();
+        match selection {
+            VisualSelection::TempSelection(_, _) => {
+                self.disable_visual_discard();
+                (selection, Some(Action::ChangeMode(Mode::Normal)))
+            }
+            VisualSelection::Selection(_) => {
+                self.reset_selections();
+                (selection, None)
+            }
+            _ => (selection, None),
         }
     }
-    pub fn delete_selection(&mut self) {
-        self.rows = self
-            .rows
-            .clone()
-            .into_iter()
-            .enumerate()
-            .filter(|(idx, _)| self.selected[*idx])
-            .map(|(_, row)| row)
-            .collect();
-        self.selected = vec![false; self.rows.len()];
-        self.table = self.regen_table();
+
+    /// Get current selection.
+    /// Priorities are as follows:
+    /// 1. If the table is currently in visual mode, return the start and end index of the current
+    ///    temporary selection. Return None if the current mode is visual deselect mode.
+    /// 2. If there are selected items, return them in the form of boolean array.
+    /// 3. If there are no rows selected, return the item selected by the cursor. Return None if
+    ///    there is no cursor present.
+    pub fn get_selection(&self) -> VisualSelection {
+        if let Some(range) = self.get_temp_range() {
+            if range.is_select {
+                return VisualSelection::TempSelection(range.start, range.end);
+            } else {
+                return VisualSelection::None { unselect: true };
+            }
+        } else {
+            let mut count = 0;
+            for b in &self.selected.0 {
+                if *b {
+                    count += 1;
+                }
+            }
+
+            if count == 0 {
+                match self.get_current() {
+                    Some(index) => VisualSelection::Single(index),
+                    None => VisualSelection::None { unselect: false },
+                }
+            } else {
+                VisualSelection::Selection(self.selected.0.clone())
+            }
+        }
     }
 
     #[inline]
@@ -243,12 +294,12 @@ impl VisualTable {
     }
 
     /// Regenerate the table so that its look matches the table's internal state
-    pub fn regen_table(&self) -> Table<'static> {
+    fn regen_table(&self) -> Table<'static> {
         Self::gen_table(
             &self.constraints,
-            self.rows.clone(),
+            self.rows.0.clone(),
             self.get_temp_range(),
-            &self.get_current_selection(),
+            &self.selected.0,
             self.table_proc,
         )
     }
@@ -270,11 +321,11 @@ impl VisualTable {
         constraints: Vec<Constraint>,
         table_proc: fn(Table<'static>) -> Table<'static>,
     ) -> Self {
-        let selected = vec![false; rows.len()];
-        let table = Self::gen_table(&constraints, rows.clone(), None, &selected, table_proc);
+        let selected = ModifiableList::new(vec![false; rows.len()]);
+        let table = Self::gen_table(&constraints, rows.clone(), None, &selected.0, table_proc);
         Self {
             mode: VisualMode::Off,
-            rows,
+            rows: ModifiableList::new(rows),
             selected,
             table_proc,
             constraints,
@@ -322,10 +373,10 @@ impl VisualTable {
     /// If the third value is true, then the table is in select mode. If not, the table is in
     /// deselect mode.
     #[inline]
-    pub fn get_temp_range(&self) -> Option<TempSelection> {
-        let end = self
-            .get_current()
-            .expect("Cannot find the cursor location!");
+    fn get_temp_range(&self) -> Option<TempSelection> {
+        let Some(end) = self.get_current() else {
+            return None;
+        };
         if let Some((start, end, is_select)) = self.get_range(end) {
             if start > end {
                 Some(TempSelection::new(end, start, is_select))
@@ -336,15 +387,11 @@ impl VisualTable {
             None
         }
     }
-    /// Get a reference to the selection toggle list
-    #[inline]
-    pub fn get_current_selection(&self) -> &[bool] {
-        &self.selected
-    }
+
     /// Reset all overall selection
     #[inline]
-    pub fn reset(&mut self) {
-        self.selected = vec![false; self.selected.len()];
+    pub fn reset_selections(&mut self) {
+        self.selected = ModifiableList::new(vec![false; self.selected.0.len()]);
         self.table = self.regen_table();
     }
     #[inline]
@@ -355,9 +402,11 @@ impl VisualTable {
     /// Disable visual mode for the current table
     /// The current temporary selection is added to the overall selection
     pub fn disable_visual(&mut self) {
-        let end = self
-            .get_current()
-            .expect("Cannot find the cursor location!");
+        let Some(end) = self.get_current() else {
+            self.mode = VisualMode::Off;
+            self.table = self.regen_table();
+            return;
+        };
         if let VisualMode::Select(start) = self.mode {
             let (a, b) = if start < end {
                 (start, end)
@@ -365,7 +414,7 @@ impl VisualTable {
                 (end, start)
             };
             for i in a..=b {
-                self.selected[i] = true;
+                self.selected.0[i] = true;
             }
         } else if let VisualMode::Deselect(start) = self.mode {
             let (a, b) = if start < end {
@@ -374,7 +423,7 @@ impl VisualTable {
                 (end, start)
             };
             for i in a..=b {
-                self.selected[i] = false;
+                self.selected.0[i] = false;
             }
         };
         self.mode = VisualMode::Off;

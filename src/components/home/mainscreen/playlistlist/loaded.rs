@@ -3,12 +3,12 @@ use std::collections::HashMap;
 use crate::{
     action::{
         useraction::{Common, Global, UserAction},
-        Action,
+        Action, QueueAction,
     },
     components::traits::{fullcomp::FullComp, renderable::Renderable},
     config::Config,
     osclient::response::getplaylists::SimplePlaylist,
-    playerworker::player::{QueueLocation, ToPlayerWorker},
+    playerworker::player::QueueLocation,
     queryworker::{
         highlevelquery::HighLevelQuery,
         query::{
@@ -106,12 +106,10 @@ impl FullComp for Loaded {
                     if let ResponseType::GetPlaylist(res) = res.res {
                         match res {
                             GetPlaylistResponse::Success(full_playlist) => {
-                                return Ok(Some(Action::ToPlayerWorker(
-                                    ToPlayerWorker::AddToQueue {
-                                        music: full_playlist.entry,
-                                        pos: cb.1,
-                                    },
-                                )));
+                                return Ok(Some(Action::Queue(QueueAction::Add(
+                                    full_playlist.entry,
+                                    cb.1,
+                                ))));
                             }
                             GetPlaylistResponse::Failure {
                                 id: _,

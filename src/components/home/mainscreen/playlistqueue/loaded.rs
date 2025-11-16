@@ -1,12 +1,11 @@
 use crate::{
     action::{
         useraction::{Common, UserAction},
-        Action,
+        Action, QueueAction,
     },
-    app::Mode,
     components::{
         home::mainscreen::playlistqueue::PlaylistQueue,
-        lib::visualtable::{TempSelection, VisualTable},
+        lib::visualtable::{VisualSelection, VisualTable},
         traits::{focusable::Focusable, fullcomp::FullComp, renderable::Renderable},
     },
     osclient::response::getplaylist::{FullPlaylist, Media},
@@ -35,52 +34,42 @@ pub struct Loaded {
 }
 
 impl Loaded {
-    /// Adds temporarily selected items into the queue. Also quits selection mode at the same time.
-    /// Does not work if the current mode is not select mode. Takes priority over
-    /// [`Loaded::add_selection_to_queue`].
-    fn add_temp_items_to_queue(
-        &mut self,
-        selection: TempSelection,
-        playpos: QueueLocation,
-    ) -> Option<Action> {
-        self.table.disable_visual_discard();
-        if selection.is_select {
-            let slice = &self.playlist.entry[selection.start..=selection.end];
-            Some(Action::ToPlayerWorker(ToPlayerWorker::AddToQueue {
-                pos: playpos,
-                music: slice.to_vec(),
-            }))
-        } else {
-            None
-        }
-    }
-
-    /// Adds selected items into the queue, resetting the current selection. If temporary selection
-    /// is present, this action is NOT taken in favour of [`Loaded::add_temp_items_to_queue`].
+    /// Adds selected items into the queue, resetting the current selection.
     fn add_selection_to_queue(&mut self, playpos: QueueLocation) -> Option<Action> {
-        let selection = self.table.get_current_selection();
-        let items: Vec<Media> = selection
-            .into_iter()
-            .enumerate()
-            .filter(|(_, selected)| **selected)
-            .filter_map(|(idx, _)| self.playlist.entry.get(idx))
-            .map(|m| m.clone())
-            .collect();
-        if items.len() == 0 {
-            let cur_pos = self
-                .table
-                .get_current()
-                .expect("Failed to get current cursor position!");
-            Some(Action::ToPlayerWorker(ToPlayerWorker::AddToQueue {
-                pos: playpos,
-                music: vec![self.playlist.entry[cur_pos].clone()],
-            }))
+        let (selection, action) = self.table.get_selection_reset();
+        let first = match selection {
+            VisualSelection::Single(index) => Some(Action::Queue(QueueAction::Add(
+                vec![self.playlist.entry[index].clone()],
+                playpos,
+            ))),
+            VisualSelection::TempSelection(start, end) => Some(Action::Queue(QueueAction::Add(
+                self.playlist.entry[start..=end].to_vec(),
+                playpos,
+            ))),
+            VisualSelection::Selection(items) => {
+                let items: Vec<Media> = items
+                    .into_iter()
+                    .enumerate()
+                    .filter(|(_, selected)| *selected)
+                    .filter_map(|(idx, _)| self.playlist.entry.get(idx))
+                    .map(|m| m.clone())
+                    .collect();
+                Some(Action::Queue(QueueAction::Add(items, playpos)))
+            }
+            VisualSelection::None { unselect: _ } => None,
+        };
+        if let Some(a) = first {
+            if let Some(b) = action {
+                Some(Action::Multiple(vec![a, b]))
+            } else {
+                Some(a)
+            }
         } else {
-            self.table.reset();
-            Some(Action::ToPlayerWorker(ToPlayerWorker::AddToQueue {
-                pos: playpos,
-                music: items,
-            }))
+            if let Some(b) = action {
+                Some(b)
+            } else {
+                None
+            }
         }
     }
 
@@ -180,81 +169,48 @@ impl FullComp for Loaded {
             match ua {
                 UserAction::Common(a) => match a {
                     Common::ToggleStar => {
-                        if let Some(range) = self.table.get_temp_range() {
-                            self.table.disable_visual_discard();
-                            if range.is_select {
-                                let slice = &self.playlist.entry[range.start..=range.end];
-                                let mut actions: Vec<Action> = slice
-                                    .into_iter()
-                                    .map(|m| {
-                                        Action::ToQueryWorker(ToQueryWorker::new(
-                                            HighLevelQuery::SetStar {
-                                                media: m.id.clone(),
-                                                star: m.starred == None,
-                                            },
-                                        ))
-                                    })
-                                    .collect();
-                                actions.push(Action::ChangeMode(Mode::Normal));
-
-                                Ok(Some(Action::Multiple(actions)))
-                            } else {
-                                Ok(Some(Action::ChangeMode(Mode::Normal)))
+                        let (selection, action) = self.table.get_selection_reset();
+                        let mut items: Vec<Action> = match selection {
+                            VisualSelection::Single(idx) => {
+                                let item = self.playlist.entry[idx].clone();
+                                vec![(item.id, item.starred == None)]
                             }
-                        } else {
-                            let selection = self.table.get_current_selection();
-                            let targets: Vec<Action> = selection
-                                .into_iter()
-                                .enumerate()
-                                .filter_map(|(idx, include)| {
-                                    if *include {
-                                        self.playlist.entry.get(idx)
+                            VisualSelection::TempSelection(start, end) => self.playlist.entry
+                                [start..=end]
+                                .iter()
+                                .map(|m| (m.id.clone(), m.starred == None))
+                                .collect(),
+                            VisualSelection::Selection(items) => self
+                                .playlist
+                                .entry
+                                .iter()
+                                .zip(items.iter())
+                                .filter_map(|(m, &selected)| {
+                                    if selected {
+                                        Some((m.id.clone(), m.starred == None))
                                     } else {
                                         None
                                     }
                                 })
-                                .map(|m| {
-                                    Action::ToQueryWorker(ToQueryWorker::new(
-                                        HighLevelQuery::SetStar {
-                                            media: m.id.clone(),
-                                            star: m.starred == None,
-                                        },
-                                    ))
-                                })
-                                .collect();
-                            if targets.len() == 0 {
-                                let Some(idx) = self.table.get_current() else {
-                                    return Ok(None);
-                                };
-                                let Some(media) = self.playlist.entry.get(idx) else {
-                                    return Ok(None);
-                                };
-                                Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
-                                    HighLevelQuery::SetStar {
-                                        media: media.id.clone(),
-                                        star: media.starred.is_none(),
-                                    },
-                                ))))
-                            } else {
-                                Ok(Some(Action::Multiple(targets)))
-                            }
+                                .collect(),
+                            VisualSelection::None { unselect: _ } => vec![],
                         }
-                    }
-                    Common::Add(pos) => {
-                        if let Some(range) = self.table.get_temp_range() {
-                            let temp_action = self.add_temp_items_to_queue(range, pos);
-                            if let Some(a) = temp_action {
-                                Ok(Some(Action::Multiple(vec![
-                                    a,
-                                    Action::ChangeMode(Mode::Normal),
-                                ])))
-                            } else {
-                                Ok(Some(Action::ChangeMode(Mode::Normal)))
-                            }
-                        } else {
-                            Ok(self.add_selection_to_queue(pos))
+                        .into_iter()
+                        .map(|(id, star)| {
+                            Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::SetStar {
+                                media: id,
+                                star,
+                            }))
+                        })
+                        .collect();
+
+                        if let Some(a) = action {
+                            items.push(a);
                         }
+
+                        Ok(Some(Action::Multiple(items)))
                     }
+                    Common::Add(pos) => Ok(self.add_selection_to_queue(pos)),
                     Common::Refresh => Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
                         HighLevelQuery::SelectPlaylist(GetPlaylistParams {
                             name: self.name.to_string(),

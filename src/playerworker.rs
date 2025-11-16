@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use color_eyre::Result;
-use player::{QueueLocation, ToPlayerWorker};
+use player::ToPlayerWorker;
 use rodio::{OutputStreamHandle, Sink};
 use streamerror::StreamError;
 use streamreader::StreamReader;
@@ -16,34 +16,14 @@ use tokio::task::JoinHandle;
 use tokio::time::sleep;
 use tokio_util::sync::CancellationToken;
 
-use crate::action::{Action, FromPlayerWorker, NowPlaying, QueueChange, StateType};
+use crate::action::{Action, FromPlayerWorker, StateType};
 use crate::config::Config;
-use crate::osclient::response::getplaylist::Media;
-use crate::queryworker::highlevelquery::HighLevelQuery;
-use crate::queryworker::query::ToQueryWorker;
 use crate::trace_dbg;
 
 enum WorkerState {
     // The fetched file is played
-    Playing {
-        token: CancellationToken,
-        // This field exists for all three states, but is in this worker state to differentiate its
-        // meaning from WorkerState::Idle
-        current: usize,
-    },
-    // The file URL is being fetched
-    Loading {
-        current: usize,
-    },
-    // There are no items at the play_next index
-    Idle {
-        // Index of the music currently in play, or music that should be played next
-        // This is different because this may be out of bounds when the streaming have stopped
-        // because the last song has been played.
-        // If there three items [0, 1, 2], and the user listens to all 3, then `play_next` becomes
-        // 3, which is not a valid index
-        play_next: usize,
-    },
+    Playing(CancellationToken),
+    Idle,
 }
 
 pub struct PlayerWorker {
@@ -54,95 +34,9 @@ pub struct PlayerWorker {
     should_quit: bool,
     config: Config,
     sink: Arc<Sink>,
-    queue: Vec<Media>,
 }
 
 impl PlayerWorker {
-    /// Add a number of musics into a specific spot
-    /// `items` specifies the list of musics to add
-    /// `pos` specifies the exact position in which the musics will be added relative to the
-    /// current position
-    fn add_musics(&mut self, items: Vec<Media>, pos: QueueLocation) {
-        if self.queue.is_empty() {
-            self.queue = items.clone();
-            let _ = self
-                .action_tx
-                .send(Action::FromPlayerWorker(FromPlayerWorker::StateChange(
-                    StateType::Queue(QueueChange::add(items, 0)),
-                )));
-            return;
-        };
-        match pos {
-            QueueLocation::Front => {
-                match self.state {
-                    WorkerState::Playing { token: _, current }
-                    | WorkerState::Loading { current } => {
-                        self.queue.splice(current..current, items.clone());
-                        let _ = self.action_tx.send(Action::FromPlayerWorker(
-                            FromPlayerWorker::StateChange(StateType::Queue(QueueChange::add(
-                                items, current,
-                            ))),
-                        ));
-
-                        // The music being played right now is being modified
-                        self.skip(0);
-                    }
-                    WorkerState::Idle { play_next } => {
-                        self.queue.splice(play_next..play_next, items.clone());
-                        let _ = self.action_tx.send(Action::FromPlayerWorker(
-                            FromPlayerWorker::StateChange(StateType::Queue(QueueChange::add(
-                                items, play_next,
-                            ))),
-                        ));
-                    }
-                };
-            }
-            QueueLocation::Next => {
-                match self.state {
-                    WorkerState::Playing { token: _, current }
-                    | WorkerState::Loading { current } => {
-                        self.queue
-                            .splice((current + 1)..(current + 1), items.clone());
-                        let _ = self.action_tx.send(Action::FromPlayerWorker(
-                            FromPlayerWorker::StateChange(StateType::Queue(QueueChange::add(
-                                items,
-                                current + 1,
-                            ))),
-                        ));
-                    }
-                    WorkerState::Idle { play_next } => {
-                        if play_next == self.queue.len() {
-                            self.queue.append(&mut items.clone());
-                            let _ = self.action_tx.send(Action::FromPlayerWorker(
-                                FromPlayerWorker::StateChange(StateType::Queue(QueueChange::add(
-                                    items,
-                                    self.queue.len(),
-                                ))),
-                            ));
-                        } else {
-                            self.queue
-                                .splice((play_next + 1)..(play_next + 1), items.clone());
-                            let _ = self.action_tx.send(Action::FromPlayerWorker(
-                                FromPlayerWorker::StateChange(StateType::Queue(QueueChange::add(
-                                    items,
-                                    play_next + 1,
-                                ))),
-                            ));
-                        };
-                    }
-                };
-            }
-            QueueLocation::Last => {
-                let last = self.queue.len();
-                self.queue.append(&mut items.clone());
-                let _ =
-                    self.action_tx
-                        .send(Action::FromPlayerWorker(FromPlayerWorker::StateChange(
-                            StateType::Queue(QueueChange::add(items, last)),
-                        )));
-            }
-        };
-    }
     fn continue_stream(&mut self) {
         self.sink.play();
     }
@@ -183,7 +77,6 @@ impl PlayerWorker {
         let sink2 = self.sink.clone();
         let action_tx2 = self.action_tx.clone();
 
-        let player_tx = self.player_tx.clone();
         // Cancellation token used for returning
         let token = CancellationToken::new();
         // Cancellation token to listen to cancellation
@@ -233,7 +126,8 @@ impl PlayerWorker {
                             ));
                         }
                     }
-                    let _ = player_tx.send(ToPlayerWorker::Skip);
+                    // Regardless of the error occurred, move on
+                    let _ = action_tx.send(Action::FromPlayerWorker(FromPlayerWorker::Finished));
                 }
                 _ = poll_state => {
                     // let _ = action_tx.send(Action::PlayerError("Stream polling crashed! Restart recommended.".to_string()));
@@ -242,70 +136,6 @@ impl PlayerWorker {
         });
         token
     }
-    /// Change the index of the item that is currently being played
-    /// `skip_by` specifies the distance
-    /// 0: Restart the music currently highlighted
-    /// > 0: Move forward
-    /// < 0: Move backwards
-    fn skip(&mut self, skip_by: i32) {
-        // Get the index of the music to play next
-        let index = match &self.state {
-            WorkerState::Playing { token, current } => {
-                self.sink.stop();
-                token.cancel();
-                (*current as i32) + skip_by
-            }
-            WorkerState::Loading { current } => {
-                self.sink.stop();
-                (*current as i32) + skip_by
-            }
-            WorkerState::Idle { play_next } => (*play_next as i32) + skip_by,
-        };
-        let cleaned = if index >= 0 {
-            if index >= self.queue.len().try_into().unwrap() {
-                // New index is beyond the current playlist
-                self.queue.len()
-            } else {
-                // New index is okay as is
-                index as usize
-            }
-        } else {
-            // New index is negative
-            0
-        };
-        let _ = self
-            .action_tx
-            .send(Action::FromPlayerWorker(FromPlayerWorker::StateChange(
-                StateType::Position(Duration::from_secs(0)),
-            )));
-        match self.queue.get(cleaned) {
-            Some(i) => {
-                let _ =
-                    self.action_tx
-                        .send(Action::FromPlayerWorker(FromPlayerWorker::StateChange(
-                            StateType::NowPlaying(NowPlaying::new(
-                                self.queue[cleaned].clone(),
-                                cleaned,
-                            )),
-                        )));
-                let _ = self
-                    .action_tx
-                    .send(Action::ToQueryWorker(ToQueryWorker::new(
-                        HighLevelQuery::PlayMusicFromURL(i.clone()),
-                    )));
-                self.state = WorkerState::Loading { current: cleaned };
-            }
-            None => {
-                let _ =
-                    self.action_tx
-                        .send(Action::FromPlayerWorker(FromPlayerWorker::StateChange(
-                            StateType::NowPlaying(None),
-                        )));
-
-                self.state = WorkerState::Idle { play_next: cleaned };
-            }
-        }
-    }
     pub async fn run(&mut self) -> Result<()> {
         trace_dbg!("Starting PlayerWorker...");
         loop {
@@ -313,40 +143,28 @@ impl PlayerWorker {
                 break;
             };
             match event {
-                ToPlayerWorker::Stop => todo!(),
+                ToPlayerWorker::Stop => {
+                    self.sink.stop();
+                    if let WorkerState::Playing(token) = &self.state {
+                        token.cancel();
+                    };
+                }
                 ToPlayerWorker::Pause => self.pause_stream(),
                 ToPlayerWorker::Resume => self.continue_stream(),
                 ToPlayerWorker::Kill => self.should_quit = true,
-                ToPlayerWorker::Skip => self.skip(1),
-                ToPlayerWorker::AddToQueue { music: items, pos } => {
-                    if let WorkerState::Idle { play_next } = self.state {
-                        let prev_pos = self.queue.len();
-                        self.add_musics(items, pos);
-                        if play_next == prev_pos {
-                            self.skip(0);
-                        }
-                    } else {
-                        self.add_musics(items, pos);
-                    }
-                }
                 ToPlayerWorker::PlayURL { music, url } => {
-                    // Ensure the one we get is what we expected
-                    if let WorkerState::Loading { current } = &self.state {
-                        if let Some(item) = self.queue.get(*current) {
-                            if item.id == music.id {
-                                let _ = self.action_tx.send(Action::FromPlayerWorker(
-                                    FromPlayerWorker::Message("Starting...".to_string()),
-                                ));
-                                let token = self.play_from_url(url);
-                                self.state = WorkerState::Playing {
-                                    token,
-                                    current: *current,
-                                };
-                            };
-                        };
+                    self.sink.stop();
+                    if let WorkerState::Playing(token) = &self.state {
+                        token.cancel();
                     };
+                    let _ =
+                        self.action_tx
+                            .send(Action::FromPlayerWorker(FromPlayerWorker::Message(
+                                "Starting...".to_string(),
+                            )));
+                    let token = self.play_from_url(url);
+                    self.state = WorkerState::Playing(token);
                 }
-                ToPlayerWorker::Previous => self.skip(-1),
                 ToPlayerWorker::GoToStart => {
                     if let Err(e) = self.sink.try_seek(Duration::from_secs(0)) {
                         let _ = self.action_tx.send(Action::FromPlayerWorker(
@@ -420,8 +238,7 @@ impl PlayerWorker {
             should_quit: false,
             config,
             sink,
-            state: WorkerState::Idle { play_next: 0 },
-            queue: Vec::new(),
+            state: WorkerState::Idle,
         }
     }
     pub fn get_tx(&self) -> UnboundedSender<ToPlayerWorker> {

@@ -7,7 +7,7 @@ use ratatui::{
 };
 
 use crate::{
-    action::{Action, FromPlayerWorker, QueueChange, StateType},
+    action::{Action, FromPlayerWorker, QueueAction, StateType},
     components::{
         home::mainscreen::playqueue::{nothing::Nothing, something::Something},
         traits::{focusable::Focusable, fullcomp::FullComp, renderable::Renderable},
@@ -69,12 +69,10 @@ impl FullComp for PlayQueue {
             s.update(action)
         } else {
             match action {
-                Action::FromPlayerWorker(FromPlayerWorker::StateChange(StateType::Queue(
-                    QueueChange::Add { items, at },
-                ))) => {
-                    let comp = Something::new(self.enabled, items);
+                Action::Queue(QueueAction::Add(items, _)) => {
+                    let (comp, action) = Something::new(self.enabled, items);
                     self.comp = Comp::Something(comp);
-                    Ok(None)
+                    Ok(Some(action))
                 }
                 _ => Ok(None),
             }

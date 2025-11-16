@@ -91,7 +91,7 @@ impl MainScreen {
                 pl_list: PlaylistList::new(config.clone(), true),
                 pl_queue: PlaylistQueue::new(false),
                 playqueue: PlayQueue::new(false),
-                now_playing: NowPlaying::new(false),
+                now_playing: NowPlaying::new(false, config.clone()),
                 tasks: Tasks::new(config.config.show_internal_tasks),
                 bpmtoy: BPMToy::new(config),
                 message: "You are now logged in.".to_string(),
@@ -212,6 +212,7 @@ impl FullComp for MainScreen {
                     self.message = msg.clone();
                     Ok(None)
                 }
+                FromPlayerWorker::Finished => self.playqueue.update(action),
             },
             Action::ChangeMode(m) => {
                 self.current_mode = *m;
@@ -306,6 +307,7 @@ impl FullComp for MainScreen {
                         self.show_tasks = !self.show_tasks;
                         Ok(None)
                     }
+                    Global::Skip | Global::Previous => self.playqueue.update(action),
                 },
                 _ => self.propagate_to_focused_component(action),
             },

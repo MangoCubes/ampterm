@@ -292,6 +292,9 @@ impl FullComp for Something {
                             return Ok(action);
                         }
                     };
+                    if let Some(now_playing) = self.now_playing {
+                        self.now_playing = self.list.move_item_to(&selection, now_playing);
+                    };
                     self.list.delete(&selection);
                     self.regen_rows();
 

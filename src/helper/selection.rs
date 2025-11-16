@@ -22,7 +22,7 @@ impl<T: Clone> ModifiableList<T> {
             .0
             .iter()
             .zip(selected)
-            .filter_map(|(item, &flag)| if flag { Some(item.clone()) } else { None })
+            .filter_map(|(item, &flag)| if flag { None } else { Some(item.clone()) })
             .collect();
     }
 

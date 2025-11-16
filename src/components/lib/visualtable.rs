@@ -89,8 +89,16 @@ impl FullComp for VisualTable {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::User(ua) => {
-                let Some(cur_pos) = self.tablestate.selected() else {
-                    return Ok(None);
+                let cur_pos = match self.tablestate.selected() {
+                    Some(i) => i,
+                    None => {
+                        if self.rows.0.len() == 0 {
+                            return Ok(None);
+                        } else {
+                            self.tablestate.select(Some(0));
+                            0
+                        }
+                    }
                 };
 
                 let action = match ua {
@@ -169,9 +177,10 @@ impl VisualTable {
     pub fn add_rows_at(&mut self, rows: Vec<Row<'static>>, at: usize, len: usize) {
         self.selected.add_rows_at(vec![false; len], at);
         if !self.rows.is_empty() {
-            let cur = self.get_current().expect("Failed to get cursor location.");
-            if cur >= at {
-                self.tablestate.select(Some(cur + len));
+            if let Some(cur) = self.get_current() {
+                if cur >= at {
+                    self.tablestate.select(Some(cur + len));
+                }
             }
         };
         self.set_rows(rows);

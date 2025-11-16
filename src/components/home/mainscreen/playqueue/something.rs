@@ -94,6 +94,23 @@ impl Something {
         self.table.set_rows(rows);
     }
 
+    fn skip_to(&mut self, to: usize) -> Action {
+        let action = match self.list.0.get(to) {
+            Some(m) => {
+                self.now_playing = Some(to);
+                Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::PlayMusicFromURL(
+                    m.clone(),
+                )))
+            }
+            None => {
+                self.now_playing = None;
+                Action::ToPlayerWorker(ToPlayerWorker::Stop)
+            }
+        };
+        self.regen_rows();
+        action
+    }
+
     fn skip(&mut self, skip_by: i32) -> Action {
         let max_len = self.list.0.len() as i32;
         let index = match &self.now_playing {
@@ -112,20 +129,7 @@ impl Something {
             // New index is negative
             0
         };
-        let action = match self.list.0.get(cleaned) {
-            Some(m) => {
-                self.now_playing = Some(cleaned);
-                Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::PlayMusicFromURL(
-                    m.clone(),
-                )))
-            }
-            None => {
-                self.now_playing = None;
-                Action::ToPlayerWorker(ToPlayerWorker::Stop)
-            }
-        };
-        self.regen_rows();
-        action
+        self.skip_to(cleaned)
     }
 
     fn gen_rows_from(items: &Vec<Media>, now_playing: Option<usize>) -> Vec<Row<'static>> {
@@ -341,6 +345,10 @@ impl FullComp for Something {
 
                     Ok(Some(Action::Multiple(items)))
                 }
+                Common::Confirm => match self.table.get_current() {
+                    Some(idx) => Ok(Some(self.skip_to(idx))),
+                    None => Ok(None),
+                },
                 _ => self.table.update(Action::User(UserAction::Common(a))),
             },
             _ => self.table.update(action),

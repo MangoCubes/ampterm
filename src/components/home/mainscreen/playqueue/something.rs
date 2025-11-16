@@ -213,17 +213,21 @@ impl FullComp for Something {
                     Ok(None)
                 }
                 FromPlayerWorker::Finished => {
-                    if let Some(idx) = self.now_playing {
+                    let action = if let Some(idx) = self.now_playing {
                         if let Some(i) = self.list.0.get(idx + 1) {
                             self.now_playing = Some(idx + 1);
-                            return Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
+                            Some(Action::ToQueryWorker(ToQueryWorker::new(
                                 HighLevelQuery::PlayMusicFromURL(i.clone()),
-                            ))));
+                            )))
                         } else {
                             self.now_playing = None;
+                            None
                         }
+                    } else {
+                        None
                     };
-                    Ok(None)
+                    self.regen_rows();
+                    Ok(action)
                 }
                 _ => Ok(None),
             },

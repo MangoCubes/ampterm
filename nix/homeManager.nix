@@ -39,17 +39,17 @@
           options.unsafe_auth = lib.mkOption {
             description = ''Login credentials in plaintext.'';
             type = lib.types.submodule {
-              options.url = {
+              options.url = lib.mkOption {
                 type = lib.types.str;
                 default = "";
                 description = ''URL of the OpenSubsonic server in plaintext.'';
               };
-              options.username = {
+              options.username = lib.mkOption {
                 type = lib.types.str;
                 default = "";
                 description = ''Username of your OpenSubsonic server credentials in plaintext.'';
               };
-              options.password = {
+              options.password = lib.mkOption {
                 type = lib.types.str;
                 default = "";
                 description = ''Password of your OpenSubsonic server credentials in plaintext.'';

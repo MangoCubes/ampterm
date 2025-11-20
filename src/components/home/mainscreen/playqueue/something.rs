@@ -9,7 +9,7 @@ use ratatui::{
 use crate::{
     action::{
         useraction::{Common, Global, UserAction},
-        Action, FromPlayerWorker, QueueAction, Selection, StateType,
+        Action, FromPlayerWorker, QueueAction, Selection,
     },
     components::{
         home::mainscreen::playqueue::PlayQueue,
@@ -25,15 +25,42 @@ use crate::{
     },
 };
 
+/// Specifies where the play cursor (▶) should be at
+#[derive(Clone)]
+enum CurrentItem {
+    /// The play cursor is not in the playlist because it is before the entire list
+    /// In other words, nothing in the queue has been played yet.
+    BeforeFirst,
+    /// The play cursor is not present because it is after the entire playlist.
+    /// In other words, everything has been played.
+    AfterLast,
+    /// The play cursor is not present because the item being played right now is deleted by the
+    /// user.
+    /// The index is the last item that has already been played.
+    /// In this state, skip forward behaves normally, but skip backward plays the currently
+    /// selected item, instead of skipping back.
+    /// Example: Item Three to Item Five are deleted.
+    ///   Music One        Music One
+    ///   Music Two      ▷ Music Two
+    ///   Music Three      Music Six
+    /// ▶ Music Four  ->   Music Seven
+    ///   Music Five  
+    ///   Music Six   
+    ///   Music Seven
+    NotInQueue(usize, Media),
+    /// The play cursor is placed next to the item specified by the index
+    InQueue(usize),
+}
+
 pub struct Something {
     list: ModifiableList<Media>,
-    now_playing: Option<usize>,
+    now_playing: CurrentItem,
     table: VisualTable,
     enabled: bool,
 }
 
 /// There are 4 unique states each item in the list can have:
-/// 1. Position relative to the item currently being played
+/// 1. Position of the item being played
 ///    This is indicated by a ▶ at the front, with played items using grey as primary colour
 /// 2. Temporary selection
 ///    This is indicated by colour inversion
@@ -57,12 +84,12 @@ impl Something {
             Self {
                 enabled,
                 table: VisualTable::new(
-                    Self::gen_rows_from(&list, Some(0)),
+                    Self::gen_rows_from(&list, &CurrentItem::BeforeFirst),
                     [Constraint::Max(1), Constraint::Min(0), Constraint::Max(1)].to_vec(),
                     table_proc,
                 ),
                 list: ModifiableList::new(list),
-                now_playing: Some(0),
+                now_playing: CurrentItem::BeforeFirst,
             },
             action,
         )
@@ -90,23 +117,24 @@ impl Something {
 
     /// Regenerate all rows based on the current state, and rerender the table in full
     fn regen_rows(&mut self) {
-        let rows = Self::gen_rows_from(&self.list.0, self.now_playing);
+        let rows = Self::gen_rows_from(&self.list.0, &self.now_playing);
         self.table.set_rows(rows);
     }
 
-    fn skip_to(&mut self, to: usize) -> Action {
-        let action = match self.list.0.get(to) {
-            Some(m) => {
-                self.now_playing = Some(to);
-                Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::PlayMusicFromURL(
-                    m.clone(),
-                )))
+    fn restart(&mut self) {}
+
+    fn skip_to(&mut self, to: CurrentItem) -> Action {
+        let action = if let CurrentItem::InQueue(idx) = to {
+            match self.list.0.get(idx) {
+                Some(m) => Action::ToQueryWorker(ToQueryWorker::new(
+                    HighLevelQuery::PlayMusicFromURL(m.clone()),
+                )),
+                None => Action::ToPlayerWorker(ToPlayerWorker::Stop),
             }
-            None => {
-                self.now_playing = None;
-                Action::ToPlayerWorker(ToPlayerWorker::Stop)
-            }
+        } else {
+            Action::ToPlayerWorker(ToPlayerWorker::Stop)
         };
+        self.now_playing = to;
         self.regen_rows();
         action
     }
@@ -114,25 +142,24 @@ impl Something {
     fn skip(&mut self, skip_by: i32) -> Action {
         let max_len = self.list.0.len() as i32;
         let index = match &self.now_playing {
-            Some(idx) => *idx as i32,
-            None => max_len,
+            CurrentItem::BeforeFirst => -1,
+            CurrentItem::AfterLast => max_len,
+            CurrentItem::NotInQueue(index, _) => *index as i32 - 1,
+            CurrentItem::InQueue(index) => *index as i32,
         } + skip_by;
         let cleaned = if index >= 0 {
             if index >= max_len {
-                // New index is beyond the current playlist
-                max_len as usize
+                CurrentItem::AfterLast
             } else {
-                // New index is okay as is
-                index as usize
+                CurrentItem::InQueue(index as usize)
             }
         } else {
-            // New index is negative
-            0
+            CurrentItem::BeforeFirst
         };
         self.skip_to(cleaned)
     }
 
-    fn gen_rows_from(items: &Vec<Media>, now_playing: Option<usize>) -> Vec<Row<'static>> {
+    fn gen_rows_from(items: &Vec<Media>, now_playing: &CurrentItem) -> Vec<Row<'static>> {
         let len = items.len();
         if len == 0 {
             return vec![];
@@ -152,7 +179,7 @@ impl Something {
             Row::new(vec!["▶".to_string(), ms.title.clone(), ms.get_fav_marker()]).style(current)
         }
         match now_playing {
-            Some(idx) => match idx {
+            Some(idx) => match *idx {
                 // This is the case where the currently plaing item's index matches the final item
                 // in the sublist this function received. Therefore, everything but the last
                 // element will be marked as "Played", and the last element will be marked as "Now
@@ -215,27 +242,31 @@ impl FullComp for Something {
             Action::Queue(a) => match a {
                 QueueAction::Add(items, at) => {
                     let max = self.list.0.len();
-                    let idx = match self.now_playing {
-                        Some(c) => match at {
-                            QueueLocation::Front => c,
-                            QueueLocation::Next => c + 1,
-                            QueueLocation::Last => max,
+                    let idx = match at {
+                        QueueLocation::Front => match self.now_playing {
+                            CurrentItem::BeforeFirst => 0,
+                            CurrentItem::AfterLast => max,
+                            CurrentItem::NotInQueue(idx, _) => idx,
+                            CurrentItem::InQueue(idx) => idx,
                         },
-                        None => max,
+                        QueueLocation::Next => match self.now_playing {
+                            CurrentItem::BeforeFirst => 0,
+                            CurrentItem::AfterLast => max,
+                            CurrentItem::NotInQueue(idx, _) => idx,
+                            CurrentItem::InQueue(idx) => idx + 1,
+                        },
+                        QueueLocation::Last => max,
                     };
                     let len = items.len();
                     self.list.add_rows_at(items, idx);
-                    let rows = Self::gen_rows_from(&self.list.0, self.now_playing);
+                    let rows = Self::gen_rows_from(&self.list.0, &self.now_playing);
                     self.table.add_rows_at(rows, idx, len);
 
-                    if let Some(c) = self.now_playing {
-                        if matches!(at, QueueLocation::Front) {
-                            return Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
-                                HighLevelQuery::PlayMusicFromURL(self.list.0[c].clone()),
-                            ))));
-                        }
+                    if matches!(at, QueueLocation::Front) {
+                        Ok(Some(self.skip_to(self.now_playing)))
+                    } else {
+                        Ok(None)
                     }
-                    Ok(None)
                 }
             },
             Action::ToQueryWorker(ToQueryWorker {
@@ -247,37 +278,7 @@ impl FullComp for Something {
                 _ => Ok(None),
             },
             Action::FromPlayerWorker(a) => match a {
-                FromPlayerWorker::StateChange(state_type) => {
-                    match state_type {
-                        StateType::NowPlaying(now_playing) => {
-                            self.now_playing = if let Some(n) = now_playing {
-                                Some(n.index)
-                            } else {
-                                None
-                            };
-                            self.regen_rows();
-                        }
-                        StateType::Volume(_) | StateType::Position(_) | StateType::Speed(_) => {}
-                    }
-                    Ok(None)
-                }
-                FromPlayerWorker::Finished => {
-                    let action = if let Some(idx) = self.now_playing {
-                        if let Some(i) = self.list.0.get(idx + 1) {
-                            self.now_playing = Some(idx + 1);
-                            Some(Action::ToQueryWorker(ToQueryWorker::new(
-                                HighLevelQuery::PlayMusicFromURL(i.clone()),
-                            )))
-                        } else {
-                            self.now_playing = None;
-                            None
-                        }
-                    } else {
-                        None
-                    };
-                    self.regen_rows();
-                    Ok(action)
-                }
+                FromPlayerWorker::Finished => Ok(Some(self.skip(1))),
                 _ => Ok(None),
             },
             Action::User(UserAction::Global(a)) => match a {
@@ -296,9 +297,23 @@ impl FullComp for Something {
                             return Ok(action);
                         }
                     };
-                    if let Some(now_playing) = self.now_playing {
-                        self.now_playing = self.list.move_item_to(&selection, now_playing);
-                    };
+                    if let CurrentItem::InQueue(idx) = self.now_playing {
+                        if let Some((newidx, deleted)) = self.list.move_item_to(&selection, idx) {
+                            self.now_playing = if deleted {
+                                CurrentItem::NotInQueue(newidx, self.list.0[idx].clone())
+                            } else {
+                                CurrentItem::InQueue(newidx)
+                            };
+                        } else {
+                            self.now_playing = CurrentItem::BeforeFirst;
+                        }
+                    } else if let CurrentItem::NotInQueue(idx, m) = &self.now_playing {
+                        if let Some((newidx, _)) = self.list.move_item_to(&selection, *idx) {
+                            self.now_playing = CurrentItem::NotInQueue(newidx, m.clone())
+                        } else {
+                            self.now_playing = CurrentItem::BeforeFirst;
+                        }
+                    }
                     self.list.delete(&selection);
                     self.regen_rows();
 
@@ -346,7 +361,7 @@ impl FullComp for Something {
                     Ok(Some(Action::Multiple(items)))
                 }
                 Common::Confirm => match self.table.get_current() {
-                    Some(idx) => Ok(Some(self.skip_to(idx))),
+                    Some(idx) => Ok(Some(self.skip_to(CurrentItem::InQueue(idx)))),
                     None => Ok(None),
                 },
                 _ => self.table.update(Action::User(UserAction::Common(a))),

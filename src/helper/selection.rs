@@ -29,55 +29,78 @@ impl<T: Clone> ModifiableList<T> {
     /// This function answers the following question:
     /// "If the given selection is deleted, where should the cursor at the given index should go?"
     ///
-    /// Returns the new index, or returns None if all items are deleted so that there can be no
-    /// valid position for the cursor to settle at.
-    pub fn move_item_to(&self, selection: &Selection, idx: usize) -> Option<usize> {
+    /// Returns the new index and whether the current item has been deleted, or returns None if
+    /// all items are deleted so that there can be no valid position for the cursor to settle at.
+    pub fn move_item_to(&self, selection: &Selection, idx: usize) -> Option<(usize, bool)> {
         let len = self.0.len();
         match selection {
+            // Only one item is deleted
             Selection::Single(index) => {
                 if len == 1 {
+                    // ...and it's the only item left in the list.
                     None
                 } else if idx == *index {
+                    // ...and it's the current item.
                     if idx == 0 {
-                        Some(0)
+                        // Default to position 0 because there is no item before that
+                        Some((0, true))
                     } else {
-                        Some(idx - 1)
+                        Some((idx - 1, true))
                     }
                 } else {
+                    // ...but it's not the current item.
                     if idx > *index {
-                        Some(idx - 1)
+                        // If the current item comes after the current item, move up the list by
+                        // one
+                        Some((idx - 1, false))
                     } else {
-                        Some(idx)
+                        Some((idx, false))
                     }
                 }
             }
             Selection::Range(start, end) => {
                 if *start == 0 && *end == (len - 1) {
+                    // Everything is deleted
                     None
                 } else if idx < *start {
-                    Some(idx)
+                    // Current item comes before the start of the range
+                    Some((idx, false))
                 } else if idx > *end {
-                    Some(idx - (end - start + 1))
+                    // Current item comes after the end of the range
+                    Some((idx - (end - start + 1), false))
                 } else {
-                    Some(start - 1)
+                    // Current item is deleted, point at the item that is just before the start of
+                    // range
+                    Some((start - 1, true))
                 }
             }
             Selection::Multiple(items) => {
+                // [`safe_items`] specifies the number of items that are NOT deleted by this
+                // operation and comes before the current item. Essentially, it's the number of
+                // items that will be left behind before the current item.
                 let mut safe_items = 0;
+                let deleted = items[idx];
                 for i in 0..idx {
                     if !items[i] {
                         safe_items += 1;
                     }
                 }
                 if safe_items == 0 {
+                    // If all items before the current item are deleted...
                     for i in idx..len {
+                        // If any items after the current item are being left behind, that means at
+                        // least one item will be left behind after the delete operation.
+                        // Therefore, Some(0) is returned.
                         if !items[i] {
-                            return Some(0);
+                            return Some((0, deleted));
                         }
                     }
+                    // If we reach here, that means everything is being deleted.
                     None
                 } else {
-                    Some(safe_items - 1)
+                    // This means that some items before the current item are left behind. Return
+                    // the last one amongst the ones that are not deleted.
+                    Some((safe_items - 1, deleted))
                 }
             }
         }

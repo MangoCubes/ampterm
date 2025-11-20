@@ -9,21 +9,9 @@ use crate::queryworker::query::FromQueryWorker;
 use crate::{app::Mode, queryworker::query::ToQueryWorker};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct NowPlaying {
-    pub music: Media,
-    pub index: usize,
-}
-
-impl NowPlaying {
-    pub fn new(music: Media, index: usize) -> Option<Self> {
-        Some(Self { music, index })
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum StateType {
     Position(std::time::Duration),
-    NowPlaying(Option<NowPlaying>),
+    NowPlaying(Option<Media>),
     Volume(f32),
     Speed(f32),
 }

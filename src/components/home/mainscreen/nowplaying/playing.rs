@@ -119,8 +119,8 @@ impl SimpleComp for Playing {
                 StateType::Position(pos) => self.pos = *pos,
                 StateType::Volume(v) => self.vol = *v,
                 StateType::Speed(s) => self.speed = *s,
-                StateType::NowPlaying(Some(now_playing)) => {
-                    self.music = now_playing.music.clone();
+                StateType::NowPlaying(Some(media)) => {
+                    self.music = media.clone();
                 }
                 _ => {}
             };

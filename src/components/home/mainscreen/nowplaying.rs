@@ -59,7 +59,7 @@ impl FullComp for NowPlaying {
             ))) => match now_playing {
                 Some(n) => {
                     let (comp, action) = Playing::new(
-                        n.music,
+                        n,
                         0.0,
                         0.0,
                         Duration::from_secs(0),

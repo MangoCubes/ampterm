@@ -34,20 +34,6 @@ enum CurrentItem {
     /// The play cursor is not present because it is after the entire playlist.
     /// In other words, everything has been played.
     AfterLast,
-    /// The play cursor is not present because the item being played right now is deleted by the
-    /// user.
-    /// The index is the last item that has already been played.
-    /// In this state, skip forward behaves normally, but skip backward plays the currently
-    /// selected item, instead of skipping back.
-    /// Example: Item Three to Item Five are deleted.
-    ///   Music One        Music One
-    ///   Music Two      ▷ Music Two
-    ///   Music Three      Music Six
-    /// ▶ Music Four  ->   Music Seven
-    ///   Music Five  
-    ///   Music Six   
-    ///   Music Seven
-    NotInQueue(usize, Media),
     /// The play cursor is placed next to the item specified by the index
     InQueue(usize),
 }
@@ -60,13 +46,13 @@ pub struct Something {
 }
 
 /// There are 4 unique states each item in the list can have:
-/// 1. Position of the item being played
+/// 1. Position of the item being played (Play cursor position)
 ///    This is indicated by a ▶ at the front, with played items using grey as primary colour
 /// 2. Temporary selection
 ///    This is indicated by colour inversion
 /// 3. Selection
 ///    This is indicated with green (darker green used if the item has already been played)
-/// 4. Current cursor position
+/// 4. Current cursor position (Cursor position)
 ///    This is indicated with > and inversion
 ///
 /// As a result, a dedicated list component has to be made
@@ -84,12 +70,12 @@ impl Something {
             Self {
                 enabled,
                 table: VisualTable::new(
-                    Self::gen_rows_from(&list, &CurrentItem::BeforeFirst),
+                    Self::gen_rows_from(&list, &CurrentItem::InQueue(0)),
                     [Constraint::Max(1), Constraint::Min(0), Constraint::Max(1)].to_vec(),
                     table_proc,
                 ),
                 list: ModifiableList::new(list),
-                now_playing: CurrentItem::BeforeFirst,
+                now_playing: CurrentItem::InQueue(0),
             },
             action,
         )
@@ -144,7 +130,6 @@ impl Something {
         let index = match &self.now_playing {
             CurrentItem::BeforeFirst => -1,
             CurrentItem::AfterLast => max_len,
-            CurrentItem::NotInQueue(index, _) => *index as i32 - 1,
             CurrentItem::InQueue(index) => *index as i32,
         } + skip_by;
         let cleaned = if index >= 0 {
@@ -179,12 +164,14 @@ impl Something {
             Row::new(vec!["▶".to_string(), ms.title.clone(), ms.get_fav_marker()]).style(current)
         }
         match now_playing {
-            Some(idx) => match *idx {
+            CurrentItem::BeforeFirst => gen_rows_part(&items, not_yet_played),
+            CurrentItem::AfterLast => gen_rows_part(&items, played),
+            CurrentItem::InQueue(idx) => match *idx {
                 // This is the case where the currently plaing item's index matches the final item
                 // in the sublist this function received. Therefore, everything but the last
                 // element will be marked as "Played", and the last element will be marked as "Now
                 // playing".
-                i if (len - 1) == idx => {
+                i if (len - 1) == i => {
                     let mut list = gen_rows_part(&items[..i], played);
                     list.push(gen_playing_item(&items[i]));
                     list
@@ -207,8 +194,6 @@ impl Something {
                     list
                 }
             },
-            // Current item is beyond the current playlist
-            None => gen_rows_part(&items, played),
         }
     }
 }
@@ -246,13 +231,11 @@ impl FullComp for Something {
                         QueueLocation::Front => match self.now_playing {
                             CurrentItem::BeforeFirst => 0,
                             CurrentItem::AfterLast => max,
-                            CurrentItem::NotInQueue(idx, _) => idx,
                             CurrentItem::InQueue(idx) => idx,
                         },
                         QueueLocation::Next => match self.now_playing {
                             CurrentItem::BeforeFirst => 0,
                             CurrentItem::AfterLast => max,
-                            CurrentItem::NotInQueue(idx, _) => idx,
                             CurrentItem::InQueue(idx) => idx + 1,
                         },
                         QueueLocation::Last => max,
@@ -263,7 +246,7 @@ impl FullComp for Something {
                     self.table.add_rows_at(rows, idx, len);
 
                     if matches!(at, QueueLocation::Front) {
-                        Ok(Some(self.skip_to(self.now_playing)))
+                        Ok(Some(self.skip_to(self.now_playing.clone())))
                     } else {
                         Ok(None)
                     }
@@ -300,20 +283,21 @@ impl FullComp for Something {
                     if let CurrentItem::InQueue(idx) = self.now_playing {
                         if let Some((newidx, deleted)) = self.list.move_item_to(&selection, idx) {
                             self.now_playing = if deleted {
-                                CurrentItem::NotInQueue(newidx, self.list.0[idx].clone())
+                                CurrentItem::BeforeFirst
+                                // CurrentItem::NotInQueue(newidx, self.list.0[idx].clone())
                             } else {
                                 CurrentItem::InQueue(newidx)
                             };
                         } else {
                             self.now_playing = CurrentItem::BeforeFirst;
                         }
-                    } else if let CurrentItem::NotInQueue(idx, m) = &self.now_playing {
-                        if let Some((newidx, _)) = self.list.move_item_to(&selection, *idx) {
-                            self.now_playing = CurrentItem::NotInQueue(newidx, m.clone())
-                        } else {
-                            self.now_playing = CurrentItem::BeforeFirst;
-                        }
-                    }
+                    } /*  else if let CurrentItem::NotInQueue(idx, m) = &self.now_playing {
+                          if let Some((newidx, _)) = self.list.move_item_to(&selection, *idx) {
+                              self.now_playing = CurrentItem::NotInQueue(newidx, m.clone())
+                          } else {
+                              self.now_playing = CurrentItem::BeforeFirst;
+                          }
+                      } */
                     self.list.delete(&selection);
                     self.regen_rows();
 

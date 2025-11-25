@@ -90,7 +90,7 @@ impl MainScreen {
                 current_mode: Mode::Normal,
                 pl_list: PlaylistList::new(config.clone(), true),
                 pl_queue: PlaylistQueue::new(false),
-                playqueue: PlayQueue::new(false),
+                playqueue: PlayQueue::new(false, config.clone()),
                 now_playing: NowPlaying::new(false, config.clone()),
                 tasks: Tasks::new(config.behaviour.show_internal_tasks),
                 bpmtoy: BPMToy::new(config),

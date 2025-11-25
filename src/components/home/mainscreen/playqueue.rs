@@ -7,11 +7,12 @@ use ratatui::{
 };
 
 use crate::{
-    action::{Action, FromPlayerWorker, QueueAction, StateType},
+    action::{Action, QueueAction},
     components::{
         home::mainscreen::playqueue::{nothing::Nothing, something::Something},
         traits::{focusable::Focusable, fullcomp::FullComp, renderable::Renderable},
     },
+    config::Config,
 };
 use color_eyre::Result;
 
@@ -26,6 +27,7 @@ enum Comp {
 pub struct PlayQueue {
     comp: Comp,
     enabled: bool,
+    config: Config,
 }
 
 impl PlayQueue {
@@ -46,10 +48,11 @@ impl PlayQueue {
         Block::bordered().title(title).border_style(style)
     }
 
-    pub fn new(enabled: bool) -> Self {
+    pub fn new(enabled: bool, config: Config) -> Self {
         Self {
             comp: Comp::Nothing(Nothing::new(enabled)),
             enabled,
+            config,
         }
     }
 }
@@ -70,7 +73,7 @@ impl FullComp for PlayQueue {
         } else {
             match action {
                 Action::Queue(QueueAction::Add(items, _)) => {
-                    let (comp, action) = Something::new(self.enabled, items);
+                    let (comp, action) = Something::new(self.enabled, items, self.config.clone());
                     self.comp = Comp::Something(comp);
                     Ok(Some(action))
                 }

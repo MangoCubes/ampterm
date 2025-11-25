@@ -16,6 +16,7 @@ use crate::{
         lib::visualtable::{VisualSelection, VisualTable},
         traits::{focusable::Focusable, fullcomp::FullComp, renderable::Renderable},
     },
+    config::Config,
     helper::selection::ModifiableList,
     osclient::response::getplaylist::Media,
     playerworker::player::{QueueLocation, ToPlayerWorker},
@@ -51,6 +52,7 @@ pub struct Something {
     now_playing: CurrentItem,
     table: VisualTable,
     enabled: bool,
+    config: Config,
 }
 
 /// There are 4 unique states each item in the list can have:
@@ -65,7 +67,7 @@ pub struct Something {
 ///
 /// As a result, a dedicated list component has to be made
 impl Something {
-    pub fn new(enabled: bool, list: Vec<Media>) -> (Self, Action) {
+    pub fn new(enabled: bool, list: Vec<Media>, config: Config) -> (Self, Action) {
         fn table_proc(table: Table<'static>) -> Table<'static> {
             table
                 .highlight_symbol(">")
@@ -80,6 +82,7 @@ impl Something {
             .collect();
         (
             Self {
+                config,
                 enabled,
                 table: VisualTable::new(
                     Self::gen_rows_from(&queue, &CurrentItem::InQueue(0)),
@@ -290,8 +293,8 @@ impl FullComp for Something {
             },
             Action::User(UserAction::Common(a)) => match a {
                 Common::Delete => {
-                    let (selection, action) = self.table.get_selection_reset();
-                    let selection = match selection {
+                    let (vs, action) = self.table.get_selection_reset();
+                    let selection = match vs {
                         VisualSelection::Single(index) => Selection::Single(index),
                         VisualSelection::TempSelection(start, end) => Selection::Range(start, end),
                         VisualSelection::Selection(items) => Selection::Multiple(items),
@@ -310,13 +313,7 @@ impl FullComp for Something {
                         } else {
                             self.now_playing = CurrentItem::BeforeFirst;
                         }
-                    } /*  else if let CurrentItem::NotInQueue(idx, m) = &self.now_playing {
-                          if let Some((newidx, _)) = self.list.move_item_to(&selection, *idx) {
-                              self.now_playing = CurrentItem::NotInQueue(newidx, m.clone())
-                          } else {
-                              self.now_playing = CurrentItem::BeforeFirst;
-                          }
-                      } */
+                    }
                     self.list.delete(&selection);
                     self.regen_rows();
 

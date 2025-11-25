@@ -71,7 +71,12 @@ impl<T: Clone> ModifiableList<T> {
                 } else {
                     // Current item is deleted, point at the item that is just before the start of
                     // range
-                    Some((start - 1, true))
+                    if *start == 0 {
+                        // Handle edge case where there is no item before the range
+                        Some((0, true))
+                    } else {
+                        Some((start - 1, true))
+                    }
                 }
             }
             Selection::Multiple(items) => {

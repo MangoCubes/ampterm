@@ -40,7 +40,7 @@ impl Loaded {
         if let Some(pos) = self.state.selected() {
             let key = self.list[pos].id.clone();
             let name = self.list[pos].name.clone();
-            if self.config.config.auto_focus {
+            if self.config.behaviour.auto_focus {
                 Some(Action::Multiple(vec![
                     Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::SelectPlaylist(
                         GetPlaylistParams { name, id: key },

@@ -6,10 +6,6 @@ fn default_lrclib() -> String {
     "https://lrclib.net".to_string()
 }
 
-fn default_true() -> bool {
-    true
-}
-
 #[derive(Clone, Debug, Deserialize, Default)]
 pub struct AppConfig {
     #[serde(default)]
@@ -18,10 +14,6 @@ pub struct AppConfig {
     pub config_dir: PathBuf,
     #[serde(default)]
     pub use_legacy_auth: bool,
-    #[serde(default = "default_true")]
-    pub auto_focus: bool,
-    #[serde(default)]
-    pub show_internal_tasks: bool,
     #[serde(default = "default_lrclib")]
     pub lrc_url: String,
 }

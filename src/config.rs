@@ -1,5 +1,6 @@
 mod appconfig;
 mod authconfig;
+mod behaviourconfig;
 mod keybindings;
 mod lyricsconfig;
 pub mod pathconfig;
@@ -20,6 +21,7 @@ use crate::{
     config::{
         appconfig::AppConfig,
         authconfig::{AuthConfig, UnsafeAuthConfig},
+        behaviourconfig::BehaviourConfig,
         lyricsconfig::LyricsConfig,
         pathconfig::PathConfig,
         styleconfig::StyleConfig,
@@ -54,6 +56,8 @@ pub struct Config {
     pub init_state: InitState,
     #[serde(default)]
     pub lyrics: LyricsConfig,
+    #[serde(default)]
+    pub behaviour: BehaviourConfig,
 }
 
 lazy_static! {

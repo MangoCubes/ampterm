@@ -35,6 +35,20 @@ enum CurrentItem {
     /// The play cursor is not present because it is after the entire playlist.
     /// In other words, everything has been played.
     AfterLast,
+    /// The play cursor is not present because the item being played right now is deleted by the
+    /// user.
+    /// The index is the last item that has already been played.
+    /// In this state, skip forward behaves normally, but skip backward plays the currently
+    /// selected item, instead of skipping back.
+    /// Example: Item Three to Item Five are deleted.
+    ///   Music One        Music One
+    ///   Music Two      ▷ Music Two
+    ///   Music Three      Music Six
+    /// ▶ Music Four  ->   Music Seven
+    ///   Music Five
+    ///   Music Six
+    ///   Music Seven
+    NotInQueue(usize, Media),
     /// The play cursor is placed next to the item specified by the index
     InQueue(usize),
 }
@@ -110,18 +124,18 @@ impl Something {
         self.table.set_rows(rows);
     }
 
-    fn restart(&mut self) {}
-
     fn skip_to(&mut self, to: CurrentItem) -> Action {
-        let action = if let CurrentItem::InQueue(idx) = to {
-            match self.list.0.get(idx) {
+        let action = match &to {
+            CurrentItem::InQueue(idx) => match self.list.0.get(*idx) {
                 Some(m) => Action::ToQueryWorker(ToQueryWorker::new(
                     HighLevelQuery::PlayMusicFromURL(m.clone()),
                 )),
                 None => Action::ToPlayerWorker(ToPlayerWorker::Stop),
-            }
-        } else {
-            Action::ToPlayerWorker(ToPlayerWorker::Stop)
+            },
+            CurrentItem::NotInQueue(_, media) => Action::ToQueryWorker(ToQueryWorker::new(
+                HighLevelQuery::PlayMusicFromURL(media.clone()),
+            )),
+            _ => Action::ToPlayerWorker(ToPlayerWorker::Stop),
         };
         self.now_playing = to;
         self.regen_rows();
@@ -130,21 +144,35 @@ impl Something {
 
     fn skip(&mut self, skip_by: i32) -> Action {
         let max_len = self.list.0.len() as i32;
-        let index = match &self.now_playing {
-            CurrentItem::BeforeFirst => -1,
-            CurrentItem::AfterLast => max_len,
-            CurrentItem::InQueue(index) => *index as i32,
-        } + skip_by;
-        let cleaned = if index >= 0 {
-            if index >= max_len {
-                CurrentItem::AfterLast
+
+        fn clean(index: i32, max_len: i32) -> CurrentItem {
+            if index >= 0 {
+                if index >= max_len {
+                    CurrentItem::AfterLast
+                } else {
+                    CurrentItem::InQueue(index as usize)
+                }
             } else {
-                CurrentItem::InQueue(index as usize)
+                CurrentItem::BeforeFirst
             }
-        } else {
-            CurrentItem::BeforeFirst
+        }
+
+        let ci = match &self.now_playing {
+            CurrentItem::BeforeFirst => clean(skip_by - 1, max_len),
+            CurrentItem::AfterLast => clean(max_len + skip_by, max_len),
+            CurrentItem::InQueue(index) => clean(*index as i32 + skip_by, max_len),
+            CurrentItem::NotInQueue(index, media) => {
+                if skip_by == 0 {
+                    CurrentItem::NotInQueue(*index, media.clone())
+                } else if skip_by < 0 {
+                    clean(*index as i32 + skip_by + 1, max_len)
+                } else {
+                    clean(*index as i32 + skip_by, max_len)
+                }
+            }
         };
-        self.skip_to(cleaned)
+
+        self.skip_to(ci)
     }
 
     fn gen_rows_from(items: &Vec<Media>, now_playing: &CurrentItem) -> Vec<Row<'static>> {
@@ -162,21 +190,30 @@ impl Something {
                 })
                 .collect()
         }
-        fn gen_playing_item(ms: &Media) -> Row<'static> {
-            let current = Style::new().bold();
-            Row::new(vec!["▶".to_string(), ms.title.clone(), ms.get_fav_marker()]).style(current)
+        fn gen_playing_item(ms: &Media, cursor: String, style: Style) -> Row<'static> {
+            Row::new(vec![cursor, ms.title.clone(), ms.get_fav_marker()]).style(style)
         }
-        match now_playing {
-            CurrentItem::BeforeFirst => gen_rows_part(&items, not_yet_played),
-            CurrentItem::AfterLast => gen_rows_part(&items, played),
-            CurrentItem::InQueue(idx) => match *idx {
+        fn gen_rows_with_cursor(
+            idx: usize,
+            len: usize,
+            played: Style,
+            not_yet_played: Style,
+            items: &Vec<Media>,
+            in_queue: bool,
+        ) -> Vec<Row<'static>> {
+            let (cursor, playing_style) = if in_queue {
+                ("▶".to_string(), not_yet_played.bold())
+            } else {
+                ("▷".to_string(), played.bold())
+            };
+            match idx {
                 // This is the case where the currently plaing item's index matches the final item
                 // in the sublist this function received. Therefore, everything but the last
                 // element will be marked as "Played", and the last element will be marked as "Now
                 // playing".
                 i if (len - 1) == i => {
                     let mut list = gen_rows_part(&items[..i], played);
-                    list.push(gen_playing_item(&items[i]));
+                    list.push(gen_playing_item(&items[i], cursor, playing_style));
                     list
                 }
                 // This is the case where the currently playing item's index matches the first item
@@ -185,7 +222,7 @@ impl Something {
                 // "Now playing".
                 0 => {
                     let mut list = gen_rows_part(&items[1..], not_yet_played);
-                    list.insert(0, gen_playing_item(&items[0]));
+                    list.insert(0, gen_playing_item(&items[0], cursor, playing_style));
                     list
                 }
                 // This is the case where the sublist contains the music that is currently being
@@ -193,10 +230,20 @@ impl Something {
                 i => {
                     let mut list = gen_rows_part(&items[..i], played);
                     list.append(&mut gen_rows_part(&items[(i + 1)..], not_yet_played));
-                    list.insert(i, gen_playing_item(&items[i]));
+                    list.insert(i, gen_playing_item(&items[i], cursor, playing_style));
                     list
                 }
-            },
+            }
+        }
+        match now_playing {
+            CurrentItem::BeforeFirst => gen_rows_part(&items, not_yet_played),
+            CurrentItem::AfterLast => gen_rows_part(&items, played),
+            CurrentItem::InQueue(idx) => {
+                gen_rows_with_cursor(*idx, len, played, not_yet_played, items, true)
+            }
+            CurrentItem::NotInQueue(idx, _) => {
+                gen_rows_with_cursor(*idx, len, played, not_yet_played, items, false)
+            }
         }
     }
 }
@@ -234,12 +281,12 @@ impl FullComp for Something {
                         QueueLocation::Front => match self.now_playing {
                             CurrentItem::BeforeFirst => 0,
                             CurrentItem::AfterLast => max,
-                            CurrentItem::InQueue(idx) => idx,
+                            CurrentItem::InQueue(idx) | CurrentItem::NotInQueue(idx, _) => idx,
                         },
                         QueueLocation::Next => match self.now_playing {
                             CurrentItem::BeforeFirst => 0,
                             CurrentItem::AfterLast => max,
-                            CurrentItem::InQueue(idx) => idx + 1,
+                            CurrentItem::InQueue(idx) | CurrentItem::NotInQueue(idx, _) => idx + 1,
                         },
                         QueueLocation::Last => max,
                     };
@@ -283,18 +330,31 @@ impl FullComp for Something {
                             return Ok(action);
                         }
                     };
-                    if let CurrentItem::InQueue(idx) = self.now_playing {
-                        if let Some((newidx, deleted)) = self.list.move_item_to(&selection, idx) {
-                            self.now_playing = if deleted {
-                                CurrentItem::BeforeFirst
-                                // CurrentItem::NotInQueue(newidx, self.list.0[idx].clone())
+
+                    match self.now_playing {
+                        CurrentItem::InQueue(idx) => {
+                            if let Some((newidx, deleted)) = self.list.move_item_to(&selection, idx)
+                            {
+                                self.now_playing = if deleted {
+                                    CurrentItem::NotInQueue(newidx, self.list.0[idx].clone())
+                                } else {
+                                    CurrentItem::InQueue(newidx)
+                                };
                             } else {
-                                CurrentItem::InQueue(newidx)
-                            };
-                        } else {
-                            self.now_playing = CurrentItem::BeforeFirst;
+                                self.now_playing = CurrentItem::BeforeFirst;
+                            }
                         }
+                        CurrentItem::NotInQueue(idx, _) => {
+                            if let Some((newidx, _)) = self.list.move_item_to(&selection, idx) {
+                                self.now_playing =
+                                    CurrentItem::NotInQueue(newidx, self.list.0[idx].clone())
+                            } else {
+                                self.now_playing = CurrentItem::BeforeFirst;
+                            }
+                        }
+                        _ => (),
                     }
+
                     self.list.delete(&selection);
                     self.regen_rows();
 

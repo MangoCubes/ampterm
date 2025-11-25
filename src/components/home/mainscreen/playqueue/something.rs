@@ -38,8 +38,16 @@ enum CurrentItem {
     InQueue(usize),
 }
 
+#[derive(Clone)]
+enum MediaStatus {
+    /// Any item marked as Repeat(n) is repeated n times. Normal is equivalent to Repeat(1).
+    Repeat(usize),
+    /// Any item marked as Temporary is removed once it is finished.
+    Temporary,
+}
+
 pub struct Something {
-    list: ModifiableList<Media>,
+    list: ModifiableList<(Media, MediaStatus)>,
     now_playing: CurrentItem,
     table: VisualTable,
     enabled: bool,
@@ -66,15 +74,19 @@ impl Something {
         let action = Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::PlayMusicFromURL(
             list[0].clone(),
         )));
+        let queue = list
+            .into_iter()
+            .map(|m| (m, MediaStatus::Repeat(1)))
+            .collect();
         (
             Self {
                 enabled,
                 table: VisualTable::new(
-                    Self::gen_rows_from(&list, &CurrentItem::InQueue(0)),
+                    Self::gen_rows_from(&queue, &CurrentItem::InQueue(0)),
                     [Constraint::Max(1), Constraint::Min(0), Constraint::Max(1)].to_vec(),
                     table_proc,
                 ),
-                list: ModifiableList::new(list),
+                list: ModifiableList::new(queue),
                 now_playing: CurrentItem::InQueue(0),
             },
             action,
@@ -86,7 +98,7 @@ impl Something {
             .0
             .clone()
             .into_iter()
-            .map(|mut m| {
+            .map(|(mut m, s)| {
                 if m.id == media {
                     m.starred = if star {
                         Some("Starred".to_string())
@@ -94,7 +106,7 @@ impl Something {
                         None
                     };
                 }
-                m
+                (m, s)
             })
             .collect();
         self.regen_rows();
@@ -107,13 +119,11 @@ impl Something {
         self.table.set_rows(rows);
     }
 
-    fn restart(&mut self) {}
-
     fn skip_to(&mut self, to: CurrentItem) -> Action {
         let action = if let CurrentItem::InQueue(idx) = to {
             match self.list.0.get(idx) {
                 Some(m) => Action::ToQueryWorker(ToQueryWorker::new(
-                    HighLevelQuery::PlayMusicFromURL(m.clone()),
+                    HighLevelQuery::PlayMusicFromURL(m.0.clone()),
                 )),
                 None => Action::ToPlayerWorker(ToPlayerWorker::Stop),
             }
@@ -128,10 +138,10 @@ impl Something {
     fn skip(&mut self, skip_by: i32) -> Action {
         let max_len = self.list.0.len() as i32;
         let index = match &self.now_playing {
-            CurrentItem::BeforeFirst => -1,
-            CurrentItem::AfterLast => max_len,
-            CurrentItem::InQueue(index) => *index as i32,
-        } + skip_by;
+            CurrentItem::BeforeFirst => -1 + skip_by,
+            CurrentItem::AfterLast => max_len + skip_by,
+            CurrentItem::InQueue(index) => *index as i32 + skip_by,
+        };
         let cleaned = if index >= 0 {
             if index >= max_len {
                 CurrentItem::AfterLast
@@ -144,24 +154,27 @@ impl Something {
         self.skip_to(cleaned)
     }
 
-    fn gen_rows_from(items: &Vec<Media>, now_playing: &CurrentItem) -> Vec<Row<'static>> {
+    fn gen_rows_from(
+        items: &Vec<(Media, MediaStatus)>,
+        now_playing: &CurrentItem,
+    ) -> Vec<Row<'static>> {
         let len = items.len();
         if len == 0 {
             return vec![];
         }
         let played = Style::new().fg(Color::DarkGray);
         let not_yet_played = Style::new();
-        fn gen_rows_part(ms: &[Media], style: Style) -> Vec<Row<'static>> {
+        fn gen_rows_part(ms: &[(Media, MediaStatus)], style: Style) -> Vec<Row<'static>> {
             ms.iter()
-                .map(|m| {
+                .map(|(m, _)| {
                     Row::new(vec![" ".to_string(), m.title.clone(), m.get_fav_marker()])
                         .style(style)
                 })
                 .collect()
         }
-        fn gen_playing_item(ms: &Media) -> Row<'static> {
+        fn gen_playing_item((m, _): &(Media, MediaStatus)) -> Row<'static> {
             let current = Style::new().bold();
-            Row::new(vec!["▶".to_string(), ms.title.clone(), ms.get_fav_marker()]).style(current)
+            Row::new(vec!["▶".to_string(), m.title.clone(), m.get_fav_marker()]).style(current)
         }
         match now_playing {
             CurrentItem::BeforeFirst => gen_rows_part(&items, not_yet_played),
@@ -241,7 +254,13 @@ impl FullComp for Something {
                         QueueLocation::Last => max,
                     };
                     let len = items.len();
-                    self.list.add_rows_at(items, idx);
+                    self.list.add_rows_at(
+                        items
+                            .into_iter()
+                            .map(|m| (m, MediaStatus::Repeat(1)))
+                            .collect(),
+                        idx,
+                    );
                     let rows = Self::gen_rows_from(&self.list.0, &self.now_playing);
                     self.table.add_rows_at(rows, idx, len);
 
@@ -307,19 +326,19 @@ impl FullComp for Something {
                     let (selection, action) = self.table.get_selection_reset();
                     let mut items: Vec<Action> = match selection {
                         VisualSelection::Single(idx) => {
-                            let item = self.list.0[idx].clone();
+                            let item = self.list.0[idx].0.clone();
                             vec![(item.id, item.starred == None)]
                         }
                         VisualSelection::TempSelection(start, end) => self.list.0[start..=end]
                             .iter()
-                            .map(|m| (m.id.clone(), m.starred == None))
+                            .map(|(m, _)| (m.id.clone(), m.starred == None))
                             .collect(),
                         VisualSelection::Selection(items) => self
                             .list
                             .0
                             .iter()
                             .zip(items.iter())
-                            .filter_map(|(m, &selected)| {
+                            .filter_map(|((m, _), &selected)| {
                                 if selected {
                                     Some((m.id.clone(), m.starred == None))
                                 } else {

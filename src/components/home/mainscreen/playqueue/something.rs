@@ -125,19 +125,30 @@ impl Something {
     }
 
     fn skip_to(&mut self, to: CurrentItem) -> Action {
-        let action = match &to {
-            CurrentItem::InQueue(idx) => match self.list.0.get(*idx) {
-                Some(m) => Action::ToQueryWorker(ToQueryWorker::new(
-                    HighLevelQuery::PlayMusicFromURL(m.clone()),
-                )),
-                None => Action::ToPlayerWorker(ToPlayerWorker::Stop),
-            },
-            CurrentItem::NotInQueue(_, media) => Action::ToQueryWorker(ToQueryWorker::new(
-                HighLevelQuery::PlayMusicFromURL(media.clone()),
-            )),
-            _ => Action::ToPlayerWorker(ToPlayerWorker::Stop),
+        let action = match to {
+            CurrentItem::NotInQueue(idx, _) => {
+                self.now_playing = CurrentItem::InQueue(idx + 1);
+                match self.list.0.get(idx + 1) {
+                    Some(m) => Action::ToQueryWorker(ToQueryWorker::new(
+                        HighLevelQuery::PlayMusicFromURL(m.clone()),
+                    )),
+                    None => Action::ToPlayerWorker(ToPlayerWorker::Stop),
+                }
+            }
+            CurrentItem::InQueue(idx) => {
+                self.now_playing = CurrentItem::InQueue(idx);
+                match self.list.0.get(idx) {
+                    Some(m) => Action::ToQueryWorker(ToQueryWorker::new(
+                        HighLevelQuery::PlayMusicFromURL(m.clone()),
+                    )),
+                    None => Action::ToPlayerWorker(ToPlayerWorker::Stop),
+                }
+            }
+            _ => {
+                self.now_playing = to;
+                Action::ToPlayerWorker(ToPlayerWorker::Stop)
+            }
         };
-        self.now_playing = to;
         self.regen_rows();
         action
     }
@@ -161,10 +172,8 @@ impl Something {
             CurrentItem::BeforeFirst => clean(skip_by - 1, max_len),
             CurrentItem::AfterLast => clean(max_len + skip_by, max_len),
             CurrentItem::InQueue(index) => clean(*index as i32 + skip_by, max_len),
-            CurrentItem::NotInQueue(index, media) => {
-                if skip_by == 0 {
-                    CurrentItem::NotInQueue(*index, media.clone())
-                } else if skip_by < 0 {
+            CurrentItem::NotInQueue(index, _) => {
+                if skip_by <= 0 {
                     clean(*index as i32 + skip_by + 1, max_len)
                 } else {
                     clean(*index as i32 + skip_by, max_len)
@@ -290,7 +299,8 @@ impl FullComp for Something {
                         QueueLocation::Front => match self.now_playing {
                             CurrentItem::BeforeFirst => 0,
                             CurrentItem::AfterLast => max,
-                            CurrentItem::InQueue(idx) | CurrentItem::NotInQueue(idx, _) => idx,
+                            CurrentItem::InQueue(idx) => idx,
+                            CurrentItem::NotInQueue(idx, _) => idx + 1,
                         },
                         QueueLocation::Next => match self.now_playing {
                             CurrentItem::BeforeFirst => 0,
@@ -301,6 +311,7 @@ impl FullComp for Something {
                     };
                     let len = items.len();
                     self.list.add_rows_at(items, idx);
+
                     let rows = Self::gen_rows_from(&self.list.0, &self.now_playing);
                     self.table.add_rows_at(rows, idx, len);
 

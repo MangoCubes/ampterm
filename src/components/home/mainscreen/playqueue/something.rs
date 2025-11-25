@@ -175,13 +175,18 @@ impl Something {
         self.skip_to(ci)
     }
 
+    /// Generate all the rows that appears in the table.
     fn gen_rows_from(items: &Vec<Media>, now_playing: &CurrentItem) -> Vec<Row<'static>> {
         let len = items.len();
         if len == 0 {
             return vec![];
         }
+        // Theme for items that have already been played
         let played = Style::new().fg(Color::DarkGray);
+        // Theme for items that have not been played yet
         let not_yet_played = Style::new();
+
+        /// Function that generates a number of rows given a subarray and the style to apply
         fn gen_rows_part(ms: &[Media], style: Style) -> Vec<Row<'static>> {
             ms.iter()
                 .map(|m| {
@@ -190,9 +195,13 @@ impl Something {
                 })
                 .collect()
         }
+
+        /// Function that generates a single row with a specified cursor and style
         fn gen_playing_item(ms: &Media, cursor: String, style: Style) -> Row<'static> {
             Row::new(vec![cursor, ms.title.clone(), ms.get_fav_marker()]).style(style)
         }
+
+        /// Function that generates the entire list given the list of media to show in the table
         fn gen_rows_with_cursor(
             idx: usize,
             len: usize,

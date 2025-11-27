@@ -99,9 +99,20 @@
       cfg = config.programs.ampterm;
     in
     lib.mkIf cfg.enable {
+      # Install package
       home.packages = [
         inputs.ampterm.packages."${pkgs.stdenv.hostPlatform.system}".default
       ];
-      xdg.configFile."ampterm/config.json".text = (builtins.toJSON (cfg.settings // cfg.extraOptions));
+      xdg = {
+        # Create config.json
+        configFile."ampterm/config.json".text = (builtins.toJSON (cfg.settings // cfg.extraOptions));
+        # Create XDG entry
+        desktopEntries.ampterm = {
+          name = "Ampterm";
+          genericName = "Terminal Music Player";
+          exec = ''ampterm'';
+          terminal = true;
+        };
+      };
     };
 }

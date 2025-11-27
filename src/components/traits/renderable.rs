@@ -1,16 +1,7 @@
-use color_eyre::Result;
 use ratatui::{layout::Rect, Frame};
 
+/// Renderable trait means that the component can be drawn on the screen. It essentially means that
+/// it is a component.
 pub trait Renderable {
-    /// Render the component on the screen. (REQUIRED)
-    ///
-    /// # Arguments
-    ///
-    /// * `f` - A frame used for rendering.
-    /// * `area` - The area in which the component should be drawn.
-    ///
-    /// # Returns
-    ///
-    /// * `Result<()>` - An Ok result or an error.
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()>;
+    fn draw(&mut self, frame: &mut Frame, area: Rect);
 }

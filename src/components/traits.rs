@@ -1,5 +1,5 @@
 pub mod focusable;
-pub mod fullcomp;
+pub mod handleaction;
+pub mod handlekey;
 pub mod ontick;
 pub mod renderable;
-pub mod simplecomp;

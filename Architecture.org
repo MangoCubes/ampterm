@@ -5,12 +5,30 @@
 * Note
 - This is mostly for me to keep my thoughts in order.
 
+* Key Input Handling
+** Requirements
+- Must allow each components to have a unique set of actions available, some overlapping (arrow keys to move), some not (enter in playlist list does nothing, but it plays a specific music in play queue)
+- Must be able to handle multiple key sequence (Ctrl+w Left => Focus the window on the left)
+- Must be able to handle multiple modifier keys
+** Solution
+- Keys are handled centrally
+- Two key maps are always active: local and global
+- Whenever a different component is focused, the mode change is propagated to the topmost component, which changes the currently active local keymap
+  - Note: The "mode" in this point has little to do with Vim's mode
+  - The thing that corresponds to Vim's mode is implemented with components with multiple keymaps
+- Global keys are always active
+  - Handles things like play, pause, show tasks, etc
+- The keybinds are searched through the local keybinds first, then global keybinds
+- A component may have multiple keymaps, but only one active at a time
+  - Example: Playlist in normal mode and visual mode
+
 * Action Management
 - Actions are how each components communicate with each other.
 - These are the actions users should use in their config:
   - User.<Mode>.<Action>
   - ToPlayerWorker.<Action>
   - Quit
+
 * Component Design
 ** Variant Components
 - A component may have variant subcomponents, depending on its state

@@ -13,13 +13,14 @@ use ratatui::{layout::Rect, Frame};
 
 use crate::{
     action::Action,
-    components::traits::{fullcomp::FullComp, ontick::OnTick, renderable::Renderable},
+    components::traits::{
+        handleaction::HandleAction, handlekey::HandleKey, ontick::OnTick, renderable::Renderable,
+    },
     config::{pathconfig::PathConfig, Config},
     queryworker::{
         highlevelquery::HighLevelQuery,
         query::{setcredential::Credential, ResponseType, ToQueryWorker},
     },
-    tui::Event,
 };
 
 enum Comp {
@@ -119,7 +120,7 @@ impl Home {
 }
 
 impl Renderable for Home {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) {
         match &mut self.component {
             Comp::Loading(c) => c.draw(frame, area),
             Comp::Login(c) => c.draw(frame, area),
@@ -128,21 +129,17 @@ impl Renderable for Home {
     }
 }
 
-impl FullComp for Home {
-    fn handle_events(&mut self, event: Event) -> Result<Option<Action>> {
-        if let Comp::Main(c) = &mut self.component {
-            c.handle_events(event)
-        } else {
-            Ok(None)
-        }
-    }
-    fn handle_key_event(&mut self, key: KeyEvent) -> Result<Option<Action>> {
+impl HandleKey for Home {
+    fn handle_key_event(&mut self, key: KeyEvent) -> Option<Action> {
         match &mut self.component {
             Comp::Login(login) => login.handle_key_event(key),
-            _ => Ok(None),
+            _ => None,
         }
     }
-    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+}
+
+impl HandleAction for Home {
+    fn handle_action(&mut self, action: Action) -> Option<Action> {
         // Child component can change in two cases:
         // 1. Login is successful regardless of the current child component
         // 2. Login with the config credentials fails
@@ -153,7 +150,7 @@ impl FullComp for Home {
                         // Switch child component to MainScreen
                         let (comp, actions) = MainScreen::new(self.config.clone());
                         self.component = Comp::Main(comp);
-                        return Ok(Some(actions));
+                        return Some(actions);
                     }
                     Err(err) => {
                         if let Comp::Loading(l) = &self.component {
@@ -167,16 +164,16 @@ impl FullComp for Home {
                                 self.config.clone(),
                             );
                             self.component = Comp::Login(comp);
-                            return Ok(Some(action));
+                            return Some(action);
                         }
                     }
                 }
             };
         };
         match &mut self.component {
-            Comp::Main(main_screen) => main_screen.update(action),
-            Comp::Loading(_loading) => Ok(None),
-            Comp::Login(login) => login.update(action),
+            Comp::Main(main_screen) => main_screen.handle_action(action),
+            Comp::Loading(_loading) => None,
+            Comp::Login(login) => login.handle_action(action),
         }
     }
 }

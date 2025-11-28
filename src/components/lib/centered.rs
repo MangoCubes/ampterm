@@ -1,4 +1,3 @@
-use color_eyre::Result;
 use ratatui::{
     layout::{Constraint, Flex, Layout, Rect},
     text::Line,
@@ -22,7 +21,7 @@ impl Centered {
 }
 
 impl Renderable for Centered {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) {
         let [horizontal] = Layout::horizontal([Constraint::Percentage(100)])
             .flex(Flex::Center)
             .areas(area);
@@ -36,6 +35,5 @@ impl Renderable for Centered {
                 .wrap(Wrap { trim: false }),
             centered,
         );
-        Ok(())
     }
 }

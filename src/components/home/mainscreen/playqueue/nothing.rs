@@ -1,7 +1,5 @@
 use ratatui::{layout::Rect, Frame};
 
-use color_eyre::Result;
-
 use crate::components::{
     home::mainscreen::playqueue::PlayQueue,
     lib::centered::Centered,
@@ -23,7 +21,7 @@ impl Nothing {
 }
 
 impl Renderable for Nothing {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) {
         let border = PlayQueue::gen_block(self.enabled, "Queue".to_string());
         let inner = border.inner(area);
         frame.render_widget(border, area);

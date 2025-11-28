@@ -1,4 +1,3 @@
-use color_eyre::eyre::Result;
 use ratatui::{
     layout::Constraint,
     prelude::Rect,
@@ -13,7 +12,7 @@ use crate::{
         Action, Selection,
     },
     app::Mode,
-    components::traits::{fullcomp::FullComp, renderable::Renderable},
+    components::traits::{handleaction::HandleAction, renderable::Renderable},
     helper::selection::ModifiableList,
 };
 
@@ -78,22 +77,21 @@ pub struct VisualTable {
 }
 
 impl Renderable for VisualTable {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) {
         frame.render_stateful_widget(&self.table, area, &mut self.tablestate);
-        Ok(())
     }
 }
 
 /// For consistency, do not use [`VisualTable::regen_table`] here
-impl FullComp for VisualTable {
-    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+impl HandleAction for VisualTable {
+    fn handle_action(&mut self, action: Action) -> Option<Action> {
         match action {
             Action::User(ua) => {
                 let cur_pos = match self.tablestate.selected() {
                     Some(i) => i,
                     None => {
                         if self.rows.0.len() == 0 {
-                            return Ok(None);
+                            return None;
                         } else {
                             self.tablestate.select(Some(0));
                             0
@@ -105,53 +103,53 @@ impl FullComp for VisualTable {
                     UserAction::Common(local) => match local {
                         Common::Up => {
                             self.select_previous();
-                            Ok(None)
+                            None
                         }
                         Common::Down => {
                             self.select_next();
-                            Ok(None)
+                            None
                         }
                         Common::Top => {
                             self.select_first();
-                            Ok(None)
+                            None
                         }
                         Common::Bottom => {
                             self.select_last();
-                            Ok(None)
+                            None
                         }
                         Common::ResetState => {
                             self.reset_selections();
-                            Ok(None)
+                            None
                         }
-                        _ => Ok(None),
+                        _ => None,
                     },
 
                     UserAction::Normal(normal) => match normal {
                         Normal::SelectMode => {
                             self.enable_visual(cur_pos, false);
-                            Ok(Some(Action::ChangeMode(Mode::Visual)))
+                            Some(Action::ChangeMode(Mode::Visual))
                         }
                         Normal::DeselectMode => {
                             self.enable_visual(cur_pos, true);
-                            Ok(Some(Action::ChangeMode(Mode::Visual)))
+                            Some(Action::ChangeMode(Mode::Visual))
                         }
-                        _ => Ok(None),
+                        _ => None,
                     },
                     UserAction::Visual(visual) => match visual {
                         Visual::ExitSave => {
                             self.disable_visual();
-                            Ok(Some(Action::ChangeMode(Mode::Normal)))
+                            Some(Action::ChangeMode(Mode::Normal))
                         }
                         Visual::ExitDiscard => {
                             self.disable_visual_discard();
-                            Ok(Some(Action::ChangeMode(Mode::Normal)))
+                            Some(Action::ChangeMode(Mode::Normal))
                         }
                     },
-                    _ => Ok(None),
+                    _ => None,
                 };
                 action
             }
-            _ => Ok(None),
+            _ => None,
         }
     }
 }

@@ -1,4 +1,3 @@
-use color_eyre::Result;
 use ratatui::{
     layout::{Constraint, Flex, Layout, Rect},
     widgets::Clear,
@@ -23,13 +22,13 @@ impl<T: Renderable> Popup<T> {
 }
 
 impl<T: Renderable> Renderable for Popup<T> {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) {
         let vertical = Layout::vertical([Constraint::Percentage(self.width)]).flex(Flex::Center);
         let horizontal =
             Layout::horizontal([Constraint::Percentage(self.height)]).flex(Flex::Center);
         let [area] = vertical.areas(area);
         let [area] = horizontal.areas(area);
         frame.render_widget(Clear, area);
-        self.comp.draw(frame, area)
+        self.comp.draw(frame, area);
     }
 }

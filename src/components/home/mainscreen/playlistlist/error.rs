@@ -1,5 +1,4 @@
 use crate::components::traits::renderable::Renderable;
-use color_eyre::Result;
 use ratatui::{
     layout::{Alignment, Rect},
     text::Line,
@@ -18,7 +17,7 @@ impl Error {
 }
 
 impl Renderable for Error {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) {
         frame.render_widget(
             Paragraph::new(vec![
                 Line::raw("Error!"),
@@ -29,6 +28,5 @@ impl Renderable for Error {
             .alignment(Alignment::Center),
             area,
         );
-        Ok(())
     }
 }

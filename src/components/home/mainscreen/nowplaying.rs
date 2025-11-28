@@ -3,7 +3,6 @@ mod stopped;
 
 use std::time::Duration;
 
-use color_eyre::Result;
 use playing::Playing;
 use ratatui::{
     layout::Rect,
@@ -16,7 +15,9 @@ use stopped::Stopped;
 use crate::{
     action::{Action, FromPlayerWorker, StateType},
     components::traits::{
-        focusable::Focusable, fullcomp::FullComp, renderable::Renderable, simplecomp::SimpleComp,
+        focusable::Focusable,
+        handleaction::{HandleAction, HandleActionSimple},
+        renderable::Renderable,
     },
     config::Config,
 };
@@ -51,8 +52,8 @@ impl NowPlaying {
     }
 }
 
-impl FullComp for NowPlaying {
-    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+impl HandleAction for NowPlaying {
+    fn handle_action(&mut self, action: Action) -> Option<Action> {
         match action {
             Action::FromPlayerWorker(FromPlayerWorker::StateChange(StateType::NowPlaying(
                 now_playing,
@@ -66,25 +67,25 @@ impl FullComp for NowPlaying {
                         self.config.lyrics.enable,
                     );
                     self.comp = Comp::Playing(comp);
-                    Ok(action)
+                    action
                 }
                 None => {
                     self.comp = Comp::Stopped(Stopped::new());
-                    Ok(None)
+                    None
                 }
             },
             _ => {
                 if let Comp::Playing(comp) = &mut self.comp {
-                    comp.update(action);
+                    comp.handle_action_simple(action);
                 }
-                Ok(None)
+                None
             }
         }
     }
 }
 
 impl Renderable for NowPlaying {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) {
         let block = self.gen_block();
         let inner = block.inner(area);
         frame.render_widget(block, area);

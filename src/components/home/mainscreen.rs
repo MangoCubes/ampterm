@@ -15,14 +15,16 @@ use crate::{
     components::{
         home::mainscreen::{bpmtoy::BPMToy, tasks::Tasks},
         traits::{
-            focusable::Focusable, fullcomp::FullComp, ontick::OnTick, renderable::Renderable,
-            simplecomp::SimpleComp,
+            focusable::Focusable,
+            handleaction::{HandleAction, HandleActionSimple},
+            handlekey::HandleKey,
+            ontick::OnTick,
+            renderable::Renderable,
         },
     },
     config::Config,
     queryworker::{highlevelquery::HighLevelQuery, query::ToQueryWorker},
 };
-use color_eyre::Result;
 use crossterm::event::{KeyEvent, KeyModifiers};
 use nowplaying::NowPlaying;
 use playlistlist::PlaylistList;
@@ -70,16 +72,16 @@ impl OnTick for MainScreen {
 }
 
 impl MainScreen {
-    fn propagate_to_focused_component(&mut self, action: Action) -> Result<Option<Action>> {
+    fn propagate_to_focused_component(&mut self, action: Action) -> Option<Action> {
         if self.show_tasks {
             // self.tasks.update(action)
-            Ok(None)
+            None
         } else {
             match self.state {
-                CurrentlySelected::PlaylistList => self.pl_list.update(action),
-                CurrentlySelected::Playlist => self.pl_queue.update(action),
-                CurrentlySelected::PlayQueue => self.playqueue.update(action),
-                CurrentlySelected::NowPlaying(_) => self.now_playing.update(action),
+                CurrentlySelected::PlaylistList => self.pl_list.handle_action(action),
+                CurrentlySelected::Playlist => self.pl_queue.handle_action(action),
+                CurrentlySelected::PlayQueue => self.playqueue.handle_action(action),
+                CurrentlySelected::NowPlaying(_) => self.now_playing.handle_action(action),
             }
         }
     }
@@ -117,7 +119,7 @@ impl MainScreen {
 }
 
 impl Renderable for MainScreen {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) {
         let vertical = Layout::vertical([
             Constraint::Length(1),
             Constraint::Min(0),
@@ -140,14 +142,14 @@ impl Renderable for MainScreen {
         let listareas = horizontal.split(areas[1]);
         let text_areas = text_layout.split(areas[3]);
         let bottom_areas = bottom_layout.split(areas[2]);
-        self.pl_list.draw(frame, listareas[0])?;
-        self.pl_queue.draw(frame, listareas[1])?;
-        self.playqueue.draw(frame, listareas[2])?;
-        self.now_playing.draw(frame, bottom_areas[0])?;
-        self.bpmtoy.draw(frame, bottom_areas[1])?;
+        self.pl_list.draw(frame, listareas[0]);
+        self.pl_queue.draw(frame, listareas[1]);
+        self.playqueue.draw(frame, listareas[2]);
+        self.now_playing.draw(frame, bottom_areas[0]);
+        self.bpmtoy.draw(frame, bottom_areas[1]);
 
         if self.show_tasks {
-            self.tasks.draw(frame, area)?;
+            self.tasks.draw(frame, area);
         }
 
         frame.render_widget(
@@ -173,12 +175,11 @@ impl Renderable for MainScreen {
             Paragraph::new(self.key_stack.join(" ")).wrap(Wrap { trim: false }),
             text_areas[2],
         );
-        Ok(())
     }
 }
 
-impl FullComp for MainScreen {
-    fn handle_key_event(&mut self, key: KeyEvent) -> Result<Option<Action>> {
+impl HandleKey for MainScreen {
+    fn handle_key_event(&mut self, key: KeyEvent) -> Option<Action> {
         self.key_stack.push(format!(
             "{}{}",
             key.code.to_string(),
@@ -188,10 +189,12 @@ impl FullComp for MainScreen {
                 "+"
             },
         ));
-        Ok(None)
+        None
     }
+}
 
-    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+impl HandleAction for MainScreen {
+    fn handle_action(&mut self, action: Action) -> Option<Action> {
         if matches!(action, Action::User(_)) {
             self.key_stack.drain(..);
         };
@@ -199,24 +202,24 @@ impl FullComp for MainScreen {
             Action::FromPlayerWorker(pw) => match pw {
                 FromPlayerWorker::StateChange(_) => {
                     let results: Vec<Action> = [
-                        self.now_playing.update(action.clone())?,
-                        self.playqueue.update(action)?,
+                        self.now_playing.handle_action(action.clone()),
+                        self.playqueue.handle_action(action),
                     ]
                     .into_iter()
                     .filter_map(|a| a)
                     .collect();
 
-                    Ok(Some(Action::Multiple(results)))
+                    Some(Action::Multiple(results))
                 }
                 FromPlayerWorker::Error(msg) | FromPlayerWorker::Message(msg) => {
                     self.message = msg.clone();
-                    Ok(None)
+                    None
                 }
-                FromPlayerWorker::Finished => self.playqueue.update(action),
+                FromPlayerWorker::Finished => self.playqueue.handle_action(action),
             },
             Action::ChangeMode(m) => {
                 self.current_mode = *m;
-                Ok(None)
+                None
             }
             Action::User(u) => match u {
                 UserAction::Normal(normal) => match normal {
@@ -238,7 +241,7 @@ impl FullComp for MainScreen {
                             },
                         };
                         self.update_focus();
-                        Ok(None)
+                        None
                     }
                     Normal::WindowLeft => {
                         match &self.state {
@@ -254,7 +257,7 @@ impl FullComp for MainScreen {
                             CurrentlySelected::NowPlaying(_) => {}
                         };
                         self.update_focus();
-                        Ok(None)
+                        None
                     }
                     Normal::WindowRight => {
                         match &self.state {
@@ -270,44 +273,44 @@ impl FullComp for MainScreen {
                             CurrentlySelected::NowPlaying(_) => {}
                         };
                         self.update_focus();
-                        Ok(None)
+                        None
                     }
                     _ => self.propagate_to_focused_component(action),
                 },
                 UserAction::Global(global) => match global {
                     Global::TapToBPM => {
-                        self.bpmtoy.update(action);
-                        Ok(None)
+                        self.bpmtoy.handle_action_simple(action);
+                        None
                     }
                     Global::FocusPlaylistList => {
                         self.state = CurrentlySelected::PlaylistList;
                         self.update_focus();
-                        Ok(None)
+                        None
                     }
                     Global::FocusPlaylistQueue => {
                         self.state = CurrentlySelected::Playlist;
                         self.update_focus();
-                        Ok(None)
+                        None
                     }
                     Global::FocusPlayQueue => {
                         self.state = CurrentlySelected::PlayQueue;
                         self.update_focus();
-                        Ok(None)
+                        None
                     }
-                    Global::EndKeySeq => Ok(None),
+                    Global::EndKeySeq => None,
                     Global::OpenTasks => {
                         self.show_tasks = true;
-                        Ok(None)
+                        None
                     }
                     Global::CloseTasks => {
                         self.show_tasks = false;
-                        Ok(None)
+                        None
                     }
                     Global::ToggleTasks => {
                         self.show_tasks = !self.show_tasks;
-                        Ok(None)
+                        None
                     }
-                    Global::Skip | Global::Previous => self.playqueue.update(action),
+                    Global::Skip | Global::Previous => self.playqueue.handle_action(action),
                 },
                 _ => self.propagate_to_focused_component(action),
             },
@@ -317,18 +320,18 @@ impl FullComp for MainScreen {
 
                 for dest in &req.dest {
                     let res = match dest {
-                        CompID::PlaylistList => self.pl_list.update(action.clone()),
-                        CompID::PlaylistQueue => self.pl_queue.update(action.clone()),
-                        CompID::PlayQueue => self.playqueue.update(action.clone()),
-                        CompID::NowPlaying => self.now_playing.update(action.clone()),
-                        CompID::None => Ok(None),
+                        CompID::PlaylistList => self.pl_list.handle_action(action.clone()),
+                        CompID::PlaylistQueue => self.pl_queue.handle_action(action.clone()),
+                        CompID::PlayQueue => self.playqueue.handle_action(action.clone()),
+                        CompID::NowPlaying => self.now_playing.handle_action(action.clone()),
+                        CompID::None => None,
                         _ => unreachable!("Action propagated to nonexistent component: {:?}", dest),
-                    }?;
+                    };
                     if let Some(a) = res {
                         results.push(a);
                     }
                 }
-                Ok(Some(Action::Multiple(results)))
+                Some(Action::Multiple(results))
             }
             Action::FromQueryWorker(res) => {
                 let _ = self.tasks.unregister_task(res);
@@ -336,33 +339,33 @@ impl FullComp for MainScreen {
 
                 for dest in &res.dest {
                     let res = match dest {
-                        CompID::PlaylistList => self.pl_list.update(action.clone()),
-                        CompID::PlaylistQueue => self.pl_queue.update(action.clone()),
-                        CompID::PlayQueue => self.playqueue.update(action.clone()),
-                        CompID::NowPlaying => self.now_playing.update(action.clone()),
-                        CompID::None => Ok(None),
+                        CompID::PlaylistList => self.pl_list.handle_action(action.clone()),
+                        CompID::PlaylistQueue => self.pl_queue.handle_action(action.clone()),
+                        CompID::PlayQueue => self.playqueue.handle_action(action.clone()),
+                        CompID::NowPlaying => self.now_playing.handle_action(action.clone()),
+                        CompID::None => None,
                         _ => unreachable!("Action propagated to nonexistent component: {:?}", dest),
-                    }?;
+                    };
                     if let Some(a) = res {
                         results.push(a);
                     }
                 }
-                Ok(Some(Action::Multiple(results)))
+                Some(Action::Multiple(results))
             }
             _ => {
-                self.bpmtoy.update(action.clone());
+                self.bpmtoy.handle_action_simple(action.clone());
                 let results: Vec<Action> = [
-                    self.pl_list.update(action.clone())?,
-                    self.pl_queue.update(action.clone())?,
-                    self.now_playing.update(action.clone())?,
-                    self.playqueue.update(action)?,
+                    self.pl_list.handle_action(action.clone()),
+                    self.pl_queue.handle_action(action.clone()),
+                    self.now_playing.handle_action(action.clone()),
+                    self.playqueue.handle_action(action),
                     // self.tasks.update(action.clone())?,
                 ]
                 .into_iter()
                 .filter_map(|a| a)
                 .collect();
 
-                Ok(Some(Action::Multiple(results)))
+                Some(Action::Multiple(results))
             }
         }
     }

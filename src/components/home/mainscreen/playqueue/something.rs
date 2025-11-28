@@ -1,4 +1,3 @@
-use color_eyre::Result;
 use ratatui::{
     layout::{Constraint, Rect},
     style::{Color, Style, Stylize},
@@ -14,7 +13,7 @@ use crate::{
     components::{
         home::mainscreen::playqueue::PlayQueue,
         lib::visualtable::{VisualSelection, VisualTable},
-        traits::{focusable::Focusable, fullcomp::FullComp, renderable::Renderable},
+        traits::{focusable::Focusable, handleaction::HandleAction, renderable::Renderable},
     },
     config::Config,
     helper::selection::ModifiableList,
@@ -267,7 +266,7 @@ impl Something {
 }
 
 impl Renderable for Something {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) {
         let title = if let Some(pos) = self.table.get_current() {
             let len = self.list.0.len();
             format!(
@@ -289,8 +288,8 @@ impl Renderable for Something {
     }
 }
 
-impl FullComp for Something {
-    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+impl HandleAction for Something {
+    fn handle_action(&mut self, action: Action) -> Option<Action> {
         match action {
             Action::Queue(a) => match a {
                 QueueAction::Add(items, at) => {
@@ -316,9 +315,9 @@ impl FullComp for Something {
                     self.table.add_rows_at(rows, idx, len);
 
                     if matches!(at, QueueLocation::Front) {
-                        Ok(Some(self.skip_to(self.now_playing.clone())))
+                        Some(self.skip_to(self.now_playing.clone()))
                     } else {
-                        Ok(None)
+                        None
                     }
                 }
             },
@@ -327,17 +326,17 @@ impl FullComp for Something {
                 ticket: _,
                 query,
             }) => match query {
-                HighLevelQuery::SetStar { media, star } => Ok(self.set_star(media, star)),
-                _ => Ok(None),
+                HighLevelQuery::SetStar { media, star } => self.set_star(media, star),
+                _ => None,
             },
             Action::FromPlayerWorker(a) => match a {
-                FromPlayerWorker::Finished => Ok(Some(self.skip(1))),
-                _ => Ok(None),
+                FromPlayerWorker::Finished => Some(self.skip(1)),
+                _ => None,
             },
             Action::User(UserAction::Global(a)) => match a {
-                Global::Skip => Ok(Some(self.skip(1))),
-                Global::Previous => Ok(Some(self.skip(-1))),
-                _ => Ok(None),
+                Global::Skip => Some(self.skip(1)),
+                Global::Previous => Some(self.skip(-1)),
+                _ => None,
             },
             Action::User(UserAction::Common(a)) => match a {
                 Common::Delete => {
@@ -347,7 +346,7 @@ impl FullComp for Something {
                         VisualSelection::TempSelection(start, end) => Selection::Range(start, end),
                         VisualSelection::Selection(items) => Selection::Multiple(items),
                         VisualSelection::None { unselect: _ } => {
-                            return Ok(action);
+                            return action;
                         }
                     };
 
@@ -378,7 +377,7 @@ impl FullComp for Something {
                     self.list.delete(&selection);
                     self.regen_rows();
 
-                    Ok(action)
+                    action
                 }
                 Common::ToggleStar => {
                     let (selection, action) = self.table.get_selection_reset();
@@ -419,15 +418,17 @@ impl FullComp for Something {
                         items.push(a);
                     }
 
-                    Ok(Some(Action::Multiple(items)))
+                    Some(Action::Multiple(items))
                 }
                 Common::Confirm => match self.table.get_current() {
-                    Some(idx) => Ok(Some(self.skip_to(CurrentItem::InQueue(idx)))),
-                    None => Ok(None),
+                    Some(idx) => Some(self.skip_to(CurrentItem::InQueue(idx))),
+                    None => None,
                 },
-                _ => self.table.update(Action::User(UserAction::Common(a))),
+                _ => self
+                    .table
+                    .handle_action(Action::User(UserAction::Common(a))),
             },
-            _ => self.table.update(action),
+            _ => self.table.handle_action(action),
         }
     }
 }

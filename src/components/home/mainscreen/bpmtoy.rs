@@ -14,11 +14,10 @@ use crate::{
     },
     components::{
         lib::centered::Centered,
-        traits::{ontick::OnTick, renderable::Renderable, simplecomp::SimpleComp},
+        traits::{handleaction::HandleActionSimple, ontick::OnTick, renderable::Renderable},
     },
     config::Config,
 };
-use color_eyre::Result;
 
 enum State {
     Init(Centered),
@@ -82,7 +81,7 @@ impl BPMToy {
     }
 }
 impl Renderable for BPMToy {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) {
         let block = Block::bordered().border_style(Style::new().white());
         let inner = block.inner(area);
         frame.render_widget(block, area);
@@ -99,8 +98,8 @@ impl Renderable for BPMToy {
     }
 }
 
-impl SimpleComp for BPMToy {
-    fn update(&mut self, action: Action) {
+impl HandleActionSimple for BPMToy {
+    fn handle_action_simple(&mut self, action: Action) {
         if let Action::User(UserAction::Global(Global::TapToBPM)) = action {
             self.state = match &self.state {
                 State::Init(_centered) => State::NeedToTapMore {

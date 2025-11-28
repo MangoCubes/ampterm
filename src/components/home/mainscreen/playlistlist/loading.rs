@@ -1,5 +1,4 @@
 use crate::components::traits::renderable::Renderable;
-use color_eyre::Result;
 use ratatui::{
     layout::{Alignment, Rect},
     widgets::{Block, Padding, Paragraph, Wrap},
@@ -15,7 +14,7 @@ impl Loading {
 }
 
 impl Renderable for Loading {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) {
         frame.render_widget(
             Paragraph::new("Loading...")
                 .block(Block::default().padding(Padding::new(0, 0, area.height / 2, 0)))
@@ -23,6 +22,5 @@ impl Renderable for Loading {
                 .wrap(Wrap { trim: false }),
             area,
         );
-        Ok(())
     }
 }

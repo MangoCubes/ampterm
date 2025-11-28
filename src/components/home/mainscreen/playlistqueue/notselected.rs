@@ -1,4 +1,3 @@
-use color_eyre::Result;
 use ratatui::{
     layout::{Alignment, Rect},
     widgets::{Padding, Paragraph, Wrap},
@@ -21,7 +20,7 @@ impl NotSelected {
 }
 
 impl Renderable for NotSelected {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) {
         frame.render_widget(
             Paragraph::new("Choose a playlist!")
                 .block(
@@ -32,7 +31,6 @@ impl Renderable for NotSelected {
                 .wrap(Wrap { trim: false }),
             area,
         );
-        Ok(())
     }
 }
 

@@ -6,12 +6,11 @@ use crate::{
     action::Action,
     components::{
         home::mainscreen::playlistlist::{error::Error, loaded::Loaded, loading::Loading},
-        traits::{focusable::Focusable, fullcomp::FullComp, renderable::Renderable},
+        traits::{focusable::Focusable, handleaction::HandleAction, renderable::Renderable},
     },
     config::Config,
     queryworker::query::{getplaylists::GetPlaylistsResponse, ResponseType},
 };
-use color_eyre::Result;
 use ratatui::{
     layout::Rect,
     style::{Modifier, Style, Stylize},
@@ -59,7 +58,7 @@ impl PlaylistList {
 }
 
 impl Renderable for PlaylistList {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) {
         let block = self.gen_block();
         let inner = block.inner(area);
         frame.render_widget(block, area);
@@ -71,8 +70,8 @@ impl Renderable for PlaylistList {
     }
 }
 
-impl FullComp for PlaylistList {
-    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+impl HandleAction for PlaylistList {
+    fn handle_action(&mut self, action: Action) -> Option<Action> {
         match action {
             Action::FromQueryWorker(qw) => {
                 if let ResponseType::GetPlaylists(res) = qw.res {
@@ -88,18 +87,18 @@ impl FullComp for PlaylistList {
                             self.comp = Comp::Error(Error::new(error));
                         }
                     }
-                    Ok(None)
+                    None
                 } else {
                     if let Comp::Loaded(comp) = &mut self.comp {
-                        comp.update(Action::FromQueryWorker(qw))
+                        comp.handle_action(Action::FromQueryWorker(qw))
                     } else {
-                        Ok(None)
+                        None
                     }
                 }
             }
             _ => match &mut self.comp {
-                Comp::Loaded(comp) => comp.update(action),
-                _ => Ok(None),
+                Comp::Loaded(comp) => comp.handle_action(action),
+                _ => None,
             },
         }
     }

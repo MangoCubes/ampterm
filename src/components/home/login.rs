@@ -1,4 +1,3 @@
-use color_eyre::Result;
 use crossterm::event::KeyCode;
 use ratatui::{
     layout::{Constraint, Flex, Layout, Rect},
@@ -13,7 +12,10 @@ use crate::{
     action::Action,
     components::{
         lib::checkbox::Checkbox,
-        traits::{focusable::Focusable, renderable::Renderable},
+        traits::{
+            focusable::Focusable, handleaction::HandleAction, handlekey::HandleKey,
+            renderable::Renderable,
+        },
     },
     config::Config,
     queryworker::{
@@ -22,7 +24,6 @@ use crate::{
     },
 };
 
-use super::FullComp;
 #[derive(Default, PartialEq)]
 enum Status {
     #[default]
@@ -91,9 +92,9 @@ impl Login {
         );
         self.legacy.set_enabled(self.mode == Mode::LegacyToggle);
     }
-    fn navigate(&mut self, up: bool) -> Result<Option<Action>> {
+    fn navigate(&mut self, up: bool) {
         if matches!(self.status, Status::Pending(_)) {
-            return Ok(None);
+            return;
         }
         self.mode = if up {
             match self.mode {
@@ -111,11 +112,10 @@ impl Login {
             }
         };
         self.update_style();
-        Ok(None)
     }
     // Submit current form to the server
     // This function never fails and handles errors from attempt_login
-    fn submit(&mut self) -> Result<Option<Action>> {
+    fn submit(&mut self) -> Option<Action> {
         let url = self.url.lines()[0].clone();
         let username = self.username.lines()[0].clone();
         let password = self.password.lines()[0].clone();
@@ -129,7 +129,7 @@ impl Login {
         self.status = Status::Pending(q.ticket);
         self.status_msg = Some(vec!["Logging in...".to_string()]);
         self.update_style();
-        Ok(Some(Action::ToQueryWorker(q)))
+        Some(Action::ToQueryWorker(q))
     }
     pub fn new(msg: Option<Vec<String>>, config: Config) -> (Self, Action) {
         let mut res = Self {
@@ -150,7 +150,7 @@ impl Login {
 }
 
 impl Renderable for Login {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) {
         let [horizontal] = Layout::horizontal([Constraint::Percentage(50)])
             .flex(Flex::Center)
             .areas(area);
@@ -178,7 +178,7 @@ impl Renderable for Login {
             .centered(),
             areas[4],
         );
-        self.legacy.draw(frame, areas[3])?;
+        self.legacy.draw(frame, areas[3]);
         if let Some(msg) = &self.status_msg {
             let text: Vec<Line> = msg.iter().map(|l| Line::raw(l)).collect();
             frame.render_widget(
@@ -186,12 +186,11 @@ impl Renderable for Login {
                 areas[5],
             );
         }
-        Ok(())
     }
 }
 
-impl FullComp for Login {
-    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+impl HandleAction for Login {
+    fn handle_action(&mut self, action: Action) -> Option<Action> {
         if let Action::FromQueryWorker(res) = action {
             if let Status::Pending(ticket) = self.status {
                 if ticket == res.ticket {
@@ -200,7 +199,7 @@ impl FullComp for Login {
                             Ok(()) => {
                                 let q = ToQueryWorker::new(HighLevelQuery::CheckCredentialValidity);
                                 self.status = Status::Pending(q.ticket);
-                                return Ok(Some(Action::ToQueryWorker(q)));
+                                return Some(Action::ToQueryWorker(q));
                             }
                             Err(msg) => {
                                 self.status_msg =
@@ -217,32 +216,41 @@ impl FullComp for Login {
                 }
             }
         }
-        Ok(None)
+        None
     }
-    fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Result<Option<Action>> {
+}
+
+impl HandleKey for Login {
+    fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Option<Action> {
         match key.code {
-            KeyCode::Up | KeyCode::BackTab | KeyCode::Left => self.navigate(true),
-            KeyCode::Down | KeyCode::Tab | KeyCode::Right => self.navigate(false),
-            KeyCode::Esc => Ok(Some(Action::Quit)),
+            KeyCode::Up | KeyCode::BackTab | KeyCode::Left => {
+                self.navigate(true);
+                None
+            }
+            KeyCode::Down | KeyCode::Tab | KeyCode::Right => {
+                self.navigate(false);
+                None
+            }
+            KeyCode::Esc => Some(Action::Quit),
             KeyCode::Enter => {
                 if !matches!(self.status, Status::Pending(_)) {
                     self.submit()
                 } else {
-                    Ok(None)
+                    None
                 }
             }
             _ => match self.mode {
                 Mode::Url => {
                     self.url.input(key);
-                    Ok(None)
+                    None
                 }
                 Mode::Username => {
                     self.username.input(key);
-                    Ok(None)
+                    None
                 }
                 Mode::Password => {
                     self.password.input(key);
-                    Ok(None)
+                    None
                 }
                 Mode::LegacyToggle => self.legacy.handle_key_event(key),
             },

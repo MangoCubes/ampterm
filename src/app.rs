@@ -10,7 +10,10 @@ use crate::{
     action::Action,
     components::{
         home::Home,
-        traits::{fullcomp::FullComp, ontick::OnTick, renderable::Renderable},
+        traits::{
+            handleaction::HandleAction, handlekey::HandleKey, ontick::OnTick,
+            renderable::Renderable,
+        },
     },
     config::Config,
     playerworker::player::ToPlayerWorker,
@@ -123,15 +126,12 @@ impl App {
             Event::Key(key) => self.handle_key_event(key)?,
             _ => {}
         }
-        if let Some(action) = self.component.handle_events(event.clone())? {
-            action_tx.send(action)?;
-        }
         Ok(())
     }
 
     fn handle_key_event(&mut self, key: KeyEvent) -> Result<()> {
         if self.mode == Mode::Insert {
-            if let Some(action) = self.component.handle_key_event(key)? {
+            if let Some(action) = self.component.handle_key_event(key) {
                 self.action_tx.send(action)?;
             }
             Ok(())
@@ -157,7 +157,7 @@ impl App {
                 self.action_tx.send(Action::EndKeySeq)?;
             } else {
                 // No actions found, pass the pressed key to the child
-                self.component.handle_key_event(key)?;
+                self.component.handle_key_event(key);
             }
             Ok(())
         }
@@ -193,7 +193,7 @@ impl App {
                 }
                 _ => {}
             };
-            if let Some(ret) = self.component.update(action)? {
+            if let Some(ret) = self.component.handle_action(action) {
                 debug!("Got {ret:?} as a response");
                 self.action_tx.send(ret)?
             };
@@ -208,11 +208,7 @@ impl App {
     }
 
     fn render(&mut self, tui: &mut Tui) -> Result<()> {
-        tui.draw(|frame| {
-            if let Err(err) = self.component.draw(frame, frame.area()) {
-                panic!("Failed to draw: {:?}", err);
-            }
-        })?;
+        tui.draw(|frame| self.component.draw(frame, frame.area()))?;
         Ok(())
     }
 }

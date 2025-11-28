@@ -7,7 +7,7 @@ use crate::{
     components::{
         home::mainscreen::nowplaying::playing::{synced::Synced, unsynced::Unsynced},
         lib::centered::Centered,
-        traits::{renderable::Renderable, simplecomp::SimpleComp},
+        traits::{handleaction::HandleActionSimple, renderable::Renderable},
     },
     helper::strings::trim_long_str,
     lyricsclient::getlyrics::GetLyricsParams,
@@ -17,7 +17,6 @@ use crate::{
         query::{ResponseType, ToQueryWorker},
     },
 };
-use color_eyre::Result;
 use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::Stylize,
@@ -87,8 +86,8 @@ impl Playing {
     }
 }
 
-impl SimpleComp for Playing {
-    fn update(&mut self, action: Action) {
+impl HandleActionSimple for Playing {
+    fn handle_action_simple(&mut self, action: Action) {
         if let Action::FromQueryWorker(res) = action {
             if let ResponseType::GetLyrics(lyrics) = res.res {
                 self.lyrics = match lyrics {
@@ -125,21 +124,21 @@ impl SimpleComp for Playing {
                 _ => {}
             };
             if let LyricsSpace::Found(l) = &mut self.lyrics {
-                l.update(action.clone());
+                l.handle_action_simple(action.clone());
             }
         } else if matches!(action, Action::User(_)) {
             match &mut self.lyrics {
                 LyricsSpace::Plain(l) => {
-                    l.update(action);
+                    l.handle_action_simple(action);
                 }
                 _ => {}
             }
-        }
+        };
     }
 }
 
 impl Renderable for Playing {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) {
         let vertical = Layout::vertical([
             Constraint::Length(1),
             Constraint::Max(1),
@@ -169,13 +168,13 @@ impl Renderable for Playing {
             )),
             areas[1],
         );
-        let res = match &mut self.lyrics {
+        match &mut self.lyrics {
             LyricsSpace::Found(lyrics) => lyrics.draw(frame, areas[3]),
             LyricsSpace::Plain(lyrics) => lyrics.draw(frame, areas[3]),
             LyricsSpace::Fetching(centered)
             | LyricsSpace::NotFound(centered)
             | LyricsSpace::Error(centered) => centered.draw(frame, areas[3]),
-            LyricsSpace::Disabled => Ok(()),
+            LyricsSpace::Disabled => (),
         };
         if let Some(len) = self.music.duration {
             if len == 0 {
@@ -205,6 +204,5 @@ impl Renderable for Playing {
             );
             frame.render_widget(Line::raw(label), areas[5]);
         }
-        res
     }
 }

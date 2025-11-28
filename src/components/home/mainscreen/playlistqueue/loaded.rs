@@ -6,10 +6,10 @@ use crate::{
     components::{
         home::mainscreen::playlistqueue::PlaylistQueue,
         lib::visualtable::{VisualSelection, VisualTable},
-        traits::{focusable::Focusable, fullcomp::FullComp, renderable::Renderable},
+        traits::{focusable::Focusable, handleaction::HandleAction, renderable::Renderable},
     },
     osclient::response::getplaylist::{FullPlaylist, Media},
-    playerworker::player::{QueueLocation, ToPlayerWorker},
+    playerworker::player::QueueLocation,
     queryworker::{
         highlevelquery::HighLevelQuery,
         query::{
@@ -18,7 +18,6 @@ use crate::{
         },
     },
 };
-use color_eyre::Result;
 use ratatui::{
     layout::{Constraint, Rect},
     style::{Style, Stylize},
@@ -140,7 +139,7 @@ impl Loaded {
 }
 
 impl Renderable for Loaded {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) {
         let title = if let Some(pos) = self.table.get_current() {
             let len = self.playlist.entry.len();
             format!(
@@ -163,8 +162,8 @@ impl Renderable for Loaded {
     }
 }
 
-impl FullComp for Loaded {
-    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+impl HandleAction for Loaded {
+    fn handle_action(&mut self, action: Action) -> Option<Action> {
         if let Action::User(ua) = action {
             match ua {
                 UserAction::Common(a) => match a {
@@ -208,24 +207,26 @@ impl FullComp for Loaded {
                             items.push(a);
                         }
 
-                        Ok(Some(Action::Multiple(items)))
+                        Some(Action::Multiple(items))
                     }
-                    Common::Add(pos) => Ok(self.add_selection_to_queue(pos)),
-                    Common::Refresh => Ok(Some(Action::ToQueryWorker(ToQueryWorker::new(
+                    Common::Add(pos) => self.add_selection_to_queue(pos),
+                    Common::Refresh => Some(Action::ToQueryWorker(ToQueryWorker::new(
                         HighLevelQuery::SelectPlaylist(GetPlaylistParams {
                             name: self.name.to_string(),
                             id: self.playlist.id.clone(),
                         }),
-                    )))),
-                    _ => self.table.update(Action::User(UserAction::Common(a))),
+                    ))),
+                    _ => self
+                        .table
+                        .handle_action(Action::User(UserAction::Common(a))),
                 },
                 UserAction::Visual(_) | UserAction::Normal(_) => {
-                    self.table.update(Action::User(ua))
+                    self.table.handle_action(Action::User(ua))
                 }
-                _ => Ok(None),
+                _ => None,
             }
         } else {
-            self.table.update(action)
+            self.table.handle_action(action)
         }
     }
 }

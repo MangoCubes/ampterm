@@ -3,7 +3,6 @@ use crate::components::{
     lib::centered::Centered,
     traits::{focusable::Focusable, renderable::Renderable},
 };
-use color_eyre::Result;
 use ratatui::{layout::Rect, Frame};
 
 pub struct Empty {
@@ -23,7 +22,7 @@ impl Empty {
 }
 
 impl Renderable for Empty {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) {
         let border = PlaylistQueue::gen_block(self.enabled, self.name.clone());
         let inner = border.inner(area);
         frame.render_widget(border, area);

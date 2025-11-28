@@ -1,8 +1,4 @@
-use crate::components::{
-    lib::centered::Centered,
-    traits::{fullcomp::FullComp, renderable::Renderable},
-};
-use color_eyre::Result;
+use crate::components::{lib::centered::Centered, traits::renderable::Renderable};
 use ratatui::{layout::Rect, Frame};
 
 pub struct Stopped {
@@ -18,7 +14,7 @@ impl Stopped {
 }
 
 impl Renderable for Stopped {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        self.comp.draw(frame, area)
+    fn draw(&mut self, frame: &mut Frame, area: Rect) {
+        self.comp.draw(frame, area);
     }
 }

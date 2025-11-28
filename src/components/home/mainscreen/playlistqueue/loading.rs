@@ -1,4 +1,3 @@
-use color_eyre::Result;
 use ratatui::{layout::Rect, Frame};
 
 use crate::components::{
@@ -24,7 +23,7 @@ impl Loading {
 }
 
 impl Renderable for Loading {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) {
         let border = PlaylistQueue::gen_block(self.enabled, self.name.clone());
         let inner = border.inner(area);
         frame.render_widget(border, area);

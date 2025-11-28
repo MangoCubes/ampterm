@@ -1,4 +1,3 @@
-use color_eyre::eyre::Result;
 use ratatui::{
     prelude::Rect,
     style::{Style, Stylize},
@@ -11,7 +10,7 @@ use crate::{
         useraction::{Common, UserAction},
         Action,
     },
-    components::traits::{renderable::Renderable, simplecomp::SimpleComp},
+    components::traits::{handleaction::HandleActionSimple, renderable::Renderable},
 };
 
 pub struct Unsynced {
@@ -40,14 +39,13 @@ impl Unsynced {
 }
 
 impl Renderable for Unsynced {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) {
         frame.render_stateful_widget(&self.comp, area, &mut self.state);
-        Ok(())
     }
 }
 
-impl SimpleComp for Unsynced {
-    fn update(&mut self, action: Action) {
+impl HandleActionSimple for Unsynced {
+    fn handle_action_simple(&mut self, action: Action) {
         match action {
             Action::User(UserAction::Common(local)) => match local {
                 Common::Up => {

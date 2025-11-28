@@ -10,11 +10,10 @@ use crate::{
     action::{Action, QueueAction},
     components::{
         home::mainscreen::playqueue::{nothing::Nothing, something::Something},
-        traits::{focusable::Focusable, fullcomp::FullComp, renderable::Renderable},
+        traits::{focusable::Focusable, handleaction::HandleAction, renderable::Renderable},
     },
     config::Config,
 };
-use color_eyre::Result;
 
 mod nothing;
 mod something;
@@ -58,7 +57,7 @@ impl PlayQueue {
 }
 
 impl Renderable for PlayQueue {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) {
         match &mut self.comp {
             Comp::Nothing(nothing) => nothing.draw(frame, area),
             Comp::Something(something) => something.draw(frame, area),
@@ -66,18 +65,18 @@ impl Renderable for PlayQueue {
     }
 }
 
-impl FullComp for PlayQueue {
-    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+impl HandleAction for PlayQueue {
+    fn handle_action(&mut self, action: Action) -> Option<Action> {
         if let Comp::Something(s) = &mut self.comp {
-            s.update(action)
+            s.handle_action(action)
         } else {
             match action {
                 Action::Queue(QueueAction::Add(items, _)) => {
                     let (comp, action) = Something::new(self.enabled, items, self.config.clone());
                     self.comp = Comp::Something(comp);
-                    Ok(Some(action))
+                    Some(action)
                 }
-                _ => Ok(None),
+                _ => None,
             }
         }
     }

@@ -6,3 +6,7 @@ use crate::{action::Action, components::traits::renderable::Renderable};
 pub trait HandleAction: Renderable {
     fn handle_action(&mut self, action: Action) -> Option<Action>;
 }
+
+pub trait HandleActionSimple: Renderable {
+    fn handle_action_simple(&mut self, action: Action);
+}

@@ -1,4 +1,3 @@
-use color_eyre::Result;
 use ratatui::{layout::Rect, Frame};
 
 use crate::components::{lib::centered::Centered, traits::renderable::Renderable};
@@ -18,7 +17,7 @@ impl Loading {
     }
 }
 impl Renderable for Loading {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) {
         self.comp.draw(frame, area)
     }
 }

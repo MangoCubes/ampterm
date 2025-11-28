@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use color_eyre::eyre::Result;
 use ratatui::{
     layout::{Constraint, Flex, Layout},
     prelude::Rect,
@@ -86,7 +85,7 @@ impl Tasks {
 }
 
 impl Renderable for Tasks {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) {
         let vertical = Layout::vertical([Constraint::Percentage(80)]).flex(Flex::Center);
         let horizontal = Layout::horizontal([Constraint::Percentage(80)]).flex(Flex::Center);
         let [area] = vertical.areas(area);
@@ -94,6 +93,5 @@ impl Renderable for Tasks {
         frame.render_widget(Clear, area);
         frame.render_widget(&self.border, area);
         frame.render_widget(&self.table, self.border.inner(area));
-        Ok(())
     }
 }

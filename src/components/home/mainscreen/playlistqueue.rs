@@ -9,14 +9,13 @@ use crate::{
     compid::CompID,
     components::{
         home::mainscreen::playlistqueue::{empty::Empty, loading::Loading},
-        traits::{focusable::Focusable, fullcomp::FullComp, renderable::Renderable},
+        traits::{focusable::Focusable, handleaction::HandleAction, renderable::Renderable},
     },
     queryworker::{
         highlevelquery::HighLevelQuery,
         query::{getplaylist::GetPlaylistResponse, ResponseType},
     },
 };
-use color_eyre::Result;
 use error::Error;
 use loaded::Loaded;
 use notselected::NotSelected;
@@ -68,7 +67,7 @@ impl PlaylistQueue {
 }
 
 impl Renderable for PlaylistQueue {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) {
         match &mut self.comp {
             Comp::Error(error) => error.draw(frame, area),
             Comp::Loaded(loaded) => loaded.draw(frame, area),
@@ -79,8 +78,8 @@ impl Renderable for PlaylistQueue {
     }
 }
 
-impl FullComp for PlaylistQueue {
-    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+impl HandleAction for PlaylistQueue {
+    fn handle_action(&mut self, action: Action) -> Option<Action> {
         match action {
             Action::ToQueryWorker(qw) => {
                 if qw.dest.contains(&CompID::PlaylistQueue) {
@@ -88,19 +87,19 @@ impl FullComp for PlaylistQueue {
                         HighLevelQuery::SelectPlaylist(params) => {
                             self.comp =
                                 Comp::Loading(Loading::new(params.name, self.enabled), qw.ticket);
-                            Ok(None)
+                            None
                         }
                         HighLevelQuery::SetStar { media, star } => {
                             if let Comp::Loaded(loaded) = &mut self.comp {
-                                Ok(loaded.set_star(media, star))
+                                loaded.set_star(media, star)
                             } else {
-                                Ok(None)
+                                None
                             }
                         }
-                        _ => Ok(None),
+                        _ => None,
                     }
                 } else {
-                    Ok(None)
+                    None
                 }
             }
             Action::FromQueryWorker(qw) => {
@@ -125,12 +124,12 @@ impl FullComp for PlaylistQueue {
                         }
                     }
                 };
-                Ok(None)
+                None
             }
             _ => match &mut self.comp {
-                Comp::Loaded(comp) => comp.update(action),
-                Comp::Error(comp) => comp.update(action),
-                _ => Ok(None),
+                Comp::Loaded(comp) => comp.handle_action(action),
+                Comp::Error(comp) => comp.handle_action(action),
+                _ => None,
             },
         }
     }

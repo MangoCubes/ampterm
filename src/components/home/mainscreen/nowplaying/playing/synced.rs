@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use color_eyre::eyre::Result;
 use ratatui::{
     layout::{Constraint, Layout},
     prelude::Rect,
@@ -11,7 +10,7 @@ use ratatui::{
 
 use crate::{
     action::{Action, FromPlayerWorker, StateType},
-    components::traits::{renderable::Renderable, simplecomp::SimpleComp},
+    components::traits::{handleaction::HandleActionSimple, renderable::Renderable},
     lyricsclient::getlyrics::ParsedLyrics,
 };
 
@@ -30,7 +29,7 @@ impl Synced {
 }
 
 impl Renderable for Synced {
-    fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) {
         let vertical =
             Layout::vertical([Constraint::Max(1), Constraint::Max(1), Constraint::Max(1)]);
         let areas = vertical.split(area);
@@ -60,12 +59,11 @@ impl Renderable for Synced {
             }),
             areas[2],
         );
-        Ok(())
     }
 }
 
-impl SimpleComp for Synced {
-    fn update(&mut self, action: Action) {
+impl HandleActionSimple for Synced {
+    fn handle_action_simple(&mut self, action: Action) {
         if let Action::FromPlayerWorker(FromPlayerWorker::StateChange(StateType::Position(d))) =
             action
         {

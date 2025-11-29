@@ -2,6 +2,7 @@ mod appconfig;
 mod authconfig;
 mod behaviourconfig;
 mod keybindings;
+mod keyparser;
 mod localkeybinds;
 mod lyricsconfig;
 pub mod pathconfig;
@@ -150,6 +151,8 @@ mod tests {
 
     // use crate::action::Action;
 
+    use crate::config::keyparser::KeyParser;
+
     use super::*;
 
     #[test]
@@ -213,17 +216,17 @@ mod tests {
     #[test]
     fn test_simple_keys() {
         assert_eq!(
-            KeyBindings::parse_key_event("a").unwrap(),
+            KeyParser::parse_key_event("a").unwrap(),
             KeyEvent::new(KeyCode::Char('a'), KeyModifiers::empty())
         );
 
         assert_eq!(
-            KeyBindings::parse_key_event("enter").unwrap(),
+            KeyParser::parse_key_event("enter").unwrap(),
             KeyEvent::new(KeyCode::Enter, KeyModifiers::empty())
         );
 
         assert_eq!(
-            KeyBindings::parse_key_event("esc").unwrap(),
+            KeyParser::parse_key_event("esc").unwrap(),
             KeyEvent::new(KeyCode::Esc, KeyModifiers::empty())
         );
     }
@@ -231,17 +234,17 @@ mod tests {
     #[test]
     fn test_with_modifiers() {
         assert_eq!(
-            KeyBindings::parse_key_event("ctrl-a").unwrap(),
+            KeyParser::parse_key_event("ctrl-a").unwrap(),
             KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL)
         );
 
         assert_eq!(
-            KeyBindings::parse_key_event("alt-enter").unwrap(),
+            KeyParser::parse_key_event("alt-enter").unwrap(),
             KeyEvent::new(KeyCode::Enter, KeyModifiers::ALT)
         );
 
         assert_eq!(
-            KeyBindings::parse_key_event("shift-esc").unwrap(),
+            KeyParser::parse_key_event("shift-esc").unwrap(),
             KeyEvent::new(KeyCode::Esc, KeyModifiers::SHIFT)
         );
     }
@@ -249,7 +252,7 @@ mod tests {
     #[test]
     fn test_multiple_modifiers() {
         assert_eq!(
-            KeyBindings::parse_key_event("ctrl-alt-a").unwrap(),
+            KeyParser::parse_key_event("ctrl-alt-a").unwrap(),
             KeyEvent::new(
                 KeyCode::Char('a'),
                 KeyModifiers::CONTROL | KeyModifiers::ALT
@@ -257,7 +260,7 @@ mod tests {
         );
 
         assert_eq!(
-            KeyBindings::parse_key_event("ctrl-shift-enter").unwrap(),
+            KeyParser::parse_key_event("ctrl-shift-enter").unwrap(),
             KeyEvent::new(KeyCode::Enter, KeyModifiers::CONTROL | KeyModifiers::SHIFT)
         );
     }
@@ -265,7 +268,7 @@ mod tests {
     #[test]
     fn test_reverse_multiple_modifiers() {
         assert_eq!(
-            KeyBindings::key_event_to_string(&KeyEvent::new(
+            KeyParser::key_event_to_string(&KeyEvent::new(
                 KeyCode::Char('a'),
                 KeyModifiers::CONTROL | KeyModifiers::ALT
             )),
@@ -275,19 +278,19 @@ mod tests {
 
     #[test]
     fn test_invalid_keys() {
-        assert!(KeyBindings::parse_key_event("invalid-key").is_err());
-        assert!(KeyBindings::parse_key_event("ctrl-invalid-key").is_err());
+        assert!(KeyParser::parse_key_event("invalid-key").is_err());
+        assert!(KeyParser::parse_key_event("ctrl-invalid-key").is_err());
     }
 
     #[test]
     fn test_case_insensitivity() {
         assert_eq!(
-            KeyBindings::parse_key_event("CTRL-a").unwrap(),
+            KeyParser::parse_key_event("CTRL-a").unwrap(),
             KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL)
         );
 
         assert_eq!(
-            KeyBindings::parse_key_event("AlT-eNtEr").unwrap(),
+            KeyParser::parse_key_event("AlT-eNtEr").unwrap(),
             KeyEvent::new(KeyCode::Enter, KeyModifiers::ALT)
         );
     }

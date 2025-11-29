@@ -1,9 +1,13 @@
 use derive_deref::{Deref, DerefMut};
 
-use crate::action::Selection;
-
 #[derive(Deref, DerefMut)]
 pub struct ModifiableList<T: Clone>(pub Vec<T>);
+
+pub enum Selection {
+    Single(usize),
+    Range(usize, usize),
+    Multiple(Vec<bool>),
+}
 
 impl<T: Clone> ModifiableList<T> {
     pub fn new(items: Vec<T>) -> Self {

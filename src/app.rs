@@ -6,7 +6,7 @@ use tokio::sync::mpsc::{self};
 use tracing::debug;
 
 use crate::{
-    action::action::{Action, Mode, ProgramAction, TargetedAction},
+    action::action::{Action, Mode},
     components::{
         home::Home,
         traits::{
@@ -80,8 +80,8 @@ impl App {
             self.handle_actions(&mut tui).await?;
             if self.should_suspend {
                 tui.suspend()?;
-                action_tx.send(Action::Program(ProgramAction::Resume))?;
-                action_tx.send(Action::Program(ProgramAction::ClearScreen))?;
+                action_tx.send(Action::Resume)?;
+                action_tx.send(Action::ClearScreen)?;
                 // tui.mouse(true);
                 tui.enter()?;
             } else if self.should_quit {
@@ -100,10 +100,10 @@ impl App {
         };
         let action_tx = self.action_tx.clone();
         match event {
-            Event::Quit => action_tx.send(Action::Program(ProgramAction::Quit))?,
+            Event::Quit => action_tx.send(Action::Quit)?,
             Event::Tick => self.component.on_tick(),
             Event::Render => self.render(tui)?,
-            Event::Resize(x, y) => action_tx.send(Action::Program(ProgramAction::Resize(x, y)))?,
+            Event::Resize(x, y) => action_tx.send(Action::Resize(x, y))?,
             Event::Key(key) => self.handle_key_event(key)?,
             _ => {}
         }
@@ -156,15 +156,14 @@ impl App {
                         self.action_tx.send(more)?
                     }
                 }
-                Action::Program(program_action) => match program_action {
-                    ProgramAction::Resize(w, h) => self.handle_resize(tui, w, h)?,
-                    ProgramAction::Suspend => self.should_suspend = true,
-                    ProgramAction::Resume => self.should_suspend = false,
-                    ProgramAction::ClearScreen => tui.terminal.clear()?,
-                    ProgramAction::Quit => self.should_quit = true,
-                },
+                Action::Resize(w, h) => self.handle_resize(tui, w, h)?,
+                Action::Suspend => self.should_suspend = true,
+                Action::Resume => self.should_suspend = false,
+                Action::ClearScreen => tui.terminal.clear()?,
+                Action::Quit => self.should_quit = true,
                 Action::ToPlayerWorker(action) => self.player_tx.send(action)?,
                 Action::ToQueryWorker(action) => self.query_tx.send(action)?,
+                Action::ChangeMode(mode) => self.mode = mode,
             };
         }
         Ok(())

@@ -7,7 +7,7 @@ use stream_download::storage::temp::TempStorageProvider;
 use stream_download::{Settings, StreamDownload, StreamPhase};
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::action::action::{Action, InternalAction};
+use crate::action::action::{Action, TargetedAction};
 use crate::playerworker::player::FromPlayerWorker;
 
 use super::streamerror::StreamError;
@@ -51,7 +51,7 @@ impl StreamReader {
                 }
                 _ => String::default(),
             };
-            action_tx.send(Action::Internal(InternalAction::FromPlayerWorker(
+            action_tx.send(Action::Targeted(TargetedAction::FromPlayerWorker(
                 FromPlayerWorker::Message(msg),
             )));
         });

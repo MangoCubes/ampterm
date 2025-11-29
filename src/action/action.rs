@@ -40,23 +40,18 @@ pub enum TargetedAction {
     FromPlayerWorker(FromPlayerWorker),
     /// Receive a response from the query worker in response to the previous request
     FromQueryWorker(FromQueryWorker),
-    ChangeMode(Mode),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum ProgramAction {
-    Suspend,
-    Resume,
-    ClearScreen,
-    Quit,
-    Resize(u16, u16),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum Action {
     Multiple(Vec<Action>),
     Targeted(TargetedAction),
-    Program(ProgramAction),
     ToPlayerWorker(ToPlayerWorker),
     ToQueryWorker(ToQueryWorker),
+    Suspend,
+    Resume,
+    ClearScreen,
+    Quit,
+    Resize(u16, u16),
+    ChangeMode(Mode),
 }

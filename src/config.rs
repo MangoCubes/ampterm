@@ -1,9 +1,9 @@
 mod appconfig;
 mod authconfig;
 mod behaviourconfig;
-mod keybindings;
+pub mod keybindings;
 mod keyparser;
-mod localkeybinds;
+pub mod localkeybinds;
 mod lyricsconfig;
 pub mod pathconfig;
 mod styleconfig;

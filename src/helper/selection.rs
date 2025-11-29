@@ -1,5 +1,8 @@
+use derive_deref::{Deref, DerefMut};
+
 use crate::action::Selection;
 
+#[derive(Deref, DerefMut)]
 pub struct ModifiableList<T: Clone>(pub Vec<T>);
 
 impl<T: Clone> ModifiableList<T> {
@@ -8,18 +11,17 @@ impl<T: Clone> ModifiableList<T> {
     }
     /// Delete a row specified by the provided index
     fn delete_single(&mut self, index: usize) {
-        self.0.remove(index);
+        self.remove(index);
     }
 
     /// Delete a range
     fn delete_range(&mut self, start: usize, end: usize) {
-        self.0.drain(start..=end);
+        self.drain(start..=end);
     }
 
     /// Delete rows where selected[index] is true
     fn delete_multiple(&mut self, selected: &[bool]) {
         self.0 = self
-            .0
             .iter()
             .zip(selected)
             .filter_map(|(item, &flag)| if flag { None } else { Some(item.clone()) })
@@ -32,7 +34,7 @@ impl<T: Clone> ModifiableList<T> {
     /// Returns the new index and whether the current item has been deleted, or returns None if
     /// all items are deleted so that there can be no valid position for the cursor to settle at.
     pub fn move_item_to(&self, selection: &Selection, idx: usize) -> Option<(usize, bool)> {
-        let len = self.0.len();
+        let len = self.len();
         match selection {
             // Only one item is deleted
             Selection::Single(index) => {
@@ -161,19 +163,15 @@ impl<T: Clone> ModifiableList<T> {
         }
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-
     /// Add a number of rows at a specific index
     pub fn add_rows_at(&mut self, rows: Vec<T>, at: usize) {
-        if self.0.is_empty() {
+        if self.is_empty() {
             self.0 = rows;
         } else {
-            if at > self.0.len() {
-                self.0.append(&mut rows.clone());
+            if at > self.len() {
+                self.append(&mut rows.clone());
             } else {
-                self.0.splice(at..at, rows);
+                self.splice(at..at, rows);
             }
         };
     }

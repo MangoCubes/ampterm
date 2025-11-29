@@ -7,7 +7,7 @@ use tokio::sync::mpsc::{self};
 use tracing::debug;
 
 use crate::{
-    action::Action,
+    action::{globalaction::GlobalAction, Action},
     components::{
         home::Home,
         traits::{
@@ -32,34 +32,17 @@ pub struct App {
     should_suspend: bool,
     mode: Mode,
     key_stack: Vec<KeyEvent>,
-    action_tx: mpsc::UnboundedSender<Action>,
-    action_rx: mpsc::UnboundedReceiver<Action>,
+    action_tx: mpsc::UnboundedSender<GlobalAction>,
+    action_rx: mpsc::UnboundedReceiver<GlobalAction>,
     query_tx: mpsc::UnboundedSender<ToQueryWorker>,
     player_tx: mpsc::UnboundedSender<ToPlayerWorker>,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum Mode {
-    Normal,
-    Visual,
-    Insert,
-}
-
-impl ToString for Mode {
-    fn to_string(&self) -> String {
-        match &self {
-            Mode::Normal => "NORMAL".to_string(),
-            Mode::Visual => "VISUAL".to_string(),
-            Mode::Insert => "INSERT".to_string(),
-        }
-    }
 }
 
 impl App {
     pub fn new(
         config: Config,
-        action_tx: mpsc::UnboundedSender<Action>,
-        action_rx: mpsc::UnboundedReceiver<Action>,
+        action_tx: mpsc::UnboundedSender<GlobalAction>,
+        action_rx: mpsc::UnboundedReceiver<GlobalAction>,
         query_tx: mpsc::UnboundedSender<ToQueryWorker>,
         player_tx: mpsc::UnboundedSender<ToPlayerWorker>,
         tick_rate: f64,

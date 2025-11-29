@@ -42,34 +42,6 @@ pub enum FromPlayerWorker {
     Message(String),
 }
 
-/// These actions are all related to modifying the queue in one way or another.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum QueueAction {
-    Add(Vec<Media>, QueueLocation),
-}
 
 /// FromQueryWorker enum is used to send responses from the QueryWorker to the components
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum Action {
-    Suspend,
-    Resume,
-    Quit,
-    ClearScreen,
-
-    User(UserAction),
-    Queue(QueueAction),
-
-    FromQueryWorker(FromQueryWorker),
-    ToQueryWorker(ToQueryWorker),
-
-    FromPlayerWorker(FromPlayerWorker),
-    ToPlayerWorker(ToPlayerWorker),
-
-    // Anything below this should not be used for keybinds, but feel free to experiment. Most are used to notify the system
-    // System actions
-    Resize(u16, u16),
-    Multiple(Vec<Action>),
-    // This action is fired from the components to the app
-    ChangeMode(Mode),
-}

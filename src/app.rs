@@ -6,7 +6,7 @@ use tokio::sync::mpsc::{self};
 use tracing::debug;
 
 use crate::{
-    action::action::{Action, GlobalAction, InternalAction, Mode},
+    action::action::{Action, Mode, ProgramAction, TargetedAction},
     components::{
         home::Home,
         traits::{
@@ -80,8 +80,8 @@ impl App {
             self.handle_actions(&mut tui).await?;
             if self.should_suspend {
                 tui.suspend()?;
-                action_tx.send(Action::Global(GlobalAction::Resume))?;
-                action_tx.send(Action::Global(GlobalAction::ClearScreen))?;
+                action_tx.send(Action::Program(ProgramAction::Resume))?;
+                action_tx.send(Action::Program(ProgramAction::ClearScreen))?;
                 // tui.mouse(true);
                 tui.enter()?;
             } else if self.should_quit {
@@ -100,12 +100,10 @@ impl App {
         };
         let action_tx = self.action_tx.clone();
         match event {
-            Event::Quit => action_tx.send(Action::Global(GlobalAction::Quit))?,
+            Event::Quit => action_tx.send(Action::Program(ProgramAction::Quit))?,
             Event::Tick => self.component.on_tick(),
             Event::Render => self.render(tui)?,
-            Event::Resize(x, y) => {
-                action_tx.send(Action::Internal(InternalAction::Resize(x, y)))?
-            }
+            Event::Resize(x, y) => action_tx.send(Action::Program(ProgramAction::Resize(x, y)))?,
             Event::Key(key) => self.handle_key_event(key)?,
             _ => {}
         }
@@ -115,10 +113,10 @@ impl App {
     fn find_global_action(&self, key: KeyEvent) -> Option<KeySeqResult> {
         match self.config.global.get(&self.key_stack) {
             // Test global map
-            Some(a) => Some(KeySeqResult::ActionNeeded(a.clone())),
+            Some(a) => Some(KeySeqResult::ActionNeeded(Action::Targeted(a.clone()))),
             None => match self.config.global.get(&vec![key]) {
                 // Test global map single key
-                Some(a) => Some(KeySeqResult::ActionNeeded(a.clone())),
+                Some(a) => Some(KeySeqResult::ActionNeeded(Action::Targeted(a.clone()))),
                 None => None,
             },
         }
@@ -146,33 +144,27 @@ impl App {
     async fn handle_actions(&mut self, tui: &mut Tui) -> Result<()> {
         while let Ok(action) = self.action_rx.try_recv() {
             debug!("{action:?}");
-            if let Action::Multiple(actions) = action {
-                for a in actions {
-                    self.action_tx.send(a)?
+            match action {
+                Action::Multiple(actions) => {
+                    for a in actions {
+                        self.action_tx.send(a)?
+                    }
                 }
-                continue;
-            };
-
-            match &action {
-                // InternalAction::ToPlayerWorker(pw) => {
-                //     self.player_tx.send(pw.clone())?;
-                // }
-                // InternalAction::ToQueryWorker(qw) => {
-                //     self.query_tx.send(qw.clone())?;
-                // }
-                GlobalAction::Quit => self.should_quit = true,
-                GlobalAction::Suspend => self.should_suspend = true,
-                GlobalAction::Resume => self.should_suspend = false,
-                // Action::ClearScreen => tui.terminal.clear()?,
-                // Action::Resize(w, h) => self.handle_resize(tui, *w, *h)?,
-                // InternalAction::ChangeMode(mode) => {
-                //     self.mode = *mode;
-                // }
-                _ => {}
-            };
-            if let Some(ret) = self.component.handle_action(action) {
-                debug!("Got {ret:?} as a response");
-                self.action_tx.send(ret)?
+                Action::Targeted(targeted_action) => {
+                    if let Some(more) = self.component.handle_action(targeted_action) {
+                        debug!("Got {more:?} as a response");
+                        self.action_tx.send(more)?
+                    }
+                }
+                Action::Program(program_action) => match program_action {
+                    ProgramAction::Resize(w, h) => self.handle_resize(tui, w, h)?,
+                    ProgramAction::Suspend => self.should_suspend = true,
+                    ProgramAction::Resume => self.should_suspend = false,
+                    ProgramAction::ClearScreen => tui.terminal.clear()?,
+                    ProgramAction::Quit => self.should_quit = true,
+                },
+                Action::ToPlayerWorker(action) => self.player_tx.send(action)?,
+                Action::ToQueryWorker(action) => self.query_tx.send(action)?,
             };
         }
         Ok(())

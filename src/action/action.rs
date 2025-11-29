@@ -32,37 +32,31 @@ pub enum QueueAction {
 /// These actions are associated with a specific component in the program, and are usually
 /// available regardles of the currently focused component.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum GlobalAction {
+pub enum TargetedAction {
     Play,
     Pause,
     Queue(QueueAction),
+    /// Handle response from the player worker in response to the previous request
+    FromPlayerWorker(FromPlayerWorker),
+    /// Receive a response from the query worker in response to the previous request
+    FromQueryWorker(FromQueryWorker),
+    ChangeMode(Mode),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum ProgramAction {
     Suspend,
     Resume,
     ClearScreen,
     Quit,
-}
-
-/// These actions wraps communication between components. These should never be invoked by the
-/// user.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum InternalAction {
-    /// Send a request to the player worker
-    ToPlayerWorker(ToPlayerWorker),
-    /// Handle response from the player worker in response to the previous request
-    FromPlayerWorker(FromPlayerWorker),
-
-    /// Send a request to the query worker
-    ToQueryWorker(ToQueryWorker),
-    /// Receive a response from the query worker in response to the previous request
-    FromQueryWorker(FromQueryWorker),
-
     Resize(u16, u16),
-    ChangeMode(Mode),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum Action {
     Multiple(Vec<Action>),
-    Internal(InternalAction),
-    Global(GlobalAction),
+    Targeted(TargetedAction),
+    Program(ProgramAction),
+    ToPlayerWorker(ToPlayerWorker),
+    ToQueryWorker(ToQueryWorker),
 }

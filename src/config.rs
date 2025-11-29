@@ -20,7 +20,7 @@ use serde::{de::Deserializer, Deserialize};
 use tracing::error;
 
 use crate::{
-    action::action::GlobalAction,
+    action::action::TargetedAction,
     config::{
         appconfig::AppConfig,
         authconfig::{AuthConfig, UnsafeAuthConfig},
@@ -49,7 +49,7 @@ pub struct Config {
     #[serde(default, flatten)]
     pub config: AppConfig,
     #[serde(default)]
-    pub global: KeyBindings<GlobalAction>,
+    pub global: KeyBindings<TargetedAction>,
     #[serde(default)]
     pub local: LocalKeyBinds,
     #[serde(default)]

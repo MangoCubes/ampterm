@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
@@ -38,4 +40,29 @@ pub enum ToPlayerWorker {
         url: String,
     },
     Kill,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum StateType {
+    Position(Duration),
+    NowPlaying(Option<Media>),
+    Volume(f32),
+    Speed(f32),
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub enum PlayOrder {
+    Normal,
+    Random,
+    Reverse,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum FromPlayerWorker {
+    /// Send current state of the player
+    StateChange(StateType),
+    Finished,
+    // Error sent out from the player to the components
+    Error(String),
+    Message(String),
 }

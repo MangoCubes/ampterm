@@ -1,11 +1,11 @@
 use crossterm::event::KeyEvent;
 
-use crate::{action::globalaction::GlobalAction, components::traits::renderable::Renderable};
+use crate::{action::action::Action, components::traits::renderable::Renderable};
 
 #[derive(Clone)]
 pub enum KeySeqResult {
     NoActionNeeded,
-    ActionNeeded(GlobalAction),
+    ActionNeeded(Action),
 }
 
 pub trait HandleKeySeq: Renderable {

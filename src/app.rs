@@ -2,12 +2,11 @@ use color_eyre::Result;
 
 use crossterm::event::KeyEvent;
 use ratatui::prelude::Rect;
-use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{self};
 use tracing::debug;
 
 use crate::{
-    action::{globalaction::GlobalAction, Action},
+    action::action::{Action, GlobalAction, InternalAction, Mode},
     components::{
         home::Home,
         traits::{
@@ -32,8 +31,8 @@ pub struct App {
     should_suspend: bool,
     mode: Mode,
     key_stack: Vec<KeyEvent>,
-    action_tx: mpsc::UnboundedSender<GlobalAction>,
-    action_rx: mpsc::UnboundedReceiver<GlobalAction>,
+    action_tx: mpsc::UnboundedSender<Action>,
+    action_rx: mpsc::UnboundedReceiver<Action>,
     query_tx: mpsc::UnboundedSender<ToQueryWorker>,
     player_tx: mpsc::UnboundedSender<ToPlayerWorker>,
 }
@@ -41,8 +40,8 @@ pub struct App {
 impl App {
     pub fn new(
         config: Config,
-        action_tx: mpsc::UnboundedSender<GlobalAction>,
-        action_rx: mpsc::UnboundedReceiver<GlobalAction>,
+        action_tx: mpsc::UnboundedSender<Action>,
+        action_rx: mpsc::UnboundedReceiver<Action>,
         query_tx: mpsc::UnboundedSender<ToQueryWorker>,
         player_tx: mpsc::UnboundedSender<ToPlayerWorker>,
         tick_rate: f64,
@@ -81,8 +80,8 @@ impl App {
             self.handle_actions(&mut tui).await?;
             if self.should_suspend {
                 tui.suspend()?;
-                action_tx.send(Action::Resume)?;
-                action_tx.send(Action::ClearScreen)?;
+                action_tx.send(Action::Global(GlobalAction::Resume))?;
+                action_tx.send(Action::Global(GlobalAction::ClearScreen))?;
                 // tui.mouse(true);
                 tui.enter()?;
             } else if self.should_quit {
@@ -101,10 +100,12 @@ impl App {
         };
         let action_tx = self.action_tx.clone();
         match event {
-            Event::Quit => action_tx.send(Action::Quit)?,
+            Event::Quit => action_tx.send(Action::Global(GlobalAction::Quit))?,
             Event::Tick => self.component.on_tick(),
             Event::Render => self.render(tui)?,
-            Event::Resize(x, y) => action_tx.send(Action::Resize(x, y))?,
+            Event::Resize(x, y) => {
+                action_tx.send(Action::Internal(InternalAction::Resize(x, y)))?
+            }
             Event::Key(key) => self.handle_key_event(key)?,
             _ => {}
         }
@@ -153,20 +154,20 @@ impl App {
             };
 
             match &action {
-                Action::ToPlayerWorker(pw) => {
-                    self.player_tx.send(pw.clone())?;
-                }
-                Action::ToQueryWorker(qw) => {
-                    self.query_tx.send(qw.clone())?;
-                }
-                Action::Quit => self.should_quit = true,
-                Action::Suspend => self.should_suspend = true,
-                Action::Resume => self.should_suspend = false,
-                Action::ClearScreen => tui.terminal.clear()?,
-                Action::Resize(w, h) => self.handle_resize(tui, *w, *h)?,
-                Action::ChangeMode(mode) => {
-                    self.mode = *mode;
-                }
+                // InternalAction::ToPlayerWorker(pw) => {
+                //     self.player_tx.send(pw.clone())?;
+                // }
+                // InternalAction::ToQueryWorker(qw) => {
+                //     self.query_tx.send(qw.clone())?;
+                // }
+                GlobalAction::Quit => self.should_quit = true,
+                GlobalAction::Suspend => self.should_suspend = true,
+                GlobalAction::Resume => self.should_suspend = false,
+                // Action::ClearScreen => tui.terminal.clear()?,
+                // Action::Resize(w, h) => self.handle_resize(tui, *w, *h)?,
+                // InternalAction::ChangeMode(mode) => {
+                //     self.mode = *mode;
+                // }
                 _ => {}
             };
             if let Some(ret) = self.component.handle_action(action) {

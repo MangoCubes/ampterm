@@ -1,9 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    action::FromPlayerWorker,
     osclient::response::getplaylist::Media,
-    playerworker::player::{QueueLocation, ToPlayerWorker},
+    playerworker::player::{FromPlayerWorker, QueueLocation, ToPlayerWorker},
     queryworker::query::{FromQueryWorker, ToQueryWorker},
 };
 
@@ -39,6 +38,7 @@ pub enum GlobalAction {
     Queue(QueueAction),
     Suspend,
     Resume,
+    ClearScreen,
     Quit,
 }
 
@@ -56,7 +56,13 @@ pub enum InternalAction {
     /// Receive a response from the query worker in response to the previous request
     FromQueryWorker(FromQueryWorker),
 
-    ClearScreen,
     Resize(u16, u16),
     ChangeMode(Mode),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum Action {
+    Multiple(Vec<Action>),
+    Internal(InternalAction),
+    Global(GlobalAction),
 }

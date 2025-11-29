@@ -20,7 +20,7 @@ use serde::{de::Deserializer, Deserialize};
 use tracing::error;
 
 use crate::{
-    action::globalaction::GlobalAction,
+    action::action::GlobalAction,
     config::{
         appconfig::AppConfig,
         authconfig::{AuthConfig, UnsafeAuthConfig},

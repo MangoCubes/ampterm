@@ -6,8 +6,14 @@ use serde::{de::DeserializeOwned, Deserialize, Deserializer};
 
 use crate::{config::keyparser::KeyParser, trace_dbg};
 
-#[derive(Clone, Debug, Deref, DerefMut, Default)]
+#[derive(Clone, Debug, Deref, DerefMut)]
 pub struct KeyBindings<T: PartialEq + DeserializeOwned + Debug>(pub HashMap<Vec<KeyEvent>, T>);
+
+impl<T: PartialEq + DeserializeOwned + Debug> Default for KeyBindings<T> {
+    fn default() -> Self {
+        Self(HashMap::new())
+    }
+}
 
 impl<'de, T: PartialEq + DeserializeOwned + Debug> Deserialize<'de> for KeyBindings<T> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>

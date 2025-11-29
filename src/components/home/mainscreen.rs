@@ -1,6 +1,6 @@
 mod bpmtoy;
 mod nowplaying;
-mod playlistlist;
+pub mod playlistlist;
 mod playlistqueue;
 mod playqueue;
 mod tasks;
@@ -17,7 +17,7 @@ use crate::{
         traits::{
             focusable::Focusable,
             handleaction::{HandleAction, HandleActionSimple},
-            handlekey::HandleKey,
+            handleraw::HandleRaw,
             ontick::OnTick,
             renderable::Renderable,
         },
@@ -178,7 +178,7 @@ impl Renderable for MainScreen {
     }
 }
 
-impl HandleKey for MainScreen {
+impl HandleRaw for MainScreen {
     fn handle_key_event(&mut self, key: KeyEvent) -> Option<Action> {
         self.key_stack.push(format!(
             "{}{}",

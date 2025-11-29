@@ -6,7 +6,6 @@ use crate::{action::Action, components::traits::renderable::Renderable};
 /// Once it takes the key input, it optionally mutates its state.
 /// Once complete, it optionally returns an action indicating the action that should further
 /// happen.
-pub trait HandleKey: Renderable {
+pub trait HandleRaw: Renderable {
     fn handle_key_event(&mut self, key: KeyEvent) -> Option<Action>;
 }
-

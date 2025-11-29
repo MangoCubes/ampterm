@@ -7,7 +7,7 @@ use ratatui::{
 
 use crate::{
     action::Action,
-    components::traits::{focusable::Focusable, handlekey::HandleKey, renderable::Renderable},
+    components::traits::{focusable::Focusable, handleraw::HandleRaw, renderable::Renderable},
 };
 
 /// Checkbox element
@@ -51,7 +51,7 @@ impl Renderable for Checkbox {
     }
 }
 
-impl HandleKey for Checkbox {
+impl HandleRaw for Checkbox {
     fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Option<Action> {
         if let KeyCode::Char(' ') = key.code {
             self.toggle()

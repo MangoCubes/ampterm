@@ -14,7 +14,7 @@ use ratatui::{layout::Rect, Frame};
 use crate::{
     action::Action,
     components::traits::{
-        handleaction::HandleAction, handlekey::HandleKey, ontick::OnTick, renderable::Renderable,
+        handleaction::HandleAction, handleraw::HandleRaw, ontick::OnTick, renderable::Renderable,
     },
     config::{pathconfig::PathConfig, Config},
     queryworker::{
@@ -129,7 +129,7 @@ impl Renderable for Home {
     }
 }
 
-impl HandleKey for Home {
+impl HandleRaw for Home {
     fn handle_key_event(&mut self, key: KeyEvent) -> Option<Action> {
         match &mut self.component {
             Comp::Login(login) => login.handle_key_event(key),

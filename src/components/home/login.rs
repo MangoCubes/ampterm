@@ -13,7 +13,7 @@ use crate::{
     components::{
         lib::checkbox::Checkbox,
         traits::{
-            focusable::Focusable, handleaction::HandleAction, handlekey::HandleKey,
+            focusable::Focusable, handleaction::HandleAction, handleraw::HandleRaw,
             renderable::Renderable,
         },
     },
@@ -220,7 +220,7 @@ impl HandleAction for Login {
     }
 }
 
-impl HandleKey for Login {
+impl HandleRaw for Login {
     fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Option<Action> {
         match key.code {
             KeyCode::Up | KeyCode::BackTab | KeyCode::Left => {

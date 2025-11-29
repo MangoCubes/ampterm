@@ -11,7 +11,7 @@ use crate::{
     components::{
         home::Home,
         traits::{
-            handleaction::HandleAction, handlekey::HandleKey, ontick::OnTick,
+            handleaction::HandleAction, handleraw::HandleRaw, ontick::OnTick,
             renderable::Renderable,
         },
     },

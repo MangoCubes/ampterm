@@ -11,7 +11,7 @@ use crate::{
         home::Home,
         traits::{
             handleaction::HandleAction,
-            handlekeyseq::{HandleKeySeq, KeySeqResult},
+            handlekeyseq::{KeySeqResult, PassKeySeq},
             ontick::OnTick,
             renderable::Renderable,
         },

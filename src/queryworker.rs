@@ -4,7 +4,7 @@ pub mod query;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
-use crate::action::Action;
+use crate::action::action::{Action, TargetedAction};
 use crate::config::Config;
 use crate::lyricsclient::lrclib::LrcLib;
 use crate::lyricsclient::LyricsClient;
@@ -51,6 +51,14 @@ impl QueryWorker {
             Err(e) => GetPlaylistsResponse::Failure(e.to_string()),
         }
     }
+
+    #[inline]
+    fn send_action(&self, action: FromQueryWorker) {
+        let _ = self
+            .action_tx
+            .send(Action::Targeted(TargetedAction::FromQueryWorker(action)));
+    }
+
     pub async fn run(&mut self) -> Result<()> {
         trace_dbg!("Starting QueryWorker...");
         loop {
@@ -73,10 +81,8 @@ impl QueryWorker {
                                     Ok(_) => ResponseType::Star(Ok(())),
                                     Err(err) => ResponseType::Star(Err(err.to_string())),
                                 };
-                                tx.send(Action::FromQueryWorker(FromQueryWorker::new(
-                                    event.dest,
-                                    event.ticket,
-                                    result,
+                                tx.send(Action::Targeted(TargetedAction::FromQueryWorker(
+                                    FromQueryWorker::new(event.dest, event.ticket, result),
                                 )))
                             });
                         }
@@ -105,22 +111,18 @@ impl QueryWorker {
                     match client {
                         Ok(client) => {
                             self.client = Some(Arc::from(client));
-                            let _ =
-                                self.action_tx
-                                    .send(Action::FromQueryWorker(FromQueryWorker::new(
-                                        event.dest,
-                                        event.ticket,
-                                        ResponseType::SetCredential(Ok(())),
-                                    )));
+                            self.send_action(FromQueryWorker::new(
+                                event.dest,
+                                event.ticket,
+                                ResponseType::SetCredential(Ok(())),
+                            ));
                         }
                         Err(err) => {
-                            let _ =
-                                self.action_tx
-                                    .send(Action::FromQueryWorker(FromQueryWorker::new(
-                                        event.dest,
-                                        event.ticket,
-                                        ResponseType::SetCredential(Err(err.to_string())),
-                                    )));
+                            self.send_action(FromQueryWorker::new(
+                                event.dest,
+                                event.ticket,
+                                ResponseType::SetCredential(Err(err.to_string())),
+                            ));
                             // return Err(eyre!("Failed to log in: {}", err.to_string()));
                         }
                     };
@@ -132,11 +134,13 @@ impl QueryWorker {
                             let cc = c.clone();
                             tokio::spawn(async move {
                                 let res = QueryWorker::get_playlists(cc).await;
-                                tx.send(Action::FromQueryWorker(FromQueryWorker::new(
-                                    event.dest,
-                                    event.ticket,
-                                    ResponseType::GetPlaylists(res),
-                                )))
+                                tx.send(Action::Targeted(TargetedAction::FromQueryWorker(
+                                    FromQueryWorker::new(
+                                        event.dest,
+                                        event.ticket,
+                                        ResponseType::GetPlaylists(res),
+                                    ),
+                                )));
                             });
                         }
                         None => tracing::error!(
@@ -153,28 +157,28 @@ impl QueryWorker {
                                 let ping = c.ping().await;
                                 match ping {
                                     Ok(c) => match c {
-                                        Empty::Ok => {
-                                            tx.send(Action::FromQueryWorker(FromQueryWorker::new(
+                                        Empty::Ok => tx.send(Action::Targeted(
+                                            TargetedAction::FromQueryWorker(FromQueryWorker::new(
                                                 event.dest,
                                                 event.ticket,
                                                 ResponseType::Ping(Ok(())),
-                                            )))
-                                        }
-                                        Empty::Failed { error } => {
-                                            tx.send(Action::FromQueryWorker(FromQueryWorker::new(
+                                            )),
+                                        )),
+                                        Empty::Failed { error } => tx.send(Action::Targeted(
+                                            TargetedAction::FromQueryWorker(FromQueryWorker::new(
                                                 event.dest,
                                                 event.ticket,
                                                 ResponseType::Ping(Err(error.to_string())),
-                                            )))
-                                        }
+                                            )),
+                                        )),
                                     },
-                                    Err(e) => {
-                                        tx.send(Action::FromQueryWorker(FromQueryWorker::new(
+                                    Err(e) => tx.send(Action::Targeted(
+                                        TargetedAction::FromQueryWorker(FromQueryWorker::new(
                                             event.dest,
                                             event.ticket,
                                             ResponseType::Ping(Err(e.to_string())),
-                                        )))
-                                    }
+                                        )),
+                                    )),
                                 }
                             });
                         }
@@ -196,13 +200,15 @@ impl QueryWorker {
                                     Ok(c) => match c {
                                         GetPlaylist::Ok { playlist } => match playlist {
                                             IndeterminedPlaylist::FullPlaylist(full_playlist) => tx
-                                                .send(Action::FromQueryWorker(
-                                                    FromQueryWorker::new(
-                                                        event.dest,
-                                                        event.ticket,
-                                                        ResponseType::GetPlaylist(
-                                                            GetPlaylistResponse::Success(
-                                                                full_playlist,
+                                                .send(Action::Targeted(
+                                                    TargetedAction::FromQueryWorker(
+                                                        FromQueryWorker::new(
+                                                            event.dest,
+                                                            event.ticket,
+                                                            ResponseType::GetPlaylist(
+                                                                GetPlaylistResponse::Success(
+                                                                    full_playlist,
+                                                                ),
                                                             ),
                                                         ),
                                                     ),
@@ -220,31 +226,35 @@ impl QueryWorker {
                                                         msg: "Playlist not found!".to_string(),
                                                     },
                                                 };
-                                                tx.send(Action::FromQueryWorker(
-                                                    FromQueryWorker::new(
-                                                        event.dest,
-                                                        event.ticket,
-                                                        ResponseType::GetPlaylist(res),
+                                                tx.send(Action::Targeted(
+                                                    TargetedAction::FromQueryWorker(
+                                                        FromQueryWorker::new(
+                                                            event.dest,
+                                                            event.ticket,
+                                                            ResponseType::GetPlaylist(res),
+                                                        ),
                                                     ),
                                                 ))
                                             }
                                             IndeterminedPlaylist::NavidromeEmpty(
                                                 simple_playlist,
-                                            ) => tx.send(Action::FromQueryWorker(
-                                                FromQueryWorker::new(
-                                                    event.dest,
-                                                    event.ticket,
-                                                    ResponseType::GetPlaylist(
-                                                        GetPlaylistResponse::Partial(
-                                                            simple_playlist,
+                                            ) => tx.send(Action::Targeted(
+                                                TargetedAction::FromQueryWorker(
+                                                    FromQueryWorker::new(
+                                                        event.dest,
+                                                        event.ticket,
+                                                        ResponseType::GetPlaylist(
+                                                            GetPlaylistResponse::Partial(
+                                                                simple_playlist,
+                                                            ),
                                                         ),
                                                     ),
                                                 ),
                                             )),
                                         },
 
-                                        GetPlaylist::Failed { error } => {
-                                            tx.send(Action::FromQueryWorker(FromQueryWorker::new(
+                                        GetPlaylist::Failed { error } => tx.send(Action::Targeted(
+                                            TargetedAction::FromQueryWorker(FromQueryWorker::new(
                                                 event.dest,
                                                 event.ticket,
                                                 ResponseType::GetPlaylist(
@@ -254,11 +264,11 @@ impl QueryWorker {
                                                         msg: error.to_string(),
                                                     },
                                                 ),
-                                            )))
-                                        }
+                                            )),
+                                        )),
                                     },
-                                    Err(e) => {
-                                        tx.send(Action::FromQueryWorker(FromQueryWorker::new(
+                                    Err(e) => tx.send(Action::Targeted(
+                                        TargetedAction::FromQueryWorker(FromQueryWorker::new(
                                             event.dest,
                                             event.ticket,
                                             ResponseType::GetPlaylist(
@@ -268,8 +278,8 @@ impl QueryWorker {
                                                     msg: e.to_string(),
                                                 },
                                             ),
-                                        )))
-                                    }
+                                        )),
+                                    )),
                                 }
                             });
                         }
@@ -304,7 +314,7 @@ impl QueryWorker {
                                 Err(failed) => Err(failed.to_string()),
                             }),
                         );
-                        let _ = tx.send(Action::FromQueryWorker(res));
+                        let _ = tx.send(Action::Targeted(TargetedAction::FromQueryWorker(res)));
                     });
                 }
             };

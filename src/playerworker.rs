@@ -16,8 +16,9 @@ use tokio::task::JoinHandle;
 use tokio::time::sleep;
 use tokio_util::sync::CancellationToken;
 
-use crate::action::{Action, FromPlayerWorker, StateType};
+use crate::action::action::{Action, TargetedAction};
 use crate::config::Config;
+use crate::playerworker::player::{FromPlayerWorker, StateType};
 use crate::trace_dbg;
 
 enum WorkerState {
@@ -99,18 +100,18 @@ impl PlayerWorker {
                 });
             let poll_state = tokio::task::spawn(async move {
                 loop {
-                    let _ = action_tx2.send(Action::FromPlayerWorker(
+                    let _ = action_tx2.send(Action::Targeted(TargetedAction::FromPlayerWorker(
                         FromPlayerWorker::StateChange(StateType::Position(sink2.get_pos())),
-                    ));
+                    )));
                     sleep(Duration::from_millis(100)).await;
                 }
             });
             select! {
                 _ = cloned_token.cancelled() => {
                     stream_token.cancel();
-                    let _ = action_tx.send(Action::FromPlayerWorker(
-                            FromPlayerWorker::Message("Stream cancelled by user.".to_string()),
-                    ));
+                    let _ = action_tx.send(Action::Targeted(TargetedAction::FromPlayerWorker(
+                                FromPlayerWorker::Message("Stream cancelled by user.".to_string()),
+                    )));
                     // Player does not need to do anything more, as cancellation
                     // happens only when the stream is stopped or skipped
                 }
@@ -121,13 +122,13 @@ impl PlayerWorker {
                         }
 
                         Err(e) => {
-                            let _ = action_tx.send(Action::FromPlayerWorker(
-                                    FromPlayerWorker::Error(e.to_string()),
-                            ));
+                            let _ = action_tx.send(Action::Targeted(TargetedAction::FromPlayerWorker(
+                                        FromPlayerWorker::Error(e.to_string()),
+                            )));
                         }
                     }
                     // Regardless of the error occurred, move on
-                    let _ = action_tx.send(Action::FromPlayerWorker(FromPlayerWorker::Finished));
+                    let _ = action_tx.send(Action::Targeted(TargetedAction::FromPlayerWorker(FromPlayerWorker::Finished)));
                 }
                 _ = poll_state => {
                     // let _ = action_tx.send(Action::PlayerError("Stream polling crashed! Restart recommended.".to_string()));
@@ -136,6 +137,14 @@ impl PlayerWorker {
         });
         token
     }
+
+    #[inline]
+    fn send_action(&self, action: FromPlayerWorker) {
+        let _ = self
+            .action_tx
+            .send(Action::Targeted(TargetedAction::FromPlayerWorker(action)));
+    }
+
     pub async fn run(&mut self) -> Result<()> {
         trace_dbg!("Starting PlayerWorker...");
         loop {
@@ -148,9 +157,7 @@ impl PlayerWorker {
                     if let WorkerState::Playing(token) = &self.state {
                         token.cancel();
                     };
-                    let _ = self.action_tx.send(Action::FromPlayerWorker(
-                        FromPlayerWorker::StateChange(StateType::NowPlaying(None)),
-                    ));
+                    self.send_action(FromPlayerWorker::StateChange(StateType::NowPlaying(None)));
                 }
                 ToPlayerWorker::Pause => self.pause_stream(),
                 ToPlayerWorker::Resume => self.continue_stream(),
@@ -160,23 +167,19 @@ impl PlayerWorker {
                     if let WorkerState::Playing(token) = &self.state {
                         token.cancel();
                     };
-                    let _ = self.action_tx.send(Action::FromPlayerWorker(
-                        FromPlayerWorker::StateChange(StateType::NowPlaying(Some(music))),
-                    ));
+                    self.send_action(FromPlayerWorker::StateChange(StateType::NowPlaying(Some(
+                        music,
+                    ))));
                     let token = self.play_from_url(url);
                     self.state = WorkerState::Playing(token);
                 }
                 ToPlayerWorker::GoToStart => {
                     if let Err(e) = self.sink.try_seek(Duration::from_secs(0)) {
-                        let _ = self.action_tx.send(Action::FromPlayerWorker(
-                            FromPlayerWorker::Message("Failed to seek!".to_string()),
-                        ));
+                        self.send_action(FromPlayerWorker::Message("Failed to seek!".to_string()));
                     } else {
-                        let _ = self.action_tx.send(Action::FromPlayerWorker(
-                            FromPlayerWorker::StateChange(StateType::Position(
-                                Duration::from_secs(0),
-                            )),
-                        ));
+                        self.send_action(FromPlayerWorker::StateChange(StateType::Position(
+                            Duration::from_secs(0),
+                        )));
                     }
                 }
                 ToPlayerWorker::ChangeVolume(by) => {
@@ -190,9 +193,7 @@ impl PlayerWorker {
                         new_vol
                     };
                     self.sink.set_volume(cleaned);
-                    let _ = self.action_tx.send(Action::FromPlayerWorker(
-                        FromPlayerWorker::StateChange(StateType::Volume(cleaned)),
-                    ));
+                    self.send_action(FromPlayerWorker::StateChange(StateType::Volume(cleaned)));
                 }
                 ToPlayerWorker::SetVolume(to) => {
                     let cleaned = if to < 0.0 {
@@ -203,9 +204,7 @@ impl PlayerWorker {
                         to
                     };
                     self.sink.set_volume(cleaned);
-                    let _ = self.action_tx.send(Action::FromPlayerWorker(
-                        FromPlayerWorker::StateChange(StateType::Volume(cleaned)),
-                    ));
+                    self.send_action(FromPlayerWorker::StateChange(StateType::Volume(cleaned)));
                 }
                 ToPlayerWorker::ResumeOrPause => {
                     if self.sink.is_paused() {

@@ -1,8 +1,10 @@
+pub mod actions;
 mod playing;
 mod stopped;
 
 use std::time::Duration;
 
+use crossterm::event::KeyEvent;
 use playing::Playing;
 use ratatui::{
     layout::Rect,
@@ -17,6 +19,7 @@ use crate::{
     components::traits::{
         focusable::Focusable,
         handleaction::{HandleAction, HandleActionSimple},
+        handlekeyseq::{HandleKeySeq, KeySeqResult},
         renderable::Renderable,
     },
     config::Config,
@@ -31,6 +34,15 @@ pub struct NowPlaying {
     comp: Comp,
     enabled: bool,
     config: Config,
+}
+
+impl HandleKeySeq for NowPlaying {
+    fn handle_key_seq(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
+        match &mut self.comp {
+            Comp::Playing(playing) => playing.handle_key_seq(keyseq),
+            Comp::Stopped(_) => None,
+        }
+    }
 }
 
 impl NowPlaying {

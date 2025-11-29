@@ -14,7 +14,8 @@ use ratatui::{layout::Rect, Frame};
 use crate::{
     action::Action,
     components::traits::{
-        handleaction::HandleAction, handleraw::HandleRaw, ontick::OnTick, renderable::Renderable,
+        handleaction::HandleAction, handlekeyseq::HandleKeySeq, handleraw::HandleRaw,
+        ontick::OnTick, renderable::Renderable,
     },
     config::{pathconfig::PathConfig, Config},
     queryworker::{
@@ -22,6 +23,8 @@ use crate::{
         query::{setcredential::Credential, ResponseType, ToQueryWorker},
     },
 };
+
+use super::traits::handlekeyseq::KeySeqResult;
 
 enum Comp {
     Main(MainScreen),
@@ -39,6 +42,15 @@ impl OnTick for Home {
         if let Comp::Main(main_screen) = &mut self.component {
             main_screen.on_tick();
         };
+    }
+}
+
+impl HandleKeySeq for Home {
+    fn handle_key_seq(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
+        match &mut self.component {
+            Comp::Main(main_screen) => main_screen.handle_key_seq(keyseq),
+            Comp::Login(_) | Comp::Loading(_) => Some(KeySeqResult::NoActionNeeded),
+        }
     }
 }
 
@@ -170,10 +182,6 @@ impl HandleAction for Home {
                 }
             };
         };
-        match &mut self.component {
-            Comp::Main(main_screen) => main_screen.handle_action(action),
-            Comp::Loading(_loading) => None,
-            Comp::Login(login) => login.handle_action(action),
-        }
+        None
     }
 }

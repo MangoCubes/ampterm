@@ -1,3 +1,4 @@
+pub mod globalaction;
 pub mod useraction;
 
 use serde::{Deserialize, Serialize};
@@ -71,7 +72,4 @@ pub enum Action {
     Multiple(Vec<Action>),
     // This action is fired from the components to the app
     ChangeMode(Mode),
-    /// THIS IS FOR INTERNAL USE ONLY
-    /// USE [`UserAction::Common(Common::EndKeySeq)`] INSTEAD
-    EndKeySeq,
 }

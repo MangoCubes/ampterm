@@ -4,14 +4,16 @@ use crossterm::event::KeyEvent;
 use ratatui::prelude::Rect;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{self};
-use tracing::{debug, info};
+use tracing::debug;
 
 use crate::{
     action::Action,
     components::{
         home::Home,
         traits::{
-            handleaction::HandleAction, handleraw::HandleRaw, ontick::OnTick,
+            handleaction::HandleAction,
+            handlekeyseq::{HandleKeySeq, KeySeqResult},
+            ontick::OnTick,
             renderable::Renderable,
         },
     },
@@ -36,10 +38,8 @@ pub struct App {
     player_tx: mpsc::UnboundedSender<ToPlayerWorker>,
 }
 
-#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Mode {
-    Common,
-    #[default]
     Normal,
     Visual,
     Insert,
@@ -48,7 +48,6 @@ pub enum Mode {
 impl ToString for Mode {
     fn to_string(&self) -> String {
         match &self {
-            Mode::Common => "COMMON".to_string(),
             Mode::Normal => "NORMAL".to_string(),
             Mode::Visual => "VISUAL".to_string(),
             Mode::Insert => "INSERT".to_string(),
@@ -77,7 +76,7 @@ impl App {
             should_quit: false,
             should_suspend: false,
             config,
-            mode: Mode::default(),
+            mode: Mode::Normal,
             key_stack: Vec::new(),
             action_tx,
             action_rx,
@@ -129,38 +128,35 @@ impl App {
         Ok(())
     }
 
-    fn handle_key_event(&mut self, key: KeyEvent) -> Result<()> {
-        if self.mode == Mode::Insert {
-            if let Some(action) = self.component.handle_key_event(key) {
-                self.action_tx.send(action)?;
-            }
-            Ok(())
-        } else {
-            let Some(keymap) = self.config.keybindings.get(&self.mode) else {
-                return color_eyre::Result::Err(color_eyre::Report::msg(
-                    "Current mode does not exist!",
-                ));
-            };
-
-            self.key_stack.push(key);
-
-            // Try finding action by all the keys pressed so far
-            if let Some(action) = keymap.get(&self.key_stack) {
-                info!("Got action: {action:?}");
-                self.action_tx.send(action.clone())?;
-                self.action_tx.send(Action::EndKeySeq)?;
-            } else
-            // Try finding action by the current key
-            if let Some(action) = keymap.get(&vec![key]) {
-                info!("Got action: {action:?}");
-                self.action_tx.send(action.clone())?;
-                self.action_tx.send(Action::EndKeySeq)?;
-            } else {
-                // No actions found, pass the pressed key to the child
-                self.component.handle_key_event(key);
-            }
-            Ok(())
+    fn find_global_action(&self, key: KeyEvent) -> Option<KeySeqResult> {
+        match self.config.global.get(&self.key_stack) {
+            // Test global map
+            Some(a) => Some(KeySeqResult::ActionNeeded(a.clone())),
+            None => match self.config.global.get(&vec![key]) {
+                // Test global map single key
+                Some(a) => Some(KeySeqResult::ActionNeeded(a.clone())),
+                None => None,
+            },
         }
+    }
+
+    fn handle_key_event(&mut self, key: KeyEvent) -> Result<()> {
+        self.key_stack.push(key);
+
+        let res = if let Some(r) = self.component.handle_key_seq(&self.key_stack) {
+            r
+        } else if let Some(r) = self.find_global_action(key) {
+            r
+        } else {
+            return Ok(());
+        };
+
+        self.key_stack.drain(..);
+
+        if let KeySeqResult::ActionNeeded(action) = res {
+            self.action_tx.send(action.clone())?;
+        }
+        Ok(())
     }
 
     async fn handle_actions(&mut self, tui: &mut Tui) -> Result<()> {
@@ -174,9 +170,6 @@ impl App {
             };
 
             match &action {
-                Action::EndKeySeq => {
-                    self.key_stack.drain(..);
-                }
                 Action::ToPlayerWorker(pw) => {
                     self.player_tx.send(pw.clone())?;
                 }

@@ -17,6 +17,7 @@ use crate::{
         traits::{
             focusable::Focusable,
             handleaction::{HandleAction, HandleActionSimple},
+            handlekeyseq::{HandleKeySeq, KeySeqResult},
             handleraw::HandleRaw,
             ontick::OnTick,
             renderable::Renderable,
@@ -68,6 +69,21 @@ pub struct MainScreen {
 impl OnTick for MainScreen {
     fn on_tick(&mut self) {
         self.bpmtoy.on_tick();
+    }
+}
+
+impl HandleKeySeq for MainScreen {
+    fn handle_key_seq(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
+        let res = if self.show_tasks {
+            None
+        } else {
+            match self.state {
+                CurrentlySelected::PlaylistList => self.pl_list.handle_key_seq(keyseq),
+                CurrentlySelected::Playlist => self.pl_queue.handle_key_seq(keyseq),
+                CurrentlySelected::PlayQueue => self.playqueue.handle_key_seq(keyseq),
+                CurrentlySelected::NowPlaying(_) => self.now_playing.handle_key_seq(keyseq),
+            }
+        };
     }
 }
 

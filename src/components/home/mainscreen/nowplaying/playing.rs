@@ -7,7 +7,11 @@ use crate::{
     components::{
         home::mainscreen::nowplaying::playing::{synced::Synced, unsynced::Unsynced},
         lib::centered::Centered,
-        traits::{handleaction::HandleActionSimple, renderable::Renderable},
+        traits::{
+            handleaction::HandleActionSimple,
+            handlekeyseq::{HandleKeySeq, KeySeqResult},
+            renderable::Renderable,
+        },
     },
     helper::strings::trim_long_str,
     lyricsclient::getlyrics::GetLyricsParams,
@@ -17,6 +21,7 @@ use crate::{
         query::{ResponseType, ToQueryWorker},
     },
 };
+use crossterm::event::KeyEvent;
 use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::Stylize,
@@ -83,6 +88,12 @@ impl Playing {
                 None,
             )
         }
+    }
+}
+
+impl HandleKeySeq for Playing {
+    fn handle_key_seq(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
+        todo!()
     }
 }
 

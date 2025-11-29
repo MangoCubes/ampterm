@@ -67,7 +67,7 @@ impl OnTick for BPMToy {
 impl BPMToy {
     pub fn new(config: Config) -> Self {
         let keys = config
-            .keybindings
+            .global
             .find_action_str(Action::User(UserAction::Global(Global::TapToBPM)), None);
         let msg = match keys {
             Some(t) => format!("Tap {} for BPM", t),
@@ -79,7 +79,56 @@ impl BPMToy {
             state: State::Init(Centered::new(vec![msg])),
         }
     }
+
+    pub fn on_tap(&mut self) {
+        self.state = match &self.state {
+            State::Init(_centered) => State::NeedToTapMore {
+                last_tap: Instant::now(),
+                comp: Centered::new(vec!["Continue tapping...".to_string()]),
+            },
+            State::NeedToTapMore { last_tap, comp: _ } => {
+                let elapsed = last_tap.elapsed();
+                if elapsed > Duration::from_secs(3) {
+                    State::NeedToTapMore {
+                        last_tap: Instant::now(),
+                        comp: Centered::new(vec!["Continue tapping...".to_string()]),
+                    }
+                } else {
+                    State::Running {
+                        interval_count: 1,
+                        last_tap: Instant::now(),
+                        total_len: elapsed.as_secs_f64(),
+                        comp: Centered::new(vec!["Continue tapping...".to_string()]),
+                    }
+                }
+            }
+            State::Running {
+                last_tap,
+                total_len,
+                comp: _,
+                interval_count,
+            } => {
+                let elapsed = last_tap.elapsed();
+                if elapsed > Duration::from_secs(3) {
+                    State::NeedToTapMore {
+                        last_tap: Instant::now(),
+                        comp: Centered::new(vec!["Continue tapping...".to_string()]),
+                    }
+                } else {
+                    let total_len = total_len + last_tap.elapsed().as_secs_f64();
+                    let bpm = 60.0 / (total_len / ((*interval_count + 1) as f64));
+                    State::Running {
+                        interval_count: interval_count + 1,
+                        last_tap: Instant::now(),
+                        total_len,
+                        comp: Centered::new(vec![format!("BPM: {:.2}", bpm)]),
+                    }
+                }
+            }
+        };
+    }
 }
+
 impl Renderable for BPMToy {
     fn draw(&mut self, frame: &mut Frame, area: Rect) {
         let block = Block::bordered().border_style(Style::new().white());
@@ -94,58 +143,6 @@ impl Renderable for BPMToy {
                 total_len: _,
                 interval_count: _,
             } => comp.draw(frame, inner),
-        }
-    }
-}
-
-impl HandleActionSimple for BPMToy {
-    fn handle_action_simple(&mut self, action: Action) {
-        if let Action::User(UserAction::Global(Global::TapToBPM)) = action {
-            self.state = match &self.state {
-                State::Init(_centered) => State::NeedToTapMore {
-                    last_tap: Instant::now(),
-                    comp: Centered::new(vec!["Continue tapping...".to_string()]),
-                },
-                State::NeedToTapMore { last_tap, comp: _ } => {
-                    let elapsed = last_tap.elapsed();
-                    if elapsed > Duration::from_secs(3) {
-                        State::NeedToTapMore {
-                            last_tap: Instant::now(),
-                            comp: Centered::new(vec!["Continue tapping...".to_string()]),
-                        }
-                    } else {
-                        State::Running {
-                            interval_count: 1,
-                            last_tap: Instant::now(),
-                            total_len: elapsed.as_secs_f64(),
-                            comp: Centered::new(vec!["Continue tapping...".to_string()]),
-                        }
-                    }
-                }
-                State::Running {
-                    last_tap,
-                    total_len,
-                    comp: _,
-                    interval_count,
-                } => {
-                    let elapsed = last_tap.elapsed();
-                    if elapsed > Duration::from_secs(3) {
-                        State::NeedToTapMore {
-                            last_tap: Instant::now(),
-                            comp: Centered::new(vec!["Continue tapping...".to_string()]),
-                        }
-                    } else {
-                        let total_len = total_len + last_tap.elapsed().as_secs_f64();
-                        let bpm = 60.0 / (total_len / ((*interval_count + 1) as f64));
-                        State::Running {
-                            interval_count: interval_count + 1,
-                            last_tap: Instant::now(),
-                            total_len,
-                            comp: Centered::new(vec![format!("BPM: {:.2}", bpm)]),
-                        }
-                    }
-                }
-            };
         }
     }
 }

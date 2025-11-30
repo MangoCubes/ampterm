@@ -1,3 +1,4 @@
+use crossterm::event::KeyEvent;
 use ratatui::{
     layout::{Constraint, Rect},
     style::{Color, Style, Stylize},
@@ -6,19 +7,21 @@ use ratatui::{
 };
 
 use crate::{
-    action::{
-        useraction::{Common, Global, UserAction},
-        Action, FromPlayerWorker, QueueAction, Selection,
-    },
+    action::action::{Action, QueueAction, TargetedAction},
     components::{
         home::mainscreen::playqueue::PlayQueue,
         lib::visualtable::{VisualSelection, VisualTable},
-        traits::{focusable::Focusable, handleaction::HandleAction, renderable::Renderable},
+        traits::{
+            focusable::Focusable,
+            handleaction::HandleAction,
+            handlekeyseq::{HandleKeySeq, KeySeqResult},
+            renderable::Renderable,
+        },
     },
-    config::Config,
-    helper::selection::ModifiableList,
+    config::{keybindings::KeyBindings, localkeybinds::PlayQueueAction, Config},
+    helper::selection::{ModifiableList, Selection},
     osclient::response::getplaylist::Media,
-    playerworker::player::{QueueLocation, ToPlayerWorker},
+    playerworker::player::{FromPlayerWorker, QueueLocation, ToPlayerWorker},
     queryworker::{
         highlevelquery::HighLevelQuery,
         query::{getplaylist::MediaID, ToQueryWorker},
@@ -83,9 +86,10 @@ impl Something {
         )));
         (
             Self {
-                config,
+                config: config.clone(),
                 enabled,
                 table: VisualTable::new(
+                    config,
                     Self::gen_rows_from(&list, &CurrentItem::InQueue(0)),
                     [Constraint::Max(1), Constraint::Min(0), Constraint::Max(1)].to_vec(),
                     table_proc,
@@ -96,14 +100,14 @@ impl Something {
             action,
         )
     }
-    pub fn set_star(&mut self, media: MediaID, star: bool) -> Option<Action> {
+    pub fn set_star(&mut self, media: &MediaID, star: bool) -> Option<Action> {
         self.list.0 = self
             .list
             .0
             .clone()
             .into_iter()
             .map(|mut m| {
-                if m.id == media {
+                if m.id == *media {
                     m.starred = if star {
                         Some("Starred".to_string())
                     } else {
@@ -289,9 +293,12 @@ impl Renderable for Something {
 }
 
 impl HandleAction for Something {
-    fn handle_action(&mut self, action: Action) -> Option<Action> {
+    fn handle_action(&mut self, action: TargetedAction) -> Option<Action> {
         match action {
-            Action::Queue(a) => match a {
+            TargetedAction::Skip => Some(self.skip(1)),
+            TargetedAction::Previous => Some(self.skip(-1)),
+            TargetedAction::FromPlayerWorker(FromPlayerWorker::Finished) => Some(self.skip(1)),
+            TargetedAction::Queue(a) => match a {
                 QueueAction::Add(items, at) => {
                     let max = self.list.0.len();
                     let idx = match at {
@@ -321,115 +328,114 @@ impl HandleAction for Something {
                     }
                 }
             },
-            Action::ToQueryWorker(ToQueryWorker {
-                dest: _,
-                ticket: _,
-                query,
-            }) => match query {
-                HighLevelQuery::SetStar { media, star } => self.set_star(media, star),
-                _ => None,
-            },
-            Action::FromPlayerWorker(a) => match a {
-                FromPlayerWorker::Finished => Some(self.skip(1)),
-                _ => None,
-            },
-            Action::User(UserAction::Global(a)) => match a {
-                Global::Skip => Some(self.skip(1)),
-                Global::Previous => Some(self.skip(-1)),
-                _ => None,
-            },
-            Action::User(UserAction::Common(a)) => match a {
-                Common::Delete => {
-                    let (vs, action) = self.table.get_selection_reset();
-                    let selection = match vs {
-                        VisualSelection::Single(index) => Selection::Single(index),
-                        VisualSelection::TempSelection(start, end) => Selection::Range(start, end),
-                        VisualSelection::Selection(items) => Selection::Multiple(items),
-                        VisualSelection::None { unselect: _ } => {
-                            return action;
-                        }
-                    };
-
-                    match self.now_playing {
-                        CurrentItem::InQueue(idx) => {
-                            if let Some((newidx, deleted)) = self.list.move_item_to(&selection, idx)
-                            {
-                                self.now_playing = if deleted {
-                                    CurrentItem::NotInQueue(newidx, self.list.0[idx].clone())
-                                } else {
-                                    CurrentItem::InQueue(newidx)
-                                };
-                            } else {
-                                self.now_playing = CurrentItem::BeforeFirst;
-                            }
-                        }
-                        CurrentItem::NotInQueue(idx, _) => {
-                            if let Some((newidx, _)) = self.list.move_item_to(&selection, idx) {
-                                self.now_playing =
-                                    CurrentItem::NotInQueue(newidx, self.list.0[idx].clone())
-                            } else {
-                                self.now_playing = CurrentItem::BeforeFirst;
-                            }
-                        }
-                        _ => (),
-                    }
-
-                    self.list.delete(&selection);
-                    self.regen_rows();
-
-                    action
-                }
-                Common::ToggleStar => {
-                    let (selection, action) = self.table.get_selection_reset();
-                    let mut items: Vec<Action> = match selection {
-                        VisualSelection::Single(idx) => {
-                            let item = self.list.0[idx].clone();
-                            vec![(item.id, item.starred == None)]
-                        }
-                        VisualSelection::TempSelection(start, end) => self.list.0[start..=end]
-                            .iter()
-                            .map(|m| (m.id.clone(), m.starred == None))
-                            .collect(),
-                        VisualSelection::Selection(items) => self
-                            .list
-                            .0
-                            .iter()
-                            .zip(items.iter())
-                            .filter_map(|(m, &selected)| {
-                                if selected {
-                                    Some((m.id.clone(), m.starred == None))
-                                } else {
-                                    None
-                                }
-                            })
-                            .collect(),
-                        VisualSelection::None { unselect: _ } => vec![],
-                    }
-                    .into_iter()
-                    .map(|(id, star)| {
-                        Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::SetStar {
-                            media: id,
-                            star,
-                        }))
-                    })
-                    .collect();
-
-                    if let Some(a) = action {
-                        items.push(a);
-                    }
-
-                    Some(Action::Multiple(items))
-                }
-                Common::Confirm => match self.table.get_current() {
-                    Some(idx) => Some(self.skip_to(CurrentItem::InQueue(idx))),
-                    None => None,
-                },
-                _ => self
-                    .table
-                    .handle_action(Action::User(UserAction::Common(a))),
-            },
-            _ => self.table.handle_action(action),
+            _ => None,
         }
+    }
+}
+
+impl HandleKeySeq<PlayQueueAction> for Something {
+    fn pass_to_lower_comp(&self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
+        self.table.handle_key_seq(keyseq)
+    }
+
+    fn handle_local_action(&mut self, action: PlayQueueAction) -> KeySeqResult {
+        match action {
+            PlayQueueAction::Delete => {
+                let (vs, action) = self.table.get_selection_reset();
+                let selection = match vs {
+                    VisualSelection::Single(index) => Selection::Single(index),
+                    VisualSelection::TempSelection(start, end) => Selection::Range(start, end),
+                    VisualSelection::Selection(items) => Selection::Multiple(items),
+                    VisualSelection::None { unselect: _ } => {
+                        return match action {
+                            Some(a) => KeySeqResult::ActionNeeded(a),
+                            None => KeySeqResult::NoActionNeeded,
+                        }
+                    }
+                };
+
+                match self.now_playing {
+                    CurrentItem::InQueue(idx) => {
+                        if let Some((newidx, deleted)) = self.list.move_item_to(&selection, idx) {
+                            self.now_playing = if deleted {
+                                CurrentItem::NotInQueue(newidx, self.list.0[idx].clone())
+                            } else {
+                                CurrentItem::InQueue(newidx)
+                            };
+                        } else {
+                            self.now_playing = CurrentItem::BeforeFirst;
+                        }
+                    }
+                    CurrentItem::NotInQueue(idx, _) => {
+                        if let Some((newidx, _)) = self.list.move_item_to(&selection, idx) {
+                            self.now_playing =
+                                CurrentItem::NotInQueue(newidx, self.list.0[idx].clone())
+                        } else {
+                            self.now_playing = CurrentItem::BeforeFirst;
+                        }
+                    }
+                    _ => (),
+                }
+
+                self.list.delete(&selection);
+                self.regen_rows();
+
+                match action {
+                    Some(a) => KeySeqResult::ActionNeeded(a),
+                    None => KeySeqResult::NoActionNeeded,
+                }
+            }
+            PlayQueueAction::ToggleStar => {
+                let (selection, action) = self.table.get_selection_reset();
+                let mut items: Vec<Action> = match selection {
+                    VisualSelection::Single(idx) => {
+                        let item = self.list.0[idx].clone();
+                        vec![(item.id, item.starred == None)]
+                    }
+                    VisualSelection::TempSelection(start, end) => self.list.0[start..=end]
+                        .iter()
+                        .map(|m| (m.id.clone(), m.starred == None))
+                        .collect(),
+                    VisualSelection::Selection(items) => self
+                        .list
+                        .0
+                        .iter()
+                        .zip(items.iter())
+                        .filter_map(|(m, &selected)| {
+                            if selected {
+                                Some((m.id.clone(), m.starred == None))
+                            } else {
+                                None
+                            }
+                        })
+                        .collect(),
+                    VisualSelection::None { unselect: _ } => vec![],
+                }
+                .into_iter()
+                .map(|(id, star)| {
+                    self.set_star(&id, star);
+                    Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::SetStar {
+                        media: id,
+                        star,
+                    }))
+                })
+                .collect();
+
+                if let Some(a) = action {
+                    items.push(a);
+                }
+
+                KeySeqResult::ActionNeeded(Action::Multiple(items))
+            }
+            PlayQueueAction::Confirm => match self.table.get_current() {
+                Some(idx) => KeySeqResult::ActionNeeded(self.skip_to(CurrentItem::InQueue(idx))),
+                None => KeySeqResult::NoActionNeeded,
+            },
+        }
+    }
+
+    fn get_keybinds(&self) -> &KeyBindings<PlayQueueAction> {
+        &self.config.local.playqueue
     }
 }
 

@@ -7,17 +7,16 @@ mod tasks;
 
 use crate::{
     action::{
+        action::Mode,
         useraction::{Global, Normal, UserAction},
-        Action, FromPlayerWorker,
     },
-    app::Mode,
     compid::CompID,
     components::{
         home::mainscreen::{bpmtoy::BPMToy, tasks::Tasks},
         traits::{
             focusable::Focusable,
             handleaction::{HandleAction, HandleActionSimple},
-            handlekeyseq::{HandleKeySeq, KeySeqResult},
+            handlekeyseq::{HandleKeySeq, KeySeqResult, PassKeySeq},
             handleraw::HandleRaw,
             ontick::OnTick,
             renderable::Renderable,
@@ -72,9 +71,9 @@ impl OnTick for MainScreen {
     }
 }
 
-impl HandleKeySeq for MainScreen {
+impl PassKeySeq for MainScreen {
     fn handle_key_seq(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
-        let res = if self.show_tasks {
+        if self.show_tasks {
             None
         } else {
             match self.state {
@@ -83,7 +82,7 @@ impl HandleKeySeq for MainScreen {
                 CurrentlySelected::PlayQueue => self.playqueue.handle_key_seq(keyseq),
                 CurrentlySelected::NowPlaying(_) => self.now_playing.handle_key_seq(keyseq),
             }
-        };
+        }
     }
 }
 

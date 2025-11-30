@@ -1,3 +1,4 @@
+use crossterm::event::KeyEvent;
 use ratatui::{
     layout::Rect,
     style::{Modifier, Style, Stylize},
@@ -7,10 +8,15 @@ use ratatui::{
 };
 
 use crate::{
-    action::{Action, QueueAction},
+    action::action::{Action, QueueAction, TargetedAction},
     components::{
         home::mainscreen::playqueue::{nothing::Nothing, something::Something},
-        traits::{focusable::Focusable, handleaction::HandleAction, renderable::Renderable},
+        traits::{
+            focusable::Focusable,
+            handleaction::HandleAction,
+            handlekeyseq::{HandleKeySeq, KeySeqResult, PassKeySeq},
+            renderable::Renderable,
+        },
     },
     config::Config,
 };
@@ -27,6 +33,15 @@ pub struct PlayQueue {
     comp: Comp,
     enabled: bool,
     config: Config,
+}
+
+impl PassKeySeq for PlayQueue {
+    fn handle_key_seq(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
+        match &mut self.comp {
+            Comp::Something(something) => something.handle_key_seq(keyseq),
+            Comp::Nothing(_) => None,
+        }
+    }
 }
 
 impl PlayQueue {
@@ -66,12 +81,12 @@ impl Renderable for PlayQueue {
 }
 
 impl HandleAction for PlayQueue {
-    fn handle_action(&mut self, action: Action) -> Option<Action> {
+    fn handle_action(&mut self, action: TargetedAction) -> Option<Action> {
         if let Comp::Something(s) = &mut self.comp {
             s.handle_action(action)
         } else {
             match action {
-                Action::Queue(QueueAction::Add(items, _)) => {
+                TargetedAction::Queue(QueueAction::Add(items, _)) => {
                     let (comp, action) = Something::new(self.enabled, items, self.config.clone());
                     self.comp = Comp::Something(comp);
                     Some(action)

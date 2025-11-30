@@ -10,13 +10,6 @@ pub enum Global {
     /// Action for deleting all key sequences currently stored
     /// It's like escape in Vim, and Ctrl+G in Emacs
     EndKeySeq,
-    TapToBPM,
-    FocusPlaylistList,
-    FocusPlaylistQueue,
-    FocusPlayQueue,
-    OpenTasks,
-    CloseTasks,
-    ToggleTasks,
 
     Skip,
     Previous,
@@ -26,13 +19,6 @@ impl ToString for Global {
     fn to_string(&self) -> String {
         match self {
             Global::EndKeySeq => "Cancel command".to_string(),
-            Global::TapToBPM => "Tap to BPM".to_string(),
-            Global::FocusPlaylistList => "Focus playlist list".to_string(),
-            Global::FocusPlaylistQueue => "Focus playlist queue".to_string(),
-            Global::FocusPlayQueue => "Focus play queue".to_string(),
-            Global::OpenTasks => "Open tasks view".to_string(),
-            Global::CloseTasks => "Close tasks view".to_string(),
-            Global::ToggleTasks => "Toggle tasks view".to_string(),
             Global::Skip => "Skip to next music".to_string(),
             Global::Previous => "Go back to previous music".to_string(),
         }
@@ -110,40 +96,11 @@ impl ToString for Visual {
     }
 }
 
-/// Similarly, these actions are relevant only when the program is in Normal mode.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum Normal {
-    // Action for moving between boxes
-    WindowUp,
-    WindowDown,
-    WindowLeft,
-    WindowRight,
-    // Enter visual mode to select items
-    SelectMode,
-    // Enter visual mode to deselect items
-    DeselectMode,
-}
-
-impl ToString for Normal {
-    fn to_string(&self) -> String {
-        match self {
-            Normal::WindowUp => "Move window up",
-            Normal::WindowDown => "Move window down",
-            Normal::WindowLeft => "Move window left",
-            Normal::WindowRight => "Move window right",
-            Normal::SelectMode => "Enter visual mode (select)",
-            Normal::DeselectMode => "Enter visual mode (deselect)",
-        }
-        .to_string()
-    }
-}
-
 /// These actions corresponds to user actions
 /// Additionally, these actions are limited to the currently focused component only
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum UserAction {
     Common(Common),
-    Normal(Normal),
     Visual(Visual),
     Global(Global),
 }

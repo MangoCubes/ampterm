@@ -35,11 +35,33 @@ pub enum QueueAction {
 pub enum TargetedAction {
     Play,
     Pause,
+    Skip,
+    Previous,
     Queue(QueueAction),
+
+    // Action for moving between boxes
+    WindowUp,
+    WindowDown,
+    WindowLeft,
+    WindowRight,
+
+    TapToBPM,
+    FocusPlaylistList,
+    FocusPlaylistQueue,
+    FocusPlayQueue,
+    OpenTasks,
+    CloseTasks,
+    ToggleTasks,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum QueryAction {
     /// Handle response from the player worker in response to the previous request
     FromPlayerWorker(FromPlayerWorker),
     /// Receive a response from the query worker in response to the previous request
     FromQueryWorker(FromQueryWorker),
+    ToPlayerWorker(ToPlayerWorker),
+    ToQueryWorker(ToQueryWorker),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -54,4 +76,5 @@ pub enum Action {
     Quit,
     Resize(u16, u16),
     ChangeMode(Mode),
+    Query(QueryAction),
 }

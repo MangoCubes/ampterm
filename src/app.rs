@@ -12,6 +12,7 @@ use crate::{
         traits::{
             handleaction::HandleAction,
             handlekeyseq::{KeySeqResult, PassKeySeq},
+            handlequery::HandleQuery,
             ontick::OnTick,
             renderable::Renderable,
         },
@@ -164,6 +165,12 @@ impl App {
                 Action::ToPlayerWorker(action) => self.player_tx.send(action)?,
                 Action::ToQueryWorker(action) => self.query_tx.send(action)?,
                 Action::ChangeMode(mode) => self.mode = mode,
+                Action::Query(query_action) => {
+                    if let Some(more) = self.component.handle_query(query_action) {
+                        debug!("Got {more:?} as a response");
+                        self.action_tx.send(more)?
+                    }
+                }
             };
         }
         Ok(())

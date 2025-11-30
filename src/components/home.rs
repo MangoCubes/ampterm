@@ -12,10 +12,10 @@ use mainscreen::MainScreen;
 use ratatui::{layout::Rect, Frame};
 
 use crate::{
-    action::Action,
+    action::action::{Action, QueryAction, TargetedAction},
     components::traits::{
-        handleaction::HandleAction, handlekeyseq::HandleKeySeq, handleraw::HandleRaw,
-        ontick::OnTick, renderable::Renderable,
+        handleaction::HandleAction, handlekeyseq::PassKeySeq, handlequery::HandleQuery,
+        handleraw::HandleRaw, ontick::OnTick, renderable::Renderable,
     },
     config::{pathconfig::PathConfig, Config},
     queryworker::{
@@ -45,11 +45,20 @@ impl OnTick for Home {
     }
 }
 
-impl HandleKeySeq for Home {
+impl PassKeySeq for Home {
     fn handle_key_seq(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
         match &mut self.component {
             Comp::Main(main_screen) => main_screen.handle_key_seq(keyseq),
             Comp::Login(_) | Comp::Loading(_) => Some(KeySeqResult::NoActionNeeded),
+        }
+    }
+}
+
+impl HandleAction for Home {
+    fn handle_action(&mut self, action: TargetedAction) -> Option<Action> {
+        match &mut self.component {
+            Comp::Main(main_screen) => main_screen.handle_action(action),
+            Comp::Login(_) | Comp::Loading(_) => None,
         }
     }
 }
@@ -150,38 +159,43 @@ impl HandleRaw for Home {
     }
 }
 
-impl HandleAction for Home {
-    fn handle_action(&mut self, action: Action) -> Option<Action> {
-        // Child component can change in two cases:
-        // 1. Login is successful regardless of the current child component
-        // 2. Login with the config credentials fails
-        if let Action::FromQueryWorker(res) = &action {
-            if let ResponseType::Ping(pr) = &res.res {
-                match pr {
-                    Ok(()) => {
-                        // Switch child component to MainScreen
-                        let (comp, actions) = MainScreen::new(self.config.clone());
-                        self.component = Comp::Main(comp);
-                        return Some(actions);
-                    }
-                    Err(err) => {
-                        if let Comp::Loading(l) = &self.component {
-                            // Switch child component to Login
-                            let (comp, action) = Login::new(
-                                Some(vec![
+impl HandleQuery for Home {
+    fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
+        match &mut self.component {
+            Comp::Main(main_screen) => main_screen.handle_query(action),
+            Comp::Login(_) | Comp::Loading(_) => {
+                // Child component can change in two cases:
+                // 1. Login is successful regardless of the current child component
+                // 2. Login with the config credentials fails
+                if let QueryAction::FromQueryWorker(res) = &action {
+                    if let ResponseType::Ping(pr) = &res.res {
+                        match pr {
+                            Ok(()) => {
+                                // Switch child component to MainScreen
+                                let (comp, actions) = MainScreen::new(self.config.clone());
+                                self.component = Comp::Main(comp);
+                                return Some(actions);
+                            }
+                            Err(err) => {
+                                if let Comp::Loading(l) = &self.component {
+                                    // Switch child component to Login
+                                    let (comp, action) = Login::new(
+                                        Some(vec![
                                     "Failed to query the server with the given credentials!"
                                         .to_string(),
                                     format!("Error: {}", err),
                                 ]),
-                                self.config.clone(),
-                            );
-                            self.component = Comp::Login(comp);
-                            return Some(action);
+                                        self.config.clone(),
+                                    );
+                                    self.component = Comp::Login(comp);
+                                    return Some(action);
+                                }
+                            }
                         }
-                    }
-                }
-            };
-        };
-        None
+                    };
+                };
+                None
+            }
+        }
     }
 }

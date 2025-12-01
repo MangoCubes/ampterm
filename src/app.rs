@@ -190,6 +190,7 @@ impl App {
                 Action::ToQueryWorker(action) => self.query_tx.send(action)?,
                 Action::ChangeMode(mode) => self.mode = mode,
                 Action::Query(query_action) => {
+                    debug!("Handling query: {query_action:?}");
                     if let Some(more) = self.component.handle_query(query_action) {
                         debug!("Got {more:?} as a response");
                         self.action_tx.send(more)?

@@ -13,8 +13,8 @@ use crate::{
     components::{
         lib::checkbox::Checkbox,
         traits::{
-            focusable::Focusable, handleaction::HandleAction, handlequery::HandleQuery,
-            handleraw::HandleRaw, renderable::Renderable,
+            focusable::Focusable, handlequery::HandleQuery, handleraw::HandleRaw,
+            renderable::Renderable,
         },
     },
     config::Config,

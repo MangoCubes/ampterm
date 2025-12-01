@@ -29,19 +29,3 @@ pub enum CompID {
     NowPlaying,
     All,
 }
-
-macro_rules! mainscreen_comps {
-    () => {
-        CompID::PlaylistList
-            | CompID::PlaylistQueue
-            | CompID::PlayQueue
-            | CompID::Tasks
-            | CompID::NowPlaying
-    };
-}
-
-macro_rules! home_comps {
-    () => {
-        CompID::Login | mainscreen_comps!()
-    };
-}

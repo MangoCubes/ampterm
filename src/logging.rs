@@ -2,7 +2,7 @@ use color_eyre::Result;
 use tracing_error::ErrorLayer;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
-use crate::config::{self, pathconfig::PathConfig, Config};
+use crate::config::{self, pathconfig::PathConfig};
 
 lazy_static::lazy_static! {
     pub static ref LOG_ENV: String = format!("{}_LOG_LEVEL", config::PROJECT_NAME.clone());

@@ -12,7 +12,7 @@ use serde::de::DeserializeOwned;
 use serde_json::from_str;
 use std::error::Error;
 use std::fmt::Debug;
-use tracing::{debug, info};
+use tracing::debug;
 
 mod error;
 pub mod response;

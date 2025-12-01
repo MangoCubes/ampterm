@@ -1,8 +1,6 @@
-use std::path::PathBuf;
-
 use clap::Parser;
 
-use crate::config::{pathconfig::PathConfig, Config};
+use crate::config::pathconfig::PathConfig;
 
 #[derive(Parser, Debug)]
 #[command(author, version = version(), about)]

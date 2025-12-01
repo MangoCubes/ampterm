@@ -134,7 +134,7 @@ impl QueryWorker {
                             let cc = c.clone();
                             tokio::spawn(async move {
                                 let res = QueryWorker::get_playlists(cc).await;
-                                tx.send(Action::Query(QueryAction::FromQueryWorker(
+                                let _ = tx.send(Action::Query(QueryAction::FromQueryWorker(
                                     FromQueryWorker::new(
                                         event.dest,
                                         event.ticket,

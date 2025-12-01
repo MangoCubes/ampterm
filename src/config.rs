@@ -8,7 +8,6 @@ mod lyricsconfig;
 pub mod pathconfig;
 mod styleconfig;
 
-use crossterm::event::KeyEvent;
 use keybindings::KeyBindings;
 use std::{collections::HashMap, env};
 
@@ -72,12 +71,6 @@ lazy_static! {
 const CONFIG: &str = include_str!("../.config/config.json5");
 
 impl Config {
-    pub fn merge<T>(addition: HashMap<KeyEvent, T>, to: &mut HashMap<KeyEvent, T>) {
-        for (key, cmd) in addition.into_iter() {
-            to.entry(key.clone()).or_insert(cmd);
-        }
-    }
-
     pub fn new(paths: PathConfig) -> Result<Self, config::ConfigError> {
         let default_config: Config = json5::from_str(CONFIG).unwrap();
         let mut builder =
@@ -113,6 +106,31 @@ impl Config {
         // Add user config on top of the default config
         for (key, cmd) in default_config.global.iter() {
             cfg.global.entry(key.clone()).or_insert_with(|| cmd.clone());
+        }
+
+        macro_rules! insert_keybinds {
+            ($name:ident) => {
+                for (key, cmd) in default_config.local.$name.iter() {
+                    cfg.local
+                        .$name
+                        .entry(key.clone())
+                        .or_insert_with(|| cmd.clone());
+                }
+            };
+        }
+
+        insert_keybinds!(list);
+        insert_keybinds!(list_visual);
+        insert_keybinds!(playqueue);
+        insert_keybinds!(lyrics);
+        insert_keybinds!(playlistlist);
+        insert_keybinds!(playlistqueue);
+
+        for (key, cmd) in default_config.local.playqueue.iter() {
+            cfg.local
+                .playqueue
+                .entry(key.clone())
+                .or_insert_with(|| cmd.clone());
         }
 
         // Add user styles on top of the default config

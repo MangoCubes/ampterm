@@ -6,7 +6,7 @@ use tokio::sync::mpsc::{self};
 use tracing::debug;
 
 use crate::{
-    action::action::{Action, Mode},
+    action::action::{Action, Mode, TargetedAction},
     components::{
         home::Home,
         traits::{
@@ -151,12 +151,36 @@ impl App {
                         self.action_tx.send(a)?
                     }
                 }
-                Action::Targeted(targeted_action) => {
-                    if let Some(more) = self.component.handle_action(targeted_action) {
-                        debug!("Got {more:?} as a response");
-                        self.action_tx.send(more)?
+                Action::Targeted(targeted_action) => match targeted_action {
+                    TargetedAction::Play => {
+                        let _ = self.player_tx.send(ToPlayerWorker::Resume);
                     }
-                }
+                    TargetedAction::Pause => {
+                        let _ = self.player_tx.send(ToPlayerWorker::Pause);
+                    }
+                    TargetedAction::PlayOrPause => {
+                        let _ = self.player_tx.send(ToPlayerWorker::ResumeOrPause);
+                    }
+                    TargetedAction::ChangeVolume(delta) => {
+                        let _ = self.player_tx.send(ToPlayerWorker::ChangeVolume(delta));
+                    }
+                    TargetedAction::GoToStart => {
+                        let _ = self.player_tx.send(ToPlayerWorker::GoToStart);
+                    }
+                    TargetedAction::EndKeySeq => {
+                        self.key_stack.drain(..);
+                        if let Some(more) = self.component.handle_action(targeted_action) {
+                            debug!("Got {more:?} as a response");
+                            self.action_tx.send(more)?
+                        }
+                    }
+                    _ => {
+                        if let Some(more) = self.component.handle_action(targeted_action) {
+                            debug!("Got {more:?} as a response");
+                            self.action_tx.send(more)?
+                        }
+                    }
+                },
                 Action::Resize(w, h) => self.handle_resize(tui, w, h)?,
                 Action::Suspend => self.should_suspend = true,
                 Action::Resume => self.should_suspend = false,

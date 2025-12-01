@@ -13,7 +13,7 @@ use crate::{
         traits::{
             focusable::Focusable,
             handleaction::HandleAction,
-            handlekeyseq::{HandleKeySeq, KeySeqResult, PassKeySeq},
+            handlekeyseq::{KeySeqResult, PassKeySeq},
             handlequery::HandleQuery,
             handleraw::HandleRaw,
             ontick::OnTick,
@@ -86,26 +86,13 @@ impl PassKeySeq for MainScreen {
 }
 
 impl MainScreen {
-    fn propagate_to_focused_component(&mut self, action: TargetedAction) -> Option<Action> {
-        if self.show_tasks {
-            // self.tasks.update(action)
-            None
-        } else {
-            match self.state {
-                CurrentlySelected::PlaylistList => self.pl_list.handle_action(action),
-                CurrentlySelected::Playlist => self.pl_queue.handle_action(action),
-                CurrentlySelected::PlayQueue => self.playqueue.handle_action(action),
-                CurrentlySelected::NowPlaying(_) => self.now_playing.handle_action(action),
-            }
-        }
-    }
     pub fn new(config: Config) -> (Self, Action) {
         (
             Self {
                 state: CurrentlySelected::PlaylistList,
                 current_mode: Mode::Normal,
                 pl_list: PlaylistList::new(config.clone(), true),
-                pl_queue: PlaylistQueue::new(false),
+                pl_queue: PlaylistQueue::new(config.clone(), false),
                 playqueue: PlayQueue::new(false, config.clone()),
                 now_playing: NowPlaying::new(false, config.clone()),
                 tasks: Tasks::new(config.behaviour.show_internal_tasks),
@@ -210,7 +197,7 @@ impl HandleRaw for MainScreen {
 impl HandleQuery for MainScreen {
     fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
         match action {
-            QueryAction::ToQueryWorker(req) => {
+            QueryAction::ToQueryWorker(ref req) => {
                 let _ = self.tasks.register_task(req.clone());
                 let mut results = vec![];
 
@@ -229,7 +216,7 @@ impl HandleQuery for MainScreen {
                 }
                 Some(Action::Multiple(results))
             }
-            QueryAction::FromQueryWorker(res) => {
+            QueryAction::FromQueryWorker(ref res) => {
                 let _ = self.tasks.unregister_task(&res);
                 let mut results = vec![];
 
@@ -248,7 +235,7 @@ impl HandleQuery for MainScreen {
                 }
                 Some(Action::Multiple(results))
             }
-            QueryAction::FromPlayerWorker(pw) => match pw {
+            QueryAction::FromPlayerWorker(ref pw) => match pw {
                 FromPlayerWorker::StateChange(_) => {
                     let results: Vec<Action> = [
                         self.now_playing.handle_query(action.clone()),
@@ -274,7 +261,7 @@ impl HandleQuery for MainScreen {
 impl HandleAction for MainScreen {
     fn handle_action(&mut self, action: TargetedAction) -> Option<Action> {
         match action {
-            TargetedAction::Play | TargetedAction::Pause => self.now_playing.handle_action(action),
+            TargetedAction::EndKeySeq => None,
             TargetedAction::Queue(_) | TargetedAction::Skip | TargetedAction::Previous => {
                 self.playqueue.handle_action(action)
             }
@@ -358,6 +345,7 @@ impl HandleAction for MainScreen {
                 self.show_tasks = !self.show_tasks;
                 None
             }
+            _ => None,
         }
     }
 }

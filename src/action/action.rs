@@ -35,9 +35,12 @@ pub enum QueueAction {
 pub enum TargetedAction {
     Play,
     Pause,
+    PlayOrPause,
     Skip,
     Previous,
     Queue(QueueAction),
+    GoToStart,
+    ChangeVolume(f32),
 
     // Action for moving between boxes
     WindowUp,
@@ -52,6 +55,8 @@ pub enum TargetedAction {
     OpenTasks,
     CloseTasks,
     ToggleTasks,
+
+    EndKeySeq,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

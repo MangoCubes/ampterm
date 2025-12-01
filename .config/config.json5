@@ -72,6 +72,7 @@
 		},
 		"lyrics": {},
 		"playlistlist": {
+			// The playlist list does not use visual table, which is why up/down stuff needs binding.
 			"<k>": "Up",
 			"<j>": "Down",
 			// "<h>": "Left",
@@ -117,5 +118,8 @@
     },
 	"behaviour": {
 		"auto_focus": true,
+	},
+	"lyrics": {
+		"enable": true,
 	},
 }

@@ -88,7 +88,10 @@ impl HandleQuery for NowPlaying {
                     None
                 }
             },
-            _ => None,
+            _ => match &mut self.comp {
+                Comp::Playing(playing) => playing.handle_query(action),
+                Comp::Stopped(_) => None,
+            },
         }
     }
 }

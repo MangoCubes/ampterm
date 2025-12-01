@@ -12,10 +12,10 @@ use mainscreen::MainScreen;
 use ratatui::{layout::Rect, Frame};
 
 use crate::{
-    action::action::{Action, QueryAction, TargetedAction},
+    action::action::{Action, Mode, QueryAction, TargetedAction},
     components::traits::{
-        handleaction::HandleAction, handlekeyseq::PassKeySeq, handlequery::HandleQuery,
-        handleraw::HandleRaw, ontick::OnTick, renderable::Renderable,
+        handleaction::HandleAction, handlekeyseq::PassKeySeq, handlemode::HandleMode,
+        handlequery::HandleQuery, handleraw::HandleRaw, ontick::OnTick, renderable::Renderable,
     },
     config::{pathconfig::PathConfig, Config},
     queryworker::{
@@ -42,6 +42,14 @@ impl OnTick for Home {
         if let Comp::Main(main_screen) = &mut self.component {
             main_screen.on_tick();
         };
+    }
+}
+
+impl HandleMode for Home {
+    fn handle_mode(&mut self, mode: Mode) {
+        if let Comp::Main(main_screen) = &mut self.component {
+            main_screen.handle_mode(mode);
+        }
     }
 }
 

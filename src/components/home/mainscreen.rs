@@ -14,6 +14,7 @@ use crate::{
             focusable::Focusable,
             handleaction::HandleAction,
             handlekeyseq::{KeySeqResult, PassKeySeq},
+            handlemode::HandleMode,
             handlequery::HandleQuery,
             handleraw::HandleRaw,
             ontick::OnTick,
@@ -67,6 +68,12 @@ pub struct MainScreen {
 impl OnTick for MainScreen {
     fn on_tick(&mut self) {
         self.bpmtoy.on_tick();
+    }
+}
+
+impl HandleMode for MainScreen {
+    fn handle_mode(&mut self, mode: Mode) {
+        self.current_mode = mode;
     }
 }
 

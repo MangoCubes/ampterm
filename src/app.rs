@@ -12,6 +12,7 @@ use crate::{
         traits::{
             handleaction::HandleAction,
             handlekeyseq::{KeySeqResult, PassKeySeq},
+            handlemode::HandleMode,
             handlequery::HandleQuery,
             ontick::OnTick,
             renderable::Renderable,
@@ -181,7 +182,9 @@ impl App {
                     }
                 },
                 Action::Resize(w, h) => self.handle_resize(tui, w, h)?,
-                Action::ChangeMode(mode) => self.mode = mode,
+                Action::ChangeMode(mode) => {
+                    self.component.handle_mode(mode);
+                }
                 Action::Query(query_action) => {
                     match &query_action {
                         QueryAction::ToPlayerWorker(to_player_worker) => {

@@ -1,97 +1,105 @@
 {
-  "keybindings": {
-    // In visual mode, these keybindings are used
-    "Visual": {
-	  "<Esc>": { User: { Visual: "ExitDiscard" } },
-	  // All 3 can be used to exit visual mode whilst confirming the selection
-	  "<v>": { User: { Visual: "ExitSave" } },
-	  "<Shift-v>": { User: { Visual: "ExitSave" } },
-	  "<Ctrl-v>": { User: { Visual: "ExitSave" } },
+	"global": {
+		"<Ctrl-w><Left>": "WindowLeft",
+		"<Ctrl-w><Right>": "WindowRight",
+		"<Ctrl-w><Up>": "WindowUp",
+		"<Ctrl-w><Down>": "WindowDown",
+
+		"<Ctrl-w><h>": "WindowLeft",
+		"<Ctrl-w><l>": "WindowRight",
+		"<Ctrl-w><k>": "WindowUp",
+		"<Ctrl-w><j>": "WindowDown",
+
+		"<Space>": "PlayOrPause",
+		"<Shift-Up>": { "ChangeVolume": 0.05 },
+		"<Shift-Down>": { "ChangeVolume": -0.05 },
+		"<0>": "GoToStart",
+
+		"<Shift-k>": "Previous",
+		"<$>": "Skip",
+		"<Shift-j>": "Skip",
+
+		"<Esc>": "EndKeySeq",
+		"<Ctrl-w><q>": "Quit",
+
+		"<t>": "TapToBPM",
+		"<Shift-t>": "ToggleTasks",
+	},
+	"local": {
+		"list": {
+			"<k>": "Up",
+			"<j>": "Down",
+			// "<h>": "Left",
+			// "<l>": "Right",
+
+			"<Up>": "Up",
+			"<Down>": "Down",
+			// "<Left>": "Left",
+			// "<Right>": "Right",
+
+			"<Shift-g>": "Bottom",
+			"<g><g>": "Top",
+
+			"<v>": "SelectMode",
+			"<Shift-v>": "SelectMode",
+			"<Ctrl-v>": "DeselectMode",
+
+			"<g><r>": "ResetSelection",
+		},
+		"list_visual": {
+			"<k>": "Up",
+			"<j>": "Down",
+			// "<h>": "Left",
+			// "<l>": "Right",
+
+			"<Up>": "Up",
+			"<Down>": "Down",
+			// "<Left>": "Left",
+			// "<Right>": "Right",
+
+			"<Shift-g>": "Bottom",
+			"<g><g>": "Top",
+
+			"<Esc>": "ExitDiscard",
+			"<v>": "ExitSave",
+			"<Shift-v>": "ExitSave",
+			"<Ctrl-v>": "ExitSave",
+		},
+		"playqueue": {
+			"<Enter>": "PlaySelected",
+			"<Shift-f>": "ToggleStar",
+			"<d>": "Delete",
+		},
+		"lyrics": {},
+		"playlistlist": {
+			"<Enter>": "ViewSelected",
+
+			"<i>": { "Add": "Front" },
+			"<Shift-i>": { Add: "Front" },
+			"<a>": { Add: "Next" },
+			"<Shift-a>": { Add: "Last" },
+		},
+		"playlistqueue": {
+			"<Shift-r>": "Refresh",
+			"<Shift-f>": "ToggleStar",
+
+			"<i>": { "Add": "Front" },
+			"<Shift-i>": { Add: "Front" },
+			"<a>": { Add: "Next" },
+			"<Shift-a>": { Add: "Last" },
+		},
+	},
+    // Use legacy authentication that sends the password instead of token and salt
+    // This may be necessary if you are using servers like Ampache, which does not support token-based authentication yet
+    "use_legacy_auth": false,
+    "auth": {
+      "url": "echo URL",
+      "username": "echo USERNAME",
+      "password": "echo PASSWORD",
     },
-	// This keybinding is exclusive to normal mode.
-	"Normal": {
-	  // Movement
-	  "<Ctrl-w><Left>": { User: { Normal: "WindowLeft" } },
-	  "<Ctrl-w><Right>": { User: { Normal: "WindowRight" } },
-	  "<Ctrl-w><Up>": { User: { Normal: "WindowUp" } },
-	  "<Ctrl-w><Down>": { User: { Normal: "WindowDown" } },
-
-	  // Movement but with hjkl
-	  "<Ctrl-w><h>": { User: { Normal: "WindowLeft" } },
-	  "<Ctrl-w><l>": { User: { Normal: "WindowRight" } },
-	  "<Ctrl-w><k>": { User: { Normal: "WindowUp" } },
-	  "<Ctrl-w><j>": { User: { Normal: "WindowDown" } },
-
-	  // Visual mode entry
-	  "<v>": { User: { Normal: "SelectMode" } },
-	  "<Shift-v>": { User: { Normal: "SelectMode" } },
-	  "<Ctrl-v>": { User: { Normal: "DeselectMode" } },
-	},
-	// Keybinds that are always available (given it's valid in the current situation, otherwise it will be ignored)
-	// Global actions must be included in this section on order to make it work
-	// Global indicates that the action will propagate to a fixed element
-	// Non-global actions (those that are not marked as "Global") will propagate to a certain component depending on the program's state
-    "Common": {
-	  // General movement
-	  "<k>": { User: { Common: "Up" } },
-	  "<j>": { User: { Common: "Down" } },
-	  "<h>": { User: { Common: "Left" } },
-	  "<l>": { User: { Common: "Right" } },
-
-	  "<Up>": { User: { Common: "Up" } },
-	  "<Down>": { User: { Common: "Down" } },
-	  "<Left>": { User: { Common: "Left" } },
-	  "<Right>": { User: { Common: "Right" } },
-
-	  // Music controller
-	  "<Shift-Up>": { ToPlayerWorker: { ChangeVolume: 0.05 } },
-	  "<Shift-Down>": { ToPlayerWorker: { ChangeVolume: -0.05 } },
-	  "<0>": { ToPlayerWorker: "GoToStart" },
-
-	  "<Shift-k>": { User: { Global: "Previous" } },
-	  "<$>": { User: { Global: "Skip" } },
-	  "<Shift-j>": { User: { Global: "Skip" } },
-
-	  "<c>": { ToPlayerWorker: "Resume" },
-	  "<Shift-c>": { ToPlayerWorker: "Pause" },
-	  "<Space>": { ToPlayerWorker: "ResumeOrPause" },
-
-	  // Advanced Movements
-	  "<Shift-g>": { User: { Common: "Bottom" } },
-	  "<g><g>": { User: { Common: "Top" } },
-	  "<g><r>": { User: { Common: "ResetState" } },
-	  "<Shift-r>": { User: { Common: "Refresh" } },
-	  "<Enter>": { User: { Common: "Confirm" } },
-	  "<q>": { User: { Common: "Cancel" } },
-
-	  // Playlist manipulation
-	  // Note that both i and Shift+i are mapped to the same key
-	  "<i>": { User: { Common: { Add: "Front" } } },
-	  "<Shift-i>": { User: { Common: { Add: "Front" } } },
-	  "<a>": { User: { Common: { Add: "Next" } } },
-	  "<d>": { User: { Common: "Delete" } },
-	  "<Shift-a>": { User: { Common: { Add: "Last" } } },
-  	  "<Shift-f>": { User: { Common: "ToggleStar" } },
-
-	  // Global actions
-	  "<Esc>": { User: { Global: "EndKeySeq" } },
-	  "<t>": { User: { Global: "TapToBPM" } },
-	  "<Shift-t>": { User: { Global: "ToggleTasks" } },
-
-      "<Ctrl-w><q>": "Quit",
-	},
-  },
-  // Use legacy authentication that sends the password instead of token and salt
-  // This may be necessary if you are using servers like Ampache, which does not support token-based authentication yet
-  "use_legacy_auth": false,
-  "auth": {
-    "url": "echo URL",
-    "username": "echo USERNAME",
-    "password": "echo PASSWORD",
-  },
-  "unsafe_auth": {
-    "url": "",
-    "username": "",
-    "password": "",
-  }
+    "unsafe_auth": {
+      "url": "",
+      "username": "",
+      "password": "",
+    }
 }

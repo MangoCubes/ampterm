@@ -19,7 +19,7 @@ pub enum ListAction {
 pub enum PlayQueueAction {
     Delete,
     ToggleStar,
-    Confirm,
+    PlaySelected,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
@@ -37,7 +37,7 @@ pub enum PlaylistListAction {
     Top,
     Bottom,
     Add(QueueLocation),
-    Confirm,
+    ViewSelected,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]

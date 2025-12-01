@@ -143,7 +143,7 @@ impl HandleKeySeq<PlaylistListAction> for Loaded {
                 self.state.select_next();
                 KeySeqResult::NoActionNeeded
             }
-            PlaylistListAction::Confirm => match self.select_playlist() {
+            PlaylistListAction::ViewSelected => match self.select_playlist() {
                 Some(a) => KeySeqResult::ActionNeeded(a),
                 None => KeySeqResult::NoActionNeeded,
             },

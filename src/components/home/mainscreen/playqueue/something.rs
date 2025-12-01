@@ -436,7 +436,7 @@ impl HandleKeySeq<PlayQueueAction> for Something {
 
                 KeySeqResult::ActionNeeded(Action::Multiple(items))
             }
-            PlayQueueAction::Confirm => match self.table.get_current() {
+            PlayQueueAction::PlaySelected => match self.table.get_current() {
                 Some(idx) => KeySeqResult::ActionNeeded(self.skip_to(CurrentItem::InQueue(idx))),
                 None => KeySeqResult::NoActionNeeded,
             },

@@ -81,8 +81,8 @@ impl App {
             self.handle_actions(&mut tui).await?;
             if self.should_suspend {
                 tui.suspend()?;
-                action_tx.send(Action::Resume)?;
-                action_tx.send(Action::ClearScreen)?;
+                action_tx.send(Action::Targeted(TargetedAction::Resume))?;
+                action_tx.send(Action::Targeted(TargetedAction::ClearScreen))?;
                 // tui.mouse(true);
                 tui.enter()?;
             } else if self.should_quit {
@@ -101,7 +101,7 @@ impl App {
         };
         let action_tx = self.action_tx.clone();
         match event {
-            Event::Quit => action_tx.send(Action::Quit)?,
+            Event::Quit => action_tx.send(Action::Targeted(TargetedAction::Quit))?,
             Event::Tick => self.component.on_tick(),
             Event::Render => self.render(tui)?,
             Event::Resize(x, y) => action_tx.send(Action::Resize(x, y))?,
@@ -152,6 +152,10 @@ impl App {
                     }
                 }
                 Action::Targeted(targeted_action) => match targeted_action {
+                    TargetedAction::Suspend => self.should_suspend = true,
+                    TargetedAction::Resume => self.should_suspend = false,
+                    TargetedAction::ClearScreen => tui.terminal.clear()?,
+                    TargetedAction::Quit => self.should_quit = true,
                     TargetedAction::Play => {
                         let _ = self.player_tx.send(ToPlayerWorker::Resume);
                     }
@@ -182,10 +186,6 @@ impl App {
                     }
                 },
                 Action::Resize(w, h) => self.handle_resize(tui, w, h)?,
-                Action::Suspend => self.should_suspend = true,
-                Action::Resume => self.should_suspend = false,
-                Action::ClearScreen => tui.terminal.clear()?,
-                Action::Quit => self.should_quit = true,
                 Action::ToPlayerWorker(action) => self.player_tx.send(action)?,
                 Action::ToQueryWorker(action) => self.query_tx.send(action)?,
                 Action::ChangeMode(mode) => self.mode = mode,

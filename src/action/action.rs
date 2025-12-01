@@ -57,6 +57,11 @@ pub enum TargetedAction {
     ToggleTasks,
 
     EndKeySeq,
+
+    Suspend,
+    Resume,
+    ClearScreen,
+    Quit,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -75,10 +80,6 @@ pub enum Action {
     Targeted(TargetedAction),
     ToPlayerWorker(ToPlayerWorker),
     ToQueryWorker(ToQueryWorker),
-    Suspend,
-    Resume,
-    ClearScreen,
-    Quit,
     Resize(u16, u16),
     ChangeMode(Mode),
     Query(QueryAction),

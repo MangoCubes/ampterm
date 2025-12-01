@@ -9,7 +9,7 @@ use ratatui::{
 use tui_textarea::{CursorMove, TextArea};
 
 use crate::{
-    action::action::{Action, QueryAction},
+    action::action::{Action, QueryAction, TargetedAction},
     components::{
         lib::checkbox::Checkbox,
         traits::{
@@ -231,7 +231,7 @@ impl HandleRaw for Login {
                 self.navigate(false);
                 None
             }
-            KeyCode::Esc => Some(Action::Quit),
+            KeyCode::Esc => Some(Action::Targeted(TargetedAction::Quit)),
             KeyCode::Enter => {
                 if !matches!(self.status, Status::Pending(_)) {
                     self.submit()

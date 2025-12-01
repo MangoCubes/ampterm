@@ -8,13 +8,14 @@ use ratatui::{
 };
 
 use crate::{
-    action::action::{Action, QueueAction, TargetedAction},
+    action::action::{Action, QueryAction, QueueAction, TargetedAction},
     components::{
         home::mainscreen::playqueue::{nothing::Nothing, something::Something},
         traits::{
             focusable::Focusable,
             handleaction::HandleAction,
             handlekeyseq::{HandleKeySeq, KeySeqResult, PassKeySeq},
+            handlequery::HandleQuery,
             renderable::Renderable,
         },
     },
@@ -33,6 +34,18 @@ pub struct PlayQueue {
     comp: Comp,
     enabled: bool,
     config: Config,
+}
+
+impl HandleQuery for PlayQueue {
+    fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
+        match action {
+            QueryAction::FromPlayerWorker(_) => match &mut self.comp {
+                Comp::Nothing(_) => None,
+                Comp::Something(something) => something.handle_query(action),
+            },
+            _ => None,
+        }
+    }
 }
 
 impl PassKeySeq for PlayQueue {

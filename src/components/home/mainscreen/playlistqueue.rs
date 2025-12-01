@@ -9,7 +9,12 @@ use crate::{
     compid::CompID,
     components::{
         home::mainscreen::playlistqueue::{empty::Empty, loading::Loading},
-        traits::{focusable::Focusable, handlequery::HandleQuery, renderable::Renderable},
+        traits::{
+            focusable::Focusable,
+            handlekeyseq::{HandleKeySeq, KeySeqResult, PassKeySeq},
+            handlequery::HandleQuery,
+            renderable::Renderable,
+        },
     },
     config::Config,
     queryworker::{
@@ -17,6 +22,7 @@ use crate::{
         query::{getplaylist::GetPlaylistResponse, ResponseType},
     },
 };
+use crossterm::event::KeyEvent;
 use error::Error;
 use loaded::Loaded;
 use notselected::NotSelected;
@@ -77,6 +83,16 @@ impl Renderable for PlaylistQueue {
             Comp::Loading(loading, _) => loading.draw(frame, area),
             Comp::NotSelected(not_selected) => not_selected.draw(frame, area),
             Comp::Empty(centered) => centered.draw(frame, area),
+        }
+    }
+}
+
+impl PassKeySeq for PlaylistQueue {
+    fn handle_key_seq(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
+        match &mut self.comp {
+            Comp::Error(error) => error.handle_key_seq(keyseq),
+            Comp::Loaded(loaded) => loaded.handle_key_seq(keyseq),
+            _ => None,
         }
     }
 }

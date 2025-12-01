@@ -35,26 +35,10 @@ pub trait HandleKeySeq<T: PartialEq + DeserializeOwned + Debug + Clone>: Rendera
     fn handle_key_seq(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
         if let Some(res) = self.pass_to_lower_comp(keyseq) {
             Some(res)
-        } else if let Some(res) = Self::find_action(keyseq, self.get_keybinds()) {
-            Some(self.handle_local_action(res))
+        } else if let Some(res) = self.get_keybinds().get(keyseq) {
+            Some(self.handle_local_action(res.clone()))
         } else {
             None
-        }
-    }
-
-    fn find_action(keyseq: &Vec<KeyEvent>, from: &KeyBindings<T>) -> Option<T> {
-        match from.get(keyseq) {
-            // Test global map
-            Some(a) => Some(a.clone()),
-            None => match from.get(&vec![keyseq
-                .last()
-                .expect("Key press was detected but key sequence is empty.")
-                .clone()])
-            {
-                // Test global map single key
-                Some(a) => Some(a.clone()),
-                None => None,
-            },
         }
     }
 }

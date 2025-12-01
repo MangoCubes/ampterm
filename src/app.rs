@@ -111,27 +111,22 @@ impl App {
         Ok(())
     }
 
-    fn find_global_action(&self, key: KeyEvent) -> Option<KeySeqResult> {
-        match self.config.global.get(&self.key_stack) {
-            // Test global map
-            Some(a) => Some(KeySeqResult::ActionNeeded(Action::Targeted(a.clone()))),
-            None => match self.config.global.get(&vec![key]) {
-                // Test global map single key
-                Some(a) => Some(KeySeqResult::ActionNeeded(Action::Targeted(a.clone()))),
-                None => None,
-            },
-        }
-    }
-
     fn handle_key_event(&mut self, key: KeyEvent) -> Result<()> {
         self.key_stack.push(key);
 
         let res = if let Some(r) = self.component.handle_key_seq(&self.key_stack) {
             r
-        } else if let Some(r) = self.find_global_action(key) {
-            r
+        } else if let Some(r) = self.config.global.get(&self.key_stack) {
+            KeySeqResult::ActionNeeded(Action::Targeted(r.clone()))
         } else {
-            return Ok(());
+            let single = &vec![key];
+            if let Some(r) = self.component.handle_key_seq(single) {
+                r
+            } else if let Some(r) = self.config.global.get(single) {
+                KeySeqResult::ActionNeeded(Action::Targeted(r.clone()))
+            } else {
+                return Ok(());
+            }
         };
 
         self.key_stack.drain(..);

@@ -110,12 +110,12 @@ impl Home {
                 (
                     Comp::Loading(Loading::new(url, username)),
                     vec![
-                        Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::SetCredential(
-                            creds,
+                        Action::Query(QueryAction::ToQueryWorker(ToQueryWorker::new(
+                            HighLevelQuery::SetCredential(creds),
                         ))),
-                        Action::ToQueryWorker(ToQueryWorker::new(
+                        Action::Query(QueryAction::ToQueryWorker(ToQueryWorker::new(
                             HighLevelQuery::CheckCredentialValidity,
-                        )),
+                        ))),
                     ],
                 )
             }

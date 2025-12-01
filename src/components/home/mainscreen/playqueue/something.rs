@@ -82,8 +82,8 @@ impl Something {
                 .highlight_symbol(">")
                 .row_highlight_style(Style::new().reversed())
         }
-        let action = Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::PlayMusicFromURL(
-            list[0].clone(),
+        let action = Action::Query(QueryAction::ToQueryWorker(ToQueryWorker::new(
+            HighLevelQuery::PlayMusicFromURL(list[0].clone()),
         )));
         (
             Self {
@@ -133,24 +133,24 @@ impl Something {
             CurrentItem::NotInQueue(idx, _) => {
                 self.now_playing = CurrentItem::InQueue(idx + 1);
                 match self.list.0.get(idx + 1) {
-                    Some(m) => Action::ToQueryWorker(ToQueryWorker::new(
+                    Some(m) => Action::Query(QueryAction::ToQueryWorker(ToQueryWorker::new(
                         HighLevelQuery::PlayMusicFromURL(m.clone()),
-                    )),
-                    None => Action::ToPlayerWorker(ToPlayerWorker::Stop),
+                    ))),
+                    None => Action::Query(QueryAction::ToPlayerWorker(ToPlayerWorker::Stop)),
                 }
             }
             CurrentItem::InQueue(idx) => {
                 self.now_playing = CurrentItem::InQueue(idx);
                 match self.list.0.get(idx) {
-                    Some(m) => Action::ToQueryWorker(ToQueryWorker::new(
+                    Some(m) => Action::Query(QueryAction::ToQueryWorker(ToQueryWorker::new(
                         HighLevelQuery::PlayMusicFromURL(m.clone()),
-                    )),
-                    None => Action::ToPlayerWorker(ToPlayerWorker::Stop),
+                    ))),
+                    None => Action::Query(QueryAction::ToPlayerWorker(ToPlayerWorker::Stop)),
                 }
             }
             _ => {
                 self.now_playing = to;
-                Action::ToPlayerWorker(ToPlayerWorker::Stop)
+                Action::Query(QueryAction::ToPlayerWorker(ToPlayerWorker::Stop))
             }
         };
         self.regen_rows();
@@ -423,10 +423,9 @@ impl HandleKeySeq<PlayQueueAction> for Something {
                 .into_iter()
                 .map(|(id, star)| {
                     self.set_star(&id, star);
-                    Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::SetStar {
-                        media: id,
-                        star,
-                    }))
+                    Action::Query(QueryAction::ToQueryWorker(ToQueryWorker::new(
+                        HighLevelQuery::SetStar { media: id, star },
+                    )))
                 })
                 .collect();
 

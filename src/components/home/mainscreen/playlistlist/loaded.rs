@@ -42,14 +42,17 @@ impl Loaded {
             let name = self.list[pos].name.clone();
             if self.config.behaviour.auto_focus {
                 Some(Action::Multiple(vec![
-                    Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::SelectPlaylist(
-                        GetPlaylistParams { name, id: key },
+                    Action::Query(QueryAction::ToQueryWorker(ToQueryWorker::new(
+                        HighLevelQuery::SelectPlaylist(GetPlaylistParams { name, id: key }),
                     ))),
                     Action::Targeted(TargetedAction::FocusPlaylistQueue),
                 ]))
             } else {
-                Some(Action::ToQueryWorker(ToQueryWorker::new(
-                    HighLevelQuery::SelectPlaylist(GetPlaylistParams { name, id: key }),
+                Some(Action::Query(QueryAction::ToQueryWorker(
+                    ToQueryWorker::new(HighLevelQuery::SelectPlaylist(GetPlaylistParams {
+                        name,
+                        id: key,
+                    })),
                 )))
             }
         } else {
@@ -83,7 +86,7 @@ impl Loaded {
                 id: key.clone(),
             }));
             self.callback.insert(req.ticket, (key, ql));
-            Some(Action::ToQueryWorker(req))
+            Some(Action::Query(QueryAction::ToQueryWorker(req)))
         } else {
             error!("Failed to add playlist to queue: No playlist selected");
             None

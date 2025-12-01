@@ -72,13 +72,13 @@ impl Playing {
                         music.title
                     )])),
                 },
-                Some(Action::ToQueryWorker(ToQueryWorker::new(
-                    HighLevelQuery::GetLyrics(GetLyricsParams {
+                Some(Action::Query(QueryAction::ToQueryWorker(
+                    ToQueryWorker::new(HighLevelQuery::GetLyrics(GetLyricsParams {
                         track_name: music.title,
                         artist_name: music.artist,
                         album_name: music.album,
                         length: music.duration,
-                    }),
+                    })),
                 ))),
             )
         } else {

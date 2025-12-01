@@ -4,7 +4,7 @@ pub mod query;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
-use crate::action::action::{Action, QueryAction};
+use crate::action::action::{Action, QueryAction, TargetedAction};
 use crate::config::Config;
 use crate::lyricsclient::lrclib::LrcLib;
 use crate::lyricsclient::LyricsClient;
@@ -289,9 +289,11 @@ impl QueryWorker {
                         Some(c) => {
                             let id = media.id.clone();
                             let url = c.stream_link(id.0).to_string();
-                            let _ = self.action_tx.send(Action::ToPlayerWorker(
-                                ToPlayerWorker::PlayURL { music: media, url },
-                            ));
+                            let _ =
+                                self.action_tx
+                                    .send(Action::Query(QueryAction::ToPlayerWorker(
+                                        ToPlayerWorker::PlayURL { music: media, url },
+                                    )));
                         }
                         None => tracing::error!(
                             "Invalid state: Tried querying, but client does not exist!"

@@ -78,8 +78,6 @@ pub enum QueryAction {
 pub enum Action {
     Multiple(Vec<Action>),
     Targeted(TargetedAction),
-    ToPlayerWorker(ToPlayerWorker),
-    ToQueryWorker(ToQueryWorker),
     Resize(u16, u16),
     ChangeMode(Mode),
     Query(QueryAction),

@@ -1,5 +1,5 @@
 use crate::{
-    action::action::{Action, QueueAction, TargetedAction},
+    action::action::{Action, QueryAction, QueueAction, TargetedAction},
     components::{
         home::mainscreen::playlistqueue::PlaylistQueue,
         lib::visualtable::{VisualSelection, VisualTable},
@@ -204,10 +204,9 @@ impl HandleKeySeq<PlaylistQueueAction> for Loaded {
                 }
                 .into_iter()
                 .map(|(id, star)| {
-                    Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::SetStar {
-                        media: id,
-                        star,
-                    }))
+                    Action::Query(QueryAction::ToQueryWorker(ToQueryWorker::new(
+                        HighLevelQuery::SetStar { media: id, star },
+                    )))
                 })
                 .collect();
 
@@ -221,12 +220,14 @@ impl HandleKeySeq<PlaylistQueueAction> for Loaded {
                 Some(a) => KeySeqResult::ActionNeeded(a),
                 None => KeySeqResult::NoActionNeeded,
             },
-            PlaylistQueueAction::Refresh => KeySeqResult::ActionNeeded(Action::ToQueryWorker(
-                ToQueryWorker::new(HighLevelQuery::SelectPlaylist(GetPlaylistParams {
-                    name: self.name.to_string(),
-                    id: self.playlist.id.clone(),
-                })),
-            )),
+            PlaylistQueueAction::Refresh => {
+                KeySeqResult::ActionNeeded(Action::Query(QueryAction::ToQueryWorker(
+                    ToQueryWorker::new(HighLevelQuery::SelectPlaylist(GetPlaylistParams {
+                        name: self.name.to_string(),
+                        id: self.playlist.id.clone(),
+                    })),
+                )))
+            }
         }
     }
 

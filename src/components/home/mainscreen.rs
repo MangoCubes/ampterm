@@ -102,7 +102,9 @@ impl MainScreen {
                 show_tasks: false,
             },
             Action::Multiple(vec![
-                Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::ListPlaylists)),
+                Action::Query(QueryAction::ToQueryWorker(ToQueryWorker::new(
+                    HighLevelQuery::ListPlaylists,
+                ))),
                 Action::ChangeMode(Mode::Normal),
             ]),
         )

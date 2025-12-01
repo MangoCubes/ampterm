@@ -6,7 +6,7 @@ use tokio::sync::mpsc::{self};
 use tracing::debug;
 
 use crate::{
-    action::action::{Action, Mode, TargetedAction},
+    action::action::{Action, Mode, QueryAction, TargetedAction},
     components::{
         home::Home,
         traits::{
@@ -186,10 +186,17 @@ impl App {
                     }
                 },
                 Action::Resize(w, h) => self.handle_resize(tui, w, h)?,
-                Action::ToPlayerWorker(action) => self.player_tx.send(action)?,
-                Action::ToQueryWorker(action) => self.query_tx.send(action)?,
                 Action::ChangeMode(mode) => self.mode = mode,
                 Action::Query(query_action) => {
+                    match &query_action {
+                        QueryAction::ToPlayerWorker(to_player_worker) => {
+                            self.player_tx.send(to_player_worker.clone())?
+                        }
+                        QueryAction::ToQueryWorker(to_query_worker) => {
+                            self.query_tx.send(to_query_worker.clone())?
+                        }
+                        _ => {}
+                    }
                     debug!("Handling query: {query_action:?}");
                     if let Some(more) = self.component.handle_query(query_action) {
                         debug!("Got {more:?} as a response");

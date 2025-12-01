@@ -129,7 +129,7 @@ impl Login {
         self.status = Status::Pending(q.ticket);
         self.status_msg = Some(vec!["Logging in...".to_string()]);
         self.update_style();
-        Some(Action::ToQueryWorker(q))
+        Some(Action::Query(QueryAction::ToQueryWorker(q)))
     }
     pub fn new(msg: Option<Vec<String>>, config: Config) -> Self {
         let mut res = Self {
@@ -199,7 +199,7 @@ impl HandleQuery for Login {
                             Ok(()) => {
                                 let q = ToQueryWorker::new(HighLevelQuery::CheckCredentialValidity);
                                 self.status = Status::Pending(q.ticket);
-                                return Some(Action::ToQueryWorker(q));
+                                return Some(Action::Query(QueryAction::ToQueryWorker(q)));
                             }
                             Err(msg) => {
                                 self.status_msg =

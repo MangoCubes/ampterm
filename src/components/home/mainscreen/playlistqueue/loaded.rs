@@ -33,6 +33,7 @@ pub struct Loaded {
     playlist: FullPlaylist,
     enabled: bool,
     table: VisualTable,
+    config: Config,
 }
 
 impl Loaded {
@@ -100,7 +101,7 @@ impl Loaded {
         }
         let rows = Self::gen_rows(&list.entry);
         let table = VisualTable::new(
-            config,
+            config.clone(),
             rows,
             [
                 Constraint::Ratio(1, 3),
@@ -114,6 +115,7 @@ impl Loaded {
         tablestate.select(Some(0));
 
         Self {
+            config,
             name,
             enabled,
             playlist: list,
@@ -232,7 +234,7 @@ impl HandleKeySeq<PlaylistQueueAction> for Loaded {
     }
 
     fn get_keybinds(&self) -> &KeyBindings<PlaylistQueueAction> {
-        todo!()
+        &self.config.local.playlistqueue
     }
 }
 

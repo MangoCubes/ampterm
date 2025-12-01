@@ -1,13 +1,15 @@
 use crate::{
-    action::{
-        useraction::{Common, UserAction},
-        Action,
-    },
+    action::action::Action,
     components::{
         home::mainscreen::playlistqueue::PlaylistQueue,
         lib::centered::Centered,
-        traits::{focusable::Focusable, handleaction::HandleAction, renderable::Renderable},
+        traits::{
+            focusable::Focusable,
+            handlekeyseq::{HandleKeySeq, KeySeqResult},
+            renderable::Renderable,
+        },
     },
+    config::{keybindings::KeyBindings, localkeybinds::PlaylistQueueAction, Config},
     queryworker::{
         highlevelquery::HighLevelQuery,
         query::{getplaylist::GetPlaylistParams, getplaylists::PlaylistID, ToQueryWorker},
@@ -20,10 +22,11 @@ pub struct Error {
     name: String,
     comp: Centered,
     enabled: bool,
+    config: Config,
 }
 
 impl Error {
-    pub fn new(id: PlaylistID, name: String, error: String, enabled: bool) -> Self {
+    pub fn new(config: Config, id: PlaylistID, name: String, error: String, enabled: bool) -> Self {
         Self {
             id,
             name,
@@ -33,6 +36,7 @@ impl Error {
                 "Reload with 'R'".to_string(),
             ]),
             enabled,
+            config,
         }
     }
 }
@@ -46,18 +50,21 @@ impl Renderable for Error {
     }
 }
 
-impl HandleAction for Error {
-    fn handle_action(&mut self, action: Action) -> Option<Action> {
-        if let Action::User(UserAction::Common(Common::Refresh)) = action {
-            Some(Action::ToQueryWorker(ToQueryWorker::new(
-                HighLevelQuery::SelectPlaylist(GetPlaylistParams {
+impl HandleKeySeq<PlaylistQueueAction> for Error {
+    fn handle_local_action(&mut self, action: PlaylistQueueAction) -> KeySeqResult {
+        match action {
+            PlaylistQueueAction::Refresh => KeySeqResult::ActionNeeded(Action::ToQueryWorker(
+                ToQueryWorker::new(HighLevelQuery::SelectPlaylist(GetPlaylistParams {
                     name: self.name.clone(),
                     id: self.id.clone(),
-                }),
-            )))
-        } else {
-            None
+                })),
+            )),
+            _ => KeySeqResult::NoActionNeeded,
         }
+    }
+
+    fn get_keybinds(&self) -> &KeyBindings<PlaylistQueueAction> {
+        &self.config.local.playlistqueue
     }
 }
 

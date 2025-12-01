@@ -3,14 +3,20 @@ mod loaded;
 mod loading;
 
 use crate::{
-    action::Action,
+    action::action::{Action, QueryAction},
     components::{
         home::mainscreen::playlistlist::{error::Error, loaded::Loaded, loading::Loading},
-        traits::{focusable::Focusable, handleaction::HandleAction, renderable::Renderable},
+        traits::{
+            focusable::Focusable,
+            handlekeyseq::{HandleKeySeq, KeySeqResult, PassKeySeq},
+            handlequery::HandleQuery,
+            renderable::Renderable,
+        },
     },
     config::Config,
     queryworker::query::{getplaylists::GetPlaylistsResponse, ResponseType},
 };
+use crossterm::event::KeyEvent;
 use ratatui::{
     layout::Rect,
     style::{Modifier, Style, Stylize},
@@ -70,36 +76,42 @@ impl Renderable for PlaylistList {
     }
 }
 
-impl HandleAction for PlaylistList {
-    fn handle_action(&mut self, action: Action) -> Option<Action> {
-        match action {
-            Action::FromQueryWorker(qw) => {
-                if let ResponseType::GetPlaylists(res) = qw.res {
+impl HandleQuery for PlaylistList {
+    fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
+        match &action {
+            QueryAction::FromQueryWorker(qw) => {
+                if let ResponseType::GetPlaylists(res) = &qw.res {
                     match res {
                         GetPlaylistsResponse::Success(simple_playlists) => {
                             self.comp = Comp::Loaded(Loaded::new(
                                 self.config.clone(),
-                                simple_playlists,
+                                simple_playlists.clone(),
                                 ListState::default().with_selected(Some(0)),
                             ));
                         }
                         GetPlaylistsResponse::Failure(error) => {
-                            self.comp = Comp::Error(Error::new(error));
+                            self.comp = Comp::Error(Error::new(error.clone()));
                         }
                     }
                     None
                 } else {
                     if let Comp::Loaded(comp) = &mut self.comp {
-                        comp.handle_action(Action::FromQueryWorker(qw))
+                        comp.handle_query(action)
                     } else {
                         None
                     }
                 }
             }
-            _ => match &mut self.comp {
-                Comp::Loaded(comp) => comp.handle_action(action),
-                _ => None,
-            },
+            _ => None,
+        }
+    }
+}
+
+impl PassKeySeq for PlaylistList {
+    fn handle_key_seq(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
+        match &mut self.comp {
+            Comp::Loaded(comp) => comp.handle_key_seq(keyseq),
+            _ => None,
         }
     }
 }

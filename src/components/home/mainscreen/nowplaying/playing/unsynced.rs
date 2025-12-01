@@ -6,21 +6,22 @@ use ratatui::{
 };
 
 use crate::{
-    action::{
-        useraction::{Common, UserAction},
-        Action,
+    components::traits::{
+        handlekeyseq::{HandleKeySeq, KeySeqResult},
+        renderable::Renderable,
     },
-    components::traits::{handleaction::HandleActionSimple, renderable::Renderable},
+    config::{keybindings::KeyBindings, localkeybinds::LyricsAction, Config},
 };
 
 pub struct Unsynced {
     lyrics: Vec<String>,
     comp: List<'static>,
     state: ListState,
+    config: Config,
 }
 
 impl Unsynced {
-    pub fn new(found: String) -> Self {
+    pub fn new(config: Config, found: String) -> Self {
         let list: Vec<String> = found.lines().map(|line| line.to_string()).collect();
         let mut default = ListState::default();
         default.select_first();
@@ -28,6 +29,7 @@ impl Unsynced {
             lyrics: list.clone(),
             comp: Self::gen_list(list),
             state: default,
+            config,
         }
     }
     fn gen_list(list: Vec<String>) -> List<'static> {
@@ -44,25 +46,18 @@ impl Renderable for Unsynced {
     }
 }
 
-impl HandleActionSimple for Unsynced {
-    fn handle_action_simple(&mut self, action: Action) {
+impl HandleKeySeq<LyricsAction> for Unsynced {
+    fn handle_local_action(&mut self, action: LyricsAction) -> KeySeqResult {
         match action {
-            Action::User(UserAction::Common(local)) => match local {
-                Common::Up => {
-                    self.state.select_previous();
-                }
-                Common::Down => {
-                    self.state.select_next();
-                }
-                Common::Top => {
-                    self.state.select_first();
-                }
-                Common::Bottom => {
-                    self.state.select_last();
-                }
-                _ => {}
-            },
-            _ => {}
+            LyricsAction::Up => self.state.select_previous(),
+            LyricsAction::Down => self.state.select_next(),
+            LyricsAction::Top => self.state.select_first(),
+            LyricsAction::Bottom => self.state.select_last(),
         }
+        KeySeqResult::NoActionNeeded
+    }
+
+    fn get_keybinds(&self) -> &KeyBindings<LyricsAction> {
+        &self.config.local.lyrics
     }
 }

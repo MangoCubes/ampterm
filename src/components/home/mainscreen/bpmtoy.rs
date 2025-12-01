@@ -8,13 +8,10 @@ use ratatui::{
 };
 
 use crate::{
-    action::{
-        useraction::{Global, UserAction},
-        Action,
-    },
+    action::action::{Action, TargetedAction},
     components::{
         lib::centered::Centered,
-        traits::{handleaction::HandleActionSimple, ontick::OnTick, renderable::Renderable},
+        traits::{handleaction::HandleAction, ontick::OnTick, renderable::Renderable},
     },
     config::Config,
 };
@@ -64,11 +61,21 @@ impl OnTick for BPMToy {
     }
 }
 
+impl HandleAction for BPMToy {
+    fn handle_action(&mut self, action: TargetedAction) -> Option<Action> {
+        match action {
+            TargetedAction::TapToBPM => {
+                self.on_tap();
+                None
+            }
+            _ => None,
+        }
+    }
+}
+
 impl BPMToy {
     pub fn new(config: Config) -> Self {
-        let keys = config
-            .global
-            .find_action_str(Action::User(UserAction::Global(Global::TapToBPM)), None);
+        let keys = config.global.find_action_str(TargetedAction::TapToBPM);
         let msg = match keys {
             Some(t) => format!("Tap {} for BPM", t),
             None => "Tap to BPM not bound!".to_string(),

@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 
 use crate::{
-    action::{
-        useraction::{Common, Global, UserAction},
-        Action, QueueAction,
+    action::action::{Action, QueryAction, QueueAction, TargetedAction},
+    components::traits::{
+        handlekeyseq::{HandleKeySeq, KeySeqResult},
+        handlequery::HandleQuery,
+        renderable::Renderable,
     },
-    components::traits::{handleaction::HandleAction, renderable::Renderable},
-    config::Config,
+    config::{keybindings::KeyBindings, localkeybinds::PlaylistListAction, Config},
     osclient::response::getplaylists::SimplePlaylist,
     playerworker::player::QueueLocation,
     queryworker::{
@@ -44,7 +45,7 @@ impl Loaded {
                     Action::ToQueryWorker(ToQueryWorker::new(HighLevelQuery::SelectPlaylist(
                         GetPlaylistParams { name, id: key },
                     ))),
-                    Action::User(UserAction::Global(Global::FocusPlaylistQueue)),
+                    Action::Targeted(TargetedAction::FocusPlaylistQueue),
                 ]))
             } else {
                 Some(Action::ToQueryWorker(ToQueryWorker::new(
@@ -96,17 +97,16 @@ impl Renderable for Loaded {
     }
 }
 
-impl HandleAction for Loaded {
-    fn handle_action(&mut self, action: Action) -> Option<Action> {
+impl HandleQuery for Loaded {
+    fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
         match action {
-            Action::FromQueryWorker(res) => {
+            QueryAction::FromQueryWorker(res) => {
                 if let Some(cb) = self.callback.remove(&res.ticket) {
                     if let ResponseType::GetPlaylist(res) = res.res {
                         match res {
                             GetPlaylistResponse::Success(full_playlist) => {
-                                return Some(Action::Queue(QueueAction::Add(
-                                    full_playlist.entry,
-                                    cb.1,
+                                return Some(Action::Targeted(TargetedAction::Queue(
+                                    QueueAction::Add(full_playlist.entry, cb.1),
                                 )));
                             }
                             GetPlaylistResponse::Failure {
@@ -121,33 +121,44 @@ impl HandleAction for Loaded {
                         }
                     }
                 }
-                None
             }
-            Action::User(UserAction::Common(local)) => {
-                match local {
-                    Common::Add(pos) => self.add_to_queue(pos),
-                    Common::Up => {
-                        self.state.select_previous();
-                        None
-                    }
-                    Common::Down => {
-                        self.state.select_next();
-                        None
-                    }
-                    Common::Confirm => self.select_playlist(),
-                    Common::Top => {
-                        self.state.select_first();
-                        None
-                    }
-                    Common::Bottom => {
-                        self.state.select_last();
-                        None
-                    }
-                    // TODO: Add horizontal text scrolling
-                    _ => None,
-                }
+            _ => {}
+        };
+        None
+    }
+}
+
+impl HandleKeySeq<PlaylistListAction> for Loaded {
+    fn handle_local_action(&mut self, action: PlaylistListAction) -> KeySeqResult {
+        match action {
+            PlaylistListAction::Add(pos) => match self.add_to_queue(pos) {
+                Some(a) => KeySeqResult::ActionNeeded(a),
+                None => KeySeqResult::NoActionNeeded,
+            },
+            PlaylistListAction::Up => {
+                self.state.select_previous();
+                KeySeqResult::NoActionNeeded
             }
-            _ => None,
+            PlaylistListAction::Down => {
+                self.state.select_next();
+                KeySeqResult::NoActionNeeded
+            }
+            PlaylistListAction::Confirm => match self.select_playlist() {
+                Some(a) => KeySeqResult::ActionNeeded(a),
+                None => KeySeqResult::NoActionNeeded,
+            },
+            PlaylistListAction::Top => {
+                self.state.select_first();
+                KeySeqResult::NoActionNeeded
+            }
+            PlaylistListAction::Bottom => {
+                self.state.select_last();
+                KeySeqResult::NoActionNeeded
+            }
         }
+    }
+
+    fn get_keybinds(&self) -> &KeyBindings<PlaylistListAction> {
+        &self.config.local.playlistlist
     }
 }

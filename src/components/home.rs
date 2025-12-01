@@ -120,14 +120,14 @@ impl Home {
                 )
             }
             None => {
-                let (comp, action) = Login::new(
+                let comp = Login::new(
                     Some(vec![
                         "No credentials detected in the config.".to_string(),
                         format!("(Loaded config from {:?})", PathConfig::get_config_dir()),
                     ]),
                     config.clone(),
                 );
-                (Comp::Login(comp), vec![action])
+                (Comp::Login(comp), vec![])
             }
         };
         (
@@ -179,16 +179,15 @@ impl HandleQuery for Home {
                             Err(err) => {
                                 if let Comp::Loading(l) = &self.component {
                                     // Switch child component to Login
-                                    let (comp, action) = Login::new(
-                                        Some(vec![
-                                    "Failed to query the server with the given credentials!"
-                                        .to_string(),
-                                    format!("Error: {}", err),
-                                ]),
-                                        self.config.clone(),
-                                    );
-                                    self.component = Comp::Login(comp);
-                                    return Some(action);
+                                    self.component = Comp::Login(Login::new(
+                                            Some(vec![
+                                                "Failed to query the server with the given credentials!"
+                                                .to_string(),
+                                                format!("Error: {}", err),
+                                            ]),
+                                            self.config.clone(),
+                                    ));
+                                    return None;
                                 }
                             }
                         }

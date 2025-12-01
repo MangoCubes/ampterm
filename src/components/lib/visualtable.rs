@@ -7,13 +7,13 @@ use ratatui::{
 };
 
 use crate::{
-    action::{
-        useraction::{Common, Normal, UserAction, Visual},
-        Action, Selection,
+    action::action::{Action, Mode},
+    components::traits::{
+        handlekeyseq::{HandleKeySeq, KeySeqResult},
+        renderable::Renderable,
     },
-    app::Mode,
-    components::traits::{handleaction::HandleAction, renderable::Renderable},
-    helper::selection::ModifiableList,
+    config::{keybindings::KeyBindings, localkeybinds::ListAction, Config},
+    helper::selection::{ModifiableList, Selection},
 };
 
 /// Struct that contains the state of the current temporary selection
@@ -74,6 +74,8 @@ pub struct VisualTable {
     table: Table<'static>,
     tablestate: TableState,
     rows: ModifiableList<Row<'static>>,
+    binds: KeyBindings<ListAction>,
+    visual_binds: KeyBindings<ListAction>,
 }
 
 impl Renderable for VisualTable {
@@ -82,74 +84,64 @@ impl Renderable for VisualTable {
     }
 }
 
-/// For consistency, do not use [`VisualTable::regen_table`] here
-impl HandleAction for VisualTable {
-    fn handle_action(&mut self, action: Action) -> Option<Action> {
-        match action {
-            Action::User(ua) => {
-                let cur_pos = match self.tablestate.selected() {
-                    Some(i) => i,
-                    None => {
-                        if self.rows.0.len() == 0 {
-                            return None;
-                        } else {
-                            self.tablestate.select(Some(0));
-                            0
-                        }
-                    }
-                };
-
-                let action = match ua {
-                    UserAction::Common(local) => match local {
-                        Common::Up => {
-                            self.select_previous();
-                            None
-                        }
-                        Common::Down => {
-                            self.select_next();
-                            None
-                        }
-                        Common::Top => {
-                            self.select_first();
-                            None
-                        }
-                        Common::Bottom => {
-                            self.select_last();
-                            None
-                        }
-                        Common::ResetState => {
-                            self.reset_selections();
-                            None
-                        }
-                        _ => None,
-                    },
-
-                    UserAction::Normal(normal) => match normal {
-                        Normal::SelectMode => {
-                            self.enable_visual(cur_pos, false);
-                            Some(Action::ChangeMode(Mode::Visual))
-                        }
-                        Normal::DeselectMode => {
-                            self.enable_visual(cur_pos, true);
-                            Some(Action::ChangeMode(Mode::Visual))
-                        }
-                        _ => None,
-                    },
-                    UserAction::Visual(visual) => match visual {
-                        Visual::ExitSave => {
-                            self.disable_visual();
-                            Some(Action::ChangeMode(Mode::Normal))
-                        }
-                        Visual::ExitDiscard => {
-                            self.disable_visual_discard();
-                            Some(Action::ChangeMode(Mode::Normal))
-                        }
-                    },
-                    _ => None,
-                };
-                action
+impl HandleKeySeq<ListAction> for VisualTable {
+    fn handle_local_action(&mut self, action: ListAction) -> KeySeqResult {
+        let cur_pos = match self.tablestate.selected() {
+            Some(i) => i,
+            None => {
+                if self.rows.0.len() == 0 {
+                    return KeySeqResult::NoActionNeeded;
+                } else {
+                    self.tablestate.select(Some(0));
+                    0
+                }
             }
-            _ => None,
+        };
+        match action {
+            ListAction::ExitSave => {
+                self.disable_visual();
+                KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Normal))
+            }
+            ListAction::ExitDiscard => {
+                self.disable_visual_discard();
+                KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Normal))
+            }
+            ListAction::Up => {
+                self.select_previous();
+                KeySeqResult::NoActionNeeded
+            }
+            ListAction::Down => {
+                self.select_next();
+                KeySeqResult::NoActionNeeded
+            }
+            ListAction::Top => {
+                self.select_first();
+                KeySeqResult::NoActionNeeded
+            }
+            ListAction::Bottom => {
+                self.select_last();
+                KeySeqResult::NoActionNeeded
+            }
+            ListAction::ResetSelection => {
+                self.reset_selections();
+                KeySeqResult::NoActionNeeded
+            }
+            ListAction::SelectMode => {
+                self.enable_visual(cur_pos, false);
+                KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Visual))
+            }
+            ListAction::DeselectMode => {
+                self.enable_visual(cur_pos, true);
+                KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Visual))
+            }
+        }
+    }
+
+    fn get_keybinds(&self) -> &KeyBindings<ListAction> {
+        if matches!(self.mode, VisualMode::Off) {
+            &self.binds
+        } else {
+            &self.visual_binds
         }
     }
 }
@@ -315,6 +307,7 @@ impl VisualTable {
     }
 
     pub fn new(
+        config: Config,
         rows: Vec<Row<'static>>,
         constraints: Vec<Constraint>,
         table_proc: fn(Table<'static>) -> Table<'static>,
@@ -329,6 +322,8 @@ impl VisualTable {
             constraints,
             table,
             tablestate: TableState::new().with_selected(Some(0)),
+            binds: config.local.list,
+            visual_binds: config.local.list_visual,
         }
     }
     /// Enters visual mode

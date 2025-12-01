@@ -5,12 +5,13 @@ mod loading;
 mod notselected;
 
 use crate::{
-    action::Action,
+    action::action::{Action, QueryAction},
     compid::CompID,
     components::{
         home::mainscreen::playlistqueue::{empty::Empty, loading::Loading},
-        traits::{focusable::Focusable, handleaction::HandleAction, renderable::Renderable},
+        traits::{focusable::Focusable, handlequery::HandleQuery, renderable::Renderable},
     },
+    config::Config,
     queryworker::{
         highlevelquery::HighLevelQuery,
         query::{getplaylist::GetPlaylistResponse, ResponseType},
@@ -38,11 +39,13 @@ enum Comp {
 pub struct PlaylistQueue {
     comp: Comp,
     enabled: bool,
+    config: Config,
 }
 
 impl PlaylistQueue {
-    pub fn new(enabled: bool) -> Self {
+    pub fn new(config: Config, enabled: bool) -> Self {
         Self {
+            config,
             comp: Comp::NotSelected(NotSelected::new(enabled)),
             enabled,
         }
@@ -78,10 +81,10 @@ impl Renderable for PlaylistQueue {
     }
 }
 
-impl HandleAction for PlaylistQueue {
-    fn handle_action(&mut self, action: Action) -> Option<Action> {
+impl HandleQuery for PlaylistQueue {
+    fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
         match action {
-            Action::ToQueryWorker(qw) => {
+            QueryAction::ToQueryWorker(qw) => {
                 if qw.dest.contains(&CompID::PlaylistQueue) {
                     match qw.query {
                         HighLevelQuery::SelectPlaylist(params) => {
@@ -102,13 +105,14 @@ impl HandleAction for PlaylistQueue {
                     None
                 }
             }
-            Action::FromQueryWorker(qw) => {
+            QueryAction::FromQueryWorker(qw) => {
                 if let ResponseType::GetPlaylist(res) = qw.res {
                     match res {
                         GetPlaylistResponse::Success(full_playlist) => {
                             if let Comp::Loading(_, ticket) = self.comp {
                                 if ticket == qw.ticket {
                                     self.comp = Comp::Loaded(Loaded::new(
+                                        self.config.clone(),
                                         full_playlist.name.clone(),
                                         full_playlist,
                                         self.enabled,
@@ -117,7 +121,13 @@ impl HandleAction for PlaylistQueue {
                             }
                         }
                         GetPlaylistResponse::Failure { id, name, msg } => {
-                            self.comp = Comp::Error(Error::new(id, name, msg, self.enabled));
+                            self.comp = Comp::Error(Error::new(
+                                self.config.clone(),
+                                id,
+                                name,
+                                msg,
+                                self.enabled,
+                            ));
                         }
                         GetPlaylistResponse::Partial(simple_playlist) => {
                             self.comp = Comp::Empty(Empty::new(simple_playlist.name, self.enabled))
@@ -126,11 +136,7 @@ impl HandleAction for PlaylistQueue {
                 };
                 None
             }
-            _ => match &mut self.comp {
-                Comp::Loaded(comp) => comp.handle_action(action),
-                Comp::Error(comp) => comp.handle_action(action),
-                _ => None,
-            },
+            _ => None,
         }
     }
 }

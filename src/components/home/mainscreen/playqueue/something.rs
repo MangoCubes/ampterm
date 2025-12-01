@@ -7,7 +7,7 @@ use ratatui::{
 };
 
 use crate::{
-    action::action::{Action, QueueAction, TargetedAction},
+    action::action::{Action, QueryAction, QueueAction, TargetedAction},
     components::{
         home::mainscreen::playqueue::PlayQueue,
         lib::visualtable::{VisualSelection, VisualTable},
@@ -15,6 +15,7 @@ use crate::{
             focusable::Focusable,
             handleaction::HandleAction,
             handlekeyseq::{HandleKeySeq, KeySeqResult},
+            handlequery::HandleQuery,
             renderable::Renderable,
         },
     },
@@ -292,12 +293,20 @@ impl Renderable for Something {
     }
 }
 
+impl HandleQuery for Something {
+    fn handle_query(&mut self, action: crate::action::action::QueryAction) -> Option<Action> {
+        match action {
+            QueryAction::FromPlayerWorker(FromPlayerWorker::Finished) => Some(self.skip(1)),
+            _ => None,
+        }
+    }
+}
+
 impl HandleAction for Something {
     fn handle_action(&mut self, action: TargetedAction) -> Option<Action> {
         match action {
             TargetedAction::Skip => Some(self.skip(1)),
             TargetedAction::Previous => Some(self.skip(-1)),
-            TargetedAction::FromPlayerWorker(FromPlayerWorker::Finished) => Some(self.skip(1)),
             TargetedAction::Queue(a) => match a {
                 QueueAction::Add(items, at) => {
                     let max = self.list.0.len();
@@ -334,7 +343,7 @@ impl HandleAction for Something {
 }
 
 impl HandleKeySeq<PlayQueueAction> for Something {
-    fn pass_to_lower_comp(&self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
+    fn pass_to_lower_comp(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
         self.table.handle_key_seq(keyseq)
     }
 

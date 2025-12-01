@@ -1,8 +1,64 @@
 use serde::Deserialize;
 
-use crate::config::keybindings::KeyBindings;
+use crate::{config::keybindings::KeyBindings, playerworker::player::QueueLocation};
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub enum ListAction {
+    ExitSave,
+    ExitDiscard,
+    Up,
+    Down,
+    Top,
+    Bottom,
+    ResetSelection,
+    SelectMode,
+    DeselectMode,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub enum PlayQueueAction {
+    Delete,
+    ToggleStar,
+    Confirm,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub enum LyricsAction {
+    Up,
+    Down,
+    Top,
+    Bottom,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub enum PlaylistListAction {
+    Up,
+    Down,
+    Top,
+    Bottom,
+    Add(QueueLocation),
+    Confirm,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub enum PlaylistQueueAction {
+    Refresh,
+    Add(QueueLocation),
+    ToggleStar,
+}
 
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct LocalKeyBinds {
-    home: KeyBindings,
+    /// Technically they're tables, but they behave more like a list, which is why they are called
+    /// list instead
+    pub list: KeyBindings<ListAction>,
+    pub list_visual: KeyBindings<ListAction>,
+
+    pub playqueue: KeyBindings<PlayQueueAction>,
+
+    pub lyrics: KeyBindings<LyricsAction>,
+
+    pub playlistlist: KeyBindings<PlaylistListAction>,
+
+    pub playlistqueue: KeyBindings<PlaylistQueueAction>,
 }

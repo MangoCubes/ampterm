@@ -3,19 +3,21 @@ mod unsynced;
 use std::time::Duration;
 
 use crate::{
-    action::{Action, FromPlayerWorker, StateType},
+    action::action::{Action, QueryAction},
     components::{
         home::mainscreen::nowplaying::playing::{synced::Synced, unsynced::Unsynced},
         lib::centered::Centered,
         traits::{
-            handleaction::HandleActionSimple,
-            handlekeyseq::{HandleKeySeq, KeySeqResult},
+            handlekeyseq::{HandleKeySeq, KeySeqResult, PassKeySeq},
+            handlequery::HandleQuery,
             renderable::Renderable,
         },
     },
+    config::Config,
     helper::strings::trim_long_str,
     lyricsclient::getlyrics::GetLyricsParams,
     osclient::response::getplaylist::Media,
+    playerworker::player::{FromPlayerWorker, StateType},
     queryworker::{
         highlevelquery::HighLevelQuery,
         query::{ResponseType, ToQueryWorker},
@@ -45,6 +47,7 @@ pub struct Playing {
     pos: Duration,
     music: Media,
     lyrics: LyricsSpace,
+    config: Config,
 }
 
 impl Playing {
@@ -54,10 +57,12 @@ impl Playing {
         speed: f32,
         pos: Duration,
         enable_lyrics: bool,
+        config: Config,
     ) -> (Self, Option<Action>) {
         if enable_lyrics {
             (
                 Self {
+                    config,
                     vol,
                     speed,
                     pos,
@@ -79,6 +84,7 @@ impl Playing {
         } else {
             (
                 Self {
+                    config,
                     vol,
                     speed,
                     pos,
@@ -91,15 +97,18 @@ impl Playing {
     }
 }
 
-impl HandleKeySeq for Playing {
+impl PassKeySeq for Playing {
     fn handle_key_seq(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
-        todo!()
+        match &mut self.lyrics {
+            LyricsSpace::Plain(unsynced) => unsynced.handle_key_seq(keyseq),
+            _ => None,
+        }
     }
 }
 
-impl HandleActionSimple for Playing {
-    fn handle_action_simple(&mut self, action: Action) {
-        if let Action::FromQueryWorker(res) = action {
+impl HandleQuery for Playing {
+    fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
+        if let QueryAction::FromQueryWorker(res) = action {
             if let ResponseType::GetLyrics(lyrics) = res.res {
                 self.lyrics = match lyrics {
                     Ok(content) => match content {
@@ -107,7 +116,7 @@ impl HandleActionSimple for Playing {
                             if let Some(synced) = found.synced_lyrics {
                                 LyricsSpace::Found(Synced::new(synced))
                             } else if let Some(plain) = found.plain_lyrics {
-                                LyricsSpace::Plain(Unsynced::new(plain))
+                                LyricsSpace::Plain(Unsynced::new(self.config.clone(), plain))
                             } else {
                                 LyricsSpace::NotFound(Centered::new(vec![
                                     "Lyrics not found!".to_string()
@@ -124,7 +133,7 @@ impl HandleActionSimple for Playing {
                     )])),
                 }
             }
-        } else if let Action::FromPlayerWorker(FromPlayerWorker::StateChange(s)) = &action {
+        } else if let QueryAction::FromPlayerWorker(FromPlayerWorker::StateChange(s)) = &action {
             match s {
                 StateType::Position(pos) => self.pos = *pos,
                 StateType::Volume(v) => self.vol = *v,
@@ -135,16 +144,10 @@ impl HandleActionSimple for Playing {
                 _ => {}
             };
             if let LyricsSpace::Found(l) = &mut self.lyrics {
-                l.handle_action_simple(action.clone());
-            }
-        } else if matches!(action, Action::User(_)) {
-            match &mut self.lyrics {
-                LyricsSpace::Plain(l) => {
-                    l.handle_action_simple(action);
-                }
-                _ => {}
+                l.handle_query(action.clone());
             }
         };
+        None
     }
 }
 

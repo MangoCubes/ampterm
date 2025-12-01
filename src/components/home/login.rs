@@ -9,12 +9,12 @@ use ratatui::{
 use tui_textarea::{CursorMove, TextArea};
 
 use crate::{
-    action::Action,
+    action::action::{Action, QueryAction},
     components::{
         lib::checkbox::Checkbox,
         traits::{
-            focusable::Focusable, handleaction::HandleAction, handleraw::HandleRaw,
-            renderable::Renderable,
+            focusable::Focusable, handleaction::HandleAction, handlequery::HandleQuery,
+            handleraw::HandleRaw, renderable::Renderable,
         },
     },
     config::Config,
@@ -131,7 +131,7 @@ impl Login {
         self.update_style();
         Some(Action::ToQueryWorker(q))
     }
-    pub fn new(msg: Option<Vec<String>>, config: Config) -> (Self, Action) {
+    pub fn new(msg: Option<Vec<String>>, config: Config) -> Self {
         let mut res = Self {
             username: TextArea::default(),
             password: TextArea::default(),
@@ -145,7 +145,7 @@ impl Login {
         res.url.move_cursor(CursorMove::End);
         res.password.set_mask_char('*');
         res.update_style();
-        (res, Action::ChangeMode(crate::app::Mode::Insert))
+        res
     }
 }
 
@@ -189,9 +189,9 @@ impl Renderable for Login {
     }
 }
 
-impl HandleAction for Login {
-    fn handle_action(&mut self, action: Action) -> Option<Action> {
-        if let Action::FromQueryWorker(res) = action {
+impl HandleQuery for Login {
+    fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
+        if let QueryAction::FromQueryWorker(res) = action {
             if let Status::Pending(ticket) = self.status {
                 if ticket == res.ticket {
                     if let ResponseType::SetCredential(r) = res.res {

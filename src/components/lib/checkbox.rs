@@ -6,7 +6,7 @@ use ratatui::{
 };
 
 use crate::{
-    action::Action,
+    action::action::Action,
     components::traits::{focusable::Focusable, handleraw::HandleRaw, renderable::Renderable},
 };
 

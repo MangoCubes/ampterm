@@ -15,14 +15,15 @@ use ratatui::{
 use stopped::Stopped;
 
 use crate::{
-    action::{Action, FromPlayerWorker, StateType},
+    action::action::{Action, QueryAction},
     components::traits::{
         focusable::Focusable,
-        handleaction::{HandleAction, HandleActionSimple},
-        handlekeyseq::{HandleKeySeq, KeySeqResult},
+        handlekeyseq::{KeySeqResult, PassKeySeq},
+        handlequery::HandleQuery,
         renderable::Renderable,
     },
     config::Config,
+    playerworker::player::{FromPlayerWorker, StateType},
 };
 
 enum Comp {
@@ -36,7 +37,7 @@ pub struct NowPlaying {
     config: Config,
 }
 
-impl HandleKeySeq for NowPlaying {
+impl PassKeySeq for NowPlaying {
     fn handle_key_seq(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
         match &mut self.comp {
             Comp::Playing(playing) => playing.handle_key_seq(keyseq),
@@ -64,12 +65,12 @@ impl NowPlaying {
     }
 }
 
-impl HandleAction for NowPlaying {
-    fn handle_action(&mut self, action: Action) -> Option<Action> {
+impl HandleQuery for NowPlaying {
+    fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
         match action {
-            Action::FromPlayerWorker(FromPlayerWorker::StateChange(StateType::NowPlaying(
-                now_playing,
-            ))) => match now_playing {
+            QueryAction::FromPlayerWorker(FromPlayerWorker::StateChange(
+                StateType::NowPlaying(now_playing),
+            )) => match now_playing {
                 Some(n) => {
                     let (comp, action) = Playing::new(
                         n,
@@ -77,6 +78,7 @@ impl HandleAction for NowPlaying {
                         0.0,
                         Duration::from_secs(0),
                         self.config.lyrics.enable,
+                        self.config.clone(),
                     );
                     self.comp = Comp::Playing(comp);
                     action
@@ -86,12 +88,7 @@ impl HandleAction for NowPlaying {
                     None
                 }
             },
-            _ => {
-                if let Comp::Playing(comp) = &mut self.comp {
-                    comp.handle_action_simple(action);
-                }
-                None
-            }
+            _ => None,
         }
     }
 }

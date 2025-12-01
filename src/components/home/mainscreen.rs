@@ -6,23 +6,22 @@ mod playqueue;
 mod tasks;
 
 use crate::{
-    action::{
-        action::Mode,
-        useraction::{Global, Normal, UserAction},
-    },
+    action::action::{Action, Mode, QueryAction, TargetedAction},
     compid::CompID,
     components::{
         home::mainscreen::{bpmtoy::BPMToy, tasks::Tasks},
         traits::{
             focusable::Focusable,
-            handleaction::{HandleAction, HandleActionSimple},
+            handleaction::HandleAction,
             handlekeyseq::{HandleKeySeq, KeySeqResult, PassKeySeq},
+            handlequery::HandleQuery,
             handleraw::HandleRaw,
             ontick::OnTick,
             renderable::Renderable,
         },
     },
     config::Config,
+    playerworker::player::FromPlayerWorker,
     queryworker::{highlevelquery::HighLevelQuery, query::ToQueryWorker},
 };
 use crossterm::event::{KeyEvent, KeyModifiers};
@@ -87,7 +86,7 @@ impl PassKeySeq for MainScreen {
 }
 
 impl MainScreen {
-    fn propagate_to_focused_component(&mut self, action: Action) -> Option<Action> {
+    fn propagate_to_focused_component(&mut self, action: TargetedAction) -> Option<Action> {
         if self.show_tasks {
             // self.tasks.update(action)
             None
@@ -208,17 +207,52 @@ impl HandleRaw for MainScreen {
     }
 }
 
-impl HandleAction for MainScreen {
-    fn handle_action(&mut self, action: Action) -> Option<Action> {
-        if matches!(action, Action::User(_)) {
-            self.key_stack.drain(..);
-        };
-        match &action {
-            Action::FromPlayerWorker(pw) => match pw {
+impl HandleQuery for MainScreen {
+    fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
+        match action {
+            QueryAction::ToQueryWorker(req) => {
+                let _ = self.tasks.register_task(req.clone());
+                let mut results = vec![];
+
+                for dest in &req.dest {
+                    let res = match dest {
+                        CompID::PlaylistList => self.pl_list.handle_query(action.clone()),
+                        CompID::PlaylistQueue => self.pl_queue.handle_query(action.clone()),
+                        CompID::PlayQueue => self.playqueue.handle_query(action.clone()),
+                        CompID::NowPlaying => self.now_playing.handle_query(action.clone()),
+                        CompID::None => None,
+                        _ => unreachable!("Action propagated to nonexistent component: {:?}", dest),
+                    };
+                    if let Some(a) = res {
+                        results.push(a);
+                    }
+                }
+                Some(Action::Multiple(results))
+            }
+            QueryAction::FromQueryWorker(res) => {
+                let _ = self.tasks.unregister_task(&res);
+                let mut results = vec![];
+
+                for dest in &res.dest {
+                    let res = match dest {
+                        CompID::PlaylistList => self.pl_list.handle_query(action.clone()),
+                        CompID::PlaylistQueue => self.pl_queue.handle_query(action.clone()),
+                        CompID::PlayQueue => self.playqueue.handle_query(action.clone()),
+                        CompID::NowPlaying => self.now_playing.handle_query(action.clone()),
+                        CompID::None => None,
+                        _ => unreachable!("Action propagated to nonexistent component: {:?}", dest),
+                    };
+                    if let Some(a) = res {
+                        results.push(a);
+                    }
+                }
+                Some(Action::Multiple(results))
+            }
+            QueryAction::FromPlayerWorker(pw) => match pw {
                 FromPlayerWorker::StateChange(_) => {
                     let results: Vec<Action> = [
-                        self.now_playing.handle_action(action.clone()),
-                        self.playqueue.handle_action(action),
+                        self.now_playing.handle_query(action.clone()),
+                        self.playqueue.handle_query(action),
                     ]
                     .into_iter()
                     .filter_map(|a| a)
@@ -230,157 +264,99 @@ impl HandleAction for MainScreen {
                     self.message = msg.clone();
                     None
                 }
-                FromPlayerWorker::Finished => self.playqueue.handle_action(action),
+                FromPlayerWorker::Finished => self.playqueue.handle_query(action),
             },
-            Action::ChangeMode(m) => {
-                self.current_mode = *m;
+            _ => None,
+        }
+    }
+}
+
+impl HandleAction for MainScreen {
+    fn handle_action(&mut self, action: TargetedAction) -> Option<Action> {
+        match action {
+            TargetedAction::Play | TargetedAction::Pause => self.now_playing.handle_action(action),
+            TargetedAction::Queue(_) | TargetedAction::Skip | TargetedAction::Previous => {
+                self.playqueue.handle_action(action)
+            }
+            TargetedAction::WindowUp | TargetedAction::WindowDown => {
+                self.state = match &self.state {
+                    CurrentlySelected::PlaylistList => {
+                        CurrentlySelected::NowPlaying(LastSelected::PlaylistList)
+                    }
+                    CurrentlySelected::Playlist => {
+                        CurrentlySelected::NowPlaying(LastSelected::Playlist)
+                    }
+                    CurrentlySelected::PlayQueue => {
+                        CurrentlySelected::NowPlaying(LastSelected::PlayQueue)
+                    }
+                    CurrentlySelected::NowPlaying(last_selected) => match last_selected {
+                        LastSelected::PlaylistList => CurrentlySelected::PlaylistList,
+                        LastSelected::Playlist => CurrentlySelected::Playlist,
+                        LastSelected::PlayQueue => CurrentlySelected::PlayQueue,
+                    },
+                };
+                self.update_focus();
                 None
             }
-            Action::User(u) => match u {
-                UserAction::Normal(normal) => match normal {
-                    Normal::WindowUp | Normal::WindowDown => {
-                        self.state = match &self.state {
-                            CurrentlySelected::PlaylistList => {
-                                CurrentlySelected::NowPlaying(LastSelected::PlaylistList)
-                            }
-                            CurrentlySelected::Playlist => {
-                                CurrentlySelected::NowPlaying(LastSelected::Playlist)
-                            }
-                            CurrentlySelected::PlayQueue => {
-                                CurrentlySelected::NowPlaying(LastSelected::PlayQueue)
-                            }
-                            CurrentlySelected::NowPlaying(last_selected) => match last_selected {
-                                LastSelected::PlaylistList => CurrentlySelected::PlaylistList,
-                                LastSelected::Playlist => CurrentlySelected::Playlist,
-                                LastSelected::PlayQueue => CurrentlySelected::PlayQueue,
-                            },
-                        };
-                        self.update_focus();
-                        None
-                    }
-                    Normal::WindowLeft => {
-                        match &self.state {
-                            CurrentlySelected::PlaylistList => {
-                                self.state = CurrentlySelected::PlayQueue;
-                            }
-                            CurrentlySelected::PlayQueue => {
-                                self.state = CurrentlySelected::Playlist;
-                            }
-                            CurrentlySelected::Playlist => {
-                                self.state = CurrentlySelected::PlaylistList;
-                            }
-                            CurrentlySelected::NowPlaying(_) => {}
-                        };
-                        self.update_focus();
-                        None
-                    }
-                    Normal::WindowRight => {
-                        match &self.state {
-                            CurrentlySelected::PlaylistList => {
-                                self.state = CurrentlySelected::Playlist;
-                            }
-                            CurrentlySelected::Playlist => {
-                                self.state = CurrentlySelected::PlayQueue;
-                            }
-                            CurrentlySelected::PlayQueue => {
-                                self.state = CurrentlySelected::PlaylistList;
-                            }
-                            CurrentlySelected::NowPlaying(_) => {}
-                        };
-                        self.update_focus();
-                        None
-                    }
-                    _ => self.propagate_to_focused_component(action),
-                },
-                UserAction::Global(global) => match global {
-                    Global::TapToBPM => {
-                        self.bpmtoy.handle_action_simple(action);
-                        None
-                    }
-                    Global::FocusPlaylistList => {
-                        self.state = CurrentlySelected::PlaylistList;
-                        self.update_focus();
-                        None
-                    }
-                    Global::FocusPlaylistQueue => {
-                        self.state = CurrentlySelected::Playlist;
-                        self.update_focus();
-                        None
-                    }
-                    Global::FocusPlayQueue => {
+            TargetedAction::WindowLeft => {
+                match &self.state {
+                    CurrentlySelected::PlaylistList => {
                         self.state = CurrentlySelected::PlayQueue;
-                        self.update_focus();
-                        None
                     }
-                    Global::EndKeySeq => None,
-                    Global::OpenTasks => {
-                        self.show_tasks = true;
-                        None
+                    CurrentlySelected::PlayQueue => {
+                        self.state = CurrentlySelected::Playlist;
                     }
-                    Global::CloseTasks => {
-                        self.show_tasks = false;
-                        None
+                    CurrentlySelected::Playlist => {
+                        self.state = CurrentlySelected::PlaylistList;
                     }
-                    Global::ToggleTasks => {
-                        self.show_tasks = !self.show_tasks;
-                        None
-                    }
-                    Global::Skip | Global::Previous => self.playqueue.handle_action(action),
-                },
-                _ => self.propagate_to_focused_component(action),
-            },
-            Action::ToQueryWorker(req) => {
-                let _ = self.tasks.register_task(req.clone());
-                let mut results = vec![];
-
-                for dest in &req.dest {
-                    let res = match dest {
-                        CompID::PlaylistList => self.pl_list.handle_action(action.clone()),
-                        CompID::PlaylistQueue => self.pl_queue.handle_action(action.clone()),
-                        CompID::PlayQueue => self.playqueue.handle_action(action.clone()),
-                        CompID::NowPlaying => self.now_playing.handle_action(action.clone()),
-                        CompID::None => None,
-                        _ => unreachable!("Action propagated to nonexistent component: {:?}", dest),
-                    };
-                    if let Some(a) = res {
-                        results.push(a);
-                    }
-                }
-                Some(Action::Multiple(results))
+                    CurrentlySelected::NowPlaying(_) => {}
+                };
+                self.update_focus();
+                None
             }
-            Action::FromQueryWorker(res) => {
-                let _ = self.tasks.unregister_task(res);
-                let mut results = vec![];
-
-                for dest in &res.dest {
-                    let res = match dest {
-                        CompID::PlaylistList => self.pl_list.handle_action(action.clone()),
-                        CompID::PlaylistQueue => self.pl_queue.handle_action(action.clone()),
-                        CompID::PlayQueue => self.playqueue.handle_action(action.clone()),
-                        CompID::NowPlaying => self.now_playing.handle_action(action.clone()),
-                        CompID::None => None,
-                        _ => unreachable!("Action propagated to nonexistent component: {:?}", dest),
-                    };
-                    if let Some(a) = res {
-                        results.push(a);
+            TargetedAction::WindowRight => {
+                match &self.state {
+                    CurrentlySelected::PlaylistList => {
+                        self.state = CurrentlySelected::Playlist;
                     }
-                }
-                Some(Action::Multiple(results))
+                    CurrentlySelected::Playlist => {
+                        self.state = CurrentlySelected::PlayQueue;
+                    }
+                    CurrentlySelected::PlayQueue => {
+                        self.state = CurrentlySelected::PlaylistList;
+                    }
+                    CurrentlySelected::NowPlaying(_) => {}
+                };
+                self.update_focus();
+                None
             }
-            _ => {
-                self.bpmtoy.handle_action_simple(action.clone());
-                let results: Vec<Action> = [
-                    self.pl_list.handle_action(action.clone()),
-                    self.pl_queue.handle_action(action.clone()),
-                    self.now_playing.handle_action(action.clone()),
-                    self.playqueue.handle_action(action),
-                    // self.tasks.update(action.clone())?,
-                ]
-                .into_iter()
-                .filter_map(|a| a)
-                .collect();
-
-                Some(Action::Multiple(results))
+            TargetedAction::TapToBPM => self.bpmtoy.handle_action(action),
+            TargetedAction::FocusPlaylistList => {
+                self.state = CurrentlySelected::PlaylistList;
+                self.update_focus();
+                None
+            }
+            TargetedAction::FocusPlaylistQueue => {
+                self.state = CurrentlySelected::Playlist;
+                self.update_focus();
+                None
+            }
+            TargetedAction::FocusPlayQueue => {
+                self.state = CurrentlySelected::PlayQueue;
+                self.update_focus();
+                None
+            }
+            TargetedAction::OpenTasks => {
+                self.show_tasks = true;
+                None
+            }
+            TargetedAction::CloseTasks => {
+                self.show_tasks = false;
+                None
+            }
+            TargetedAction::ToggleTasks => {
+                self.show_tasks = !self.show_tasks;
+                None
             }
         }
     }

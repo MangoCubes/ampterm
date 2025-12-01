@@ -9,9 +9,10 @@ use ratatui::{
 };
 
 use crate::{
-    action::{Action, FromPlayerWorker, StateType},
-    components::traits::{handleaction::HandleActionSimple, renderable::Renderable},
+    action::action::{Action, QueryAction},
+    components::traits::{handlequery::HandleQuery, renderable::Renderable},
     lyricsclient::getlyrics::ParsedLyrics,
+    playerworker::player::{FromPlayerWorker, StateType},
 };
 
 pub struct Synced {
@@ -62,12 +63,14 @@ impl Renderable for Synced {
     }
 }
 
-impl HandleActionSimple for Synced {
-    fn handle_action_simple(&mut self, action: Action) {
-        if let Action::FromPlayerWorker(FromPlayerWorker::StateChange(StateType::Position(d))) =
-            action
+impl HandleQuery for Synced {
+    fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
+        if let QueryAction::FromPlayerWorker(FromPlayerWorker::StateChange(StateType::Position(
+            d,
+        ))) = action
         {
             self.current_time = d;
         }
+        None
     }
 }

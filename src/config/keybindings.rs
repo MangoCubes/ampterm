@@ -7,15 +7,17 @@ use serde::{de::DeserializeOwned, Deserialize, Deserializer};
 use crate::{config::keyparser::KeyParser, trace_dbg};
 
 #[derive(Clone, Debug, Deref, DerefMut)]
-pub struct KeyBindings<T: PartialEq + DeserializeOwned + Debug>(pub HashMap<Vec<KeyEvent>, T>);
+pub struct KeyBindings<T: Clone + PartialEq + DeserializeOwned + Debug>(
+    pub HashMap<Vec<KeyEvent>, T>,
+);
 
-impl<T: PartialEq + DeserializeOwned + Debug> Default for KeyBindings<T> {
+impl<T: PartialEq + DeserializeOwned + Debug + Clone> Default for KeyBindings<T> {
     fn default() -> Self {
         Self(HashMap::new())
     }
 }
 
-impl<'de, T: PartialEq + DeserializeOwned + Debug> Deserialize<'de> for KeyBindings<T> {
+impl<'de, T: PartialEq + DeserializeOwned + Debug + Clone> Deserialize<'de> for KeyBindings<T> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -31,7 +33,7 @@ impl<'de, T: PartialEq + DeserializeOwned + Debug> Deserialize<'de> for KeyBindi
     }
 }
 
-impl<T: PartialEq + DeserializeOwned + Debug> KeyBindings<T> {
+impl<T: PartialEq + DeserializeOwned + Debug + Clone> KeyBindings<T> {
     pub fn find_action_str(&self, action: T) -> Option<String> {
         let strs: Vec<String> = self
             .find_action(action)?

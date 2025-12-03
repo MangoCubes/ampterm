@@ -48,12 +48,22 @@ pub enum PlaylistQueueAction {
     ToggleStar,
 }
 
+#[derive(Clone, Debug, Deserialize, PartialEq, Display)]
+pub enum HelpAction {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct LocalKeyBinds {
     /// Technically they're tables, but they behave more like a list, which is why they are called
     /// list instead
     pub list: KeyBindings<ListAction>,
     pub list_visual: KeyBindings<ListAction>,
+
+    pub help: KeyBindings<HelpAction>,
 
     pub playqueue: KeyBindings<PlayQueueAction>,
 

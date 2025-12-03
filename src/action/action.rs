@@ -58,7 +58,9 @@ pub enum TargetedAction {
 
     EndKeySeq,
 
-    Help,
+    OpenHelp,
+    CloseHelp,
+    ToggleHelp,
 
     Suspend,
     Resume,

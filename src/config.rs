@@ -125,6 +125,7 @@ impl Config {
         insert_keybinds!(lyrics);
         insert_keybinds!(playlistlist);
         insert_keybinds!(playlistqueue);
+        insert_keybinds!(help);
 
         for (key, cmd) in default_config.local.playqueue.iter() {
             cfg.local

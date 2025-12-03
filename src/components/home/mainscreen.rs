@@ -1,4 +1,5 @@
 mod bpmtoy;
+mod help;
 mod nowplaying;
 pub mod playlistlist;
 mod playlistqueue;
@@ -9,11 +10,11 @@ use crate::{
     action::action::{Action, Mode, QueryAction, TargetedAction},
     compid::CompID,
     components::{
-        home::mainscreen::{bpmtoy::BPMToy, tasks::Tasks},
+        home::mainscreen::{bpmtoy::BPMToy, help::Help, tasks::Tasks},
         traits::{
             focusable::Focusable,
             handleaction::HandleAction,
-            handlekeyseq::{ComponentKeyHelp, KeySeqResult, PassKeySeq},
+            handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult, PassKeySeq},
             handlemode::HandleMode,
             handlequery::HandleQuery,
             handleraw::HandleRaw,
@@ -51,18 +52,25 @@ enum CurrentlySelected {
     NowPlaying(LastSelected),
 }
 
+enum Popup {
+    None,
+    Tasks,
+    Help,
+}
+
 pub struct MainScreen {
     state: CurrentlySelected,
     pl_list: PlaylistList,
     pl_queue: PlaylistQueue,
     now_playing: NowPlaying,
     tasks: Tasks,
-    show_tasks: bool,
+    popup: Popup,
     bpmtoy: BPMToy,
     playqueue: PlayQueue,
     message: String,
     key_stack: Vec<String>,
     current_mode: Mode,
+    help: Help,
 }
 
 impl OnTick for MainScreen {
@@ -81,15 +89,15 @@ impl PassKeySeq for MainScreen {
         }
     }
     fn handle_key_seq(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
-        if self.show_tasks {
-            None
-        } else {
-            match self.state {
+        match self.popup {
+            Popup::None => match &self.state {
                 CurrentlySelected::PlaylistList => self.pl_list.handle_key_seq(keyseq),
                 CurrentlySelected::Playlist => self.pl_queue.handle_key_seq(keyseq),
                 CurrentlySelected::PlayQueue => self.playqueue.handle_key_seq(keyseq),
                 CurrentlySelected::NowPlaying(_) => self.now_playing.handle_key_seq(keyseq),
-            }
+            },
+            Popup::Tasks => None,
+            Popup::Help => self.help.handle_key_seq(keyseq),
         }
     }
 }
@@ -111,10 +119,11 @@ impl MainScreen {
                 playqueue: PlayQueue::new(false, config.clone()),
                 now_playing: NowPlaying::new(false, config.clone()),
                 tasks: Tasks::new(config.behaviour.show_internal_tasks),
-                bpmtoy: BPMToy::new(config),
+                bpmtoy: BPMToy::new(config.clone()),
                 message: "You are now logged in.".to_string(),
                 key_stack: vec![],
-                show_tasks: false,
+                popup: Popup::None,
+                help: Help::new(config),
             },
             Action::Multiple(vec![
                 Action::Query(QueryAction::ToQueryWorker(ToQueryWorker::new(
@@ -166,8 +175,10 @@ impl Renderable for MainScreen {
         self.now_playing.draw(frame, bottom_areas[0]);
         self.bpmtoy.draw(frame, bottom_areas[1]);
 
-        if self.show_tasks {
-            self.tasks.draw(frame, area);
+        match self.popup {
+            Popup::None => {}
+            Popup::Tasks => self.tasks.draw(frame, area),
+            Popup::Help => self.help.draw(frame, area),
         }
 
         frame.render_widget(
@@ -279,6 +290,24 @@ impl HandleAction for MainScreen {
     fn handle_action(&mut self, action: TargetedAction) -> Option<Action> {
         match action {
             TargetedAction::EndKeySeq => None,
+            TargetedAction::ToggleHelp => {
+                if matches!(self.popup, Popup::Help) {
+                    self.popup = Popup::None;
+                } else {
+                    self.help.display(self.get_help());
+                    self.popup = Popup::Help;
+                };
+                None
+            }
+            TargetedAction::CloseHelp => {
+                self.popup = Popup::None;
+                None
+            }
+            TargetedAction::OpenHelp => {
+                self.help.display(self.get_help());
+                self.popup = Popup::Help;
+                None
+            }
             TargetedAction::Queue(_) | TargetedAction::Skip | TargetedAction::Previous => {
                 self.playqueue.handle_action(action)
             }
@@ -351,15 +380,18 @@ impl HandleAction for MainScreen {
                 None
             }
             TargetedAction::OpenTasks => {
-                self.show_tasks = true;
+                self.popup = Popup::Tasks;
                 None
             }
             TargetedAction::CloseTasks => {
-                self.show_tasks = false;
+                self.popup = Popup::None;
                 None
             }
             TargetedAction::ToggleTasks => {
-                self.show_tasks = !self.show_tasks;
+                match self.popup {
+                    Popup::Tasks => self.popup = Popup::None,
+                    _ => self.popup = Popup::Tasks,
+                };
                 None
             }
             _ => None,

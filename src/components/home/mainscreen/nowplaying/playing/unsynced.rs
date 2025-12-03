@@ -14,7 +14,6 @@ use crate::{
 };
 
 pub struct Unsynced {
-    lyrics: Vec<String>,
     comp: List<'static>,
     state: ListState,
     config: Config,
@@ -26,7 +25,6 @@ impl Unsynced {
         let mut default = ListState::default();
         default.select_first();
         Self {
-            lyrics: list.clone(),
             comp: Self::gen_list(list),
             state: default,
             config,

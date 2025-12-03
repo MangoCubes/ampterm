@@ -12,10 +12,10 @@ use mainscreen::MainScreen;
 use ratatui::{layout::Rect, Frame};
 
 use crate::{
-    action::action::{Action, QueryAction, TargetedAction},
+    action::action::{Action, Mode, QueryAction, TargetedAction},
     components::traits::{
-        handleaction::HandleAction, handlekeyseq::PassKeySeq, handlequery::HandleQuery,
-        handleraw::HandleRaw, ontick::OnTick, renderable::Renderable,
+        handleaction::HandleAction, handlekeyseq::PassKeySeq, handlemode::HandleMode,
+        handlequery::HandleQuery, handleraw::HandleRaw, ontick::OnTick, renderable::Renderable,
     },
     config::{pathconfig::PathConfig, Config},
     queryworker::{
@@ -155,6 +155,15 @@ impl HandleRaw for Home {
         match &mut self.component {
             Comp::Login(login) => login.handle_key_event(key),
             _ => None,
+        }
+    }
+}
+
+impl HandleMode for Home {
+    fn handle_mode(&mut self, mode: Mode) {
+        match &mut self.component {
+            Comp::Main(main_screen) => main_screen.handle_mode(mode),
+            Comp::Login(_) | Comp::Loading(_) => {}
         }
     }
 }

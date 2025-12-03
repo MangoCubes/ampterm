@@ -14,10 +14,9 @@ use ratatui::{
 use stopped::Stopped;
 
 use crate::{
-    action::action::{Action, QueryAction, TargetedAction},
+    action::action::{Action, QueryAction},
     components::traits::{
         focusable::Focusable,
-        handleaction::HandleAction,
         handlekeyseq::{KeySeqResult, PassKeySeq},
         handlequery::HandleQuery,
         renderable::Renderable,
@@ -105,12 +104,6 @@ impl Renderable for NowPlaying {
             Comp::Playing(playing) => playing.draw(frame, inner),
             Comp::Stopped(stopped) => stopped.draw(frame, inner),
         }
-    }
-}
-
-impl HandleAction for NowPlaying {
-    fn handle_action(&mut self, action: TargetedAction) -> Option<Action> {
-        None
     }
 }
 

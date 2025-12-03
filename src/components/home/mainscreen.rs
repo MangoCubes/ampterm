@@ -14,6 +14,7 @@ use crate::{
             focusable::Focusable,
             handleaction::HandleAction,
             handlekeyseq::{KeySeqResult, PassKeySeq},
+            handlemode::HandleMode,
             handlequery::HandleQuery,
             handleraw::HandleRaw,
             ontick::OnTick,
@@ -82,6 +83,12 @@ impl PassKeySeq for MainScreen {
                 CurrentlySelected::NowPlaying(_) => self.now_playing.handle_key_seq(keyseq),
             }
         }
+    }
+}
+
+impl HandleMode for MainScreen {
+    fn handle_mode(&mut self, mode: Mode) {
+        self.current_mode = mode;
     }
 }
 

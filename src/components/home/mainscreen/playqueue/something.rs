@@ -14,7 +14,7 @@ use crate::{
         traits::{
             focusable::Focusable,
             handleaction::HandleAction,
-            handlekeyseq::{HandleKeySeq, KeySeqResult},
+            handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult},
             handlequery::HandleQuery,
             renderable::Renderable,
         },
@@ -343,6 +343,9 @@ impl HandleAction for Something {
 }
 
 impl HandleKeySeq<PlayQueueAction> for Something {
+    fn get_other_helps(&self) -> Vec<ComponentKeyHelp> {
+        self.table.get_help()
+    }
     fn get_name(&self) -> &str {
         "PlayQueue"
     }

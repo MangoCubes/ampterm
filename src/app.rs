@@ -6,7 +6,7 @@ use tokio::sync::mpsc::{self};
 use tracing::debug;
 
 use crate::{
-    action::action::{Action, Mode, QueryAction, TargetedAction},
+    action::action::{Action, QueryAction, TargetedAction},
     components::{
         home::Home,
         traits::{
@@ -31,7 +31,6 @@ pub struct App {
     component: Home,
     should_quit: bool,
     should_suspend: bool,
-    mode: Mode,
     key_stack: Vec<KeyEvent>,
     action_tx: mpsc::UnboundedSender<Action>,
     action_rx: mpsc::UnboundedReceiver<Action>,
@@ -60,7 +59,6 @@ impl App {
             should_quit: false,
             should_suspend: false,
             config,
-            mode: Mode::Normal,
             key_stack: Vec::new(),
             action_tx,
             action_rx,
@@ -182,9 +180,7 @@ impl App {
                     }
                 },
                 Action::Resize(w, h) => self.handle_resize(tui, w, h)?,
-                Action::ChangeMode(mode) => {
-                    self.component.handle_mode(mode);
-                }
+                Action::ChangeMode(mode) => self.component.handle_mode(mode),
                 Action::Query(query_action) => {
                     match &query_action {
                         QueryAction::ToPlayerWorker(to_player_worker) => {

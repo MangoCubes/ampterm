@@ -14,11 +14,10 @@ use ratatui::{
 use stopped::Stopped;
 
 use crate::{
-    action::action::{Action, QueryAction, TargetedAction},
+    action::action::{Action, QueryAction},
     components::traits::{
         focusable::Focusable,
-        handleaction::HandleAction,
-        handlekeyseq::{KeySeqResult, PassKeySeq},
+        handlekeyseq::{ComponentKeyHelp, KeySeqResult, PassKeySeq},
         handlequery::HandleQuery,
         renderable::Renderable,
     },
@@ -38,6 +37,12 @@ pub struct NowPlaying {
 }
 
 impl PassKeySeq for NowPlaying {
+    fn get_help(&self) -> Vec<ComponentKeyHelp> {
+        match &self.comp {
+            Comp::Playing(playing) => playing.get_help(),
+            Comp::Stopped(_) => vec![],
+        }
+    }
     fn handle_key_seq(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
         match &mut self.comp {
             Comp::Playing(playing) => playing.handle_key_seq(keyseq),
@@ -105,12 +110,6 @@ impl Renderable for NowPlaying {
             Comp::Playing(playing) => playing.draw(frame, inner),
             Comp::Stopped(stopped) => stopped.draw(frame, inner),
         }
-    }
-}
-
-impl HandleAction for NowPlaying {
-    fn handle_action(&mut self, action: TargetedAction) -> Option<Action> {
-        None
     }
 }
 

@@ -8,7 +8,7 @@ use crate::{
         home::mainscreen::playlistlist::{error::Error, loaded::Loaded, loading::Loading},
         traits::{
             focusable::Focusable,
-            handlekeyseq::{HandleKeySeq, KeySeqResult, PassKeySeq},
+            handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult, PassKeySeq},
             handlequery::HandleQuery,
             renderable::Renderable,
         },
@@ -108,6 +108,12 @@ impl HandleQuery for PlaylistList {
 }
 
 impl PassKeySeq for PlaylistList {
+    fn get_help(&self) -> Vec<ComponentKeyHelp> {
+        match &self.comp {
+            Comp::Loaded(comp) => comp.get_help(),
+            _ => vec![],
+        }
+    }
     fn handle_key_seq(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
         match &mut self.comp {
             Comp::Loaded(comp) => comp.handle_key_seq(keyseq),

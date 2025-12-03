@@ -2,7 +2,7 @@ mod appconfig;
 mod authconfig;
 mod behaviourconfig;
 pub mod keybindings;
-mod keyparser;
+pub mod keyparser;
 pub mod localkeybinds;
 mod lyricsconfig;
 pub mod pathconfig;
@@ -125,6 +125,7 @@ impl Config {
         insert_keybinds!(lyrics);
         insert_keybinds!(playlistlist);
         insert_keybinds!(playlistqueue);
+        insert_keybinds!(help);
 
         for (key, cmd) in default_config.local.playqueue.iter() {
             cfg.local

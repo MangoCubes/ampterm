@@ -11,7 +11,7 @@ use crate::{
         home::mainscreen::playlistqueue::{empty::Empty, loading::Loading},
         traits::{
             focusable::Focusable,
-            handlekeyseq::{HandleKeySeq, KeySeqResult, PassKeySeq},
+            handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult, PassKeySeq},
             handlequery::HandleQuery,
             renderable::Renderable,
         },
@@ -88,6 +88,13 @@ impl Renderable for PlaylistQueue {
 }
 
 impl PassKeySeq for PlaylistQueue {
+    fn get_help(&self) -> Vec<ComponentKeyHelp> {
+        match &self.comp {
+            Comp::Error(error) => error.get_help(),
+            Comp::Loaded(loaded) => loaded.get_help(),
+            _ => vec![],
+        }
+    }
     fn handle_key_seq(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
         match &mut self.comp {
             Comp::Error(error) => error.handle_key_seq(keyseq),

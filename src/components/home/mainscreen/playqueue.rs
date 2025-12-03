@@ -14,7 +14,7 @@ use crate::{
         traits::{
             focusable::Focusable,
             handleaction::HandleAction,
-            handlekeyseq::{HandleKeySeq, KeySeqResult, PassKeySeq},
+            handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult, PassKeySeq},
             handlequery::HandleQuery,
             renderable::Renderable,
         },
@@ -49,6 +49,12 @@ impl HandleQuery for PlayQueue {
 }
 
 impl PassKeySeq for PlayQueue {
+    fn get_help(&self) -> Vec<ComponentKeyHelp> {
+        match &self.comp {
+            Comp::Something(something) => something.get_help(),
+            _ => vec![],
+        }
+    }
     fn handle_key_seq(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
         match &mut self.comp {
             Comp::Something(something) => something.handle_key_seq(keyseq),

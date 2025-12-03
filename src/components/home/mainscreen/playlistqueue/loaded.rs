@@ -5,7 +5,7 @@ use crate::{
         lib::visualtable::{VisualSelection, VisualTable},
         traits::{
             focusable::Focusable,
-            handlekeyseq::{HandleKeySeq, KeySeqResult},
+            handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult},
             renderable::Renderable,
         },
     },
@@ -172,6 +172,12 @@ impl Renderable for Loaded {
 }
 
 impl HandleKeySeq<PlaylistQueueAction> for Loaded {
+    fn get_other_helps(&self) -> Vec<ComponentKeyHelp> {
+        self.table.get_help()
+    }
+    fn get_name(&self) -> &str {
+        "PlaylistQueue"
+    }
     fn pass_to_lower_comp(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
         self.table.handle_key_seq(keyseq)
     }

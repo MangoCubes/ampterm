@@ -132,6 +132,9 @@ impl HandleQuery for Loaded {
 }
 
 impl HandleKeySeq<PlaylistListAction> for Loaded {
+    fn get_name(&self) -> &str {
+        "PlaylistList"
+    }
     fn handle_local_action(&mut self, action: PlaylistListAction) -> KeySeqResult {
         match action {
             PlaylistListAction::Add(pos) => match self.add_to_queue(pos) {

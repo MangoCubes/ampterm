@@ -14,7 +14,6 @@ use crate::{
 };
 
 pub struct Unsynced {
-    lyrics: Vec<String>,
     comp: List<'static>,
     state: ListState,
     config: Config,
@@ -26,7 +25,6 @@ impl Unsynced {
         let mut default = ListState::default();
         default.select_first();
         Self {
-            lyrics: list.clone(),
             comp: Self::gen_list(list),
             state: default,
             config,
@@ -47,6 +45,9 @@ impl Renderable for Unsynced {
 }
 
 impl HandleKeySeq<LyricsAction> for Unsynced {
+    fn get_name(&self) -> &str {
+        "Lyrics"
+    }
     fn handle_local_action(&mut self, action: LyricsAction) -> KeySeqResult {
         match action {
             LyricsAction::Up => self.state.select_previous(),

@@ -3,6 +3,13 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 pub struct KeyParser {}
 
 impl KeyParser {
+    pub fn keyseq_to_string(seq: &Vec<KeyEvent>) -> String {
+        let strs: Vec<String> = seq
+            .iter()
+            .map(|k| KeyParser::key_event_to_string(k))
+            .collect();
+        strs.join(" ")
+    }
     pub fn key_event_to_string(key_event: &KeyEvent) -> String {
         let char;
         let key_code = match key_event.code {

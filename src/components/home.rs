@@ -24,7 +24,7 @@ use crate::{
     },
 };
 
-use super::traits::handlekeyseq::KeySeqResult;
+use super::traits::handlekeyseq::{ComponentKeyHelp, KeySeqResult};
 
 enum Comp {
     Main(MainScreen),
@@ -45,19 +45,18 @@ impl OnTick for Home {
     }
 }
 
-impl HandleMode for Home {
-    fn handle_mode(&mut self, mode: Mode) {
-        if let Comp::Main(main_screen) = &mut self.component {
-            main_screen.handle_mode(mode);
-        }
-    }
-}
-
 impl PassKeySeq for Home {
     fn handle_key_seq(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
         match &mut self.component {
             Comp::Main(main_screen) => main_screen.handle_key_seq(keyseq),
             Comp::Login(_) | Comp::Loading(_) => Some(KeySeqResult::NoActionNeeded),
+        }
+    }
+
+    fn get_help(&self) -> Vec<ComponentKeyHelp> {
+        match &self.component {
+            Comp::Main(main_screen) => main_screen.get_help(),
+            _ => vec![],
         }
     }
 }
@@ -163,6 +162,14 @@ impl HandleRaw for Home {
         match &mut self.component {
             Comp::Login(login) => login.handle_key_event(key),
             _ => None,
+        }
+    }
+}
+
+impl HandleMode for Home {
+    fn handle_mode(&mut self, mode: Mode) {
+        if let Comp::Main(main_screen) = &mut self.component {
+            main_screen.handle_mode(mode);
         }
     }
 }

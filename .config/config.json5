@@ -24,8 +24,18 @@
 
 		"<t>": "TapToBPM",
 		"<Shift-t>": "ToggleTasks",
+
+		"<?>": "ToggleHelp",
 	},
 	"local": {
+		"help": {
+			"<Up>": "Up",
+			"<Down>": "Down",
+			"<Left>": "Left",
+			"<Right>": "Right",
+			"<q>": "Close",
+			"<Esc>": "Close",
+		},
 		"list": {
 			"<k>": "Up",
 			"<j>": "Down",

@@ -8,7 +8,7 @@ use crate::{
         home::mainscreen::nowplaying::playing::{synced::Synced, unsynced::Unsynced},
         lib::centered::Centered,
         traits::{
-            handlekeyseq::{HandleKeySeq, KeySeqResult, PassKeySeq},
+            handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult, PassKeySeq},
             handlequery::HandleQuery,
             renderable::Renderable,
         },
@@ -102,6 +102,13 @@ impl PassKeySeq for Playing {
         match &mut self.lyrics {
             LyricsSpace::Plain(unsynced) => unsynced.handle_key_seq(keyseq),
             _ => None,
+        }
+    }
+
+    fn get_help(&self) -> Vec<ComponentKeyHelp> {
+        match &self.lyrics {
+            LyricsSpace::Plain(unsynced) => unsynced.get_help(),
+            _ => vec![],
         }
     }
 }

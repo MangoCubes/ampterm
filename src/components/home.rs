@@ -24,7 +24,7 @@ use crate::{
     },
 };
 
-use super::traits::handlekeyseq::KeySeqResult;
+use super::traits::handlekeyseq::{ComponentKeyHelp, KeySeqResult};
 
 enum Comp {
     Main(MainScreen),
@@ -50,6 +50,13 @@ impl PassKeySeq for Home {
         match &mut self.component {
             Comp::Main(main_screen) => main_screen.handle_key_seq(keyseq),
             Comp::Login(_) | Comp::Loading(_) => Some(KeySeqResult::NoActionNeeded),
+        }
+    }
+
+    fn get_help(&self) -> Vec<ComponentKeyHelp> {
+        match &self.component {
+            Comp::Main(main_screen) => main_screen.get_help(),
+            _ => vec![],
         }
     }
 }

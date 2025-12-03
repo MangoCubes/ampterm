@@ -58,6 +58,8 @@ pub enum TargetedAction {
 
     EndKeySeq,
 
+    Help,
+
     Suspend,
     Resume,
     ClearScreen,

@@ -13,7 +13,7 @@ use crate::{
         traits::{
             focusable::Focusable,
             handleaction::HandleAction,
-            handlekeyseq::{KeySeqResult, PassKeySeq},
+            handlekeyseq::{ComponentKeyHelp, KeySeqResult, PassKeySeq},
             handlemode::HandleMode,
             handlequery::HandleQuery,
             handleraw::HandleRaw,
@@ -72,6 +72,14 @@ impl OnTick for MainScreen {
 }
 
 impl PassKeySeq for MainScreen {
+    fn get_help(&self) -> Vec<ComponentKeyHelp> {
+        match &self.state {
+            CurrentlySelected::PlaylistList => self.pl_list.get_help(),
+            CurrentlySelected::Playlist => self.pl_queue.get_help(),
+            CurrentlySelected::PlayQueue => self.playqueue.get_help(),
+            CurrentlySelected::NowPlaying(_) => self.now_playing.get_help(),
+        }
+    }
     fn handle_key_seq(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
         if self.show_tasks {
             None

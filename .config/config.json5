@@ -24,6 +24,8 @@
 
 		"<t>": "TapToBPM",
 		"<Shift-t>": "ToggleTasks",
+
+		"<?>": "Help",
 	},
 	"local": {
 		"list": {

@@ -17,6 +17,7 @@ pub enum KeySeqResult {
 
 pub trait PassKeySeq: Renderable {
     fn handle_key_seq(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult>;
+    fn get_help(&self) -> Vec<ComponentKeyHelp>;
 }
 
 pub struct ComponentKeyHelp {
@@ -55,13 +56,14 @@ pub trait HandleKeySeq<T: PartialEq + DeserializeOwned + Debug + Clone + ToStrin
         }
     }
 
-    fn get_other_helps(&self) -> Vec<KeyBindingHelp> {
+    fn get_other_helps(&self) -> Vec<ComponentKeyHelp> {
         vec![]
     }
+
     fn get_name(&self) -> &str;
 
-    fn get_help(&self) -> ComponentKeyHelp {
-        let mut current: Vec<KeyBindingHelp> = self
+    fn get_help(&self) -> Vec<ComponentKeyHelp> {
+        let current: Vec<KeyBindingHelp> = self
             .get_keybinds()
             .iter()
             .map(|(ks, a)| KeyBindingHelp {
@@ -69,10 +71,11 @@ pub trait HandleKeySeq<T: PartialEq + DeserializeOwned + Debug + Clone + ToStrin
                 desc: a.to_string(),
             })
             .collect();
-        current.extend(self.get_other_helps());
-        ComponentKeyHelp {
+        let mut other = self.get_other_helps();
+        other.push(ComponentKeyHelp {
             bindings: current,
             name: self.get_name().to_string(),
-        }
+        });
+        other
     }
 }

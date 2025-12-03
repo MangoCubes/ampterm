@@ -17,7 +17,7 @@ use crate::{
     action::action::{Action, QueryAction},
     components::traits::{
         focusable::Focusable,
-        handlekeyseq::{KeySeqResult, PassKeySeq},
+        handlekeyseq::{ComponentKeyHelp, KeySeqResult, PassKeySeq},
         handlequery::HandleQuery,
         renderable::Renderable,
     },
@@ -37,6 +37,12 @@ pub struct NowPlaying {
 }
 
 impl PassKeySeq for NowPlaying {
+    fn get_help(&self) -> Vec<ComponentKeyHelp> {
+        match &self.comp {
+            Comp::Playing(playing) => playing.get_help(),
+            Comp::Stopped(_) => vec![],
+        }
+    }
     fn handle_key_seq(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
         match &mut self.comp {
             Comp::Playing(playing) => playing.handle_key_seq(keyseq),

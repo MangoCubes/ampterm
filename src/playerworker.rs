@@ -33,7 +33,6 @@ pub struct PlayerWorker {
     player_rx: UnboundedReceiver<ToPlayerWorker>,
     action_tx: UnboundedSender<Action>,
     should_quit: bool,
-    config: Config,
     sink: Arc<Sink>,
 }
 
@@ -175,7 +174,10 @@ impl PlayerWorker {
                 }
                 ToPlayerWorker::GoToStart => {
                     if let Err(e) = self.sink.try_seek(Duration::from_secs(0)) {
-                        self.send_action(FromPlayerWorker::Message("Failed to seek!".to_string()));
+                        self.send_action(FromPlayerWorker::Message(format!(
+                            "Failed to seek: {}",
+                            e
+                        )));
                     } else {
                         self.send_action(FromPlayerWorker::StateChange(StateType::Position(
                             Duration::from_secs(0),
@@ -236,7 +238,6 @@ impl PlayerWorker {
             player_rx,
             action_tx: sender,
             should_quit: false,
-            config,
             sink,
             state: WorkerState::Idle,
         }

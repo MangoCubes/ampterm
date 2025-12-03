@@ -51,7 +51,7 @@ enum CurrentItem {
     ///   Music Five
     ///   Music Six
     ///   Music Seven
-    NotInQueue(usize, Media),
+    NotInQueue(usize),
     /// The play cursor is placed next to the item specified by the index
     InQueue(usize),
 }
@@ -130,7 +130,7 @@ impl Something {
 
     fn skip_to(&mut self, to: CurrentItem) -> Action {
         let action = match to {
-            CurrentItem::NotInQueue(idx, _) => {
+            CurrentItem::NotInQueue(idx) => {
                 self.now_playing = CurrentItem::InQueue(idx + 1);
                 match self.list.0.get(idx + 1) {
                     Some(m) => Action::Query(QueryAction::ToQueryWorker(ToQueryWorker::new(
@@ -176,7 +176,7 @@ impl Something {
             CurrentItem::BeforeFirst => clean(skip_by - 1, max_len),
             CurrentItem::AfterLast => clean(max_len + skip_by, max_len),
             CurrentItem::InQueue(index) => clean(*index as i32 + skip_by, max_len),
-            CurrentItem::NotInQueue(index, _) => {
+            CurrentItem::NotInQueue(index) => {
                 if skip_by <= 0 {
                     clean(*index as i32 + skip_by + 1, max_len)
                 } else {
@@ -263,7 +263,7 @@ impl Something {
             CurrentItem::InQueue(idx) => {
                 gen_rows_with_cursor(*idx, len, played, not_yet_played, items, true)
             }
-            CurrentItem::NotInQueue(idx, _) => {
+            CurrentItem::NotInQueue(idx) => {
                 gen_rows_with_cursor(*idx, len, played, not_yet_played, items, false)
             }
         }
@@ -315,12 +315,12 @@ impl HandleAction for Something {
                             CurrentItem::BeforeFirst => 0,
                             CurrentItem::AfterLast => max,
                             CurrentItem::InQueue(idx) => idx,
-                            CurrentItem::NotInQueue(idx, _) => idx + 1,
+                            CurrentItem::NotInQueue(idx) => idx + 1,
                         },
                         QueueLocation::Next => match self.now_playing {
                             CurrentItem::BeforeFirst => 0,
                             CurrentItem::AfterLast => max,
-                            CurrentItem::InQueue(idx) | CurrentItem::NotInQueue(idx, _) => idx + 1,
+                            CurrentItem::InQueue(idx) | CurrentItem::NotInQueue(idx) => idx + 1,
                         },
                         QueueLocation::Last => max,
                     };
@@ -373,7 +373,7 @@ impl HandleKeySeq<PlayQueueAction> for Something {
                     CurrentItem::InQueue(idx) => {
                         if let Some((newidx, deleted)) = self.list.move_item_to(&selection, idx) {
                             self.now_playing = if deleted {
-                                CurrentItem::NotInQueue(newidx, self.list.0[idx].clone())
+                                CurrentItem::NotInQueue(newidx)
                             } else {
                                 CurrentItem::InQueue(newidx)
                             };
@@ -381,10 +381,9 @@ impl HandleKeySeq<PlayQueueAction> for Something {
                             self.now_playing = CurrentItem::BeforeFirst;
                         }
                     }
-                    CurrentItem::NotInQueue(idx, _) => {
+                    CurrentItem::NotInQueue(idx) => {
                         if let Some((newidx, _)) = self.list.move_item_to(&selection, idx) {
-                            self.now_playing =
-                                CurrentItem::NotInQueue(newidx, self.list.0[idx].clone())
+                            self.now_playing = CurrentItem::NotInQueue(newidx)
                         } else {
                             self.now_playing = CurrentItem::BeforeFirst;
                         }

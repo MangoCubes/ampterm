@@ -17,7 +17,6 @@ use crate::{
             renderable::Renderable,
         },
     },
-    config::Config,
     queryworker::{
         highlevelquery::HighLevelQuery,
         query::{setcredential::Credential, ResponseType, ToQueryWorker},
@@ -49,7 +48,6 @@ pub struct Login {
     status_msg: Option<Vec<String>>,
     mode: Mode,
     status: Status,
-    config: Config,
 }
 
 impl Login {
@@ -131,7 +129,7 @@ impl Login {
         self.update_style();
         Some(Action::Query(QueryAction::ToQueryWorker(q)))
     }
-    pub fn new(msg: Option<Vec<String>>, config: Config) -> Self {
+    pub fn new(msg: Option<Vec<String>>) -> Self {
         let mut res = Self {
             username: TextArea::default(),
             password: TextArea::default(),
@@ -139,7 +137,6 @@ impl Login {
             mode: Mode::default(),
             status: Status::default(),
             status_msg: msg,
-            config,
             legacy: Checkbox::new(false, false, "Use legacy auth instead".to_string()),
         };
         res.url.move_cursor(CursorMove::End);

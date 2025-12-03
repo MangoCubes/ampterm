@@ -127,13 +127,10 @@ impl Home {
                 )
             }
             None => {
-                let comp = Login::new(
-                    Some(vec![
-                        "No credentials detected in the config.".to_string(),
-                        format!("(Loaded config from {:?})", PathConfig::get_config_dir()),
-                    ]),
-                    config.clone(),
-                );
+                let comp = Login::new(Some(vec![
+                    "No credentials detected in the config.".to_string(),
+                    format!("(Loaded config from {:?})", PathConfig::get_config_dir()),
+                ]));
                 (Comp::Login(comp), vec![])
             }
         };
@@ -193,16 +190,13 @@ impl HandleQuery for Home {
                                 return Some(actions);
                             }
                             Err(err) => {
-                                if let Comp::Loading(l) = &self.component {
+                                if let Comp::Loading(_) = &self.component {
                                     // Switch child component to Login
-                                    self.component = Comp::Login(Login::new(
-                                            Some(vec![
-                                                "Failed to query the server with the given credentials!"
-                                                .to_string(),
-                                                format!("Error: {}", err),
-                                            ]),
-                                            self.config.clone(),
-                                    ));
+                                    self.component = Comp::Login(Login::new(Some(vec![
+                                        "Failed to query the server with the given credentials!"
+                                            .to_string(),
+                                        format!("Error: {}", err),
+                                    ])));
                                     return None;
                                 }
                             }

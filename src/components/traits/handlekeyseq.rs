@@ -4,9 +4,8 @@ use crossterm::event::KeyEvent;
 use serde::de::DeserializeOwned;
 
 use crate::{
-    action::action::Action,
-    components::traits::renderable::Renderable,
-    config::{keybindings::KeyBindings, keyparser::KeyParser},
+    action::action::Action, components::traits::renderable::Renderable,
+    config::keybindings::KeyBindings,
 };
 
 #[derive(Clone)]

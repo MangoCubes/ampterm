@@ -4,7 +4,7 @@ pub mod query;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
-use crate::action::action::{Action, QueryAction, TargetedAction};
+use crate::action::action::{Action, QueryAction};
 use crate::config::Config;
 use crate::lyricsclient::lrclib::LrcLib;
 use crate::lyricsclient::LyricsClient;
@@ -30,7 +30,6 @@ pub struct QueryWorker {
     req_rx: UnboundedReceiver<ToQueryWorker>,
     action_tx: UnboundedSender<Action>,
     should_quit: bool,
-    config: Config,
 }
 
 static COUNTER: AtomicUsize = AtomicUsize::new(1);
@@ -334,7 +333,6 @@ impl QueryWorker {
             req_rx,
             action_tx: sender,
             should_quit: false,
-            config,
         }
     }
     pub fn get_tx(&self) -> UnboundedSender<ToQueryWorker> {

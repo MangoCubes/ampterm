@@ -33,6 +33,8 @@
 			"<Down>": "Down",
 			"<Left>": "Left",
 			"<Right>": "Right",
+			"<q>": "Close",
+			"<Esc>": "Close",
 		},
 		"list": {
 			"<k>": "Up",

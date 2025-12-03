@@ -8,6 +8,7 @@ use ratatui::{
 };
 
 use crate::{
+    action::action::{Action, TargetedAction},
     components::traits::{
         handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult},
         renderable::Renderable,
@@ -54,6 +55,9 @@ impl HandleKeySeq<HelpAction> for Help {
                         }
                     }
                 }
+            }
+            HelpAction::Close => {
+                return KeySeqResult::ActionNeeded(Action::Targeted(TargetedAction::CloseHelp));
             }
             _ => {}
         };

@@ -54,6 +54,7 @@ pub enum HelpAction {
     Down,
     Left,
     Right,
+    Close,
 }
 
 #[derive(Clone, Debug, Default, Deserialize)]

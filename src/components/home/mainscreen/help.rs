@@ -17,7 +17,7 @@ use crate::{
 
 pub struct Help {
     border: Block<'static>,
-    table: Vec<Table<'static>>,
+    table: Vec<(String, Table<'static>)>,
     current: Index,
     binds: KeyBindings<HelpAction>,
     global_table: Table<'static>,
@@ -57,6 +57,10 @@ impl HandleKeySeq<HelpAction> for Help {
             }
             _ => {}
         };
+        self.border = match self.current {
+            Index::Global => Self::gen_block("Global"),
+            Index::Local(i) => Self::gen_block(&self.table[i].0),
+        };
         KeySeqResult::NoActionNeeded
     }
 
@@ -70,37 +74,42 @@ impl HandleKeySeq<HelpAction> for Help {
 }
 
 impl Help {
-    fn gen_section(comp: ComponentKeyHelp) -> Table<'static> {
-        let mut rows: Vec<Row<'static>> = comp
+    fn gen_section(comp: ComponentKeyHelp) -> (String, Table<'static>) {
+        let rows: Vec<Row<'static>> = comp
             .bindings
             .into_iter()
             .map(|entry| Row::new(vec![entry.keyseq, entry.desc]))
             .collect();
-        rows.insert(
-            0,
-            Row::new(vec![format!("Help for ← {} →", comp.name), "".to_string()]),
-        );
-        Table::new(rows, [Constraint::Max(40), Constraint::Min(1)])
+        (
+            comp.name,
+            Table::new(rows, [Constraint::Max(40), Constraint::Min(1)]),
+        )
     }
+
     pub fn display(&mut self, binds: Vec<ComponentKeyHelp>) {
         self.table = binds.into_iter().map(Self::gen_section).collect();
+        self.border = Self::gen_block(&self.table[0].0);
+        self.current = Index::Local(0);
     }
+
     pub fn new(config: Config) -> Self {
         Self {
             binds: config.local.help,
-            border: Self::gen_block(),
+            border: Self::gen_block(""),
             table: vec![],
             global_table: Self::gen_section(ComponentKeyHelp {
                 bindings: config.global.to_help(),
                 name: "Global".to_string(),
-            }),
+            })
+            .1,
             current: Index::Local(0),
         }
     }
 
-    fn gen_block() -> Block<'static> {
+    fn gen_block(title: &str) -> Block<'static> {
         let style = Style::new().white();
-        let title = Span::styled("Help", Style::default().add_modifier(Modifier::BOLD));
+        let title_str = format!("Help for ← {} →", title);
+        let title = Span::styled(title_str, Style::default().add_modifier(Modifier::BOLD));
         Block::bordered().title(title).border_style(style)
     }
 }
@@ -116,7 +125,7 @@ impl Renderable for Help {
         frame.render_widget(
             match &self.current {
                 Index::Global => &self.global_table,
-                Index::Local(idx) => &self.table[*idx],
+                Index::Local(idx) => &self.table[*idx].1,
             },
             self.border.inner(area),
         );

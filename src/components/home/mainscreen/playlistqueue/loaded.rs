@@ -172,6 +172,9 @@ impl Renderable for Loaded {
 }
 
 impl HandleKeySeq<PlaylistQueueAction> for Loaded {
+    fn get_name(&self) -> &str {
+        "PlaylistQueue"
+    }
     fn pass_to_lower_comp(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
         self.table.handle_key_seq(keyseq)
     }

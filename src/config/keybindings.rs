@@ -4,20 +4,12 @@ use crossterm::event::KeyEvent;
 use derive_deref::{Deref, DerefMut};
 use serde::{de::DeserializeOwned, Deserialize, Deserializer};
 
-use crate::{
-    components::traits::handlekeyseq::KeySeqResult, config::keyparser::KeyParser, trace_dbg,
-};
+use crate::{config::keyparser::KeyParser, trace_dbg};
 
 #[derive(Clone, Debug, Deref, DerefMut)]
 pub struct KeyBindings<T: Clone + PartialEq + DeserializeOwned + Debug>(
     pub HashMap<Vec<KeyEvent>, T>,
 );
-
-pub struct KeyBindingHelp {
-    pub keyseq: String,
-    pub hide: bool,
-    pub desc: String,
-}
 
 impl<T: PartialEq + DeserializeOwned + Debug + Clone> Default for KeyBindings<T> {
     fn default() -> Self {

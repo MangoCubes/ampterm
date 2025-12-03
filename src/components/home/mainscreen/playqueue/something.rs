@@ -343,6 +343,9 @@ impl HandleAction for Something {
 }
 
 impl HandleKeySeq<PlayQueueAction> for Something {
+    fn get_name(&self) -> &str {
+        "PlayQueue"
+    }
     fn pass_to_lower_comp(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
         self.table.handle_key_seq(keyseq)
     }

@@ -2,7 +2,7 @@ mod appconfig;
 mod authconfig;
 mod behaviourconfig;
 pub mod keybindings;
-mod keyparser;
+pub mod keyparser;
 pub mod localkeybinds;
 mod lyricsconfig;
 pub mod pathconfig;

@@ -4,8 +4,9 @@ use crossterm::event::KeyEvent;
 use serde::de::DeserializeOwned;
 
 use crate::{
-    action::action::Action, components::traits::renderable::Renderable,
-    config::keybindings::KeyBindings,
+    action::action::Action,
+    components::traits::renderable::Renderable,
+    config::{keybindings::KeyBindings, keyparser::KeyParser},
 };
 
 #[derive(Clone)]
@@ -18,7 +19,19 @@ pub trait PassKeySeq: Renderable {
     fn handle_key_seq(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult>;
 }
 
-pub trait HandleKeySeq<T: PartialEq + DeserializeOwned + Debug + Clone>: Renderable {
+pub struct ComponentKeyHelp {
+    pub name: String,
+    pub bindings: Vec<KeyBindingHelp>,
+}
+
+pub struct KeyBindingHelp {
+    pub keyseq: String,
+    pub desc: String,
+}
+
+pub trait HandleKeySeq<T: PartialEq + DeserializeOwned + Debug + Clone + ToString>:
+    Renderable
+{
     /// Optionally, a componen may have a set of subcomponents that has keybinds. This function is
     /// called just before the key sequence is matched against this component's keybinding. If this
     /// function returns something other than None, it means that the key sequence matched against
@@ -39,6 +52,27 @@ pub trait HandleKeySeq<T: PartialEq + DeserializeOwned + Debug + Clone>: Rendera
             Some(self.handle_local_action(res.clone()))
         } else {
             None
+        }
+    }
+
+    fn get_other_helps(&self) -> Vec<KeyBindingHelp> {
+        vec![]
+    }
+    fn get_name(&self) -> &str;
+
+    fn get_help(&self) -> ComponentKeyHelp {
+        let mut current: Vec<KeyBindingHelp> = self
+            .get_keybinds()
+            .iter()
+            .map(|(ks, a)| KeyBindingHelp {
+                keyseq: KeyParser::keyseq_to_string(ks),
+                desc: a.to_string(),
+            })
+            .collect();
+        current.extend(self.get_other_helps());
+        ComponentKeyHelp {
+            bindings: current,
+            name: self.get_name().to_string(),
         }
     }
 }

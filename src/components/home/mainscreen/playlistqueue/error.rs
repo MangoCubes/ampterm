@@ -51,6 +51,9 @@ impl Renderable for Error {
 }
 
 impl HandleKeySeq<PlaylistQueueAction> for Error {
+    fn get_name(&self) -> &str {
+        "PlaylistQueue"
+    }
     fn handle_local_action(&mut self, action: PlaylistQueueAction) -> KeySeqResult {
         match action {
             PlaylistQueueAction::Refresh => {

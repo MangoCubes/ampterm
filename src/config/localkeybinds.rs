@@ -1,8 +1,9 @@
 use serde::Deserialize;
+use strum::Display;
 
 use crate::{config::keybindings::KeyBindings, playerworker::player::QueueLocation};
 
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Display)]
 pub enum ListAction {
     ExitSave,
     ExitDiscard,
@@ -15,14 +16,14 @@ pub enum ListAction {
     DeselectMode,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Display)]
 pub enum PlayQueueAction {
     Delete,
     ToggleStar,
     PlaySelected,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Display)]
 pub enum LyricsAction {
     Up,
     Down,
@@ -30,7 +31,7 @@ pub enum LyricsAction {
     Bottom,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Display)]
 pub enum PlaylistListAction {
     Up,
     Down,
@@ -40,7 +41,7 @@ pub enum PlaylistListAction {
     ViewSelected,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Display)]
 pub enum PlaylistQueueAction {
     Refresh,
     Add(QueueLocation),

@@ -85,6 +85,9 @@ impl Renderable for VisualTable {
 }
 
 impl HandleKeySeq<ListAction> for VisualTable {
+    fn get_name(&self) -> &str {
+        "List"
+    }
     fn handle_local_action(&mut self, action: ListAction) -> KeySeqResult {
         let cur_pos = match self.tablestate.selected() {
             Some(i) => i,

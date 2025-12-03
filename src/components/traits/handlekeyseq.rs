@@ -63,14 +63,7 @@ pub trait HandleKeySeq<T: PartialEq + DeserializeOwned + Debug + Clone + ToStrin
     fn get_name(&self) -> &str;
 
     fn get_help(&self) -> Vec<ComponentKeyHelp> {
-        let current: Vec<KeyBindingHelp> = self
-            .get_keybinds()
-            .iter()
-            .map(|(ks, a)| KeyBindingHelp {
-                keyseq: KeyParser::keyseq_to_string(ks),
-                desc: a.to_string(),
-            })
-            .collect();
+        let current = self.get_keybinds().to_help();
         let mut other = self.get_other_helps();
         other.push(ComponentKeyHelp {
             bindings: current,

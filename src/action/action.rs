@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use strum::Display;
 
 use crate::{
     osclient::response::getplaylist::Media,
@@ -31,7 +32,7 @@ pub enum QueueAction {
 
 /// These actions are associated with a specific component in the program, and are usually
 /// available regardles of the currently focused component.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Display)]
 pub enum TargetedAction {
     Play,
     Pause,

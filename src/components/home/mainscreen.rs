@@ -109,6 +109,10 @@ impl HandleMode for MainScreen {
 }
 
 impl MainScreen {
+    fn show_help(&mut self) {
+        self.help.display(self.get_help());
+        self.popup = Popup::Help;
+    }
     pub fn new(config: Config) -> (Self, Action) {
         (
             Self {
@@ -294,8 +298,7 @@ impl HandleAction for MainScreen {
                 if matches!(self.popup, Popup::Help) {
                     self.popup = Popup::None;
                 } else {
-                    self.help.display(self.get_help());
-                    self.popup = Popup::Help;
+                    self.show_help();
                 };
                 None
             }
@@ -304,8 +307,7 @@ impl HandleAction for MainScreen {
                 None
             }
             TargetedAction::OpenHelp => {
-                self.help.display(self.get_help());
-                self.popup = Popup::Help;
+                self.show_help();
                 None
             }
             TargetedAction::Queue(_) | TargetedAction::Skip | TargetedAction::Previous => {

@@ -33,25 +33,29 @@ impl HandleKeySeq<HelpAction> for Help {
     fn handle_local_action(&mut self, action: HelpAction) -> KeySeqResult {
         match action {
             HelpAction::Left => {
-                self.current = match self.current {
-                    Index::Global => Index::Local(self.table.len() - 1),
-                    Index::Local(i) => {
-                        if i == 0 {
-                            Index::Global
-                        } else {
-                            Index::Local(i - 1)
+                if self.table.len() != 0 {
+                    self.current = match self.current {
+                        Index::Global => Index::Local(self.table.len() - 1),
+                        Index::Local(i) => {
+                            if i == 0 {
+                                Index::Global
+                            } else {
+                                Index::Local(i - 1)
+                            }
                         }
                     }
                 }
             }
             HelpAction::Right => {
-                self.current = match self.current {
-                    Index::Global => Index::Local(0),
-                    Index::Local(i) => {
-                        if i == self.table.len() - 1 {
-                            Index::Global
-                        } else {
-                            Index::Local(i + 1)
+                if self.table.len() != 0 {
+                    self.current = match self.current {
+                        Index::Global => Index::Local(0),
+                        Index::Local(i) => {
+                            if i == self.table.len() - 1 {
+                                Index::Global
+                            } else {
+                                Index::Local(i + 1)
+                            }
                         }
                     }
                 }
@@ -62,8 +66,8 @@ impl HandleKeySeq<HelpAction> for Help {
             _ => {}
         };
         self.border = match self.current {
-            Index::Global => Self::gen_block("Global"),
-            Index::Local(i) => Self::gen_block(&self.table[i].0),
+            Index::Global => Self::gen_block("Global", self.table.len() + 1, self.table.len() + 1),
+            Index::Local(i) => Self::gen_block(&self.table[i].0, i + 1, self.table.len() + 1),
         };
         KeySeqResult::NoActionNeeded
     }
@@ -92,14 +96,21 @@ impl Help {
 
     pub fn display(&mut self, binds: Vec<ComponentKeyHelp>) {
         self.table = binds.into_iter().map(Self::gen_section).collect();
-        self.border = Self::gen_block(&self.table[0].0);
-        self.current = Index::Local(0);
+        self.current = if self.table.len() == 0 {
+            Index::Global
+        } else {
+            Index::Local(0)
+        };
+        self.border = match self.current {
+            Index::Global => Self::gen_block("Global", self.table.len() + 1, self.table.len() + 1),
+            Index::Local(i) => Self::gen_block(&self.table[i].0, i + 1, self.table.len() + 1),
+        };
     }
 
     pub fn new(config: Config) -> Self {
         Self {
             binds: config.local.help,
-            border: Self::gen_block(""),
+            border: Self::gen_block("", 1, 1),
             table: vec![],
             global_table: Self::gen_section(ComponentKeyHelp {
                 bindings: config.global.to_help(),
@@ -110,9 +121,13 @@ impl Help {
         }
     }
 
-    fn gen_block(title: &str) -> Block<'static> {
+    fn gen_block(title: &str, current: usize, outof: usize) -> Block<'static> {
         let style = Style::new().white();
-        let title_str = format!("Help for ← {} →", title);
+        let title_str = if outof != 1 {
+            format!("({}/{}) Help for ← {} →", current, outof, title)
+        } else {
+            format!("Help for {}", title)
+        };
         let title = Span::styled(title_str, Style::default().add_modifier(Modifier::BOLD));
         Block::bordered().title(title).border_style(style)
     }

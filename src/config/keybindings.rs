@@ -39,12 +39,15 @@ impl<'de, T: PartialEq + DeserializeOwned + Debug + Clone + ToString> Deserializ
 
 impl<T: PartialEq + DeserializeOwned + Debug + Clone + ToString> KeyBindings<T> {
     pub fn to_help(&self) -> Vec<KeyBindingHelp> {
-        self.iter()
+        let mut msgs: Vec<KeyBindingHelp> = self
+            .iter()
             .map(|(ks, a)| KeyBindingHelp {
                 keyseq: KeyParser::keyseq_to_string(ks),
                 desc: a.to_string(),
             })
-            .collect()
+            .collect();
+        msgs.sort_by(|a, b| a.keyseq.cmp(&b.keyseq));
+        msgs
     }
     pub fn find_action_str(&self, action: T) -> Option<String> {
         let msg = KeyParser::keyseq_to_string(self.find_action(action)?);

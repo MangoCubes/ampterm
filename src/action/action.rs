@@ -27,6 +27,7 @@ impl ToString for Mode {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum QueueAction {
     Add(Vec<Media>, QueueLocation),
+    RandomAdd(Vec<Media>, QueueLocation),
 }
 
 impl ToString for QueueAction {
@@ -36,6 +37,13 @@ impl ToString for QueueAction {
                 QueueLocation::Front => "Play selected items immediately",
                 QueueLocation::Next => "Play selected items next",
                 QueueLocation::Last => "Append selected items to the end of the queue",
+            },
+            QueueAction::RandomAdd(_, queue_location) => match queue_location {
+                QueueLocation::Front => "Shuffle the selected items and play them immediately",
+                QueueLocation::Next => "Shuffle the selected items and play them next",
+                QueueLocation::Last => {
+                    "Shuffle the selected items and add them to the end of the queue"
+                }
             },
         }
         .to_string()

@@ -8,12 +8,15 @@ use ratatui::{
 };
 
 use crate::{
-    action::action::{Action, TargetedAction},
+    action::{
+        action::{Action, TargetedAction},
+        localaction::HelpAction,
+    },
     components::traits::{
         handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult},
         renderable::Renderable,
     },
-    config::{keybindings::KeyBindings, localkeybinds::HelpAction, Config},
+    config::{keybindings::KeyBindings, Config},
 };
 
 pub struct Help {

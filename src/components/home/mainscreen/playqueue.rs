@@ -1,4 +1,5 @@
 use crossterm::event::KeyEvent;
+use rand::seq::SliceRandom;
 use ratatui::{
     layout::Rect,
     style::{Modifier, Style, Stylize},
@@ -106,6 +107,13 @@ impl HandleAction for PlayQueue {
         } else {
             match action {
                 TargetedAction::Queue(QueueAction::Add(items, _)) => {
+                    let (comp, action) = Something::new(self.enabled, items, self.config.clone());
+                    self.comp = Comp::Something(comp);
+                    Some(action)
+                }
+                TargetedAction::Queue(QueueAction::RandomAdd(mut items, _)) => {
+                    let mut rng = rand::rng();
+                    items.shuffle(&mut rng);
                     let (comp, action) = Something::new(self.enabled, items, self.config.clone());
                     self.comp = Comp::Something(comp);
                     Some(action)

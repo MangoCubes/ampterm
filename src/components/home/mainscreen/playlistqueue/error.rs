@@ -1,5 +1,8 @@
 use crate::{
-    action::action::{Action, QueryAction},
+    action::{
+        action::{Action, QueryAction},
+        localaction::PlaylistQueueAction,
+    },
     components::{
         home::mainscreen::playlistqueue::PlaylistQueue,
         lib::centered::Centered,
@@ -9,7 +12,7 @@ use crate::{
             renderable::Renderable,
         },
     },
-    config::{keybindings::KeyBindings, localkeybinds::PlaylistQueueAction, Config},
+    config::{keybindings::KeyBindings, Config},
     queryworker::{
         highlevelquery::HighLevelQuery,
         query::{getplaylist::GetPlaylistParams, getplaylists::PlaylistID, ToQueryWorker},

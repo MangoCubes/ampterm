@@ -9,7 +9,3 @@ use crate::{
 pub trait HandleAction: Renderable {
     fn handle_action(&mut self, action: TargetedAction) -> Option<Action>;
 }
-
-pub trait HandleActionSimple: Renderable {
-    fn handle_action_simple(&mut self, action: TargetedAction);
-}

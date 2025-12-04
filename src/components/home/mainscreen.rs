@@ -17,16 +17,15 @@ use crate::{
             handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult, PassKeySeq},
             handlemode::HandleMode,
             handlequery::HandleQuery,
-            handleraw::HandleRaw,
             ontick::OnTick,
             renderable::Renderable,
         },
     },
-    config::Config,
+    config::{keyparser::KeyParser, Config},
     playerworker::player::FromPlayerWorker,
     queryworker::{highlevelquery::HighLevelQuery, query::ToQueryWorker},
 };
-use crossterm::event::{KeyEvent, KeyModifiers};
+use crossterm::event::{KeyEvent, KeyEventKind};
 use nowplaying::NowPlaying;
 use playlistlist::PlaylistList;
 use playlistqueue::PlaylistQueue;
@@ -95,7 +94,14 @@ impl PassKeySeq for MainScreen {
         }
     }
     fn handle_key_seq(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
-        match self.popup {
+        if keyseq.len() > 1 {
+            if self.key_stack.len() == 0 {
+                self.key_stack = keyseq.iter().map(KeyParser::key_event_to_string).collect();
+            } else if let Some(k) = keyseq.last() {
+                self.key_stack.push(KeyParser::key_event_to_string(k));
+            };
+        }
+        let res = match self.popup {
             Popup::None => match &self.state {
                 CurrentlySelected::PlaylistList => self.pl_list.handle_key_seq(keyseq),
                 CurrentlySelected::Playlist => self.pl_queue.handle_key_seq(keyseq),
@@ -104,7 +110,11 @@ impl PassKeySeq for MainScreen {
             },
             Popup::Tasks => None,
             Popup::Help => self.help.handle_key_seq(keyseq),
-        }
+        };
+        if matches!(res, Some(_)) {
+            self.key_stack.drain(..);
+        };
+        res
     }
 }
 
@@ -211,21 +221,6 @@ impl Renderable for MainScreen {
     }
 }
 
-impl HandleRaw for MainScreen {
-    fn handle_key_event(&mut self, key: KeyEvent) -> Option<Action> {
-        self.key_stack.push(format!(
-            "{}{}",
-            key.code.to_string(),
-            if key.modifiers == KeyModifiers::NONE {
-                ""
-            } else {
-                "+"
-            },
-        ));
-        None
-    }
-}
-
 impl HandleQuery for MainScreen {
     fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
         match action {
@@ -292,8 +287,8 @@ impl HandleQuery for MainScreen {
 
 impl HandleAction for MainScreen {
     fn handle_action(&mut self, action: TargetedAction) -> Option<Action> {
+        self.key_stack.drain(..);
         match action {
-            TargetedAction::EndKeySeq => None,
             TargetedAction::ToggleHelp => {
                 if matches!(self.popup, Popup::Help) {
                     self.popup = Popup::None;

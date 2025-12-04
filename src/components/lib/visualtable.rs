@@ -13,7 +13,7 @@ use crate::{
         renderable::Renderable,
     },
     config::{keybindings::KeyBindings, localkeybinds::ListAction, Config},
-    helper::selection::{ModifiableList, Selection},
+    helper::selection::ModifiableList,
 };
 
 /// Struct that contains the state of the current temporary selection
@@ -150,10 +150,6 @@ impl HandleKeySeq<ListAction> for VisualTable {
 }
 
 impl VisualTable {
-    /// Returns true if the table is currently in Visual mode (both select and unselect)
-    pub fn in_visual_mode(&self) -> bool {
-        matches!(self.mode, VisualMode::Off)
-    }
     /// Set all the rows with a new set of rows
     pub fn set_rows(&mut self, rows: Vec<Row<'static>>) {
         self.rows = ModifiableList::new(rows);
@@ -177,12 +173,6 @@ impl VisualTable {
             }
         };
         self.set_rows(rows);
-    }
-
-    pub fn delete(&mut self, selection: &Selection) {
-        self.selected.delete(selection);
-        self.rows.delete(selection);
-        self.table = self.regen_table();
     }
 
     /// Same as [`Self::get_selection`], except the selections are reset.

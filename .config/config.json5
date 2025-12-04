@@ -102,6 +102,11 @@
 			"<Shift-i>": { Add: "Front" },
 			"<a>": { Add: "Next" },
 			"<Shift-a>": { Add: "Last" },
+
+			"<r><i>": { "RandomAdd": "Front" },
+			"<r><Shift-i>": { RandomAdd: "Front" },
+			"<r><a>": { RandomAdd: "Next" },
+			"<r><Shift-a>": { RandomAdd: "Last" },
 		},
 		"playlistqueue": {
 			"<Shift-r>": "Refresh",
@@ -111,6 +116,11 @@
 			"<Shift-i>": { Add: "Front" },
 			"<a>": { Add: "Next" },
 			"<Shift-a>": { Add: "Last" },
+
+			"<r><i>": { "RandomAdd": "Front" },
+			"<r><Shift-i>": { RandomAdd: "Front" },
+			"<r><a>": { RandomAdd: "Next" },
+			"<r><Shift-a>": { RandomAdd: "Last" },
 		},
 	},
     // Use legacy authentication that sends the password instead of token and salt

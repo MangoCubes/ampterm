@@ -35,7 +35,7 @@ pub struct Loaded {
     comp: List<'static>,
     list: Vec<SimplePlaylist>,
     state: ListState,
-    callback: HashMap<usize, (PlaylistID, QueueLocation)>,
+    callback: HashMap<usize, (PlaylistID, QueueLocation, bool)>,
 }
 
 impl Loaded {
@@ -80,7 +80,7 @@ impl Loaded {
             config,
         }
     }
-    pub fn add_to_queue(&mut self, ql: QueueLocation) -> Option<Action> {
+    pub fn add_to_queue(&mut self, ql: QueueLocation, randomise: bool) -> Option<Action> {
         if let Some(pos) = self.state.selected() {
             let key = self.list[pos].id.clone();
             let name = self.list[pos].name.clone();
@@ -88,7 +88,7 @@ impl Loaded {
                 name,
                 id: key.clone(),
             }));
-            self.callback.insert(req.ticket, (key, ql));
+            self.callback.insert(req.ticket, (key, ql, randomise));
             Some(Action::Query(QueryAction::ToQueryWorker(req)))
         } else {
             error!("Failed to add playlist to queue: No playlist selected");
@@ -111,9 +111,11 @@ impl HandleQuery for Loaded {
                     if let ResponseType::GetPlaylist(res) = res.res {
                         match res {
                             GetPlaylistResponse::Success(full_playlist) => {
-                                return Some(Action::Targeted(TargetedAction::Queue(
-                                    QueueAction::Add(full_playlist.entry, cb.1),
-                                )));
+                                return Some(Action::Targeted(TargetedAction::Queue(if cb.2 {
+                                    QueueAction::RandomAdd(full_playlist.entry, cb.1)
+                                } else {
+                                    QueueAction::Add(full_playlist.entry, cb.1)
+                                })));
                             }
                             GetPlaylistResponse::Failure {
                                 id: _,
@@ -140,7 +142,7 @@ impl HandleKeySeq<PlaylistListAction> for Loaded {
     }
     fn handle_local_action(&mut self, action: PlaylistListAction) -> KeySeqResult {
         match action {
-            PlaylistListAction::Add(pos) => match self.add_to_queue(pos) {
+            PlaylistListAction::Add(pos) => match self.add_to_queue(pos, false) {
                 Some(a) => KeySeqResult::ActionNeeded(a),
                 None => KeySeqResult::NoActionNeeded,
             },
@@ -164,6 +166,10 @@ impl HandleKeySeq<PlaylistListAction> for Loaded {
                 self.state.select_last();
                 KeySeqResult::NoActionNeeded
             }
+            PlaylistListAction::RandomAdd(pos) => match self.add_to_queue(pos, true) {
+                Some(a) => KeySeqResult::ActionNeeded(a),
+                None => KeySeqResult::NoActionNeeded,
+            },
         }
     }
 

@@ -1,4 +1,5 @@
 use crossterm::event::KeyEvent;
+use rand::seq::SliceRandom;
 use ratatui::{
     layout::{Constraint, Rect},
     style::{Color, Style, Stylize},
@@ -271,6 +272,34 @@ impl Something {
             }
         }
     }
+    fn add_to_queue(&mut self, items: Vec<Media>, at: QueueLocation) -> Option<Action> {
+        let max = self.list.0.len();
+        let idx = match at {
+            QueueLocation::Front => match self.now_playing {
+                CurrentItem::BeforeFirst => 0,
+                CurrentItem::AfterLast => max,
+                CurrentItem::InQueue(idx) => idx,
+                CurrentItem::NotInQueue(idx) => idx + 1,
+            },
+            QueueLocation::Next => match self.now_playing {
+                CurrentItem::BeforeFirst => 0,
+                CurrentItem::AfterLast => max,
+                CurrentItem::InQueue(idx) | CurrentItem::NotInQueue(idx) => idx + 1,
+            },
+            QueueLocation::Last => max,
+        };
+        let len = items.len();
+        self.list.add_rows_at(items, idx);
+
+        let rows = Self::gen_rows_from(&self.list.0, &self.now_playing);
+        self.table.add_rows_at(rows, idx, len);
+
+        if matches!(at, QueueLocation::Front) {
+            Some(self.skip_to(self.now_playing.clone()))
+        } else {
+            None
+        }
+    }
 }
 
 impl Renderable for Something {
@@ -311,33 +340,11 @@ impl HandleAction for Something {
             TargetedAction::Skip => Some(self.skip(1)),
             TargetedAction::Previous => Some(self.skip(-1)),
             TargetedAction::Queue(a) => match a {
-                QueueAction::Add(items, at) => {
-                    let max = self.list.0.len();
-                    let idx = match at {
-                        QueueLocation::Front => match self.now_playing {
-                            CurrentItem::BeforeFirst => 0,
-                            CurrentItem::AfterLast => max,
-                            CurrentItem::InQueue(idx) => idx,
-                            CurrentItem::NotInQueue(idx) => idx + 1,
-                        },
-                        QueueLocation::Next => match self.now_playing {
-                            CurrentItem::BeforeFirst => 0,
-                            CurrentItem::AfterLast => max,
-                            CurrentItem::InQueue(idx) | CurrentItem::NotInQueue(idx) => idx + 1,
-                        },
-                        QueueLocation::Last => max,
-                    };
-                    let len = items.len();
-                    self.list.add_rows_at(items, idx);
-
-                    let rows = Self::gen_rows_from(&self.list.0, &self.now_playing);
-                    self.table.add_rows_at(rows, idx, len);
-
-                    if matches!(at, QueueLocation::Front) {
-                        Some(self.skip_to(self.now_playing.clone()))
-                    } else {
-                        None
-                    }
+                QueueAction::Add(items, at) => self.add_to_queue(items, at),
+                QueueAction::RandomAdd(mut items, at) => {
+                    let mut rng = rand::rng();
+                    items.shuffle(&mut rng);
+                    self.add_to_queue(items, at)
                 }
             },
             _ => None,

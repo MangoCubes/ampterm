@@ -41,12 +41,21 @@ pub struct Loaded {
 
 impl Loaded {
     /// Adds selected items into the queue, resetting the current selection.
-    fn add_selection_to_queue(&mut self, playpos: QueueLocation) -> Option<Action> {
+    fn add_selection_to_queue(
+        &mut self,
+        playpos: QueueLocation,
+        randomise: bool,
+    ) -> Option<Action> {
         let (selection, action) = self.table.get_selection_reset();
         let first = match selection {
-            VisualSelection::Single(index) => Some(Action::Targeted(TargetedAction::Queue(
-                QueueAction::Add(vec![self.playlist.entry[index].clone()], playpos),
-            ))),
+            VisualSelection::Single(index) => Some(Action::Targeted(TargetedAction::Queue({
+                let items = vec![self.playlist.entry[index].clone()];
+                if randomise {
+                    QueueAction::RandomAdd(items, playpos)
+                } else {
+                    QueueAction::Add(items, playpos)
+                }
+            }))),
             VisualSelection::TempSelection(start, end) => {
                 Some(Action::Targeted(TargetedAction::Queue(QueueAction::Add(
                     self.playlist.entry[start..=end].to_vec(),
@@ -227,7 +236,7 @@ impl HandleKeySeq<PlaylistQueueAction> for Loaded {
 
                 KeySeqResult::ActionNeeded(Action::Multiple(items))
             }
-            PlaylistQueueAction::Add(pos) => match self.add_selection_to_queue(pos) {
+            PlaylistQueueAction::Add(pos) => match self.add_selection_to_queue(pos, false) {
                 Some(a) => KeySeqResult::ActionNeeded(a),
                 None => KeySeqResult::NoActionNeeded,
             },
@@ -239,6 +248,10 @@ impl HandleKeySeq<PlaylistQueueAction> for Loaded {
                     })),
                 )))
             }
+            PlaylistQueueAction::RandomAdd(pos) => match self.add_selection_to_queue(pos, true) {
+                Some(a) => KeySeqResult::ActionNeeded(a),
+                None => KeySeqResult::NoActionNeeded,
+            },
         }
     }
 

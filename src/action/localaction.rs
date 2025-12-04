@@ -78,6 +78,7 @@ pub enum PlaylistListAction {
     Top,
     Bottom,
     Add(QueueLocation),
+    RandomAdd(QueueLocation),
     ViewSelected,
 }
 
@@ -94,6 +95,11 @@ impl ToString for PlaylistListAction {
                 QueueLocation::Last => "Append the entire playlist to the end of the queue",
             },
             PlaylistListAction::ViewSelected => "Open selected playlist",
+            PlaylistListAction::RandomAdd(queue_location) => match queue_location {
+                QueueLocation::Front => "Shuffle the playlist and play it immediately",
+                QueueLocation::Next => "Shuffle the playlist and play it next",
+                QueueLocation::Last => "Shuffle the playlist and append it to the queue",
+            },
         }
         .to_string()
     }
@@ -104,6 +110,7 @@ pub enum PlaylistQueueAction {
     Refresh,
     Add(QueueLocation),
     ToggleStar,
+    RandomAdd(QueueLocation),
 }
 
 impl ToString for PlaylistQueueAction {
@@ -114,6 +121,11 @@ impl ToString for PlaylistQueueAction {
                 QueueLocation::Front => "Play selected items immediately",
                 QueueLocation::Next => "Play selected items next",
                 QueueLocation::Last => "Append selected items to the end of the queue",
+            },
+            PlaylistQueueAction::RandomAdd(queue_location) => match queue_location {
+                QueueLocation::Front => "Shuffle the selected items and play it immediately",
+                QueueLocation::Next => "Shuffle the selected items and play it next",
+                QueueLocation::Last => "Shuffle the selected items and append it to the queue",
             },
             PlaylistQueueAction::ToggleStar => "Star/unstar items",
         }

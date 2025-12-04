@@ -6,11 +6,12 @@ use ratatui::{
 };
 
 use crate::{
+    action::localaction::LyricsAction,
     components::traits::{
         handlekeyseq::{HandleKeySeq, KeySeqResult},
         renderable::Renderable,
     },
-    config::{keybindings::KeyBindings, localkeybinds::LyricsAction, Config},
+    config::{keybindings::KeyBindings, Config},
 };
 
 pub struct Unsynced {

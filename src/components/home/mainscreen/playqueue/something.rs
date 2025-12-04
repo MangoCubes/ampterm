@@ -7,7 +7,10 @@ use ratatui::{
 };
 
 use crate::{
-    action::action::{Action, QueryAction, QueueAction, TargetedAction},
+    action::{
+        action::{Action, QueryAction, QueueAction, TargetedAction},
+        localaction::PlayQueueAction,
+    },
     components::{
         home::mainscreen::playqueue::PlayQueue,
         lib::visualtable::{VisualSelection, VisualTable},
@@ -19,7 +22,7 @@ use crate::{
             renderable::Renderable,
         },
     },
-    config::{keybindings::KeyBindings, localkeybinds::PlayQueueAction, Config},
+    config::{keybindings::KeyBindings, Config},
     helper::selection::{ModifiableList, Selection},
     osclient::response::getplaylist::Media,
     playerworker::player::{FromPlayerWorker, QueueLocation, ToPlayerWorker},

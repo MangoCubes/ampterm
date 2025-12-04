@@ -1,13 +1,16 @@
 use std::collections::HashMap;
 
 use crate::{
-    action::action::{Action, QueryAction, QueueAction, TargetedAction},
+    action::{
+        action::{Action, QueryAction, QueueAction, TargetedAction},
+        localaction::PlaylistListAction,
+    },
     components::traits::{
         handlekeyseq::{HandleKeySeq, KeySeqResult},
         handlequery::HandleQuery,
         renderable::Renderable,
     },
-    config::{keybindings::KeyBindings, localkeybinds::PlaylistListAction, Config},
+    config::{keybindings::KeyBindings, Config},
     osclient::response::getplaylists::SimplePlaylist,
     playerworker::player::QueueLocation,
     queryworker::{

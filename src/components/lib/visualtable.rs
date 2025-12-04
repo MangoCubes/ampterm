@@ -7,12 +7,15 @@ use ratatui::{
 };
 
 use crate::{
-    action::action::{Action, Mode},
+    action::{
+        action::{Action, Mode},
+        localaction::ListAction,
+    },
     components::traits::{
         handlekeyseq::{HandleKeySeq, KeySeqResult},
         renderable::Renderable,
     },
-    config::{keybindings::KeyBindings, localkeybinds::ListAction, Config},
+    config::{keybindings::KeyBindings, Config},
     helper::selection::ModifiableList,
 };
 

@@ -1,5 +1,8 @@
 use crate::{
-    action::action::{Action, QueryAction, QueueAction, TargetedAction},
+    action::{
+        action::{Action, QueryAction, QueueAction, TargetedAction},
+        localaction::PlaylistQueueAction,
+    },
     components::{
         home::mainscreen::playlistqueue::PlaylistQueue,
         lib::visualtable::{VisualSelection, VisualTable},
@@ -9,7 +12,7 @@ use crate::{
             renderable::Renderable,
         },
     },
-    config::{keybindings::KeyBindings, localkeybinds::PlaylistQueueAction, Config},
+    config::{keybindings::KeyBindings, Config},
     osclient::response::getplaylist::{FullPlaylist, Media},
     playerworker::player::QueueLocation,
     queryworker::{

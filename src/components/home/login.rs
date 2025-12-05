@@ -1,4 +1,4 @@
-use crossterm::event::KeyCode;
+use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     layout::{Constraint, Flex, Layout, Rect},
     style::{Color, Modifier, Style},
@@ -218,7 +218,7 @@ impl HandleQuery for Login {
 }
 
 impl HandleRaw for Login {
-    fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Option<Action> {
+    fn handle_raw(&mut self, key: KeyEvent) -> Option<Action> {
         match key.code {
             KeyCode::Up | KeyCode::BackTab | KeyCode::Left => {
                 self.navigate(true);
@@ -249,7 +249,7 @@ impl HandleRaw for Login {
                     self.password.input(key);
                     None
                 }
-                Mode::LegacyToggle => self.legacy.handle_key_event(key),
+                Mode::LegacyToggle => self.legacy.handle_raw(key),
             },
         }
     }

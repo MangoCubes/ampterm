@@ -131,7 +131,7 @@ impl Home {
                     "No credentials detected in the config.".to_string(),
                     format!("(Loaded config from {:?})", PathConfig::get_config_dir()),
                 ]));
-                (Comp::Login(comp), vec![])
+                (Comp::Login(comp), vec![Action::ChangeMode(Mode::Insert)])
             }
         };
         (
@@ -155,9 +155,9 @@ impl Renderable for Home {
 }
 
 impl HandleRaw for Home {
-    fn handle_key_event(&mut self, key: KeyEvent) -> Option<Action> {
+    fn handle_raw(&mut self, key: KeyEvent) -> Option<Action> {
         match &mut self.component {
-            Comp::Login(login) => login.handle_key_event(key),
+            Comp::Login(login) => login.handle_raw(key),
             _ => None,
         }
     }
@@ -175,7 +175,21 @@ impl HandleQuery for Home {
     fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
         match &mut self.component {
             Comp::Main(main_screen) => main_screen.handle_query(action),
-            Comp::Login(_) | Comp::Loading(_) => {
+            Comp::Login(login) => {
+                if let QueryAction::FromQueryWorker(res) = &action {
+                    if let ResponseType::Ping(Ok(())) = &res.res {
+                        // Switch child component to MainScreen
+                        let (comp, actions) = MainScreen::new(self.config.clone());
+                        self.component = Comp::Main(comp);
+                        Some(actions)
+                    } else {
+                        login.handle_query(action)
+                    }
+                } else {
+                    None
+                }
+            }
+            Comp::Loading(_) => {
                 // Child component can change in two cases:
                 // 1. Login is successful regardless of the current child component
                 // 2. Login with the config credentials fails
@@ -196,7 +210,7 @@ impl HandleQuery for Home {
                                             .to_string(),
                                         format!("Error: {}", err),
                                     ])));
-                                    return None;
+                                    return Some(Action::ChangeMode(Mode::Insert));
                                 }
                             }
                         }

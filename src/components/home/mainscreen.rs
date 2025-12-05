@@ -25,7 +25,7 @@ use crate::{
     playerworker::player::FromPlayerWorker,
     queryworker::{highlevelquery::HighLevelQuery, query::ToQueryWorker},
 };
-use crossterm::event::{KeyEvent, KeyEventKind};
+use crossterm::event::KeyEvent;
 use nowplaying::NowPlaying;
 use playlistlist::PlaylistList;
 use playlistqueue::PlaylistQueue;

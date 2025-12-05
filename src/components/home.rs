@@ -176,7 +176,21 @@ impl HandleQuery for Home {
     fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
         match &mut self.component {
             Comp::Main(main_screen) => main_screen.handle_query(action),
-            Comp::Login(_) | Comp::Loading(_) => {
+            Comp::Login(login) => {
+                if let QueryAction::FromQueryWorker(res) = &action {
+                    if let ResponseType::Ping(Ok(())) = &res.res {
+                        // Switch child component to MainScreen
+                        let (comp, actions) = MainScreen::new(self.config.clone());
+                        self.component = Comp::Main(comp);
+                        Some(actions)
+                    } else {
+                        login.handle_query(action)
+                    }
+                } else {
+                    None
+                }
+            }
+            Comp::Loading(_) => {
                 // Child component can change in two cases:
                 // 1. Login is successful regardless of the current child component
                 // 2. Login with the config credentials fails

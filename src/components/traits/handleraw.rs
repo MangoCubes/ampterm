@@ -7,5 +7,5 @@ use crate::{action::action::Action, components::traits::renderable::Renderable};
 /// Once complete, it optionally returns an action indicating the action that should further
 /// happen.
 pub trait HandleRaw: Renderable {
-    fn handle_key_event(&mut self, key: KeyEvent) -> Option<Action>;
+    fn handle_raw(&mut self, key: KeyEvent) -> Option<Action>;
 }

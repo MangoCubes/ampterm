@@ -6,7 +6,7 @@ use tokio::sync::mpsc::{self};
 use tracing::debug;
 
 use crate::{
-    action::action::{Action, QueryAction, TargetedAction},
+    action::action::{Action, Mode, QueryAction, TargetedAction},
     components::{
         home::Home,
         traits::{
@@ -14,6 +14,7 @@ use crate::{
             handlekeyseq::{KeySeqResult, PassKeySeq},
             handlemode::HandleMode,
             handlequery::HandleQuery,
+            handleraw::HandleRaw,
             ontick::OnTick,
             renderable::Renderable,
         },
@@ -36,6 +37,7 @@ pub struct App {
     action_rx: mpsc::UnboundedReceiver<Action>,
     query_tx: mpsc::UnboundedSender<ToQueryWorker>,
     player_tx: mpsc::UnboundedSender<ToPlayerWorker>,
+    mode: Mode,
 }
 
 impl App {
@@ -64,6 +66,7 @@ impl App {
             action_rx,
             query_tx,
             player_tx,
+            mode: Mode::Normal,
         })
     }
 
@@ -111,28 +114,34 @@ impl App {
     }
 
     fn handle_key_event(&mut self, key: KeyEvent) -> Result<()> {
-        self.key_stack.push(key);
-
-        let res = if let Some(r) = self.component.handle_key_seq(&self.key_stack) {
-            r
-        } else if let Some(r) = self.config.global.get(&self.key_stack) {
-            KeySeqResult::ActionNeeded(Action::Targeted(r.clone()))
+        if self.mode == Mode::Insert {
+            if let Some(action) = self.component.handle_raw(key) {
+                self.action_tx.send(action)?;
+            }
         } else {
-            let single = &vec![key];
-            if let Some(r) = self.component.handle_key_seq(single) {
+            self.key_stack.push(key);
+
+            let res = if let Some(r) = self.component.handle_key_seq(&self.key_stack) {
                 r
-            } else if let Some(r) = self.config.global.get(single) {
+            } else if let Some(r) = self.config.global.get(&self.key_stack) {
                 KeySeqResult::ActionNeeded(Action::Targeted(r.clone()))
             } else {
-                return Ok(());
+                let single = &vec![key];
+                if let Some(r) = self.component.handle_key_seq(single) {
+                    r
+                } else if let Some(r) = self.config.global.get(single) {
+                    KeySeqResult::ActionNeeded(Action::Targeted(r.clone()))
+                } else {
+                    return Ok(());
+                }
+            };
+
+            self.key_stack.drain(..);
+
+            if let KeySeqResult::ActionNeeded(action) = res {
+                self.action_tx.send(action)?;
             }
         };
-
-        self.key_stack.drain(..);
-
-        if let KeySeqResult::ActionNeeded(action) = res {
-            self.action_tx.send(action.clone())?;
-        }
         Ok(())
     }
 
@@ -180,7 +189,10 @@ impl App {
                     }
                 },
                 Action::Resize(w, h) => self.handle_resize(tui, w, h)?,
-                Action::ChangeMode(mode) => self.component.handle_mode(mode),
+                Action::ChangeMode(mode) => {
+                    self.mode = mode;
+                    self.component.handle_mode(mode);
+                }
                 Action::Query(query_action) => {
                     match &query_action {
                         QueryAction::ToPlayerWorker(to_player_worker) => {

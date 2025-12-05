@@ -52,7 +52,7 @@ impl Renderable for Checkbox {
 }
 
 impl HandleRaw for Checkbox {
-    fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) -> Option<Action> {
+    fn handle_raw(&mut self, key: crossterm::event::KeyEvent) -> Option<Action> {
         if let KeyCode::Char(' ') = key.code {
             self.toggle()
         };

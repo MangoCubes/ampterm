@@ -234,7 +234,6 @@ impl HandleQuery for MainScreen {
                         CompID::PlaylistQueue => self.pl_queue.handle_query(action.clone()),
                         CompID::PlayQueue => self.playqueue.handle_query(action.clone()),
                         CompID::NowPlaying => self.now_playing.handle_query(action.clone()),
-                        CompID::None => None,
                         _ => unreachable!("Action propagated to nonexistent component: {:?}", dest),
                     };
                     if let Some(a) = res {
@@ -253,7 +252,6 @@ impl HandleQuery for MainScreen {
                         CompID::PlaylistQueue => self.pl_queue.handle_query(action.clone()),
                         CompID::PlayQueue => self.playqueue.handle_query(action.clone()),
                         CompID::NowPlaying => self.now_playing.handle_query(action.clone()),
-                        CompID::None => None,
                         _ => unreachable!("Action propagated to nonexistent component: {:?}", dest),
                     };
                     if let Some(a) = res {

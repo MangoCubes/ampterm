@@ -46,6 +46,9 @@ pub fn log_alsa_error() {
             let fmt_str = unsafe { std::ffi::CStr::from_ptr(fmt).to_string_lossy() };
             warn!("{file_str}:{line} {function_str} {err} {fmt_str}");
         }
+        // For some reason, buffer underruning glitch occurs and I have no idea how to fix that :(
+        // It causes the playback to stop briefly.
+        // For now, the error message is suppressed.
         unsafe {
             let handler: alsa_sys::snd_lib_error_handler_t =
                 Some(std::mem::transmute(error_handler as *const ()));

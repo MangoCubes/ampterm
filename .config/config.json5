@@ -86,7 +86,13 @@
 			"<d>": "Delete",
 		},
 		// Keybinds for the lyrics page (The popup you get you press the key bound to OpenLyrics in nowplaying)
-		"lyrics": {},
+		"lyrics": {
+			"<Up>": "Up",
+			"<Down>": "Down",
+
+			"<Shift-g>": "Bottom",
+			"<g><g>": "Top",
+		},
 		"playlistlist": {
 			// The playlist list does not use visual table, which is why up/down stuff needs binding.
 			"<k>": "Up",

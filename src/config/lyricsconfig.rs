@@ -1,6 +1,17 @@
 use serde::Deserialize;
+
+fn default_true() -> bool {
+    true
+}
+
+fn default_lrclib() -> String {
+    "https://lrclib.net".to_string()
+}
+
 #[derive(Clone, Debug, Deserialize, Default)]
 pub struct LyricsConfig {
-    #[serde(default)]
+    #[serde(default = "default_true")]
     pub enable: bool,
+    #[serde(default = "default_lrclib")]
+    pub lrc_url: String,
 }

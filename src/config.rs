@@ -1,6 +1,7 @@
 mod appconfig;
 mod authconfig;
 mod behaviourconfig;
+mod featuresconfig;
 pub mod keybindings;
 pub mod keyparser;
 pub mod localkeybinds;
@@ -24,8 +25,8 @@ use crate::{
         appconfig::AppConfig,
         authconfig::{AuthConfig, UnsafeAuthConfig},
         behaviourconfig::BehaviourConfig,
+        featuresconfig::FeaturesConfig,
         localkeybinds::LocalKeyBinds,
-        lyricsconfig::LyricsConfig,
         pathconfig::PathConfig,
         styleconfig::StyleConfig,
     },
@@ -60,7 +61,7 @@ pub struct Config {
     #[serde(default)]
     pub init_state: InitState,
     #[serde(default)]
-    pub lyrics: LyricsConfig,
+    pub features: FeaturesConfig,
     #[serde(default)]
     pub behaviour: BehaviourConfig,
 }

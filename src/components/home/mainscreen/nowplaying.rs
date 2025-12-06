@@ -82,7 +82,7 @@ impl HandleQuery for NowPlaying {
                         0.0,
                         0.0,
                         Duration::from_secs(0),
-                        self.config.lyrics.enable,
+                        self.config.features.lyrics.enable,
                         self.config.clone(),
                     );
                     self.comp = Comp::Playing(comp);

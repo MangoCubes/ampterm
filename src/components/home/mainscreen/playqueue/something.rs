@@ -370,7 +370,9 @@ impl HandleKeySeq<PlayQueueAction> for Something {
                 let selection = match vs {
                     VisualSelection::Single(index) => Selection::Single(index),
                     VisualSelection::TempSelection(start, end) => Selection::Range(start, end),
-                    VisualSelection::Selection(items) => Selection::Multiple(items),
+                    VisualSelection::Selection(items) => {
+                        Selection::Multiple(items.iter().map(|s| s.selected).collect())
+                    }
                     VisualSelection::None { unselect: _ } => {
                         return match action {
                             Some(a) => KeySeqResult::ActionNeeded(a),
@@ -425,8 +427,8 @@ impl HandleKeySeq<PlayQueueAction> for Something {
                         .0
                         .iter()
                         .zip(items.iter())
-                        .filter_map(|(m, &selected)| {
-                            if selected {
+                        .filter_map(|(m, state)| {
+                            if state.selected {
                                 Some((m.id.clone(), m.starred == None))
                             } else {
                                 None

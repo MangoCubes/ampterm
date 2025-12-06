@@ -38,7 +38,7 @@ pub enum VisualSelection {
     TempSelection(usize, usize),
     /// The table is currently not in visual mode, but some elements were selected from the
     /// previous visual mode selections.
-    Selection(Vec<bool>),
+    Selection(Vec<RowState>),
     /// Nothing selected because either the cursor does not exist on the table
     None { unselect: bool },
 }
@@ -64,6 +64,21 @@ enum VisualMode {
     Deselect(usize),
 }
 
+#[derive(Clone)]
+pub struct RowState {
+    pub visible: bool,
+    pub selected: bool,
+}
+
+impl Default for RowState {
+    fn default() -> Self {
+        Self {
+            visible: true,
+            selected: false,
+        }
+    }
+}
+
 /// Visual mode state tracker
 /// All functions that may change the way table looks must end with the code [`self.table =
 /// self.regen_table`] to ensure that the table is displayed properly.
@@ -71,7 +86,7 @@ pub struct VisualTable {
     /// Current mode of the table
     mode: VisualMode,
     /// List of all selected items
-    selected: ModifiableList<bool>,
+    state: ModifiableList<RowState>,
     table_proc: fn(Table<'static>) -> Table<'static>,
     constraints: Vec<Constraint>,
     table: Table<'static>,
@@ -105,7 +120,7 @@ impl HandleKeySeq<ListAction> for VisualTable {
         };
         match action {
             ListAction::ExitSave => {
-                self.disable_visual();
+                self.disable_visual_save();
                 KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Normal))
             }
             ListAction::ExitDiscard => {
@@ -167,7 +182,7 @@ impl VisualTable {
     /// 2. With the information given through [`at`] and [`len`], update the current selection so
     ///    that it correctly reflects the new
     pub fn add_rows_at(&mut self, rows: Vec<Row<'static>>, at: usize, len: usize) {
-        self.selected.add_rows_at(vec![false; len], at);
+        self.state.add_rows_at(vec![RowState::default(); len], at);
         if !self.rows.is_empty() {
             if let Some(cur) = self.get_current() {
                 if cur >= at {
@@ -210,8 +225,8 @@ impl VisualTable {
             }
         } else {
             let mut count = 0;
-            for b in &self.selected.0 {
-                if *b {
+            for b in &self.state.0 {
+                if b.selected {
                     count += 1;
                 }
             }
@@ -222,7 +237,7 @@ impl VisualTable {
                     None => VisualSelection::None { unselect: false },
                 }
             } else {
-                VisualSelection::Selection(self.selected.0.clone())
+                VisualSelection::Selection(self.state.clone())
             }
         }
     }
@@ -255,18 +270,22 @@ impl VisualTable {
     fn gen_rows(
         temp: Option<TempSelection>,
         rows: Vec<Row<'static>>,
-        selected: &[bool],
+        selected: &[RowState],
     ) -> Vec<Row<'static>> {
-        let iter = rows.into_iter().enumerate();
+        let iter = rows
+            .into_iter()
+            .zip(selected)
+            .enumerate()
+            .filter(|(_, (_, state))| state.visible);
         match temp {
             Some(t) => iter
-                .map(|(i, mut row)| {
+                .map(|(i, (mut row, state))| {
                     row = if i <= t.end && i >= t.start {
                         row.reversed()
                     } else {
                         row
                     };
-                    if selected[i] {
+                    if state.selected {
                         row.green()
                     } else {
                         row
@@ -274,7 +293,7 @@ impl VisualTable {
                 })
                 .collect(),
             None => iter
-                .map(|(i, row)| if selected[i] { row.green() } else { row })
+                .map(|(_, (row, state))| if state.selected { row.green() } else { row })
                 .collect(),
         }
     }
@@ -285,7 +304,7 @@ impl VisualTable {
             &self.constraints,
             self.rows.0.clone(),
             self.get_temp_range(),
-            &self.selected.0,
+            &self.state,
             self.table_proc,
         )
     }
@@ -295,7 +314,7 @@ impl VisualTable {
         constraints: &Vec<Constraint>,
         rows: Vec<Row<'static>>,
         temp: Option<TempSelection>,
-        selected: &[bool],
+        selected: &[RowState],
         table_proc: fn(Table<'static>) -> Table<'static>,
     ) -> Table<'static> {
         let comp = Table::new(Self::gen_rows(temp, rows, selected), constraints);
@@ -308,12 +327,12 @@ impl VisualTable {
         constraints: Vec<Constraint>,
         table_proc: fn(Table<'static>) -> Table<'static>,
     ) -> Self {
-        let selected = ModifiableList::new(vec![false; rows.len()]);
-        let table = Self::gen_table(&constraints, rows.clone(), None, &selected.0, table_proc);
+        let selected = ModifiableList::new(vec![RowState::default(); rows.len()]);
+        let table = Self::gen_table(&constraints, rows.clone(), None, &selected, table_proc);
         Self {
             mode: VisualMode::Off,
             rows: ModifiableList::new(rows),
-            selected,
+            state: selected,
             table_proc,
             constraints,
             table,
@@ -380,7 +399,7 @@ impl VisualTable {
     /// Reset all overall selection
     #[inline]
     pub fn reset_selections(&mut self) {
-        self.selected = ModifiableList::new(vec![false; self.selected.0.len()]);
+        self.state = ModifiableList::new(vec![RowState::default(); self.state.0.len()]);
         self.table = self.regen_table();
     }
     #[inline]
@@ -390,7 +409,7 @@ impl VisualTable {
 
     /// Disable visual mode for the current table
     /// The current temporary selection is added to the overall selection
-    pub fn disable_visual(&mut self) {
+    pub fn disable_visual_save(&mut self) {
         let Some(end) = self.get_current() else {
             self.mode = VisualMode::Off;
             self.table = self.regen_table();
@@ -403,7 +422,9 @@ impl VisualTable {
                 (end, start)
             };
             for i in a..=b {
-                self.selected.0[i] = true;
+                if self.state[i].visible {
+                    self.state[i].selected = true;
+                }
             }
         } else if let VisualMode::Deselect(start) = self.mode {
             let (a, b) = if start < end {
@@ -412,7 +433,9 @@ impl VisualTable {
                 (end, start)
             };
             for i in a..=b {
-                self.selected.0[i] = false;
+                if self.state[i].visible {
+                    self.state[i].selected = false;
+                }
             }
         };
         self.mode = VisualMode::Off;

@@ -1,4 +1,5 @@
 {
+	// These keybinds are available regardless of the focused component.
 	"global": {
 		"<Ctrl-w><Left>": "WindowLeft",
 		"<Ctrl-w><Right>": "WindowRight",
@@ -28,6 +29,7 @@
 		"<?>": "ToggleHelp",
 	},
 	"local": {
+		// Keybinds for the help page that appears when you press ? (Or any key that is bound to ToggleHelp)
 		"help": {
 			"<Up>": "Up",
 			"<Down>": "Down",
@@ -36,6 +38,7 @@
 			"<q>": "Close",
 			"<Esc>": "Close",
 		},
+		// Keybinds for any lists that are in the program (except Playlist list, which internally does not use the same list as everything else)
 		"list": {
 			"<k>": "Up",
 			"<j>": "Down",
@@ -56,6 +59,7 @@
 
 			"<g><r>": "ResetSelection",
 		},
+		// Keybinds for visual mode of the list
 		"list_visual": {
 			"<k>": "Up",
 			"<j>": "Down",
@@ -75,11 +79,13 @@
 			"<Shift-v>": "ExitSave",
 			"<Ctrl-v>": "ExitSave",
 		},
+		// Keybinds for the playqueue (rightmost component in the main screen)
 		"playqueue": {
 			"<Enter>": "PlaySelected",
 			"<Shift-f>": "ToggleStar",
 			"<d>": "Delete",
 		},
+		// Keybinds for the lyrics page (The popup you get you press the key bound to OpenLyrics in nowplaying)
 		"lyrics": {},
 		"playlistlist": {
 			// The playlist list does not use visual table, which is why up/down stuff needs binding.

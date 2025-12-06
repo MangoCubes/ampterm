@@ -64,7 +64,7 @@ pub struct MainScreen {
     now_playing: NowPlaying,
     tasks: Tasks,
     popup: Popup,
-    bpmtoy: BPMToy,
+    bpmtoy: Option<BPMToy>,
     playqueue: PlayQueue,
     message: String,
     key_stack: Vec<String>,
@@ -74,7 +74,9 @@ pub struct MainScreen {
 
 impl OnTick for MainScreen {
     fn on_tick(&mut self) {
-        self.bpmtoy.on_tick();
+        if let Some(t) = &mut self.bpmtoy {
+            t.on_tick();
+        }
     }
 }
 
@@ -133,7 +135,11 @@ impl MainScreen {
                 playqueue: PlayQueue::new(false, config.clone()),
                 now_playing: NowPlaying::new(false, config.clone()),
                 tasks: Tasks::new(config.behaviour.show_internal_tasks),
-                bpmtoy: BPMToy::new(config.clone()),
+                bpmtoy: if config.features.bpmtoy.enable {
+                    Some(BPMToy::new(config.clone()))
+                } else {
+                    None
+                },
                 message: "You are now logged in.".to_string(),
                 key_stack: vec![],
                 popup: Popup::None,
@@ -177,17 +183,22 @@ impl Renderable for MainScreen {
             Constraint::Ratio(3, 4),
             Constraint::Ratio(1, 4),
         ]);
-        let bottom_layout =
-            Layout::horizontal([Constraint::Percentage(75), Constraint::Percentage(25)]);
         let areas = vertical.split(area);
         let listareas = horizontal.split(areas[1]);
         let text_areas = text_layout.split(areas[3]);
-        let bottom_areas = bottom_layout.split(areas[2]);
         self.pl_list.draw(frame, listareas[0]);
         self.pl_queue.draw(frame, listareas[1]);
         self.playqueue.draw(frame, listareas[2]);
-        self.now_playing.draw(frame, bottom_areas[0]);
-        self.bpmtoy.draw(frame, bottom_areas[1]);
+
+        if let Some(toy) = &mut self.bpmtoy {
+            let bottom_layout =
+                Layout::horizontal([Constraint::Percentage(75), Constraint::Percentage(25)]);
+            let bottom_areas = bottom_layout.split(areas[2]);
+            self.now_playing.draw(frame, bottom_areas[0]);
+            toy.draw(frame, bottom_areas[1]);
+        } else {
+            self.now_playing.draw(frame, areas[2]);
+        }
 
         match self.popup {
             Popup::None => {}
@@ -358,7 +369,13 @@ impl HandleAction for MainScreen {
                 self.update_focus();
                 None
             }
-            TargetedAction::TapToBPM => self.bpmtoy.handle_action(action),
+            TargetedAction::TapToBPM => {
+                if let Some(t) = &mut self.bpmtoy {
+                    t.handle_action(action)
+                } else {
+                    None
+                }
+            }
             TargetedAction::FocusPlaylistList => {
                 self.state = CurrentlySelected::PlaylistList;
                 self.update_focus();

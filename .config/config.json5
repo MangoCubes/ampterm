@@ -145,7 +145,12 @@
 	"behaviour": {
 		"auto_focus": true,
 	},
-	"lyrics": {
-		"enable": true,
-	},
+	"features": {
+		"lyrics": {
+			"enable": true,
+		},
+		"bpmtoy": {
+			"enable": true,
+		},
+	}
 }

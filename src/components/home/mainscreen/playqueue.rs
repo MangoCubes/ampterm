@@ -349,7 +349,7 @@ impl HandleQuery for PlayQueue {
 
 impl HandleAction for PlayQueue {
     fn handle_action(&mut self, action: TargetedAction) -> Option<Action> {
-        match action {
+        let a = match action {
             TargetedAction::Skip => Some(self.skip(1)),
             TargetedAction::Previous => Some(self.skip(-1)),
             TargetedAction::Queue(a) => match a {
@@ -361,7 +361,9 @@ impl HandleAction for PlayQueue {
                 }
             },
             _ => None,
-        }
+        };
+        self.table.bump_cursor_pos();
+        a
     }
 }
 

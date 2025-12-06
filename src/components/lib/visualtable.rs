@@ -110,12 +110,7 @@ impl HandleKeySeq<ListAction> for VisualTable {
         let cur_pos = match self.tablestate.selected() {
             Some(i) => i,
             None => {
-                if self.rows.0.len() == 0 {
-                    return KeySeqResult::NoActionNeeded;
-                } else {
-                    self.tablestate.select(Some(0));
-                    0
-                }
+                return KeySeqResult::NoActionNeeded;
             }
         };
         match action {
@@ -172,6 +167,13 @@ impl VisualTable {
     pub fn set_rows(&mut self, rows: Vec<Row<'static>>) {
         self.rows = ModifiableList::new(rows);
         self.table = self.regen_table();
+    }
+
+    /// Function that should be called if the cursor position is missing
+    pub fn bump_cursor_pos(&mut self) {
+        if self.rows.len() != 0 && self.tablestate.selected() == None {
+            self.tablestate.select(Some(0));
+        }
     }
 
     /// This function is intended to be called whenever new rows are added to the table. However,

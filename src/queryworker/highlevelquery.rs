@@ -44,7 +44,7 @@ pub enum HighLevelQuery {
 impl HighLevelQuery {
     pub fn get_dest(&self) -> Vec<CompID> {
         match self {
-            HighLevelQuery::PlayMusicFromURL(_) => vec![CompID::None],
+            HighLevelQuery::PlayMusicFromURL(_) => vec![],
             HighLevelQuery::CheckCredentialValidity => vec![CompID::Home],
             HighLevelQuery::SelectPlaylist(_) => vec![CompID::PlaylistQueue],
             HighLevelQuery::AddPlaylistToQueue(_) | HighLevelQuery::ListPlaylists => {

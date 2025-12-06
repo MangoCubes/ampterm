@@ -18,7 +18,6 @@ use serde::{Deserialize, Serialize};
 // component efficiently and without [`.clone()`]ing the responses.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum CompID {
-    None = 0,
     Home,
     Login,
     MainScreen,
@@ -27,5 +26,4 @@ pub enum CompID {
     PlayQueue,
     Tasks,
     NowPlaying,
-    All,
 }

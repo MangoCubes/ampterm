@@ -184,6 +184,18 @@ impl PlayerWorker {
                         )));
                     }
                 }
+                ToPlayerWorker::ChangeSpeed(by) => {
+                    let current = self.sink.speed();
+                    let new_speed = current + by;
+                    let cleaned = if new_speed <= 0.0 { 0.01 } else { new_speed };
+                    self.sink.set_speed(cleaned);
+                    self.send_action(FromPlayerWorker::StateChange(StateType::Speed(cleaned)));
+                }
+                ToPlayerWorker::SetSpeed(to) => {
+                    let cleaned = if to <= 0.0 { 0.01 } else { to };
+                    self.sink.set_speed(cleaned);
+                    self.send_action(FromPlayerWorker::StateChange(StateType::Speed(cleaned)));
+                }
                 ToPlayerWorker::ChangeVolume(by) => {
                     let current = self.sink.volume();
                     let new_vol = current + by;

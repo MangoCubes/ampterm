@@ -34,6 +34,9 @@ pub enum ToPlayerWorker {
     /// Sets the volume absolutely.
     SetVolume(f32),
 
+    ChangeSpeed(f32),
+    SetSpeed(f32),
+
     /// Below should not be used by the user directly.
     PlayURL {
         music: Media,

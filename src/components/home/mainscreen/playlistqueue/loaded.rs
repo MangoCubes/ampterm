@@ -66,7 +66,7 @@ impl Loaded {
                 let items: Vec<Media> = items
                     .into_iter()
                     .enumerate()
-                    .filter(|(_, selected)| *selected)
+                    .filter(|(_, state)| state.selected)
                     .filter_map(|(idx, _)| self.playlist.entry.get(idx))
                     .map(|m| m.clone())
                     .collect();
@@ -212,8 +212,8 @@ impl HandleKeySeq<PlaylistQueueAction> for Loaded {
                         .entry
                         .iter()
                         .zip(items.iter())
-                        .filter_map(|(m, &selected)| {
-                            if selected {
+                        .filter_map(|(m, state)| {
+                            if state.selected {
                                 Some((m.id.clone(), m.starred == None))
                             } else {
                                 None

@@ -42,8 +42,6 @@ enum LyricsSpace {
 }
 
 pub struct Playing {
-    vol: f32,
-    speed: f32,
     pos: Duration,
     music: Media,
     lyrics: LyricsSpace,
@@ -53,8 +51,6 @@ pub struct Playing {
 impl Playing {
     pub fn new(
         music: Media,
-        vol: f32,
-        speed: f32,
         pos: Duration,
         enable_lyrics: bool,
         config: Config,
@@ -63,8 +59,6 @@ impl Playing {
             (
                 Self {
                     config,
-                    vol,
-                    speed,
                     pos,
                     music: music.clone(),
                     lyrics: LyricsSpace::Fetching(Centered::new(vec![format!(
@@ -85,8 +79,6 @@ impl Playing {
             (
                 Self {
                     config,
-                    vol,
-                    speed,
                     pos,
                     music: music.clone(),
                     lyrics: LyricsSpace::Disabled,
@@ -143,8 +135,6 @@ impl HandleQuery for Playing {
         } else if let QueryAction::FromPlayerWorker(FromPlayerWorker::StateChange(s)) = &action {
             match s {
                 StateType::Position(pos) => self.pos = *pos,
-                StateType::Volume(v) => self.vol = *v,
-                StateType::Speed(s) => self.speed = *s,
                 StateType::NowPlaying(Some(media)) => {
                     self.music = media.clone();
                 }

@@ -32,7 +32,7 @@ impl LyricsClient for LrcLib {
         &self,
         params: GetLyricsParams,
     ) -> Result<Option<GetLyricsResponse>, FailReason> {
-        let Ok(mut url) = Url::parse(&self.config.config.lrc_url) else {
+        let Ok(mut url) = Url::parse(&self.config.features.lyrics.lrc_url) else {
             return Err(FailReason::URLParsing);
         };
         url.set_path("api/search");

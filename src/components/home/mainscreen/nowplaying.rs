@@ -1,12 +1,14 @@
 mod playing;
+mod speed;
 mod stopped;
+mod volume;
 
 use std::time::Duration;
 
 use crossterm::event::KeyEvent;
 use playing::Playing;
 use ratatui::{
-    layout::Rect,
+    layout::{Constraint, Layout, Rect},
     style::{Style, Stylize},
     widgets::Block,
     Frame,
@@ -15,11 +17,14 @@ use stopped::Stopped;
 
 use crate::{
     action::action::{Action, QueryAction},
-    components::traits::{
-        focusable::Focusable,
-        handlekeyseq::{ComponentKeyHelp, KeySeqResult, PassKeySeq},
-        handlequery::HandleQuery,
-        renderable::Renderable,
+    components::{
+        home::mainscreen::nowplaying::{speed::Speed, volume::Volume},
+        traits::{
+            focusable::Focusable,
+            handlekeyseq::{ComponentKeyHelp, KeySeqResult, PassKeySeq},
+            handlequery::HandleQuery,
+            renderable::Renderable,
+        },
     },
     config::Config,
     playerworker::player::{FromPlayerWorker, StateType},
@@ -34,6 +39,8 @@ pub struct NowPlaying {
     comp: Comp,
     enabled: bool,
     config: Config,
+    speed: Speed,
+    volume: Volume,
 }
 
 impl PassKeySeq for NowPlaying {
@@ -54,9 +61,11 @@ impl PassKeySeq for NowPlaying {
 impl NowPlaying {
     pub fn new(enabled: bool, config: Config) -> Self {
         Self {
+            volume: Volume::new(config.init_state.volume),
             config,
             enabled,
             comp: Comp::Stopped(Stopped::new()),
+            speed: Speed::new(1.0),
         }
     }
     fn gen_block(&self) -> Block<'static> {
@@ -74,15 +83,13 @@ impl HandleQuery for NowPlaying {
     fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
         match action {
             QueryAction::FromPlayerWorker(FromPlayerWorker::StateChange(
-                StateType::NowPlaying(now_playing),
-            )) => match now_playing {
+                StateType::NowPlaying(media),
+            )) => match media {
                 Some(n) => {
                     let (comp, action) = Playing::new(
                         n,
-                        0.0,
-                        0.0,
                         Duration::from_secs(0),
-                        self.config.lyrics.enable,
+                        self.config.features.lyrics.enable,
                         self.config.clone(),
                     );
                     self.comp = Comp::Playing(comp);
@@ -93,6 +100,14 @@ impl HandleQuery for NowPlaying {
                     None
                 }
             },
+            QueryAction::FromPlayerWorker(FromPlayerWorker::StateChange(StateType::Volume(v))) => {
+                self.volume.set_volume(v);
+                None
+            }
+            QueryAction::FromPlayerWorker(FromPlayerWorker::StateChange(StateType::Speed(s))) => {
+                self.speed.set_speed(s);
+                None
+            }
             _ => match &mut self.comp {
                 Comp::Playing(playing) => playing.handle_query(action),
                 Comp::Stopped(_) => None,
@@ -103,9 +118,13 @@ impl HandleQuery for NowPlaying {
 
 impl Renderable for NowPlaying {
     fn draw(&mut self, frame: &mut Frame, area: Rect) {
+        let div = Layout::horizontal([Constraint::Min(1), Constraint::Max(5), Constraint::Max(5)]);
         let block = self.gen_block();
-        let inner = block.inner(area);
-        frame.render_widget(block, area);
+        let areas = div.split(area);
+        let inner = block.inner(areas[0]);
+        frame.render_widget(block, areas[0]);
+        self.speed.draw(frame, areas[1]);
+        self.volume.draw(frame, areas[2]);
         match &mut self.comp {
             Comp::Playing(playing) => playing.draw(frame, inner),
             Comp::Stopped(stopped) => stopped.draw(frame, inner),

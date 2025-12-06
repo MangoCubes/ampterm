@@ -1,4 +1,5 @@
 {
+	// These keybinds are available regardless of the focused component.
 	"global": {
 		"<Ctrl-w><Left>": "WindowLeft",
 		"<Ctrl-w><Right>": "WindowRight",
@@ -11,8 +12,14 @@
 		"<Ctrl-w><j>": "WindowDown",
 
 		"<Space>": "PlayOrPause",
+
 		"<Shift-Up>": { "ChangeVolume": 0.05 },
 		"<Shift-Down>": { "ChangeVolume": -0.05 },
+
+		"<Ctrl-Up>": { "ChangeSpeed": 0.05 },
+		"<Ctrl-Down>": { "ChangeSpeed": -0.05 },
+		"<Ctrl-Space>": { "SetSpeed": 1.00 },
+
 		"<0>": "GoToStart",
 
 		"<Shift-k>": "Previous",
@@ -28,6 +35,7 @@
 		"<?>": "ToggleHelp",
 	},
 	"local": {
+		// Keybinds for the help page that appears when you press ? (Or any key that is bound to ToggleHelp)
 		"help": {
 			"<Up>": "Up",
 			"<Down>": "Down",
@@ -36,6 +44,7 @@
 			"<q>": "Close",
 			"<Esc>": "Close",
 		},
+		// Keybinds for any lists that are in the program (except Playlist list, which internally does not use the same list as everything else)
 		"list": {
 			"<k>": "Up",
 			"<j>": "Down",
@@ -56,6 +65,7 @@
 
 			"<g><r>": "ResetSelection",
 		},
+		// Keybinds for visual mode of the list
 		"list_visual": {
 			"<k>": "Up",
 			"<j>": "Down",
@@ -75,12 +85,20 @@
 			"<Shift-v>": "ExitSave",
 			"<Ctrl-v>": "ExitSave",
 		},
+		// Keybinds for the playqueue (rightmost component in the main screen)
 		"playqueue": {
 			"<Enter>": "PlaySelected",
 			"<Shift-f>": "ToggleStar",
 			"<d>": "Delete",
 		},
-		"lyrics": {},
+		// Keybinds for the lyrics page (The popup you get you press the key bound to OpenLyrics in nowplaying)
+		"lyrics": {
+			"<Up>": "Up",
+			"<Down>": "Down",
+
+			"<Shift-g>": "Bottom",
+			"<g><g>": "Top",
+		},
 		"playlistlist": {
 			// The playlist list does not use visual table, which is why up/down stuff needs binding.
 			"<k>": "Up",
@@ -99,28 +117,30 @@
 			"<Enter>": "ViewSelected",
 
 			"<i>": { "Add": "Front" },
-			"<Shift-i>": { Add: "Front" },
-			"<a>": { Add: "Next" },
-			"<Shift-a>": { Add: "Last" },
+			"<Shift-i>": { "Add": "Front" },
+			"<a>": { "Add": "Next" },
+			"<Shift-a>": { "Add": "Last" },
 
 			"<r><i>": { "RandomAdd": "Front" },
-			"<r><Shift-i>": { RandomAdd: "Front" },
-			"<r><a>": { RandomAdd: "Next" },
-			"<r><Shift-a>": { RandomAdd: "Last" },
+			"<r><Shift-i>": { "RandomAdd": "Front" },
+			"<r><a>": { "RandomAdd": "Next" },
+			"<r><Shift-a>": { "RandomAdd": "Last" },
 		},
 		"playlistqueue": {
 			"<Shift-r>": "Refresh",
 			"<Shift-f>": "ToggleStar",
 
+			"<Enter>": { "Add": "Front" },
+
 			"<i>": { "Add": "Front" },
-			"<Shift-i>": { Add: "Front" },
-			"<a>": { Add: "Next" },
-			"<Shift-a>": { Add: "Last" },
+			"<Shift-i>": { "Add": "Front" },
+			"<a>": { "Add": "Next" },
+			"<Shift-a>": { "Add": "Last" },
 
 			"<r><i>": { "RandomAdd": "Front" },
-			"<r><Shift-i>": { RandomAdd: "Front" },
-			"<r><a>": { RandomAdd: "Next" },
-			"<r><Shift-a>": { RandomAdd: "Last" },
+			"<r><Shift-i>": { "RandomAdd": "Front" },
+			"<r><a>": { "RandomAdd": "Next" },
+			"<r><Shift-a>": { "RandomAdd": "Last" },
 		},
 	},
     // Use legacy authentication that sends the password instead of token and salt
@@ -139,7 +159,12 @@
 	"behaviour": {
 		"auto_focus": true,
 	},
-	"lyrics": {
-		"enable": true,
-	},
+	"features": {
+		"lyrics": {
+			"enable": true,
+		},
+		"bpmtoy": {
+			"enable": true,
+		},
+	}
 }

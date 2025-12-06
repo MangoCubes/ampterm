@@ -171,6 +171,15 @@ impl App {
                     TargetedAction::ChangeVolume(delta) => {
                         let _ = self.player_tx.send(ToPlayerWorker::ChangeVolume(delta));
                     }
+                    TargetedAction::SetVolume(to) => {
+                        let _ = self.player_tx.send(ToPlayerWorker::SetVolume(to));
+                    }
+                    TargetedAction::ChangeSpeed(delta) => {
+                        let _ = self.player_tx.send(ToPlayerWorker::ChangeSpeed(delta));
+                    }
+                    TargetedAction::SetSpeed(to) => {
+                        let _ = self.player_tx.send(ToPlayerWorker::SetSpeed(to));
+                    }
                     TargetedAction::GoToStart => {
                         let _ = self.player_tx.send(ToPlayerWorker::GoToStart);
                     }

@@ -12,8 +12,14 @@
 		"<Ctrl-w><j>": "WindowDown",
 
 		"<Space>": "PlayOrPause",
+
 		"<Shift-Up>": { "ChangeVolume": 0.05 },
 		"<Shift-Down>": { "ChangeVolume": -0.05 },
+
+		"<Ctrl-Up>": { "ChangeSpeed": 0.05 },
+		"<Ctrl-Down>": { "ChangeSpeed": -0.05 },
+		"<Ctrl-Space>": { "SetSpeed": 1.00 },
+
 		"<0>": "GoToStart",
 
 		"<Shift-k>": "Previous",

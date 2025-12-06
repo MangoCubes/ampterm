@@ -62,6 +62,9 @@ pub enum TargetedAction {
     Queue(QueueAction),
     GoToStart,
     ChangeVolume(f32),
+    ChangeSpeed(f32),
+    SetVolume(f32),
+    SetSpeed(f32),
 
     // Action for moving between boxes
     WindowUp,
@@ -125,6 +128,15 @@ impl ToString for TargetedAction {
             TargetedAction::Resume => "Resume program".to_string(),
             TargetedAction::ClearScreen => "Re-render".to_string(),
             TargetedAction::Quit => "Quit program".to_string(),
+            TargetedAction::ChangeSpeed(s) => {
+                if *s >= 1.0 {
+                    format!("Increase playback speed by {}", s)
+                } else {
+                    format!("Decrease playback speed by {}", s)
+                }
+            }
+            TargetedAction::SetVolume(v) => format!("Set volume to {}", v),
+            TargetedAction::SetSpeed(v) => format!("Set playback speed to {}", v),
         }
     }
 }

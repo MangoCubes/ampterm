@@ -180,6 +180,12 @@ impl App {
                     TargetedAction::SetSpeed(to) => {
                         let _ = self.player_tx.send(ToPlayerWorker::SetSpeed(to));
                     }
+                    TargetedAction::ChangePosition(by) => {
+                        if let Some(more) = self.component.handle_action(targeted_action) {
+                            self.action_tx.send(more)?
+                        }
+                        let _ = self.player_tx.send(ToPlayerWorker::ChangePosition(by));
+                    }
                     TargetedAction::GoToStart => {
                         let _ = self.player_tx.send(ToPlayerWorker::GoToStart);
                     }

@@ -37,6 +37,8 @@ pub enum ToPlayerWorker {
     ChangeSpeed(f32),
     SetSpeed(f32),
 
+    ChangePosition(f32),
+
     /// Below should not be used by the user directly.
     PlayURL {
         music: Media,
@@ -47,6 +49,8 @@ pub enum ToPlayerWorker {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum StateType {
+    JumpForward(f32, Duration),
+    JumpBackward(f32, Duration),
     Position(Duration),
     NowPlaying(Option<Media>),
     Volume(f32),

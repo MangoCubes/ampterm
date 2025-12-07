@@ -65,6 +65,7 @@ pub enum TargetedAction {
     ChangeSpeed(f32),
     SetVolume(f32),
     SetSpeed(f32),
+    ChangePosition(f32),
 
     // Action for moving between boxes
     WindowUp,
@@ -137,6 +138,13 @@ impl ToString for TargetedAction {
             }
             TargetedAction::SetVolume(v) => format!("Set volume to {}", v),
             TargetedAction::SetSpeed(v) => format!("Set playback speed to {}", v),
+            TargetedAction::ChangePosition(p) => {
+                if *p >= 0.0 {
+                    format!("Seek forward {} seconds", p)
+                } else {
+                    format!("Seek backwards {} seconds", -p)
+                }
+            }
         }
     }
 }

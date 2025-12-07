@@ -144,13 +144,15 @@ impl HandleQuery for Playing {
                 StateType::Position(pos) => {
                     if *pos > self.last_real_pos {
                         let diff = *pos - self.last_real_pos;
+                        // Occasionally, the player falsely reports the position as the end of the
+                        // previous song. To prevent this from messing with the player, if the
+                        // reported position and the current position differs by 1 second, it is
+                        // ignored. Since the update happens every 0.1 seconds, this should never
+                        // happen in ideal worlds.
                         if diff < Duration::from_secs(1) {
                             self.pos += diff.mul_f32(self.speed);
                             self.last_real_pos = *pos;
                         }
-                    } else {
-                        trace_dbg!(*pos);
-                        trace_dbg!(self.last_real_pos);
                     }
                 }
                 StateType::Speed(s) => {

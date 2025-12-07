@@ -22,6 +22,7 @@ use crate::{
         highlevelquery::HighLevelQuery,
         query::{ResponseType, ToQueryWorker},
     },
+    trace_dbg,
 };
 use crossterm::event::KeyEvent;
 use ratatui::{
@@ -42,7 +43,9 @@ enum LyricsSpace {
 }
 
 pub struct Playing {
+    speed: f32,
     pos: Duration,
+    last_real_pos: Duration,
     music: Media,
     lyrics: LyricsSpace,
     config: Config,
@@ -51,15 +54,17 @@ pub struct Playing {
 impl Playing {
     pub fn new(
         music: Media,
-        pos: Duration,
+        speed: f32,
         enable_lyrics: bool,
         config: Config,
     ) -> (Self, Option<Action>) {
         if enable_lyrics {
             (
                 Self {
+                    speed,
                     config,
-                    pos,
+                    pos: Duration::from_secs(0),
+                    last_real_pos: Duration::from_secs(0),
                     music: music.clone(),
                     lyrics: LyricsSpace::Fetching(Centered::new(vec![format!(
                         "Searching for lyrics for {}...",
@@ -78,8 +83,10 @@ impl Playing {
         } else {
             (
                 Self {
+                    speed,
                     config,
-                    pos,
+                    pos: Duration::from_secs(0),
+                    last_real_pos: Duration::from_secs(0),
                     music: music.clone(),
                     lyrics: LyricsSpace::Disabled,
                 },
@@ -134,8 +141,24 @@ impl HandleQuery for Playing {
             }
         } else if let QueryAction::FromPlayerWorker(FromPlayerWorker::StateChange(s)) = &action {
             match s {
-                StateType::Position(pos) => self.pos = *pos,
+                StateType::Position(pos) => {
+                    if *pos > self.last_real_pos {
+                        let diff = *pos - self.last_real_pos;
+                        if diff < Duration::from_secs(1) {
+                            self.pos += diff.mul_f32(self.speed);
+                            self.last_real_pos = *pos;
+                        }
+                    } else {
+                        trace_dbg!(*pos);
+                        trace_dbg!(self.last_real_pos);
+                    }
+                }
+                StateType::Speed(s) => {
+                    self.speed = *s;
+                }
                 StateType::NowPlaying(Some(media)) => {
+                    self.pos = Duration::from_secs(0);
+                    self.last_real_pos = Duration::from_secs(0);
                     self.music = media.clone();
                 }
                 _ => {}

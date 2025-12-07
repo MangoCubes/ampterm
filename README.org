@@ -34,4 +34,5 @@ The program comes with a set of default keybindings, which can be seen in =/.con
   cargo build --release
   # Output binary should be in ./target/release/ampterm
 #+END_SRC
-
+* Known Issues
+- [[https://github.com/RustAudio/rodio/issues/290][Random stutters]]

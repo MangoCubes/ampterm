@@ -16,6 +16,9 @@
 		"<Shift-Up>": { "ChangeVolume": 0.05 },
 		"<Shift-Down>": { "ChangeVolume": -0.05 },
 
+		"<Shift-Left>": { "ChangePosition": -5.0 },
+		"<Shift-Right>": { "ChangePosition": 5.0 },
+
 		"<Ctrl-Up>": { "ChangeSpeed": 0.05 },
 		"<Ctrl-Down>": { "ChangeSpeed": -0.05 },
 		"<Ctrl-Space>": { "SetSpeed": 1.00 },

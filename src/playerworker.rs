@@ -34,6 +34,12 @@ pub struct PlayerWorker {
     action_tx: UnboundedSender<Action>,
     should_quit: bool,
     sink: Arc<Sink>,
+    last_speed_change: Duration,
+    /// Total accumulated length of a song played
+    /// [`total_length / played_in`] gives us the average speed
+    total_length: Duration,
+    /// Actual runtime
+    played_in: Duration,
 }
 
 impl PlayerWorker {
@@ -43,6 +49,56 @@ impl PlayerWorker {
 
     fn pause_stream(&mut self) {
         self.sink.pause();
+    }
+
+    fn avg_speed(&mut self) -> f32 {
+        let pos = self.sink.get_pos();
+        let seg = pos - self.last_speed_change;
+        self.total_length += seg.mul_f32(self.sink.speed());
+        self.played_in += seg;
+        self.last_speed_change = pos;
+        self.total_length.div_duration_f32(self.played_in)
+    }
+
+    fn reset_avg_speed(&mut self) {
+        self.total_length = Duration::from_secs(0);
+        self.played_in = Duration::from_secs(0);
+        self.last_speed_change = Duration::from_secs(0);
+    }
+
+    fn jump(&mut self, offset: f32) -> Duration {
+        // Get average speed throughout the entire play
+        let avg = self.avg_speed();
+        // Get current speed
+        let orig = self.sink.speed();
+        // Get current REAL position by multiplying by average speed
+        let pos = self.sink.get_pos().mul_f32(avg);
+        // Get REAL absolute offset
+        let target = if offset >= 0.0 {
+            let real_offset = Duration::from_secs_f32(offset);
+            pos + real_offset
+        } else {
+            let real_offset = Duration::from_secs_f32(-offset);
+            if real_offset >= pos {
+                Duration::from_secs(0)
+            } else {
+                pos - real_offset
+            }
+        };
+        // Convert to internal timer by dividing by current speed
+        let ret = target.div_f32(orig);
+        self.sink.try_seek(ret);
+        self.reset_avg_speed();
+        ret
+    }
+
+    fn change_speed(&mut self, to: f32) {
+        let pos = self.sink.get_pos();
+        let seg = pos - self.last_speed_change;
+        self.total_length += seg.mul_f32(self.sink.speed());
+        self.played_in += seg;
+        self.last_speed_change = pos;
+        self.sink.set_speed(to);
     }
 
     /// Given a URL, `play_from_url` fetches music file from this URL and plays it
@@ -153,6 +209,7 @@ impl PlayerWorker {
             match event {
                 ToPlayerWorker::Stop => {
                     self.sink.stop();
+                    self.reset_avg_speed();
                     if let WorkerState::Playing(token) = &self.state {
                         token.cancel();
                     };
@@ -163,6 +220,7 @@ impl PlayerWorker {
                 ToPlayerWorker::Kill => self.should_quit = true,
                 ToPlayerWorker::PlayURL { music, url } => {
                     self.sink.stop();
+                    self.reset_avg_speed();
                     if let WorkerState::Playing(token) = &self.state {
                         token.cancel();
                     };
@@ -173,6 +231,7 @@ impl PlayerWorker {
                     self.state = WorkerState::Playing(token);
                 }
                 ToPlayerWorker::GoToStart => {
+                    self.reset_avg_speed();
                     if let Err(e) = self.sink.try_seek(Duration::from_secs(0)) {
                         self.send_action(FromPlayerWorker::Message(format!(
                             "Failed to seek: {}",
@@ -188,12 +247,12 @@ impl PlayerWorker {
                     let current = self.sink.speed();
                     let new_speed = current + by;
                     let cleaned = if new_speed <= 0.0 { 0.01 } else { new_speed };
-                    self.sink.set_speed(cleaned);
+                    self.change_speed(cleaned);
                     self.send_action(FromPlayerWorker::StateChange(StateType::Speed(cleaned)));
                 }
                 ToPlayerWorker::SetSpeed(to) => {
                     let cleaned = if to <= 0.0 { 0.01 } else { to };
-                    self.sink.set_speed(cleaned);
+                    self.change_speed(cleaned);
                     self.send_action(FromPlayerWorker::StateChange(StateType::Speed(cleaned)));
                 }
                 ToPlayerWorker::ChangeVolume(by) => {
@@ -227,6 +286,10 @@ impl PlayerWorker {
                         self.pause_stream();
                     }
                 }
+                ToPlayerWorker::ChangePosition(by) => {
+                    let newpos = self.jump(by);
+                    self.send_action(FromPlayerWorker::StateChange(StateType::Jump(newpos)));
+                }
             };
             if self.should_quit {
                 break;
@@ -252,6 +315,9 @@ impl PlayerWorker {
             should_quit: false,
             sink,
             state: WorkerState::Idle,
+            last_speed_change: Duration::from_secs(0),
+            total_length: Duration::from_secs(0),
+            played_in: Duration::from_secs(0),
         }
     }
     pub fn get_tx(&self) -> UnboundedSender<ToPlayerWorker> {

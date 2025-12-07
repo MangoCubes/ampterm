@@ -49,8 +49,7 @@ pub enum ToPlayerWorker {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum StateType {
-    JumpForward(f32, Duration),
-    JumpBackward(f32, Duration),
+    Jump(Duration),
     Position(Duration),
     NowPlaying(Option<Media>),
     Volume(f32),

@@ -140,24 +140,12 @@ impl HandleQuery for Playing {
             }
         } else if let QueryAction::FromPlayerWorker(FromPlayerWorker::StateChange(s)) = action {
             match s {
-                StateType::JumpForward(by, adjusted) => {
-                    self.last_real_pos += adjusted;
-                    self.pos += Duration::from_secs_f32(by);
-                }
-                StateType::JumpBackward(by, adjusted) => {
-                    if adjusted > self.last_real_pos {
-                        self.last_real_pos = Duration::from_secs(0);
-                    } else {
-                        self.last_real_pos -= adjusted;
-                    }
-                    let offset = Duration::from_secs_f32(-by);
-                    if offset > self.pos {
-                        self.pos = Duration::from_secs(0);
-                    } else {
-                        self.pos -= offset;
-                    }
+                StateType::Jump(pos) => {
+                    self.last_real_pos = pos;
+                    self.pos = pos.mul_f32(self.speed);
                 }
                 StateType::Position(pos) => {
+                    // self.pos = pos.mul_f32(self.speed);
                     if pos > self.last_real_pos {
                         let diff = pos - self.last_real_pos;
                         // Occasionally, the player falsely reports the position as the end of the

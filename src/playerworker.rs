@@ -228,31 +228,21 @@ impl PlayerWorker {
                     }
                 }
                 ToPlayerWorker::ChangePosition(by) => {
-                    let current = self.sink.get_pos();
-                    let speed = self.sink.speed();
-                    let realpos = if by > 0.0 {
-                        // Skip forward
-                        let diff = Duration::from_secs_f32(by).div_f32(speed);
-                        self.send_action(FromPlayerWorker::StateChange(StateType::JumpForward(
-                            by, diff,
-                        )));
-                        diff + current
+                    let realpos = self.sink.get_pos().mul_f32(self.sink.speed());
+                    let offset = if by >= 0.0 {
+                        let offset = Duration::from_secs_f32(by);
+                        realpos + offset
                     } else {
-                        // Skip backwards
-                        let diff = Duration::from_secs_f32(-by).div_f32(speed);
-                        if current > diff {
-                            self.send_action(FromPlayerWorker::StateChange(
-                                StateType::JumpBackward(by, diff),
-                            ));
-                            current - diff
-                        } else {
-                            self.send_action(FromPlayerWorker::StateChange(
-                                StateType::JumpBackward(by, current),
-                            ));
+                        let offset = Duration::from_secs_f32(-by);
+                        if offset > realpos {
                             Duration::from_secs(0)
+                        } else {
+                            realpos - offset
                         }
                     };
-                    let _ = self.sink.try_seek(realpos);
+                    let newpos = offset.div_f32(self.sink.speed());
+                    let _ = self.sink.try_seek(newpos);
+                    self.send_action(FromPlayerWorker::StateChange(StateType::Jump(newpos)));
                 }
             };
             if self.should_quit {

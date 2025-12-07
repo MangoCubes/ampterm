@@ -132,7 +132,7 @@ impl ToString for TargetedAction {
                 if *s >= 1.0 {
                     format!("Increase playback speed by {}", s)
                 } else {
-                    format!("Decrease playback speed by {}", s)
+                    format!("Decrease playback speed by {}", -s)
                 }
             }
             TargetedAction::SetVolume(v) => format!("Set volume to {}", v),

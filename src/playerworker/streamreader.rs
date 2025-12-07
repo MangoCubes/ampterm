@@ -1,5 +1,7 @@
-use std::time::Instant;
+use std::thread::sleep_ms;
+use std::time::{Duration, Instant};
 
+use libc::usleep;
 use reqwest::Url;
 use stream_download::http::HttpStream;
 use stream_download::source::SourceStream;
@@ -21,6 +23,7 @@ impl StreamReader {
     ) -> Result<StreamDownload<TempStorageProvider>, StreamError> {
         let mut last_event = Instant::now();
         let settings = Settings::default().on_progress(move |stream: &HttpStream<_>, state, _| {
+            // std::thread::sleep(Duration::from_millis(200));
             let now = Instant::now();
             let elapsed = now - last_event;
             last_event = now;

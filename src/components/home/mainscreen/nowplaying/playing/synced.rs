@@ -8,12 +8,7 @@ use ratatui::{
     Frame,
 };
 
-use crate::{
-    action::action::{Action, QueryAction},
-    components::traits::{handlequery::HandleQuery, renderable::Renderable},
-    lyricsclient::getlyrics::ParsedLyrics,
-    playerworker::player::{FromPlayerWorker, StateType},
-};
+use crate::{components::traits::renderable::Renderable, lyricsclient::getlyrics::ParsedLyrics};
 
 pub struct Synced {
     lyrics: ParsedLyrics,
@@ -26,6 +21,9 @@ impl Synced {
             lyrics: ParsedLyrics::from(found),
             current_time: Duration::default(),
         }
+    }
+    pub fn set_pos(&mut self, d: Duration) {
+        self.current_time = d;
     }
 }
 
@@ -60,17 +58,5 @@ impl Renderable for Synced {
             }),
             areas[2],
         );
-    }
-}
-
-impl HandleQuery for Synced {
-    fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
-        if let QueryAction::FromPlayerWorker(FromPlayerWorker::StateChange(StateType::Position(
-            d,
-        ))) = action
-        {
-            self.current_time = d;
-        }
-        None
     }
 }

@@ -88,7 +88,7 @@ impl HandleQuery for NowPlaying {
                 Some(n) => {
                     let (comp, action) = Playing::new(
                         n,
-                        Duration::from_secs(0),
+                        self.speed.get_speed(),
                         self.config.features.lyrics.enable,
                         self.config.clone(),
                     );
@@ -106,7 +106,11 @@ impl HandleQuery for NowPlaying {
             }
             QueryAction::FromPlayerWorker(FromPlayerWorker::StateChange(StateType::Speed(s))) => {
                 self.speed.set_speed(s);
-                None
+                if let Comp::Playing(playing) = &mut self.comp {
+                    playing.handle_query(action)
+                } else {
+                    None
+                }
             }
             _ => match &mut self.comp {
                 Comp::Playing(playing) => playing.handle_query(action),

@@ -42,7 +42,9 @@ enum LyricsSpace {
 }
 
 pub struct Playing {
+    speed: f32,
     pos: Duration,
+    last_real_pos: Duration,
     music: Media,
     lyrics: LyricsSpace,
     config: Config,
@@ -51,15 +53,17 @@ pub struct Playing {
 impl Playing {
     pub fn new(
         music: Media,
-        pos: Duration,
+        speed: f32,
         enable_lyrics: bool,
         config: Config,
     ) -> (Self, Option<Action>) {
         if enable_lyrics {
             (
                 Self {
+                    speed,
                     config,
-                    pos,
+                    pos: Duration::from_secs(0),
+                    last_real_pos: Duration::from_secs(0),
                     music: music.clone(),
                     lyrics: LyricsSpace::Fetching(Centered::new(vec![format!(
                         "Searching for lyrics for {}...",
@@ -78,8 +82,10 @@ impl Playing {
         } else {
             (
                 Self {
+                    speed,
                     config,
-                    pos,
+                    pos: Duration::from_secs(0),
+                    last_real_pos: Duration::from_secs(0),
                     music: music.clone(),
                     lyrics: LyricsSpace::Disabled,
                 },
@@ -132,17 +138,35 @@ impl HandleQuery for Playing {
                     )])),
                 }
             }
-        } else if let QueryAction::FromPlayerWorker(FromPlayerWorker::StateChange(s)) = &action {
+        } else if let QueryAction::FromPlayerWorker(FromPlayerWorker::StateChange(s)) = action {
             match s {
-                StateType::Position(pos) => self.pos = *pos,
+                StateType::Position(pos) => {
+                    if pos > self.last_real_pos {
+                        let diff = pos - self.last_real_pos;
+                        // Occasionally, the player falsely reports the position as the end of the
+                        // previous song. To prevent this from messing with the player, if the
+                        // reported position and the current position differs by 1 second, it is
+                        // ignored. Since the update happens every 0.1 seconds, this should never
+                        // happen in ideal worlds.
+                        if diff < Duration::from_secs(1) {
+                            self.pos += diff.mul_f32(self.speed);
+                            self.last_real_pos = pos;
+                        }
+                    }
+                    if let LyricsSpace::Found(l) = &mut self.lyrics {
+                        l.set_pos(self.pos);
+                    }
+                }
+                StateType::Speed(s) => {
+                    self.speed = s;
+                }
                 StateType::NowPlaying(Some(media)) => {
+                    self.pos = Duration::from_secs(0);
+                    self.last_real_pos = Duration::from_secs(0);
                     self.music = media.clone();
                 }
                 _ => {}
             };
-            if let LyricsSpace::Found(l) = &mut self.lyrics {
-                l.handle_query(action.clone());
-            }
         };
         None
     }

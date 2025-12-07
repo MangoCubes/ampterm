@@ -22,7 +22,6 @@ use crate::{
         highlevelquery::HighLevelQuery,
         query::{ResponseType, ToQueryWorker},
     },
-    trace_dbg,
 };
 use crossterm::event::KeyEvent;
 use ratatui::{
@@ -139,11 +138,11 @@ impl HandleQuery for Playing {
                     )])),
                 }
             }
-        } else if let QueryAction::FromPlayerWorker(FromPlayerWorker::StateChange(s)) = &action {
+        } else if let QueryAction::FromPlayerWorker(FromPlayerWorker::StateChange(s)) = action {
             match s {
                 StateType::Position(pos) => {
-                    if *pos > self.last_real_pos {
-                        let diff = *pos - self.last_real_pos;
+                    if pos > self.last_real_pos {
+                        let diff = pos - self.last_real_pos;
                         // Occasionally, the player falsely reports the position as the end of the
                         // previous song. To prevent this from messing with the player, if the
                         // reported position and the current position differs by 1 second, it is
@@ -151,12 +150,15 @@ impl HandleQuery for Playing {
                         // happen in ideal worlds.
                         if diff < Duration::from_secs(1) {
                             self.pos += diff.mul_f32(self.speed);
-                            self.last_real_pos = *pos;
+                            self.last_real_pos = pos;
                         }
+                    }
+                    if let LyricsSpace::Found(l) = &mut self.lyrics {
+                        l.set_pos(self.pos);
                     }
                 }
                 StateType::Speed(s) => {
-                    self.speed = *s;
+                    self.speed = s;
                 }
                 StateType::NowPlaying(Some(media)) => {
                     self.pos = Duration::from_secs(0);
@@ -165,9 +167,6 @@ impl HandleQuery for Playing {
                 }
                 _ => {}
             };
-            if let LyricsSpace::Found(l) = &mut self.lyrics {
-                l.handle_query(action.clone());
-            }
         };
         None
     }

@@ -15,22 +15,6 @@
       };
       settings = lib.mkOption {
         type = lib.types.submodule {
-          options.keybindings = lib.mkOption {
-            type = lib.types.submodule {
-              options.Visual = lib.mkOption {
-                type = lib.types.attrs;
-                default = { };
-              };
-              options.Normal = lib.mkOption {
-                type = lib.types.attrs;
-                default = { };
-              };
-              options.Common = lib.mkOption {
-                type = lib.types.attrs;
-                default = { };
-              };
-            };
-          };
           options.use_legacy_auth = lib.mkOption {
             type = lib.types.bool;
             default = false;

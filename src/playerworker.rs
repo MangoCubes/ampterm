@@ -235,7 +235,7 @@ impl PlayerWorker {
                             e
                         )));
                     } else {
-                        self.send_action(FromPlayerWorker::StateChange(StateType::Position(
+                        self.send_action(FromPlayerWorker::StateChange(StateType::Jump(
                             Duration::from_secs(0),
                         )));
                     }

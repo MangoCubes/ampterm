@@ -130,7 +130,7 @@ impl ToString for TargetedAction {
             TargetedAction::ClearScreen => "Re-render".to_string(),
             TargetedAction::Quit => "Quit program".to_string(),
             TargetedAction::ChangeSpeed(s) => {
-                if *s >= 1.0 {
+                if *s >= 0.0 {
                     format!("Increase playback speed by {}", s)
                 } else {
                     format!("Decrease playback speed by {}", -s)

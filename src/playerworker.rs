@@ -1,4 +1,5 @@
 pub mod player;
+mod realtime;
 mod streamerror;
 mod streamreader;
 
@@ -19,6 +20,7 @@ use tokio_util::sync::CancellationToken;
 use crate::action::action::{Action, QueryAction};
 use crate::config::Config;
 use crate::playerworker::player::{FromPlayerWorker, StateType};
+use crate::playerworker::realtime::RealTime;
 use crate::trace_dbg;
 
 enum WorkerState {
@@ -34,12 +36,7 @@ pub struct PlayerWorker {
     action_tx: UnboundedSender<Action>,
     should_quit: bool,
     sink: Arc<Sink>,
-    last_speed_change: Duration,
-    /// Total accumulated length of a song played
-    /// [`total_length / played_in`] gives us the average speed
-    total_length: Duration,
-    /// Actual runtime
-    played_in: Duration,
+    timer: RealTime,
 }
 
 impl PlayerWorker {
@@ -51,53 +48,16 @@ impl PlayerWorker {
         self.sink.pause();
     }
 
-    fn avg_speed(&mut self) -> f32 {
-        let pos = self.sink.get_pos();
-        let seg = pos - self.last_speed_change;
-        self.total_length += seg.mul_f32(self.sink.speed());
-        self.played_in += seg;
-        self.last_speed_change = pos;
-        self.total_length.div_duration_f32(self.played_in)
-    }
-
-    fn reset_avg_speed(&mut self) {
-        self.total_length = Duration::from_secs(0);
-        self.played_in = Duration::from_secs(0);
-        self.last_speed_change = Duration::from_secs(0);
-    }
-
     fn jump(&mut self, offset: f32) -> Duration {
-        // Get average speed throughout the entire play
-        let avg = self.avg_speed();
-        // Get current speed
-        let orig = self.sink.speed();
-        // Get current REAL position by multiplying by average speed
-        let pos = self.sink.get_pos().mul_f32(avg);
-        // Get REAL absolute offset
-        let target = if offset >= 0.0 {
-            let real_offset = Duration::from_secs_f32(offset);
-            pos + real_offset
-        } else {
-            let real_offset = Duration::from_secs_f32(-offset);
-            if real_offset >= pos {
-                Duration::from_secs(0)
-            } else {
-                pos - real_offset
-            }
-        };
-        // Convert to internal timer by dividing by current speed
-        let ret = target.div_f32(orig);
-        self.sink.try_seek(ret);
-        self.reset_avg_speed();
-        ret
+        let (newpos, sink_pos) =
+            self.timer
+                .move_time_by(self.sink.get_pos(), self.sink.speed(), offset);
+        let _ = self.sink.try_seek(sink_pos);
+        newpos
     }
 
     fn change_speed(&mut self, to: f32) {
-        let pos = self.sink.get_pos();
-        let seg = pos - self.last_speed_change;
-        self.total_length += seg.mul_f32(self.sink.speed());
-        self.played_in += seg;
-        self.last_speed_change = pos;
+        self.timer.add(self.sink.get_pos(), self.sink.speed());
         self.sink.set_speed(to);
     }
 
@@ -129,9 +89,7 @@ impl PlayerWorker {
         // Used by Main playing thread to append decoded source into it
         let sink = self.sink.clone();
         let action_tx = self.action_tx.clone();
-        // Used by Polling thread
-        let sink2 = self.sink.clone();
-        let action_tx2 = self.action_tx.clone();
+        let player_tx = self.player_tx.clone();
 
         // Cancellation token used for returning
         let token = CancellationToken::new();
@@ -155,10 +113,8 @@ impl PlayerWorker {
                 });
             let poll_state = tokio::task::spawn(async move {
                 loop {
-                    let _ = action_tx2.send(Action::Query(QueryAction::FromPlayerWorker(
-                        FromPlayerWorker::StateChange(StateType::Position(sink2.get_pos())),
-                    )));
-                    sleep(Duration::from_millis(100)).await;
+                    let _ = player_tx.send(ToPlayerWorker::Tick);
+                    sleep(Duration::from_millis(200)).await;
                 }
             });
             select! {
@@ -209,10 +165,10 @@ impl PlayerWorker {
             match event {
                 ToPlayerWorker::Stop => {
                     self.sink.stop();
-                    self.reset_avg_speed();
                     if let WorkerState::Playing(token) = &self.state {
                         token.cancel();
                     };
+                    self.timer.reset();
                     self.send_action(FromPlayerWorker::StateChange(StateType::NowPlaying(None)));
                 }
                 ToPlayerWorker::Pause => self.pause_stream(),
@@ -220,7 +176,6 @@ impl PlayerWorker {
                 ToPlayerWorker::Kill => self.should_quit = true,
                 ToPlayerWorker::PlayURL { music, url } => {
                     self.sink.stop();
-                    self.reset_avg_speed();
                     if let WorkerState::Playing(token) = &self.state {
                         token.cancel();
                     };
@@ -228,20 +183,21 @@ impl PlayerWorker {
                         music,
                     ))));
                     let token = self.play_from_url(url);
+                    self.timer.reset();
                     self.state = WorkerState::Playing(token);
                 }
                 ToPlayerWorker::GoToStart => {
-                    self.reset_avg_speed();
                     if let Err(e) = self.sink.try_seek(Duration::from_secs(0)) {
                         self.send_action(FromPlayerWorker::Message(format!(
                             "Failed to seek: {}",
                             e
                         )));
                     } else {
-                        self.send_action(FromPlayerWorker::StateChange(StateType::Position(
+                        self.send_action(FromPlayerWorker::StateChange(StateType::Jump(
                             Duration::from_secs(0),
                         )));
-                    }
+                    };
+                    self.timer.reset();
                 }
                 ToPlayerWorker::ChangeSpeed(by) => {
                     let current = self.sink.speed();
@@ -290,6 +246,20 @@ impl PlayerWorker {
                     let newpos = self.jump(by);
                     self.send_action(FromPlayerWorker::StateChange(StateType::Jump(newpos)));
                 }
+                ToPlayerWorker::Tick => {
+                    // There is a bug with rodio that happens when a new music is loaded. The
+                    // reported position [`get_pos()`] falsely reports the end of the last media
+                    // played instead of the current one. It seems that the position is corrected
+                    // after the new music is loaded. As a result, position reports that happen in
+                    // this gap is equal to the position in the last media when the media is
+                    // swapped.
+                    // This issue is addressed by [`self.timer`], where if the position somehow
+                    // goes backwards, it is blindly trusted.
+                    self.timer.add(self.sink.get_pos(), self.sink.speed());
+                    self.send_action(FromPlayerWorker::StateChange(StateType::Position(
+                        self.timer.get_now(),
+                    )));
+                }
             };
             if self.should_quit {
                 break;
@@ -315,9 +285,7 @@ impl PlayerWorker {
             should_quit: false,
             sink,
             state: WorkerState::Idle,
-            last_speed_change: Duration::from_secs(0),
-            total_length: Duration::from_secs(0),
-            played_in: Duration::from_secs(0),
+            timer: RealTime::new(),
         }
     }
     pub fn get_tx(&self) -> UnboundedSender<ToPlayerWorker> {

@@ -3,8 +3,6 @@ mod speed;
 mod stopped;
 mod volume;
 
-use std::time::Duration;
-
 use crossterm::event::KeyEvent;
 use playing::Playing;
 use ratatui::{
@@ -86,12 +84,7 @@ impl HandleQuery for NowPlaying {
                 StateType::NowPlaying(media),
             )) => match media {
                 Some(n) => {
-                    let (comp, action) = Playing::new(
-                        n,
-                        self.speed.get_speed(),
-                        self.config.features.lyrics.enable,
-                        self.config.clone(),
-                    );
+                    let (comp, action) = Playing::new(n, self.config.clone());
                     self.comp = Comp::Playing(comp);
                     action
                 }

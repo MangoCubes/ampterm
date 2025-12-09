@@ -50,17 +50,14 @@ impl PlayerWorker {
     }
 
     fn jump(&mut self, offset: f32) -> Duration {
-        let now = self.timer.get_now();
-        let (newpos, sink_pos, avg) =
+        let (newpos, sink_pos) =
             self.timer
                 .move_time_by(self.sink.get_pos(), self.sink.speed(), offset);
         if let Err(e) = self.sink.try_seek(sink_pos) {
-            panic!("{}", e);
+            self.send_action(FromPlayerWorker::Message(format!(
+                "Seeking failed! Reason: {e}"
+            )));
         };
-        self.send_action(FromPlayerWorker::Message(format!(
-            "Changing position: From {:?} to {:?} (avg: {})",
-            now, newpos, avg
-        )));
         newpos
     }
 

@@ -114,7 +114,7 @@ impl PlayerWorker {
             let poll_state = tokio::task::spawn(async move {
                 loop {
                     let _ = player_tx.send(ToPlayerWorker::Tick);
-                    sleep(Duration::from_millis(100)).await;
+                    sleep(Duration::from_millis(200)).await;
                 }
             });
             select! {

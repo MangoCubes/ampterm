@@ -39,6 +39,7 @@ pub struct NowPlaying {
     config: Config,
     speed: Speed,
     volume: Volume,
+    playing: bool,
 }
 
 impl PassKeySeq for NowPlaying {
@@ -59,6 +60,7 @@ impl PassKeySeq for NowPlaying {
 impl NowPlaying {
     pub fn new(enabled: bool, config: Config) -> Self {
         Self {
+            playing: true,
             volume: Volume::new(config.init_state.volume),
             config,
             enabled,
@@ -84,7 +86,7 @@ impl HandleQuery for NowPlaying {
                 StateType::NowPlaying(media),
             )) => match media {
                 Some(n) => {
-                    let (comp, action) = Playing::new(n, self.config.clone());
+                    let (comp, action) = Playing::new(self.playing, n, self.config.clone());
                     self.comp = Comp::Playing(comp);
                     action
                 }
@@ -99,6 +101,14 @@ impl HandleQuery for NowPlaying {
             }
             QueryAction::FromPlayerWorker(FromPlayerWorker::StateChange(StateType::Speed(s))) => {
                 self.speed.set_speed(s);
+                if let Comp::Playing(playing) = &mut self.comp {
+                    playing.handle_query(action)
+                } else {
+                    None
+                }
+            }
+            QueryAction::FromPlayerWorker(FromPlayerWorker::StateChange(StateType::Playing(p))) => {
+                self.playing = p;
                 if let Comp::Playing(playing) = &mut self.comp {
                     playing.handle_query(action)
                 } else {

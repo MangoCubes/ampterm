@@ -43,16 +43,18 @@ enum LyricsSpace {
 
 pub struct Playing {
     pos: Duration,
+    playing: bool,
     music: Media,
     lyrics: LyricsSpace,
     config: Config,
 }
 
 impl Playing {
-    pub fn new(music: Media, config: Config) -> (Self, Option<Action>) {
+    pub fn new(playing: bool, music: Media, config: Config) -> (Self, Option<Action>) {
         if config.features.lyrics.enable {
             (
                 Self {
+                    playing,
                     config,
                     pos: Duration::from_secs(0),
                     music: music.clone(),
@@ -73,6 +75,7 @@ impl Playing {
         } else {
             (
                 Self {
+                    playing,
                     config,
                     pos: Duration::from_secs(0),
                     music: music.clone(),
@@ -139,6 +142,9 @@ impl HandleQuery for Playing {
                     self.pos = Duration::from_secs(0);
                     self.music = media.clone();
                 }
+                StateType::Playing(p) => {
+                    self.playing = p;
+                }
                 _ => {}
             };
         };
@@ -185,19 +191,22 @@ impl Renderable for Playing {
             | LyricsSpace::Error(centered) => centered.draw(frame, areas[3]),
             LyricsSpace::Disabled => (),
         };
+        let symbol = if self.playing { "▶" } else { "⏸" };
         if let Some(len) = self.music.duration {
             if len == 0 {
                 let label = format!(
-                    "{:02}:{:02} / 00:00",
+                    "{:02}:{:02} {} 00:00",
                     self.pos.as_secs() / 60,
                     self.pos.as_secs() % 60,
+                    symbol
                 );
                 frame.render_widget(Line::raw(label), areas[5]);
             } else {
                 let label = format!(
-                    "{:02}:{:02} / {:02}:{:02}",
+                    "{:02}:{:02} {} {:02}:{:02}",
                     self.pos.as_secs() / 60,
                     self.pos.as_secs() % 60,
+                    symbol,
                     len / 60,
                     len % 60,
                 );
@@ -207,9 +216,10 @@ impl Renderable for Playing {
             }
         } else {
             let label = format!(
-                "{:02}:{:02} / ??:??",
+                "{:02}:{:02} {} ??:??",
                 self.pos.as_secs() / 60,
                 self.pos.as_secs() % 60,
+                symbol
             );
             frame.render_widget(Line::raw(label), areas[5]);
         }

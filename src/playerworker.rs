@@ -43,10 +43,12 @@ pub struct PlayerWorker {
 impl PlayerWorker {
     fn continue_stream(&mut self) {
         self.sink.play();
+        self.send_action(FromPlayerWorker::StateChange(StateType::Playing(true)));
     }
 
     fn pause_stream(&mut self) {
         self.sink.pause();
+        self.send_action(FromPlayerWorker::StateChange(StateType::Playing(false)));
     }
 
     fn jump(&mut self, offset: f32) -> Duration {

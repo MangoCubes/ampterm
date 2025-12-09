@@ -36,3 +36,4 @@ The program comes with a set of default keybindings, which can be seen in =/.con
 #+END_SRC
 * Known Issues
 - [[https://github.com/RustAudio/rodio/issues/290][Random stutters]]
+- [[https://github.com/RustAudio/rodio/issues/542][Pitch changing with the speed]]

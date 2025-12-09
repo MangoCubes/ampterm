@@ -88,6 +88,7 @@ impl PlayerWorker {
     fn play_from_url(&self, url: String) -> CancellationToken {
         // Used by Main playing thread to append decoded source into it
         let sink = self.sink.clone();
+        let sink2 = self.sink.clone();
         let action_tx = self.action_tx.clone();
         let player_tx = self.player_tx.clone();
 
@@ -112,6 +113,13 @@ impl PlayerWorker {
                     Ok(())
                 });
             let poll_state = tokio::task::spawn(async move {
+                loop {
+                    let now = sink2.get_pos();
+                    if now < Duration::from_secs(1) {
+                        break;
+                    };
+                    sleep(Duration::from_millis(50)).await;
+                }
                 loop {
                     let _ = player_tx.send(ToPlayerWorker::Tick);
                     sleep(Duration::from_millis(200)).await;
@@ -175,6 +183,7 @@ impl PlayerWorker {
                 ToPlayerWorker::Kill => self.should_quit = true,
                 ToPlayerWorker::PlayURL { music, url } => {
                     self.sink.stop();
+                    self.timer.reset();
                     if let WorkerState::Playing(token) = &self.state {
                         token.cancel();
                     };
@@ -185,6 +194,7 @@ impl PlayerWorker {
                     self.state = WorkerState::Playing(token);
                 }
                 ToPlayerWorker::GoToStart => {
+                    self.timer.reset();
                     if let Err(e) = self.sink.try_seek(Duration::from_secs(0)) {
                         self.send_action(FromPlayerWorker::Message(format!(
                             "Failed to seek: {}",

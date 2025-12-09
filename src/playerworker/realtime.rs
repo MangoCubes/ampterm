@@ -72,9 +72,13 @@ impl RealTime {
         };
         let pos = new_time.0;
         let play = new_time.to_playtime(avg).0;
+        self.reset();
+        (pos, play)
+    }
+
+    pub fn reset(&mut self) {
         self.last_added_at = PlayTime(Duration::default());
         self.playtime = PlayTime(Duration::default());
         self.postime = PosTime(Duration::default());
-        (pos, play)
     }
 }

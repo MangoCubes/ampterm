@@ -44,7 +44,6 @@ enum LyricsSpace {
 pub struct Playing {
     speed: f32,
     pos: Duration,
-    last_real_pos: Duration,
     music: Media,
     lyrics: LyricsSpace,
     config: Config,
@@ -63,7 +62,6 @@ impl Playing {
                     speed,
                     config,
                     pos: Duration::from_secs(0),
-                    last_real_pos: Duration::from_secs(0),
                     music: music.clone(),
                     lyrics: LyricsSpace::Fetching(Centered::new(vec![format!(
                         "Searching for lyrics for {}...",
@@ -85,7 +83,6 @@ impl Playing {
                     speed,
                     config,
                     pos: Duration::from_secs(0),
-                    last_real_pos: Duration::from_secs(0),
                     music: music.clone(),
                     lyrics: LyricsSpace::Disabled,
                 },
@@ -140,24 +137,8 @@ impl HandleQuery for Playing {
             }
         } else if let QueryAction::FromPlayerWorker(FromPlayerWorker::StateChange(s)) = action {
             match s {
-                StateType::Jump(pos) => {
-                    self.last_real_pos = pos;
-                    self.pos = pos.mul_f32(self.speed);
-                }
-                StateType::Position(pos) => {
-                    // self.pos = pos.mul_f32(self.speed);
-                    if pos > self.last_real_pos {
-                        let diff = pos - self.last_real_pos;
-                        // Occasionally, the player falsely reports the position as the end of the
-                        // previous song. To prevent this from messing with the player, if the
-                        // reported position and the current position differs by 1 second, it is
-                        // ignored. Since the update happens every 0.1 seconds, this should never
-                        // happen in ideal worlds.
-                        if diff < Duration::from_secs(1) {
-                            self.pos += diff.mul_f32(self.speed);
-                            self.last_real_pos = pos;
-                        }
-                    }
+                StateType::Jump(pos) | StateType::Position(pos) => {
+                    self.pos = pos;
                     if let LyricsSpace::Found(l) = &mut self.lyrics {
                         l.set_pos(self.pos);
                     }
@@ -167,7 +148,6 @@ impl HandleQuery for Playing {
                 }
                 StateType::NowPlaying(Some(media)) => {
                     self.pos = Duration::from_secs(0);
-                    self.last_real_pos = Duration::from_secs(0);
                     self.music = media.clone();
                 }
                 _ => {}

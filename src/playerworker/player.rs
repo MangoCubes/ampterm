@@ -45,6 +45,7 @@ pub enum ToPlayerWorker {
         url: String,
     },
     Kill,
+    Tick,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

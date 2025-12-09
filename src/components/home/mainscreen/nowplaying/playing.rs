@@ -22,7 +22,6 @@ use crate::{
         highlevelquery::HighLevelQuery,
         query::{ResponseType, ToQueryWorker},
     },
-    trace_dbg,
 };
 use crossterm::event::KeyEvent;
 use ratatui::{
@@ -131,8 +130,6 @@ impl HandleQuery for Playing {
         } else if let QueryAction::FromPlayerWorker(FromPlayerWorker::StateChange(s)) = action {
             match s {
                 StateType::Jump(pos) | StateType::Position(pos) => {
-                    let msg = format!("Currently playing {}", self.music.title);
-                    trace_dbg!(msg);
                     self.pos = pos;
                     if let LyricsSpace::Found(l) = &mut self.lyrics {
                         l.set_pos(self.pos);

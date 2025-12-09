@@ -33,19 +33,21 @@ impl RealTime {
     }
     /// Add a new datapoint
     pub fn add(&mut self, duration: Duration, speed: f32) {
-        let interval = {
-            if duration > self.last_added_at.0 {
-                let ret = duration - self.last_added_at.0;
-                self.last_added_at = PlayTime(duration);
-                ret
-            } else {
-                Duration::default()
-            }
+        if duration >= self.last_added_at.0 {
+            let interval = duration - self.last_added_at.0;
+            self.last_added_at = PlayTime(duration);
+            self.playtime.0 += interval;
+            // If the PlayTime is 10 and the current speed is 2, that means we have played 10 * 2 = 20
+            // seconds of music.
+            self.postime.0 += interval.mul_f32(speed);
+        } else {
+            // Only this can happen is two ways:
+            // 1. User have rewinded
+            // 2. New song is played
+            // In the first case, this is safe as reset is intended to happen anyway. In the second
+            // case, this is also safe because the duration is negligibly small.
+            self.reset();
         };
-        self.playtime.0 += interval;
-        // If the PlayTime is 10 and the current speed is 2, that means we have played 10 * 2 = 20
-        // seconds of music.
-        self.postime.0 += interval.mul_f32(speed);
     }
     pub fn get_now(&self) -> Duration {
         self.postime.0

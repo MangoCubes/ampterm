@@ -88,7 +88,6 @@ impl PlayerWorker {
     fn play_from_url(&self, url: String) -> CancellationToken {
         // Used by Main playing thread to append decoded source into it
         let sink = self.sink.clone();
-        let sink2 = self.sink.clone();
         let action_tx = self.action_tx.clone();
         let player_tx = self.player_tx.clone();
 
@@ -113,13 +112,6 @@ impl PlayerWorker {
                     Ok(())
                 });
             let poll_state = tokio::task::spawn(async move {
-                loop {
-                    let now = sink2.get_pos();
-                    if now < Duration::from_secs(1) {
-                        break;
-                    };
-                    sleep(Duration::from_millis(50)).await;
-                }
                 loop {
                     let _ = player_tx.send(ToPlayerWorker::Tick);
                     sleep(Duration::from_millis(200)).await;
@@ -183,7 +175,6 @@ impl PlayerWorker {
                 ToPlayerWorker::Kill => self.should_quit = true,
                 ToPlayerWorker::PlayURL { music, url } => {
                     self.sink.stop();
-                    self.timer.reset();
                     if let WorkerState::Playing(token) = &self.state {
                         token.cancel();
                     };
@@ -191,6 +182,7 @@ impl PlayerWorker {
                         music,
                     ))));
                     let token = self.play_from_url(url);
+                    self.timer.reset();
                     self.state = WorkerState::Playing(token);
                 }
                 ToPlayerWorker::GoToStart => {
@@ -254,6 +246,14 @@ impl PlayerWorker {
                     self.send_action(FromPlayerWorker::StateChange(StateType::Jump(newpos)));
                 }
                 ToPlayerWorker::Tick => {
+                    // There is a bug with rodio that happens when a new music is loaded. The
+                    // reported position [`get_pos()`] falsely reports the end of the last media
+                    // played instead of the current one. It seems that the position is corrected
+                    // after the new music is loaded. As a result, position reports that happen in
+                    // this gap is equal to the position in the last media when the media is
+                    // swapped.
+                    // This issue is addressed by [`self.timer`], where if the position somehow
+                    // goes backwards, it is blindly trusted.
                     self.timer.add(self.sink.get_pos(), self.sink.speed());
                     self.send_action(FromPlayerWorker::StateChange(StateType::Position(
                         self.timer.get_now(),

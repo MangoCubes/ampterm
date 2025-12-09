@@ -46,7 +46,9 @@ impl RealTime {
             // 2. New song is played
             // In the first case, this is safe as reset is intended to happen anyway. In the second
             // case, this is also safe because the duration is negligibly small.
-            self.reset();
+            self.last_added_at = PlayTime(duration);
+            self.playtime = PlayTime(duration);
+            self.postime = PosTime(duration.mul_f32(speed));
         };
     }
     pub fn get_now(&self) -> Duration {
@@ -56,7 +58,12 @@ impl RealTime {
         self.postime.0.div_duration_f32(self.playtime.0)
     }
     /// Add given offset to the current time, returning a duration ready to be used by Sink.
-    pub fn move_time_by(&mut self, now: Duration, speed: f32, offset: f32) -> (Duration, Duration) {
+    pub fn move_time_by(
+        &mut self,
+        now: Duration,
+        speed: f32,
+        offset: f32,
+    ) -> (Duration, Duration, f32) {
         // Make one final calculation
         self.add(now, speed);
         let avg = self.avg_speed();
@@ -75,7 +82,7 @@ impl RealTime {
         let pos = new_time.0;
         let play = new_time.to_playtime(avg).0;
         self.reset();
-        (pos, play)
+        (pos, play, avg)
     }
 
     pub fn reset(&mut self) {

@@ -50,10 +50,17 @@ impl PlayerWorker {
     }
 
     fn jump(&mut self, offset: f32) -> Duration {
-        let (newpos, sink_pos) =
+        let now = self.timer.get_now();
+        let (newpos, sink_pos, avg) =
             self.timer
                 .move_time_by(self.sink.get_pos(), self.sink.speed(), offset);
-        let _ = self.sink.try_seek(sink_pos);
+        if let Err(e) = self.sink.try_seek(sink_pos) {
+            panic!("{}", e);
+        };
+        self.send_action(FromPlayerWorker::Message(format!(
+            "Changing position: From {:?} to {:?} (avg: {})",
+            now, newpos, avg
+        )));
         newpos
     }
 
@@ -107,7 +114,13 @@ impl PlayerWorker {
                 tokio::task::spawn_blocking(move || {
                     // Panic may happen because Symphonia decoder is not being used
                     // Without Symphonia decoder, the decoding routine may contain `unwrap`
-                    let source = rodio::Decoder::new(reader).map_err(|e| StreamError::decode(e))?;
+                    // TODO: Remove unwrap from this too
+                    let len = reader.content_length().unwrap();
+                    let source = rodio::Decoder::builder()
+                        .with_data(reader)
+                        .with_byte_len(len)
+                        .build()
+                        .map_err(|e| StreamError::decode(e))?;
                     sink.append(source);
                     sink.sleep_until_end();
                     Ok(())

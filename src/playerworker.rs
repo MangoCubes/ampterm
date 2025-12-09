@@ -111,13 +111,15 @@ impl PlayerWorker {
                 tokio::task::spawn_blocking(move || {
                     // Panic may happen because Symphonia decoder is not being used
                     // Without Symphonia decoder, the decoding routine may contain `unwrap`
-                    // TODO: Remove unwrap from this too
-                    let len = reader.content_length().unwrap();
-                    let source = rodio::Decoder::builder()
-                        .with_data(reader)
-                        .with_byte_len(len)
-                        .build()
-                        .map_err(|e| StreamError::decode(e))?;
+                    let len = reader.content_length();
+                    let builder = rodio::Decoder::builder().with_data(reader);
+                    let source = match len {
+                        Some(len) => builder.with_byte_len(len),
+                        None => builder,
+                    }
+                    .build()
+                    .map_err(|e| StreamError::decode(e))?;
+
                     sink.append(source);
                     sink.sleep_until_end();
                     Ok(())

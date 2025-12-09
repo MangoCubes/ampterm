@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use color_eyre::Result;
 use player::ToPlayerWorker;
-use rodio::{OutputStreamHandle, Sink};
+use rodio::{OutputStream, Sink};
 use streamerror::StreamError;
 use streamreader::StreamReader;
 use tokio::select;
@@ -37,6 +37,7 @@ pub struct PlayerWorker {
     should_quit: bool,
     sink: Arc<Sink>,
     timer: RealTime,
+    handle: OutputStream,
 }
 
 impl PlayerWorker {
@@ -265,20 +266,18 @@ impl PlayerWorker {
                 break;
             }
         }
+        self.handle.log_on_drop(false);
         Ok(())
     }
 }
 
 impl PlayerWorker {
-    pub fn new(
-        handle: OutputStreamHandle,
-        sender: UnboundedSender<Action>,
-        config: Config,
-    ) -> Self {
+    pub fn new(handle: OutputStream, sender: UnboundedSender<Action>, config: Config) -> Self {
         let (player_tx, player_rx) = mpsc::unbounded_channel();
-        let sink = Arc::from(rodio::Sink::try_new(&handle).unwrap());
+        let sink = Arc::from(rodio::Sink::connect_new(handle.mixer()));
         sink.set_volume(config.init_state.volume);
         Self {
+            handle,
             player_tx,
             player_rx,
             action_tx: sender,

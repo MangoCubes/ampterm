@@ -1,10 +1,7 @@
 use clap::Parser;
 use cli::Cli;
 use color_eyre::{eyre::eyre, Result, Section};
-use rodio::{
-    cpal::{self, traits::HostTrait, SupportedBufferSize},
-    DeviceTrait, SupportedStreamConfig,
-};
+use rodio::cpal::{self, traits::HostTrait};
 use tokio::{sync::mpsc, task::JoinSet};
 use tracing::warn;
 
@@ -78,20 +75,11 @@ async fn main() -> Result<()> {
     // Set up audio stuff
     let host = cpal::default_host();
     let device = host.default_output_device().unwrap();
-    let default_config = device.default_output_config()?;
-    let (_stream, handle) = rodio::OutputStream::try_from_device_config(
-        &device,
-        SupportedStreamConfig::new(
-            default_config.channels(),
-            default_config.sample_rate(),
-            SupportedBufferSize::Range {
-                min: 4096,
-                max: 4096,
-            },
-            default_config.sample_format(),
-        ),
-    )
-    .unwrap();
+    let handle = rodio::OutputStreamBuilder::from_device(device)
+        .unwrap()
+        .with_buffer_size(cpal::BufferSize::Fixed(4096))
+        .open_stream()
+        .unwrap();
 
     let mut set = JoinSet::new();
 

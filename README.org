@@ -16,24 +16,29 @@ This program is personally tested against [[https://ampache.org/][Ampache]], a f
 - Star or unstar songs with F
 - Synchronised lyrics provided by [[https://lrclib.net/][LRCLIB]] if it exists
   - Plain lyrics is also supported, but will not scroll automatically
+- Speed changes ([[id:f6ba8087-ccaf-4712-81c2-4bf76f62335e][unfortunately the pitch changes for now]])
 - BPM toy: Tap a key (T by default) to the beat to see its BPM
 * Configuration
 The program comes with a set of default keybindings, which can be seen in =/.config=. However, you can put more keybindings in =~/.config/ampache/config.json= to add to them, or override existing ones.
 * Planned Features
-** Short-term
-- Local lyrics database
+** 1.0 Goals
+- Search functionality (local only, bit like slash (/) in Vim)
 - MPRIS compatibility
+- (Not really features but) Tests
+** Short-term
+- Local database
 - Playlist Manager
 ** Long-term
-- Extended features depending on the server you are using
-  Ampache, for instance, allows users to modify some metadata over the web. I plan to add some metadata editing tools if the server allows them.
-- Offline playlist support
-  This should allow you to play musics you have on your device locally!
+- Extended features depending on the server you are using: Ampache, for instance, allows users to modify some metadata over the web. I plan to add some metadata editing tools if the server allows them.
+- Offline playlist support: This should allow you to play musics you have on your device locally!
 * How to build
 #+BEGIN_SRC shell
   cargo build --release
   # Output binary should be in ./target/release/ampterm
 #+END_SRC
 * Known Issues
+:PROPERTIES:
+:ID:       f6ba8087-ccaf-4712-81c2-4bf76f62335e
+:END:
 - [[https://github.com/RustAudio/rodio/issues/290][Random stutters]]
 - [[https://github.com/RustAudio/rodio/issues/542][Pitch changing with the speed]]

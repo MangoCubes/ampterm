@@ -68,6 +68,7 @@ enum VisualMode {
 pub struct RowState {
     pub visible: bool,
     pub selected: bool,
+    highlight: bool,
 }
 
 impl Default for RowState {
@@ -75,6 +76,7 @@ impl Default for RowState {
         Self {
             visible: true,
             selected: false,
+            highlight: false,
         }
     }
 }
@@ -407,6 +409,40 @@ impl VisualTable {
     #[inline]
     pub fn get_current(&self) -> Option<usize> {
         self.tablestate.selected()
+    }
+
+    #[inline]
+    pub fn set_visibility(&mut self, visible: &[bool]) {
+        if self.state.len() != visible.len() {
+            panic!("Received invalid visibility vector! It's supposed to be as long as the number of elements.");
+        };
+        self.state
+            .iter_mut()
+            .zip(visible)
+            .for_each(|(state, new)| state.visible = *new);
+    }
+
+    #[inline]
+    pub fn reset_visibility(&mut self) {
+        self.state.iter_mut().for_each(|state| state.visible = true);
+    }
+
+    #[inline]
+    pub fn set_highlight(&mut self, highlight: &[bool]) {
+        if self.state.len() != highlight.len() {
+            panic!("Received invalid highlight vector! It's supposed to be as long as the number of elements.");
+        };
+        self.state
+            .iter_mut()
+            .zip(highlight)
+            .for_each(|(state, new)| state.highlight = *new);
+    }
+
+    #[inline]
+    pub fn reset_highlight(&mut self) {
+        self.state
+            .iter_mut()
+            .for_each(|state| state.highlight = false);
     }
 
     /// Disable visual mode for the current table

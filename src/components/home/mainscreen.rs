@@ -17,6 +17,7 @@ use crate::{
             handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult, PassKeySeq},
             handlemode::HandleMode,
             handlequery::HandleQuery,
+            handleraw::HandleRaw,
             ontick::OnTick,
             renderable::Renderable,
         },
@@ -83,6 +84,15 @@ impl OnTick for MainScreen {
 impl HandleMode for MainScreen {
     fn handle_mode(&mut self, mode: Mode) {
         self.current_mode = mode;
+    }
+}
+
+impl HandleRaw for MainScreen {
+    fn handle_raw(&mut self, key: KeyEvent) -> Option<Action> {
+        match &mut self.state {
+            CurrentlySelected::Playlist => self.pl_queue.handle_raw(key),
+            _ => None,
+        }
     }
 }
 

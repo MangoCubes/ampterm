@@ -18,6 +18,7 @@ use crate::{
         handlequery::HandleQuery, handleraw::HandleRaw, ontick::OnTick, renderable::Renderable,
     },
     config::{pathconfig::PathConfig, Config},
+    main,
     queryworker::{
         highlevelquery::HighLevelQuery,
         query::{setcredential::Credential, ResponseType, ToQueryWorker},
@@ -158,6 +159,7 @@ impl HandleRaw for Home {
     fn handle_raw(&mut self, key: KeyEvent) -> Option<Action> {
         match &mut self.component {
             Comp::Login(login) => login.handle_raw(key),
+            Comp::Main(main_screen) => main_screen.handle_raw(key),
             _ => None,
         }
     }

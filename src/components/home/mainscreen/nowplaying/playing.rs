@@ -163,19 +163,18 @@ impl Renderable for Playing {
             Constraint::Length(1),
         ]);
         let areas = vertical.split(area);
-        frame.render_widget(
-            Line::raw(format!(
+        let msg = trim_long_str(
+            format!(
                 "{} - {}",
-                trim_long_str(
-                    self.music.artist.clone().unwrap_or("Unknown".to_string()),
-                    // Need to be a multiple of 30 to ensure the character bound thing is satisfied
-                    30
-                ),
+                match &self.music.artist {
+                    Some(v) => v,
+                    None => "Unknown",
+                },
                 self.music.title
-            ))
-            .bold(),
-            areas[0],
+            ),
+            50,
         );
+        frame.render_widget(Line::raw(msg).bold(), areas[0]);
         frame.render_widget(
             Line::raw(format!(
                 "{}",

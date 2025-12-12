@@ -13,6 +13,7 @@ use crate::{
             focusable::Focusable,
             handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult, PassKeySeq},
             handlequery::HandleQuery,
+            handleraw::HandleRaw,
             renderable::Renderable,
         },
     },
@@ -46,6 +47,16 @@ pub struct PlaylistQueue {
     comp: Comp,
     enabled: bool,
     config: Config,
+}
+
+impl HandleRaw for PlaylistQueue {
+    fn handle_raw(&mut self, key: KeyEvent) -> Option<Action> {
+        if let Comp::Loaded(l) = &mut self.comp {
+            l.handle_raw(key)
+        } else {
+            None
+        }
+    }
 }
 
 impl PlaylistQueue {

@@ -224,6 +224,9 @@ impl App {
                         self.action_tx.send(more)?
                     }
                 }
+                Action::Render => {
+                    self.render(tui)?;
+                }
             };
         }
         Ok(())

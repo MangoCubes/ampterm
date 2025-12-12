@@ -144,6 +144,9 @@
 			"<r><Shift-i>": { "RandomAdd": "Front" },
 			"<r><a>": { "RandomAdd": "Next" },
 			"<r><Shift-a>": { "RandomAdd": "Last" },
+
+			"<f>": "Filter",
+			"<Ctrl-f>": "Unfilter",
 		},
 	},
     // Use legacy authentication that sends the password instead of token and salt

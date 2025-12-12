@@ -17,6 +17,7 @@ use crate::{
             handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult, PassKeySeq},
             handlemode::HandleMode,
             handlequery::HandleQuery,
+            handleraw::HandleRaw,
             ontick::OnTick,
             renderable::Renderable,
         },
@@ -46,7 +47,7 @@ enum LastSelected {
 #[derive(PartialEq)]
 enum CurrentlySelected {
     PlaylistList,
-    Playlist,
+    PlaylistQueue,
     PlayQueue,
     NowPlaying(LastSelected),
 }
@@ -86,11 +87,20 @@ impl HandleMode for MainScreen {
     }
 }
 
+impl HandleRaw for MainScreen {
+    fn handle_raw(&mut self, key: KeyEvent) -> Option<Action> {
+        match &mut self.state {
+            CurrentlySelected::PlaylistQueue => self.pl_queue.handle_raw(key),
+            _ => None,
+        }
+    }
+}
+
 impl PassKeySeq for MainScreen {
     fn get_help(&self) -> Vec<ComponentKeyHelp> {
         match &self.state {
             CurrentlySelected::PlaylistList => self.pl_list.get_help(),
-            CurrentlySelected::Playlist => self.pl_queue.get_help(),
+            CurrentlySelected::PlaylistQueue => self.pl_queue.get_help(),
             CurrentlySelected::PlayQueue => self.playqueue.get_help(),
             CurrentlySelected::NowPlaying(_) => self.now_playing.get_help(),
         }
@@ -106,7 +116,7 @@ impl PassKeySeq for MainScreen {
         let res = match self.popup {
             Popup::None => match &self.state {
                 CurrentlySelected::PlaylistList => self.pl_list.handle_key_seq(keyseq),
-                CurrentlySelected::Playlist => self.pl_queue.handle_key_seq(keyseq),
+                CurrentlySelected::PlaylistQueue => self.pl_queue.handle_key_seq(keyseq),
                 CurrentlySelected::PlayQueue => self.playqueue.handle_key_seq(keyseq),
                 CurrentlySelected::NowPlaying(_) => self.now_playing.handle_key_seq(keyseq),
             },
@@ -157,7 +167,7 @@ impl MainScreen {
         self.pl_list
             .set_enabled(self.state == CurrentlySelected::PlaylistList);
         self.pl_queue
-            .set_enabled(self.state == CurrentlySelected::Playlist);
+            .set_enabled(self.state == CurrentlySelected::PlaylistQueue);
         self.playqueue
             .set_enabled(self.state == CurrentlySelected::PlayQueue);
         self.now_playing
@@ -322,7 +332,7 @@ impl HandleAction for MainScreen {
                     CurrentlySelected::PlaylistList => {
                         CurrentlySelected::NowPlaying(LastSelected::PlaylistList)
                     }
-                    CurrentlySelected::Playlist => {
+                    CurrentlySelected::PlaylistQueue => {
                         CurrentlySelected::NowPlaying(LastSelected::Playlist)
                     }
                     CurrentlySelected::PlayQueue => {
@@ -330,7 +340,7 @@ impl HandleAction for MainScreen {
                     }
                     CurrentlySelected::NowPlaying(last_selected) => match last_selected {
                         LastSelected::PlaylistList => CurrentlySelected::PlaylistList,
-                        LastSelected::Playlist => CurrentlySelected::Playlist,
+                        LastSelected::Playlist => CurrentlySelected::PlaylistQueue,
                         LastSelected::PlayQueue => CurrentlySelected::PlayQueue,
                     },
                 };
@@ -343,9 +353,9 @@ impl HandleAction for MainScreen {
                         self.state = CurrentlySelected::PlayQueue;
                     }
                     CurrentlySelected::PlayQueue => {
-                        self.state = CurrentlySelected::Playlist;
+                        self.state = CurrentlySelected::PlaylistQueue;
                     }
-                    CurrentlySelected::Playlist => {
+                    CurrentlySelected::PlaylistQueue => {
                         self.state = CurrentlySelected::PlaylistList;
                     }
                     CurrentlySelected::NowPlaying(_) => {}
@@ -356,9 +366,9 @@ impl HandleAction for MainScreen {
             TargetedAction::WindowRight => {
                 match &self.state {
                     CurrentlySelected::PlaylistList => {
-                        self.state = CurrentlySelected::Playlist;
+                        self.state = CurrentlySelected::PlaylistQueue;
                     }
-                    CurrentlySelected::Playlist => {
+                    CurrentlySelected::PlaylistQueue => {
                         self.state = CurrentlySelected::PlayQueue;
                     }
                     CurrentlySelected::PlayQueue => {
@@ -382,7 +392,7 @@ impl HandleAction for MainScreen {
                 None
             }
             TargetedAction::FocusPlaylistQueue => {
-                self.state = CurrentlySelected::Playlist;
+                self.state = CurrentlySelected::PlaylistQueue;
                 self.update_focus();
                 None
             }

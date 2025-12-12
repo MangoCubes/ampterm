@@ -1,8 +1,6 @@
-pub fn trim_long_str(mut s: String, to: usize) -> String {
-    let len = s.len();
-    if len > to {
-        s.truncate(to - 3);
-        s.push_str("...");
+pub fn trim_long_str(s: String, to: usize) -> String {
+    match s.char_indices().nth(to) {
+        None => s,
+        Some((idx, _)) => s[..idx].to_string(),
     }
-    s
 }

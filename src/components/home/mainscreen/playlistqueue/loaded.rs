@@ -1,14 +1,19 @@
+mod filter;
 use crate::{
     action::{
-        action::{Action, QueryAction, QueueAction, TargetedAction},
+        action::{Action, Mode, QueryAction, QueueAction, TargetedAction},
         localaction::PlaylistQueueAction,
     },
     components::{
-        home::mainscreen::playlistqueue::PlaylistQueue,
+        home::mainscreen::playlistqueue::{
+            loaded::filter::{Filter, FilterResult},
+            PlaylistQueue,
+        },
         lib::visualtable::{VisualSelection, VisualTable},
         traits::{
             focusable::Focusable,
             handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult},
+            handleraw::HandleRaw,
             renderable::Renderable,
         },
     },
@@ -25,18 +30,26 @@ use crate::{
 };
 use crossterm::event::KeyEvent;
 use ratatui::{
-    layout::{Constraint, Rect},
+    layout::{Constraint, Layout, Rect},
     style::{Style, Stylize},
-    widgets::{Row, Table, TableState},
+    widgets::{Clear, Row, Table, TableState},
     Frame,
 };
+
+enum State {
+    Nothing,
+    Filtering(Filter),
+    Searching,
+}
 
 pub struct Loaded {
     name: String,
     playlist: FullPlaylist,
     enabled: bool,
     table: VisualTable,
-    config: Config,
+    keymap: KeyBindings<PlaylistQueueAction>,
+    state: State,
+    filter: Option<String>,
 }
 
 impl Loaded {
@@ -127,11 +140,13 @@ impl Loaded {
         tablestate.select(Some(0));
 
         Self {
-            config,
+            keymap: config.local.playlistqueue,
             name,
             enabled,
             playlist: list,
             table,
+            state: State::Nothing,
+            filter: None,
         }
     }
 
@@ -197,9 +212,25 @@ impl Renderable for Loaded {
             format!("{} ({})", self.name, self.playlist.entry.len())
         };
         let border = PlaylistQueue::gen_block(self.enabled, title);
-        let inner = border.inner(area);
-        frame.render_widget(border, area);
-        self.table.draw(frame, inner)
+        let inner = match &mut self.state {
+            State::Nothing => {
+                let inner = border.inner(area);
+                frame.render_widget(border, area);
+                inner
+            }
+            State::Filtering(filter) => {
+                let layout =
+                    Layout::default().constraints([Constraint::Min(1), Constraint::Length(3)]);
+                let areas = layout.split(area);
+                let inner = border.inner(areas[0]);
+                frame.render_widget(border, areas[0]);
+                frame.render_widget(Clear, areas[1]);
+                filter.draw(frame, areas[1]);
+                inner
+            }
+            State::Searching => todo!(),
+        };
+        self.table.draw(frame, inner);
     }
 }
 
@@ -282,7 +313,7 @@ impl HandleKeySeq<PlaylistQueueAction> for Loaded {
     }
 
     fn get_keybinds(&self) -> &KeyBindings<PlaylistQueueAction> {
-        &self.config.local.playlistqueue
+        &self.keymap
     }
 }
 

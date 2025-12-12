@@ -287,6 +287,12 @@ impl HandleKeySeq<PlaylistQueueAction> for Loaded {
                 self.state = State::Filtering(Filter::new());
                 KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Insert))
             }
+            PlaylistQueueAction::Unfilter => {
+                self.state = State::Nothing;
+                self.filter = None;
+                self.table.reset_visibility();
+                KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Normal))
+            }
         }
     }
 
@@ -314,13 +320,16 @@ impl HandleRaw for Loaded {
                 match f.handle_raw(key) {
                     FilterResult::NoChange => None,
                     FilterResult::ApplyFilter(filter) => {
+                        let visibility: Vec<bool> = self.playlist.entry.iter().map(|i| i.title.contains(&filter)).collect();
                         self.filter = Some(filter);
                         self.state = State::Nothing;
+                        self.table.set_visibility(&visibility);
                         Some(Action::ChangeMode(Mode::Normal))
                     },
                     FilterResult::ClearFilter => {
                         self.filter = None;
                         self.state = State::Nothing;
+                        self.table.reset_visibility();
                         Some(Action::ChangeMode(Mode::Normal))
                     }
                 }

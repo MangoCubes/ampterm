@@ -420,11 +420,13 @@ impl VisualTable {
             .iter_mut()
             .zip(visible)
             .for_each(|(state, new)| state.visible = *new);
+        self.table = self.regen_table();
     }
 
     #[inline]
     pub fn reset_visibility(&mut self) {
         self.state.iter_mut().for_each(|state| state.visible = true);
+        self.table = self.regen_table();
     }
 
     #[inline]

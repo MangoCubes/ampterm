@@ -144,6 +144,8 @@ pub enum PlaylistQueueAction {
     RandomAdd(QueueLocation),
     /// Go into filter mode
     Filter,
+    /// Remove filter
+    Unfilter,
 }
 
 impl ToString for PlaylistQueueAction {
@@ -162,6 +164,7 @@ impl ToString for PlaylistQueueAction {
             },
             PlaylistQueueAction::ToggleStar => "Star/unstar items",
             PlaylistQueueAction::Filter => "Filter items (hides items that do not match)",
+            PlaylistQueueAction::Unfilter => "Remove filter",
         }
         .to_string()
     }

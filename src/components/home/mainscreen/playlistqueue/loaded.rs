@@ -157,6 +157,26 @@ impl Loaded {
         self.table.set_rows(rows);
         None
     }
+    fn set_filter(&mut self, filter: String) -> Action {
+        let visibility: Vec<bool> = self
+            .playlist
+            .entry
+            .iter()
+            .map(|i| i.title.contains(&filter))
+            .collect();
+        self.filter = Some(filter);
+        self.state = State::Nothing;
+        self.table.set_visibility(&visibility);
+        self.table.bump_cursor_pos();
+        Action::ChangeMode(Mode::Normal)
+    }
+    fn reset_filter(&mut self) -> Action {
+        self.state = State::Nothing;
+        self.filter = None;
+        self.table.reset_visibility();
+        self.table.bump_cursor_pos();
+        Action::ChangeMode(Mode::Normal)
+    }
 }
 
 impl Renderable for Loaded {
@@ -241,6 +261,7 @@ impl HandleKeySeq<PlaylistQueueAction> for Loaded {
                 None => KeySeqResult::NoActionNeeded,
             },
             PlaylistQueueAction::Refresh => {
+                self.table.bump_cursor_pos();
                 KeySeqResult::ActionNeeded(Action::Query(QueryAction::ToQueryWorker(
                     ToQueryWorker::new(HighLevelQuery::SelectPlaylist(GetPlaylistParams {
                         name: self.name.to_string(),
@@ -252,6 +273,11 @@ impl HandleKeySeq<PlaylistQueueAction> for Loaded {
                 Some(a) => KeySeqResult::ActionNeeded(a),
                 None => KeySeqResult::NoActionNeeded,
             },
+            PlaylistQueueAction::Filter => {
+                self.state = State::Filtering(Filter::new());
+                KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Insert))
+            }
+            PlaylistQueueAction::Unfilter => KeySeqResult::ActionNeeded(self.reset_filter()),
         }
     }
 
@@ -264,9 +290,30 @@ impl Focusable for Loaded {
     fn set_enabled(&mut self, enable: bool) {
         if self.enabled != enable {
             self.enabled = enable;
-            if !self.enabled {
+            if enable {
+                self.table.bump_cursor_pos();
+            } else {
                 self.table.disable_visual_discard();
             }
         };
+    }
+}
+impl HandleRaw for Loaded {
+    fn handle_raw(&mut self, key: KeyEvent) -> Option<Action> {
+        match &mut self.state {
+            State::Nothing => unreachable!("Playlist queue should never enter insert mode without filtering or searching active."),
+            State::Filtering(f) => {
+                match f.handle_raw(key) {
+                    FilterResult::NoChange => None,
+                    FilterResult::ApplyFilter(filter) => {
+                        Some(self.set_filter(filter))
+                    },
+                    FilterResult::ClearFilter => {
+                        Some(self.reset_filter())
+                    }
+                }
+            },
+            State::Searching => todo!(),
+        }
     }
 }

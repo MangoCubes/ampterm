@@ -482,5 +482,10 @@ impl HandleKeySeq<PlayQueueAction> for PlayQueue {
 impl Focusable for PlayQueue {
     fn set_enabled(&mut self, enable: bool) {
         self.enabled = enable;
+        if enable {
+            self.table.bump_cursor_pos();
+        } else {
+            self.table.disable_visual_discard();
+        }
     }
 }

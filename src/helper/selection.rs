@@ -117,48 +117,6 @@ impl<T: Clone> ModifiableList<T> {
         }
     }
 
-    /// This function answers the following question:
-    /// "If the given selection is deleted, where should the item at the given index go?"
-    ///
-    /// Returns the new index, or returns None if the item at the index is deleted.
-    // pub fn move_item_by(&self, selection: &Selection, idx: usize) -> Option<usize> {
-    //     match selection {
-    //         Selection::Single(index) => {
-    //             if idx == *index {
-    //                 None
-    //             } else {
-    //                 if idx > *index {
-    //                     Some(idx - 1)
-    //                 } else {
-    //                     Some(idx)
-    //                 }
-    //             }
-    //         }
-    //         Selection::Range(start, end) => {
-    //             if idx < *start {
-    //                 Some(idx)
-    //             } else if idx > *end {
-    //                 Some(idx - (end - start + 1))
-    //             } else {
-    //                 None
-    //             }
-    //         }
-    //         Selection::Multiple(items) => {
-    //             if items[idx] {
-    //                 None
-    //             } else {
-    //                 let mut count = 0;
-    //                 for i in 0..idx {
-    //                     if items[i] {
-    //                         count += 1;
-    //                     }
-    //                 }
-    //                 Some(idx - count)
-    //             }
-    //         }
-    //     }
-    // }
-
     pub fn delete(&mut self, selection: &Selection) {
         match selection {
             Selection::Single(index) => self.delete_single(*index),

@@ -20,12 +20,14 @@ pub enum FilterResult {
     ApplyFilter(String),
     /// Clear filter, and display all elements
     ClearFilter,
+    /// Exit filter mode, but do not change the applied filter
+    Exit,
 }
 
 impl Filter {
     pub fn handle_raw(&mut self, key: KeyEvent) -> FilterResult {
         match key.code {
-            KeyCode::Esc => FilterResult::NoChange,
+            KeyCode::Esc => FilterResult::Exit,
             KeyCode::Enter => {
                 let filter = self.input.lines()[0].clone();
                 if filter.len() == 0 {

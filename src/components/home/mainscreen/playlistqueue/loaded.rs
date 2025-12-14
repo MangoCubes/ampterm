@@ -194,6 +194,11 @@ impl Loaded {
         self.table.bump_cursor_pos();
         Action::ChangeMode(Mode::Normal)
     }
+    fn exit_filter(&mut self) -> Action {
+        self.state = State::Nothing;
+        self.table.bump_cursor_pos();
+        Action::ChangeMode(Mode::Normal)
+    }
 }
 
 impl Renderable for Loaded {
@@ -348,6 +353,7 @@ impl HandleRaw for Loaded {
                     FilterResult::ClearFilter => {
                         Some(self.reset_filter())
                     }
+                    FilterResult::Exit => Some(self.exit_filter())
                 }
             },
             State::Searching => todo!(),

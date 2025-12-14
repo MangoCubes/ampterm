@@ -49,7 +49,7 @@ pub struct Loaded {
     table: VisualTable,
     keymap: KeyBindings<PlaylistQueueAction>,
     state: State,
-    filter: Option<String>,
+    filter: Option<(usize, String)>,
 }
 
 impl Loaded {
@@ -168,13 +168,20 @@ impl Loaded {
         None
     }
     fn set_filter(&mut self, filter: String) -> Action {
+        let mut count = 0;
         let visibility: Vec<bool> = self
             .playlist
             .entry
             .iter()
-            .map(|i| i.title.contains(&filter))
+            .map(|i| {
+                let a = i.title.contains(&filter);
+                if a {
+                    count += 1;
+                }
+                a
+            })
             .collect();
-        self.filter = Some(filter);
+        self.filter = Some((count, filter));
         self.state = State::Nothing;
         self.table.set_visibility(&visibility);
         self.table.bump_cursor_pos();
@@ -192,19 +199,27 @@ impl Loaded {
 impl Renderable for Loaded {
     fn draw(&mut self, frame: &mut Frame, area: Rect) {
         let title = if let Some(pos) = self.table.get_current() {
-            let len = self.playlist.entry.len();
+            let (len, extra) = match &self.filter {
+                Some((len, filter)) => (*len, format!(" (Filter: {})", filter)),
+                None => (self.playlist.entry.len(), "".to_string()),
+            };
             format!(
-                "{} ({}/{})",
+                "{} ({}/{}){}",
                 self.name,
                 if pos == usize::MAX || pos >= len {
                     len
                 } else {
                     pos + 1
                 },
-                len
+                len,
+                extra
             )
         } else {
-            format!("{} ({})", self.name, self.playlist.entry.len())
+            let (len, extra) = match &self.filter {
+                Some((len, filter)) => (*len, format!(" (Filter: {})", filter)),
+                None => (self.playlist.entry.len(), "".to_string()),
+            };
+            format!("{} ({}){}", self.name, len, extra)
         };
         let border = PlaylistQueue::gen_block(self.enabled, title);
         let inner = match &mut self.state {

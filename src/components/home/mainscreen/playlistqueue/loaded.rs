@@ -174,7 +174,7 @@ impl Loaded {
             .entry
             .iter()
             .map(|i| {
-                let a = i.title.contains(&filter);
+                let a = i.title.to_lowercase().contains(&filter.to_lowercase());
                 if a {
                     count += 1;
                 }

@@ -242,7 +242,7 @@ impl VisualTable {
 
             if count == 0 {
                 match self.get_current() {
-                    Some(index) => VisualSelection::Single(index),
+                    Some(index) => VisualSelection::Single(self.get_current_skip_hidden(index)),
                     None => VisualSelection::None { unselect: false },
                 }
             } else {

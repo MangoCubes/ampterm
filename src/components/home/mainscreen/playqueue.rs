@@ -384,10 +384,7 @@ impl HandleKeySeq<PlayQueueAction> for PlayQueue {
                 let (vs, action) = self.table.get_selection_reset();
                 let selection = match vs {
                     VisualSelection::Single(index) => Selection::Single(index),
-                    VisualSelection::TempSelection(start, end) => Selection::Range(start, end),
-                    VisualSelection::Selection(items) => {
-                        Selection::Multiple(items.iter().map(|s| s.selected).collect())
-                    }
+                    VisualSelection::Multiple { map, temp: _ } => Selection::Multiple(map),
                     VisualSelection::None { unselect: _ } => {
                         return match action {
                             Some(a) => KeySeqResult::ActionNeeded(a),
@@ -433,17 +430,12 @@ impl HandleKeySeq<PlayQueueAction> for PlayQueue {
                         let item = self.list.0[idx].clone();
                         vec![(item.id, item.starred == None)]
                     }
-                    VisualSelection::TempSelection(start, end) => self.list.0[start..=end]
-                        .iter()
-                        .map(|m| (m.id.clone(), m.starred == None))
-                        .collect(),
-                    VisualSelection::Selection(items) => self
+                    VisualSelection::Multiple { map, temp: _ } => self
                         .list
-                        .0
                         .iter()
-                        .zip(items.iter())
-                        .filter_map(|(m, state)| {
-                            if state.selected {
+                        .zip(map)
+                        .filter_map(|(m, selected)| {
+                            if selected {
                                 Some((m.id.clone(), m.starred == None))
                             } else {
                                 None

@@ -1,4 +1,3 @@
-use color_eyre::owo_colors::OwoColorize;
 use ratatui::{
     layout::Constraint,
     prelude::Rect,
@@ -35,11 +34,9 @@ pub enum VisualSelection {
     /// The table was not in visual mode, and nothing was selected. Defaulting to the item the
     /// cursor is currently on top of.
     Single(usize),
-    /// The table is currently in visual select mode.
-    TempSelection(usize, usize),
     /// The table is currently not in visual mode, but some elements were selected from the
     /// previous visual mode selections.
-    Selection(Vec<RowState>),
+    Multiple { temp: bool, map: Vec<bool> },
     /// Nothing selected because either the cursor does not exist on the table
     None { unselect: bool },
 }
@@ -202,13 +199,14 @@ impl VisualTable {
     pub fn get_selection_reset(&mut self) -> (VisualSelection, Option<Action>) {
         let selection = self.get_selection();
         match selection {
-            VisualSelection::TempSelection(_, _) => {
-                self.disable_visual_discard();
-                (selection, Some(Action::ChangeMode(Mode::Normal)))
-            }
-            VisualSelection::Selection(_) => {
-                self.reset_selections();
-                (selection, None)
+            VisualSelection::Multiple { temp, map: _ } => {
+                if temp {
+                    self.disable_visual_discard();
+                    (selection, Some(Action::ChangeMode(Mode::Normal)))
+                } else {
+                    self.reset_selections();
+                    (selection, None)
+                }
             }
             _ => (selection, None),
         }
@@ -224,7 +222,13 @@ impl VisualTable {
     pub fn get_selection(&self) -> VisualSelection {
         if let Some(range) = self.get_temp_range() {
             if range.is_select {
-                return VisualSelection::TempSelection(range.start, range.end);
+                let map = self
+                    .state
+                    .iter()
+                    .enumerate()
+                    .map(|(i, r)| r.visible && i >= range.start && i <= range.end)
+                    .collect();
+                return VisualSelection::Multiple { temp: true, map };
             } else {
                 return VisualSelection::None { unselect: true };
             }
@@ -242,7 +246,8 @@ impl VisualTable {
                     None => VisualSelection::None { unselect: false },
                 }
             } else {
-                VisualSelection::Selection(self.state.clone())
+                let map = self.state.iter().map(|r| r.selected).collect();
+                VisualSelection::Multiple { temp: false, map }
             }
         }
     }

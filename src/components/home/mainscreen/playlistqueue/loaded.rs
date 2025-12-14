@@ -69,19 +69,14 @@ impl Loaded {
                     QueueAction::Add(items, playpos)
                 }
             }))),
-            VisualSelection::TempSelection(start, end) => {
-                Some(Action::Targeted(TargetedAction::Queue(QueueAction::Add(
-                    self.playlist.entry[start..=end].to_vec(),
-                    playpos,
-                ))))
-            }
-            VisualSelection::Selection(items) => {
-                let items: Vec<Media> = items
-                    .into_iter()
-                    .enumerate()
-                    .filter(|(_, state)| state.selected)
-                    .filter_map(|(idx, _)| self.playlist.entry.get(idx))
-                    .map(|m| m.clone())
+            VisualSelection::Multiple { map, temp: _ } => {
+                let items = self
+                    .playlist
+                    .entry
+                    .iter()
+                    .zip(map)
+                    .filter(|(_, selected)| *selected)
+                    .map(|(m, _)| m.clone())
                     .collect();
                 Some(Action::Targeted(TargetedAction::Queue(QueueAction::Add(
                     items, playpos,
@@ -254,17 +249,13 @@ impl HandleKeySeq<PlaylistQueueAction> for Loaded {
                         let item = self.playlist.entry[idx].clone();
                         vec![(item.id, item.starred == None)]
                     }
-                    VisualSelection::TempSelection(start, end) => self.playlist.entry[start..=end]
-                        .iter()
-                        .map(|m| (m.id.clone(), m.starred == None))
-                        .collect(),
-                    VisualSelection::Selection(items) => self
+                    VisualSelection::Multiple { map, temp: _ } => self
                         .playlist
                         .entry
                         .iter()
-                        .zip(items.iter())
-                        .filter_map(|(m, state)| {
-                            if state.selected {
+                        .zip(map)
+                        .filter_map(|(m, selected)| {
+                            if selected {
                                 Some((m.id.clone(), m.starred == None))
                             } else {
                                 None

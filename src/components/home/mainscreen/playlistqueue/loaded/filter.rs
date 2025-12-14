@@ -25,8 +25,15 @@ pub enum FilterResult {
 impl Filter {
     pub fn handle_raw(&mut self, key: KeyEvent) -> FilterResult {
         match key.code {
-            KeyCode::Esc => FilterResult::ClearFilter,
-            KeyCode::Enter => FilterResult::ApplyFilter(self.input.lines()[0].clone()),
+            KeyCode::Esc => FilterResult::NoChange,
+            KeyCode::Enter => {
+                let filter = self.input.lines()[0].clone();
+                if filter.len() == 0 {
+                    FilterResult::ClearFilter
+                } else {
+                    FilterResult::ApplyFilter(filter)
+                }
+            }
             _ => {
                 self.input.input(key);
                 FilterResult::NoChange

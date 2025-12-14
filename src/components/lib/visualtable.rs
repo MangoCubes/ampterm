@@ -1,3 +1,4 @@
+use color_eyre::owo_colors::OwoColorize;
 use ratatui::{
     layout::Constraint,
     prelude::Rect,
@@ -145,11 +146,11 @@ impl HandleKeySeq<ListAction> for VisualTable {
                 KeySeqResult::NoActionNeeded
             }
             ListAction::SelectMode => {
-                self.enable_visual(cur_pos, false);
+                self.enable_visual(self.get_current_skip_hidden(cur_pos), false);
                 KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Visual))
             }
             ListAction::DeselectMode => {
-                self.enable_visual(cur_pos, true);
+                self.enable_visual(self.get_current_skip_hidden(cur_pos), true);
                 KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Visual))
             }
         }
@@ -389,12 +390,8 @@ impl VisualTable {
         let Some(end) = self.get_current() else {
             return None;
         };
-        if let Some((start, end, is_select)) = self.get_range(end) {
-            if start > end {
-                Some(TempSelection::new(end, start, is_select))
-            } else {
-                Some(TempSelection::new(start, end, is_select))
-            }
+        if let Some((start, end, is_select)) = self.get_range(self.get_current_skip_hidden(end)) {
+            Some(TempSelection::new(start, end, is_select))
         } else {
             None
         }
@@ -409,6 +406,24 @@ impl VisualTable {
     #[inline]
     pub fn get_current(&self) -> Option<usize> {
         self.tablestate.selected()
+    }
+
+    #[inline]
+    pub fn get_current_skip_hidden(&self, index: usize) -> usize {
+        let mut real = index;
+        let len = self.state.len();
+        let mut last_visible = 0;
+        for i in 0..len {
+            if self.state[i].visible {
+                if real == 0 {
+                    return i;
+                } else {
+                    real -= 1;
+                    last_visible = i;
+                }
+            }
+        }
+        last_visible
     }
 
     #[inline]
@@ -450,34 +465,14 @@ impl VisualTable {
     /// Disable visual mode for the current table
     /// The current temporary selection is added to the overall selection
     pub fn disable_visual_save(&mut self) {
-        let Some(end) = self.get_current() else {
-            self.mode = VisualMode::Off;
-            self.table = self.regen_table();
-            return;
+        let Some(temp) = self.get_temp_range() else {
+            panic!("Attempted to exit visual mode when not in visual mode!");
         };
-        if let VisualMode::Select(start) = self.mode {
-            let (a, b) = if start < end {
-                (start, end)
-            } else {
-                (end, start)
-            };
-            for i in a..=b {
-                if self.state[i].visible {
-                    self.state[i].selected = true;
-                }
+        for i in temp.start..=temp.end {
+            if self.state[i].visible {
+                self.state[i].selected = temp.is_select;
             }
-        } else if let VisualMode::Deselect(start) = self.mode {
-            let (a, b) = if start < end {
-                (start, end)
-            } else {
-                (end, start)
-            };
-            for i in a..=b {
-                if self.state[i].visible {
-                    self.state[i].selected = false;
-                }
-            }
-        };
+        }
         self.mode = VisualMode::Off;
         self.table = self.regen_table();
     }

@@ -189,7 +189,10 @@ impl HandleKeySeq<ListAction> for VisualTable {
                 self.jump_next();
                 KeySeqResult::NoActionNeeded
             }
-            ListAction::SearchPrev => todo!(),
+            ListAction::SearchPrev => {
+                self.jump_prev();
+                KeySeqResult::NoActionNeeded
+            }
         }
     }
 
@@ -440,6 +443,18 @@ impl VisualTable {
                 }
             }
         }
+    }
+
+    fn jump_prev(&mut self) -> bool {
+        let idx = FilterAppliedIndex::from(self.get_current().unwrap_or(0), &self.state);
+        for i in (0..idx.0).rev() {
+            if self.state[i].visible && self.state[i].highlight {
+                let idx = FilterAppliedIndex(i).to_user(&self.state);
+                self.tablestate.select(Some(idx));
+                return true;
+            }
+        }
+        false
     }
 
     fn jump_next(&mut self) -> bool {

@@ -1,4 +1,5 @@
 mod filter;
+mod search;
 use crate::{
     action::{
         action::{Action, Mode, QueryAction, QueueAction, TargetedAction},
@@ -6,7 +7,10 @@ use crate::{
     },
     components::{
         home::mainscreen::playlistqueue::{
-            loaded::filter::{Filter, FilterResult},
+            loaded::{
+                filter::{Filter, FilterResult},
+                search::{Search, SearchResult},
+            },
             PlaylistQueue,
         },
         lib::visualtable::{VisualSelection, VisualTable},
@@ -39,7 +43,7 @@ use ratatui::{
 enum State {
     Nothing,
     Filtering(Filter),
-    Searching,
+    Searching(Search),
 }
 
 pub struct Loaded {
@@ -50,6 +54,7 @@ pub struct Loaded {
     keymap: KeyBindings<PlaylistQueueAction>,
     state: State,
     filter: Option<(usize, String)>,
+    search: Option<(usize, String)>,
 }
 
 impl Loaded {
@@ -82,7 +87,7 @@ impl Loaded {
                     items, playpos,
                 ))))
             }
-            VisualSelection::None { unselect: _ } => None,
+            VisualSelection::None => None,
         };
         if let Some(a) = first {
             if let Some(b) = action {
@@ -142,6 +147,7 @@ impl Loaded {
             table,
             state: State::Nothing,
             filter: None,
+            search: None,
         }
     }
 
@@ -166,6 +172,36 @@ impl Loaded {
         let rows = Self::gen_rows(&self.playlist.entry);
         self.table.set_rows(rows);
         None
+    }
+    fn apply_search(&mut self, search: String) {
+        let mut count = 0;
+        let highlight: Vec<bool> = self
+            .playlist
+            .entry
+            .iter()
+            .map(|i| {
+                let a = i.title.to_lowercase().contains(&search.to_lowercase());
+                if a {
+                    count += 1;
+                }
+                a
+            })
+            .collect();
+        self.search = Some((count, search));
+        self.table.set_highlight(&highlight);
+        self.table.bump_cursor_pos();
+    }
+    fn confirm_search(&mut self, search: String) -> Action {
+        self.apply_search(search);
+        self.state = State::Nothing;
+        Action::ChangeMode(Mode::Normal)
+    }
+    fn clear_search(&mut self) -> Action {
+        self.state = State::Nothing;
+        self.search = None;
+        self.table.reset_highlight();
+        self.table.bump_cursor_pos();
+        Action::ChangeMode(Mode::Normal)
     }
     fn set_filter(&mut self, filter: String) -> Action {
         let mut count = 0;
@@ -243,7 +279,16 @@ impl Renderable for Loaded {
                 filter.draw(frame, areas[1]);
                 inner
             }
-            State::Searching => todo!(),
+            State::Searching(search) => {
+                let layout =
+                    Layout::default().constraints([Constraint::Min(1), Constraint::Length(3)]);
+                let areas = layout.split(area);
+                let inner = border.inner(areas[0]);
+                frame.render_widget(border, areas[0]);
+                frame.render_widget(Clear, areas[1]);
+                search.draw(frame, areas[1]);
+                inner
+            }
         };
         self.table.draw(frame, inner);
     }
@@ -282,7 +327,7 @@ impl HandleKeySeq<PlaylistQueueAction> for Loaded {
                             }
                         })
                         .collect(),
-                    VisualSelection::None { unselect: _ } => vec![],
+                    VisualSelection::None => vec![],
                 }
                 .into_iter()
                 .map(|(id, star)| {
@@ -320,6 +365,12 @@ impl HandleKeySeq<PlaylistQueueAction> for Loaded {
                 KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Insert))
             }
             PlaylistQueueAction::Unfilter => KeySeqResult::ActionNeeded(self.reset_filter()),
+            PlaylistQueueAction::Search => {
+                self.state = State::Searching(Search::new());
+                KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Insert))
+            }
+            PlaylistQueueAction::SearchNext => todo!(),
+            PlaylistQueueAction::SearchPrev => todo!(),
         }
     }
 
@@ -356,7 +407,16 @@ impl HandleRaw for Loaded {
                     FilterResult::Exit => Some(self.exit_filter())
                 }
             },
-            State::Searching => todo!(),
+            State::Searching(s ) => {
+                match s.handle_raw(key) {
+                    SearchResult::ApplySearch(s) => {
+                        self.apply_search(s);
+                        None
+                    }
+                    SearchResult::ClearSearch => Some(self.clear_search()),
+                    SearchResult::ConfirmSearch(s) => Some(self.confirm_search(s))
+                }
+            },
         }
     }
 }

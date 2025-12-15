@@ -38,7 +38,7 @@ pub enum VisualSelection {
     /// previous visual mode selections.
     Multiple { temp: bool, map: Vec<bool> },
     /// Nothing selected because either the cursor does not exist on the table
-    None { unselect: bool },
+    None,
 }
 
 impl TempSelection {
@@ -66,7 +66,7 @@ enum VisualMode {
 pub struct RowState {
     pub visible: bool,
     pub selected: bool,
-    highlight: bool,
+    pub highlight: bool,
 }
 
 impl Default for RowState {
@@ -230,7 +230,7 @@ impl VisualTable {
                     .collect();
                 return VisualSelection::Multiple { temp: true, map };
             } else {
-                return VisualSelection::None { unselect: true };
+                return VisualSelection::None;
             }
         } else {
             let mut count = 0;
@@ -243,7 +243,7 @@ impl VisualTable {
             if count == 0 {
                 match self.get_current() {
                     Some(index) => VisualSelection::Single(self.get_current_skip_hidden(index)),
-                    None => VisualSelection::None { unselect: false },
+                    None => VisualSelection::None,
                 }
             } else {
                 let map = self.state.iter().map(|r| r.selected).collect();
@@ -297,13 +297,23 @@ impl VisualTable {
                     };
                     if state.selected {
                         row.green()
+                    } else if state.highlight {
+                        row.yellow()
                     } else {
                         row
                     }
                 })
                 .collect(),
             None => iter
-                .map(|(_, (row, state))| if state.selected { row.green() } else { row })
+                .map(|(_, (row, state))| {
+                    if state.selected {
+                        row.green()
+                    } else if state.highlight {
+                        row.yellow()
+                    } else {
+                        row
+                    }
+                })
                 .collect(),
         }
     }
@@ -458,6 +468,7 @@ impl VisualTable {
             .iter_mut()
             .zip(highlight)
             .for_each(|(state, new)| state.highlight = *new);
+        self.table = self.regen_table();
     }
 
     #[inline]
@@ -465,6 +476,7 @@ impl VisualTable {
         self.state
             .iter_mut()
             .for_each(|state| state.highlight = false);
+        self.table = self.regen_table();
     }
 
     /// Disable visual mode for the current table

@@ -147,6 +147,8 @@
 
 			"<f>": "Filter",
 			"<Ctrl-f>": "Unfilter",
+
+			"</>": "Search",
 		},
 	},
     // Use legacy authentication that sends the password instead of token and salt

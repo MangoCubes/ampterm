@@ -146,6 +146,11 @@ pub enum PlaylistQueueAction {
     Filter,
     /// Remove filter
     Unfilter,
+    /// Search for a keyword. Unlike filter, this is applied immediately and does not hide
+    /// non-matching elements. User can jump between matched items with SearchNext and SearchPrev.
+    Search,
+    SearchNext,
+    SearchPrev,
 }
 
 impl ToString for PlaylistQueueAction {
@@ -165,6 +170,9 @@ impl ToString for PlaylistQueueAction {
             PlaylistQueueAction::ToggleStar => "Star/unstar items",
             PlaylistQueueAction::Filter => "Filter items (hides items that do not match)",
             PlaylistQueueAction::Unfilter => "Remove filter",
+            PlaylistQueueAction::Search => "Search for a specific keyword",
+            PlaylistQueueAction::SearchNext => "Jump to the next item that matches the keyword",
+            PlaylistQueueAction::SearchPrev => "Jump to the previous item that matches the keyword",
         }
         .to_string()
     }

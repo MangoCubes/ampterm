@@ -385,7 +385,7 @@ impl HandleKeySeq<PlayQueueAction> for PlayQueue {
                 let selection = match vs {
                     VisualSelection::Single(index) => Selection::Single(index),
                     VisualSelection::Multiple { map, temp: _ } => Selection::Multiple(map),
-                    VisualSelection::None { unselect: _ } => {
+                    VisualSelection::None => {
                         return match action {
                             Some(a) => KeySeqResult::ActionNeeded(a),
                             None => KeySeqResult::NoActionNeeded,
@@ -442,7 +442,7 @@ impl HandleKeySeq<PlayQueueAction> for PlayQueue {
                             }
                         })
                         .collect(),
-                    VisualSelection::None { unselect: _ } => vec![],
+                    VisualSelection::None => vec![],
                 }
                 .into_iter()
                 .map(|(id, star)| {

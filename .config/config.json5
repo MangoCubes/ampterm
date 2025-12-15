@@ -67,6 +67,9 @@
 			"<Ctrl-v>": "DeselectMode",
 
 			"<g><r>": "ResetSelection",
+
+			"<n>": "SearchNext",
+			"<Shift-n>": "SearchPrev",
 		},
 		// Keybinds for visual mode of the list
 		"list_visual": {
@@ -87,6 +90,9 @@
 			"<v>": "ExitSave",
 			"<Shift-v>": "ExitSave",
 			"<Ctrl-v>": "ExitSave",
+
+			"<n>": "SearchNext",
+			"<Shift-n>": "SearchPrev",
 		},
 		// Keybinds for the playqueue (rightmost component in the main screen)
 		"playqueue": {

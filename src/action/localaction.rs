@@ -27,11 +27,16 @@ pub enum ListAction {
     /// Enter selection mode. When you exit visual mode with ExitSave, the selected items will be
     /// unselected.
     DeselectMode,
+
+    SearchNext,
+    SearchPrev,
 }
 
 impl ToString for ListAction {
     fn to_string(&self) -> String {
         match self {
+            ListAction::SearchNext => "Jump to the next item that matches the keyword",
+            ListAction::SearchPrev => "Jump to the previous item that matches the keyword",
             ListAction::ExitSave => "Exit visual mode, apply selection",
             ListAction::ExitDiscard => "Exit visual mode, discard selection",
             ListAction::Up => "Move up",
@@ -150,8 +155,6 @@ pub enum PlaylistQueueAction {
     /// non-matching elements. User can jump between matched items with SearchNext and SearchPrev.
     Search,
     ClearSearch,
-    SearchNext,
-    SearchPrev,
 }
 
 impl ToString for PlaylistQueueAction {
@@ -172,8 +175,6 @@ impl ToString for PlaylistQueueAction {
             PlaylistQueueAction::Filter => "Filter items (hides items that do not match)",
             PlaylistQueueAction::ClearFilter => "Remove filter",
             PlaylistQueueAction::Search => "Search for a specific keyword",
-            PlaylistQueueAction::SearchNext => "Jump to the next item that matches the keyword",
-            PlaylistQueueAction::SearchPrev => "Jump to the previous item that matches the keyword",
             PlaylistQueueAction::ClearSearch => "Clear the current search",
         }
         .to_string()

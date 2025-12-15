@@ -378,8 +378,6 @@ impl HandleKeySeq<PlaylistQueueAction> for Loaded {
                 KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Insert))
             }
             PlaylistQueueAction::ClearSearch => KeySeqResult::ActionNeeded(self.clear_search()),
-            PlaylistQueueAction::SearchNext => todo!(),
-            PlaylistQueueAction::SearchPrev => todo!(),
         }
     }
 

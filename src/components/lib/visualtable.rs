@@ -30,6 +30,15 @@ impl FilterAppliedIndex {
         }
         FilterAppliedIndex(last_visible)
     }
+    pub fn to_user(&self, state: &Vec<RowState>) -> usize {
+        let mut visible_count = 0;
+        for i in (0..self.0).rev() {
+            if state[i].visible {
+                visible_count += 1;
+            }
+        }
+        visible_count
+    }
 }
 
 use crate::{
@@ -176,6 +185,11 @@ impl HandleKeySeq<ListAction> for VisualTable {
                 self.enable_visual(FilterAppliedIndex::from(cur_pos, &self.state), true);
                 KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Visual))
             }
+            ListAction::SearchNext => {
+                self.jump_next();
+                KeySeqResult::NoActionNeeded
+            }
+            ListAction::SearchPrev => todo!(),
         }
     }
 
@@ -427,6 +441,19 @@ impl VisualTable {
             }
         }
     }
+
+    fn jump_next(&mut self) -> bool {
+        let idx = FilterAppliedIndex::from(self.get_current().unwrap_or(0), &self.state);
+        for i in (idx.0 + 1)..self.state.len() {
+            if self.state[i].visible && self.state[i].highlight {
+                let idx = FilterAppliedIndex(i).to_user(&self.state);
+                self.tablestate.select(Some(idx));
+                return true;
+            }
+        }
+        false
+    }
+
     /// Returns current temporary selection
     /// First index is guaranteed to be smaller than the second
     /// If the third value is true, then the table is in select mode. If not, the table is in

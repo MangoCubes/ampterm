@@ -1,3 +1,4 @@
+use derive_deref::{Deref, DerefMut};
 use ratatui::{
     layout::Constraint,
     prelude::Rect,
@@ -5,6 +6,31 @@ use ratatui::{
     widgets::{Row, Table, TableState},
     Frame,
 };
+
+/// Filter applied index are indexes that are counted from the first element, skipping the ones
+/// that are hidden ([`RowState::visible`]). If there are 5 elements, and 1 and 2 has
+/// [`RowState::visible`] set to false, then the 5th element's index is 2 (4 - 2).
+#[derive(Deref, DerefMut, Clone, Copy)]
+struct FilterAppliedIndex(usize);
+
+impl FilterAppliedIndex {
+    pub fn from(idx: usize, state: &Vec<RowState>) -> Self {
+        let mut real = idx;
+        let len = state.len();
+        let mut last_visible = 0;
+        for i in 0..len {
+            if state[i].visible {
+                if real == 0 {
+                    return FilterAppliedIndex(i);
+                } else {
+                    real -= 1;
+                    last_visible = i;
+                }
+            }
+        }
+        FilterAppliedIndex(last_visible)
+    }
+}
 
 use crate::{
     action::{
@@ -24,8 +50,8 @@ use crate::{
 /// If [`TempSelection::is_select`] is true, then the current selection mode is
 /// [`VisualMode::Select`].
 pub struct TempSelection {
-    pub start: usize,
-    pub end: usize,
+    start: FilterAppliedIndex,
+    end: FilterAppliedIndex,
     pub is_select: bool,
 }
 
@@ -42,7 +68,7 @@ pub enum VisualSelection {
 }
 
 impl TempSelection {
-    fn new(start: usize, end: usize, is_select: bool) -> Self {
+    fn new(start: FilterAppliedIndex, end: FilterAppliedIndex, is_select: bool) -> Self {
         Self {
             start,
             end,
@@ -56,10 +82,10 @@ enum VisualMode {
     Off,
     // Visual mode enabled
     // The number represent the start of the region
-    Select(usize),
+    Select(FilterAppliedIndex),
     // Visual mode enabled (deselect selected region)
     // The number represent the start of the region
-    Deselect(usize),
+    Deselect(FilterAppliedIndex),
 }
 
 #[derive(Clone)]
@@ -143,11 +169,11 @@ impl HandleKeySeq<ListAction> for VisualTable {
                 KeySeqResult::NoActionNeeded
             }
             ListAction::SelectMode => {
-                self.enable_visual(self.get_current_skip_hidden(cur_pos), false);
+                self.enable_visual(FilterAppliedIndex::from(cur_pos, &self.state), false);
                 KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Visual))
             }
             ListAction::DeselectMode => {
-                self.enable_visual(self.get_current_skip_hidden(cur_pos), true);
+                self.enable_visual(FilterAppliedIndex::from(cur_pos, &self.state), true);
                 KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Visual))
             }
         }
@@ -226,7 +252,7 @@ impl VisualTable {
                     .state
                     .iter()
                     .enumerate()
-                    .map(|(i, r)| r.visible && i >= range.start && i <= range.end)
+                    .map(|(i, r)| r.visible && i >= range.start.0 && i <= range.end.0)
                     .collect();
                 return VisualSelection::Multiple { temp: true, map };
             } else {
@@ -242,7 +268,9 @@ impl VisualTable {
 
             if count == 0 {
                 match self.get_current() {
-                    Some(index) => VisualSelection::Single(self.get_current_skip_hidden(index)),
+                    Some(index) => {
+                        VisualSelection::Single(FilterAppliedIndex::from(index, &self.state).0)
+                    }
                     None => VisualSelection::None,
                 }
             } else {
@@ -290,7 +318,7 @@ impl VisualTable {
         match temp {
             Some(t) => iter
                 .map(|(i, (mut row, state))| {
-                    row = if i <= t.end && i >= t.start {
+                    row = if i <= t.end.0 && i >= t.start.0 {
                         row.reversed()
                     } else {
                         row
@@ -363,7 +391,7 @@ impl VisualTable {
     }
     /// Enters visual mode
     /// If [`deselect`] is true, then [`VisualMode::Deselect`] is used instead
-    pub fn enable_visual(&mut self, current: usize, deselect: bool) {
+    fn enable_visual(&mut self, current: FilterAppliedIndex, deselect: bool) {
         self.mode = if deselect {
             VisualMode::Deselect(current)
         } else {
@@ -377,18 +405,21 @@ impl VisualTable {
     /// If true, then the current selection is [`VisualMode::Select`], false if not
     /// Returns none if not in visual mode
     #[inline]
-    fn get_range(&self, end: usize) -> Option<(usize, usize, bool)> {
+    fn get_range(
+        &self,
+        end: FilterAppliedIndex,
+    ) -> Option<(FilterAppliedIndex, FilterAppliedIndex, bool)> {
         match self.mode {
             VisualMode::Off => None,
             VisualMode::Select(start) => {
-                if start < end {
+                if start.0 < end.0 {
                     Some((start, end, true))
                 } else {
                     Some((end, start, true))
                 }
             }
             VisualMode::Deselect(start) => {
-                if start < end {
+                if start.0 < end.0 {
                     Some((start, end, false))
                 } else {
                     Some((end, start, false))
@@ -405,7 +436,9 @@ impl VisualTable {
         let Some(end) = self.get_current() else {
             return None;
         };
-        if let Some((start, end, is_select)) = self.get_range(self.get_current_skip_hidden(end)) {
+        if let Some((start, end, is_select)) =
+            self.get_range(FilterAppliedIndex::from(end, &self.state))
+        {
             Some(TempSelection::new(start, end, is_select))
         } else {
             None
@@ -421,24 +454,6 @@ impl VisualTable {
     #[inline]
     pub fn get_current(&self) -> Option<usize> {
         self.tablestate.selected()
-    }
-
-    #[inline]
-    pub fn get_current_skip_hidden(&self, index: usize) -> usize {
-        let mut real = index;
-        let len = self.state.len();
-        let mut last_visible = 0;
-        for i in 0..len {
-            if self.state[i].visible {
-                if real == 0 {
-                    return i;
-                } else {
-                    real -= 1;
-                    last_visible = i;
-                }
-            }
-        }
-        last_visible
     }
 
     #[inline]
@@ -485,7 +500,7 @@ impl VisualTable {
         let Some(temp) = self.get_temp_range() else {
             panic!("Attempted to exit visual mode when not in visual mode!");
         };
-        for i in temp.start..=temp.end {
+        for i in temp.start.0..=temp.end.0 {
             if self.state[i].visible {
                 self.state[i].selected = temp.is_select;
             }

@@ -146,9 +146,10 @@
 			"<r><Shift-a>": { "RandomAdd": "Last" },
 
 			"<f>": "Filter",
-			"<Ctrl-f>": "Unfilter",
+			"<Ctrl-f>": "ClearFilter",
 
 			"</>": "Search",
+			"<Ctrl-l>": "ClearSearch",
 		},
 	},
     // Use legacy authentication that sends the password instead of token and salt

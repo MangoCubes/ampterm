@@ -367,7 +367,7 @@ impl HandleKeySeq<PlaylistQueueAction> for Loaded {
                 self.state = State::Filtering(Filter::new());
                 KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Insert))
             }
-            PlaylistQueueAction::Unfilter => KeySeqResult::ActionNeeded(self.reset_filter()),
+            PlaylistQueueAction::ClearFilter => KeySeqResult::ActionNeeded(self.reset_filter()),
             PlaylistQueueAction::Search => {
                 self.state =
                     State::Searching(Search::new(if let Some((_, search)) = &self.search {
@@ -377,6 +377,7 @@ impl HandleKeySeq<PlaylistQueueAction> for Loaded {
                     }));
                 KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Insert))
             }
+            PlaylistQueueAction::ClearSearch => KeySeqResult::ActionNeeded(self.clear_search()),
             PlaylistQueueAction::SearchNext => todo!(),
             PlaylistQueueAction::SearchPrev => todo!(),
         }
@@ -421,7 +422,6 @@ impl HandleRaw for Loaded {
                         self.apply_search(s);
                         None
                     }
-                    SearchResult::ClearSearch => Some(self.clear_search()),
                     SearchResult::ConfirmSearch(s) => Some(self.confirm_search(s))
                 }
             },

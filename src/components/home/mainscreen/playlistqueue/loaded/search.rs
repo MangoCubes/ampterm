@@ -18,8 +18,6 @@ pub enum SearchResult {
     /// Search results so that results that matches this string appear
     ApplySearch(String),
     ConfirmSearch(String),
-    /// Clear filter, and display all elements
-    ClearSearch,
 }
 
 impl Search {

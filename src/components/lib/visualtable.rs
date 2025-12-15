@@ -451,6 +451,7 @@ impl VisualTable {
             if self.state[i].visible && self.state[i].highlight {
                 let idx = FilterAppliedIndex(i).to_user(&self.state);
                 self.tablestate.select(Some(idx));
+                self.table = self.regen_table();
                 return true;
             }
         }
@@ -463,6 +464,7 @@ impl VisualTable {
             if self.state[i].visible && self.state[i].highlight {
                 let idx = FilterAppliedIndex(i).to_user(&self.state);
                 self.tablestate.select(Some(idx));
+                self.table = self.regen_table();
                 return true;
             }
         }

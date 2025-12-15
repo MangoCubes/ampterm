@@ -174,22 +174,25 @@ impl Loaded {
         None
     }
     fn apply_search(&mut self, search: String) {
-        let mut count = 0;
-        let highlight: Vec<bool> = self
-            .playlist
-            .entry
-            .iter()
-            .map(|i| {
-                let a = i.title.to_lowercase().contains(&search.to_lowercase());
-                if a {
-                    count += 1;
-                }
-                a
-            })
-            .collect();
-        self.search = Some((count, search));
-        self.table.set_highlight(&highlight);
-        self.table.bump_cursor_pos();
+        if search.len() == 0 {
+            self.clear_search();
+        } else {
+            let mut count = 0;
+            let highlight: Vec<bool> = self
+                .playlist
+                .entry
+                .iter()
+                .map(|i| {
+                    let a = i.title.to_lowercase().contains(&search.to_lowercase());
+                    if a {
+                        count += 1;
+                    }
+                    a
+                })
+                .collect();
+            self.search = Some((count, search));
+            self.table.set_highlight(&highlight);
+        }
     }
     fn confirm_search(&mut self, search: String) -> Action {
         self.apply_search(search);
@@ -366,7 +369,12 @@ impl HandleKeySeq<PlaylistQueueAction> for Loaded {
             }
             PlaylistQueueAction::Unfilter => KeySeqResult::ActionNeeded(self.reset_filter()),
             PlaylistQueueAction::Search => {
-                self.state = State::Searching(Search::new());
+                self.state =
+                    State::Searching(Search::new(if let Some((_, search)) = &self.search {
+                        search.clone()
+                    } else {
+                        "".to_string()
+                    }));
                 KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Insert))
             }
             PlaylistQueueAction::SearchNext => todo!(),

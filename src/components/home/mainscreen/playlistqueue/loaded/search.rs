@@ -11,6 +11,7 @@ use crate::components::traits::renderable::Renderable;
 
 pub struct Search {
     input: TextArea<'static>,
+    original: String,
 }
 
 pub enum SearchResult {
@@ -24,7 +25,7 @@ pub enum SearchResult {
 impl Search {
     pub fn handle_raw(&mut self, key: KeyEvent) -> SearchResult {
         match key.code {
-            KeyCode::Esc => SearchResult::ClearSearch,
+            KeyCode::Esc => SearchResult::ConfirmSearch(self.original.clone()),
             KeyCode::Enter => SearchResult::ConfirmSearch(self.input.lines()[0].clone()),
             _ => {
                 self.input.input(key);
@@ -32,7 +33,7 @@ impl Search {
             }
         }
     }
-    pub fn new() -> Self {
+    pub fn new(original: String) -> Self {
         let mut input = TextArea::default();
         input.set_block(
             Block::default()
@@ -40,7 +41,7 @@ impl Search {
                 .style(Style::default())
                 .title("Search"),
         );
-        Self { input }
+        Self { input, original }
     }
 }
 

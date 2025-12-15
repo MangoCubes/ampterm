@@ -490,7 +490,7 @@ impl VisualTable {
     /// Reset all overall selection
     #[inline]
     pub fn reset_selections(&mut self) {
-        self.state = ModifiableList::new(vec![RowState::default(); self.state.0.len()]);
+        self.state.iter_mut().for_each(|r| r.selected = false);
         self.table = self.regen_table();
     }
     #[inline]

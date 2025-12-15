@@ -173,9 +173,9 @@ impl Loaded {
         self.table.set_rows(rows);
         None
     }
-    fn apply_search(&mut self, search: String) {
+    fn apply_search(&mut self, search: String) -> Option<Action> {
         if search.len() == 0 {
-            self.clear_search();
+            Some(self.clear_search())
         } else {
             let mut count = 0;
             let highlight: Vec<bool> = self
@@ -192,6 +192,7 @@ impl Loaded {
                 .collect();
             self.search = Some((count, search));
             self.table.set_highlight(&highlight);
+            None
         }
     }
     fn confirm_search(&mut self, search: String) -> Action {
@@ -416,10 +417,7 @@ impl HandleRaw for Loaded {
             },
             State::Searching(s ) => {
                 match s.handle_raw(key) {
-                    SearchResult::ApplySearch(s) => {
-                        self.apply_search(s);
-                        None
-                    }
+                    SearchResult::ApplySearch(s) => self.apply_search(s),
                     SearchResult::ConfirmSearch(s) => Some(self.confirm_search(s))
                 }
             },

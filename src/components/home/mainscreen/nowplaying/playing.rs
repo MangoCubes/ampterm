@@ -26,7 +26,7 @@ use crate::{
 use crossterm::event::KeyEvent;
 use ratatui::{
     layout::{Constraint, Layout, Rect},
-    style::Stylize,
+    style::{Color, Stylize},
     text::Line,
     widgets::Gauge,
     Frame,
@@ -211,7 +211,13 @@ impl Renderable for Playing {
                 );
                 let percent = ((self.pos.as_secs() as i32 * 100) / len) as u16;
                 let adjusted = if percent > 100 { 100 } else { percent };
-                frame.render_widget(Gauge::default().label(label).percent(adjusted), areas[5]);
+                frame.render_widget(
+                    Gauge::default()
+                        .gauge_style(Color::LightBlue)
+                        .percent(adjusted)
+                        .label(label),
+                    areas[5],
+                );
             }
         } else {
             let label = format!(

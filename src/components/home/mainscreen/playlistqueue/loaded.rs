@@ -175,7 +175,9 @@ impl Loaded {
     }
     fn apply_search(&mut self, search: String) -> Option<Action> {
         if search.len() == 0 {
-            Some(self.clear_search())
+            self.search = Some((0, search));
+            self.table.reset_highlight();
+            None
         } else {
             let mut count = 0;
             let highlight: Vec<bool> = self
@@ -418,7 +420,8 @@ impl HandleRaw for Loaded {
             State::Searching(s ) => {
                 match s.handle_raw(key) {
                     SearchResult::ApplySearch(s) => self.apply_search(s),
-                    SearchResult::ConfirmSearch(s) => Some(self.confirm_search(s))
+                    SearchResult::ConfirmSearch(s) => Some(self.confirm_search(s)),
+                    SearchResult::CancelSearch => Some(self.clear_search()),
                 }
             },
         }

@@ -41,7 +41,7 @@ pub enum HighLevelQuery {
     },
     /// Fetch lyrics from lrclib.net
     GetLyrics(GetLyricsParams),
-    GetImage(CoverID),
+    GetCover(CoverID),
 }
 
 impl HighLevelQuery {
@@ -58,7 +58,7 @@ impl HighLevelQuery {
                 vec![CompID::PlaylistQueue, CompID::PlayQueue]
             }
             HighLevelQuery::GetLyrics(_) => vec![CompID::NowPlaying],
-            HighLevelQuery::GetImage(_) => vec![CompID::NowPlaying],
+            HighLevelQuery::GetCover(_) => vec![CompID::NowPlaying],
         }
     }
 
@@ -85,7 +85,7 @@ impl ToString for HighLevelQuery {
             HighLevelQuery::SetCredential(_) => "Setting credentials",
             HighLevelQuery::SetStar { media: _, star: _ } => "Toggle favourite status of a music",
             HighLevelQuery::GetLyrics(_) => "Fetching lyrics",
-            HighLevelQuery::GetImage(_) => "Fetching cover image",
+            HighLevelQuery::GetCover(_) => "Fetching cover image",
         }
         .to_string()
     }

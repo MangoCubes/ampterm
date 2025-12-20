@@ -321,7 +321,7 @@ impl QueryWorker {
                         let _ = tx.send(Action::Query(QueryAction::FromQueryWorker(res)));
                     });
                 }
-                HighLevelQuery::GetImage(cover_id) => {
+                HighLevelQuery::GetCover(cover_id) => {
                     let (tx, c) = self.prepare_async();
                     tokio::spawn(async move {
                         let art = c.get_cover_art(cover_id.0).await;

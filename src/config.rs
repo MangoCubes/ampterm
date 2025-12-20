@@ -2,6 +2,7 @@ mod appconfig;
 mod authconfig;
 mod behaviourconfig;
 mod bpmtoyconfig;
+mod coverartconfig;
 mod featuresconfig;
 pub mod keybindings;
 pub mod keyparser;

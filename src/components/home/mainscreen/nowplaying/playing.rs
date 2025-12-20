@@ -1,28 +1,22 @@
 mod imagecomp;
-mod synced;
-mod unsynced;
+mod lyrics;
 use std::time::Duration;
 
 use crate::{
     action::action::{Action, QueryAction},
     components::{
-        home::mainscreen::nowplaying::playing::{synced::Synced, unsynced::Unsynced},
-        lib::centered::Centered,
+        home::mainscreen::nowplaying::playing::{imagecomp::ImageComp, lyrics::Lyrics},
         traits::{
-            handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult, PassKeySeq},
+            handlekeyseq::{ComponentKeyHelp, KeySeqResult, PassKeySeq},
             handlequery::HandleQuery,
             renderable::Renderable,
         },
     },
     config::Config,
     helper::strings::trim_long_str,
-    lyricsclient::getlyrics::GetLyricsParams,
     osclient::response::getplaylist::Media,
     playerworker::player::{FromPlayerWorker, StateType},
-    queryworker::{
-        highlevelquery::HighLevelQuery,
-        query::{ResponseType, ToQueryWorker},
-    },
+    queryworker::query::ResponseType,
 };
 use crossterm::event::KeyEvent;
 use ratatui::{
@@ -33,73 +27,63 @@ use ratatui::{
     Frame,
 };
 
-enum LyricsSpace {
-    Found(Synced),
-    Fetching(Centered),
-    NotFound(Centered),
-    Error(Centered),
-    Plain(Unsynced),
-    Disabled,
-}
-
 pub struct Playing {
     pos: Duration,
     playing: bool,
     music: Media,
-    lyrics: LyricsSpace,
+    lyrics: Option<Lyrics>,
     config: Config,
+    cover: Option<ImageComp>,
 }
 
 impl Playing {
     pub fn new(playing: bool, music: Media, config: Config) -> (Self, Option<Action>) {
-        if config.features.lyrics.enable {
-            (
-                Self {
-                    playing,
-                    config,
-                    pos: Duration::from_secs(0),
-                    music: music.clone(),
-                    lyrics: LyricsSpace::Fetching(Centered::new(vec![format!(
-                        "Searching for lyrics for {}...",
-                        music.title
-                    )])),
-                },
-                Some(Action::Query(QueryAction::ToQueryWorker(
-                    ToQueryWorker::new(HighLevelQuery::GetLyrics(GetLyricsParams {
-                        track_name: music.title,
-                        artist_name: music.artist,
-                        album_name: music.album,
-                        length: music.duration,
-                    })),
-                ))),
-            )
+        let mut actions = vec![];
+        let cover = if config.features.cover_art.enable {
+            let (comp, action) = ImageComp::new(music.cover_art.clone());
+            if let Some(a) = action {
+                actions.push(a);
+            };
+            Some(comp)
         } else {
-            (
-                Self {
-                    playing,
-                    config,
-                    pos: Duration::from_secs(0),
-                    music: music.clone(),
-                    lyrics: LyricsSpace::Disabled,
-                },
-                None,
-            )
-        }
+            None
+        };
+
+        let lyrics = if config.features.lyrics.enable {
+            let (comp, action) = Lyrics::new(config.clone(), music.clone());
+            actions.push(action);
+            Some(comp)
+        } else {
+            None
+        };
+        (
+            Self {
+                playing,
+                config,
+                pos: Duration::from_secs(0),
+                music: music,
+                lyrics,
+                cover,
+            },
+            Some(Action::Multiple(actions)),
+        )
     }
 }
 
 impl PassKeySeq for Playing {
     fn handle_key_seq(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
-        match &mut self.lyrics {
-            LyricsSpace::Plain(unsynced) => unsynced.handle_key_seq(keyseq),
-            _ => None,
+        if let Some(c) = &mut self.lyrics {
+            c.handle_key_seq(keyseq)
+        } else {
+            None
         }
     }
 
     fn get_help(&self) -> Vec<ComponentKeyHelp> {
-        match &self.lyrics {
-            LyricsSpace::Plain(unsynced) => unsynced.get_help(),
-            _ => vec![],
+        if let Some(c) = &self.lyrics {
+            c.get_help()
+        } else {
+            vec![]
         }
     }
 }
@@ -107,35 +91,20 @@ impl PassKeySeq for Playing {
 impl HandleQuery for Playing {
     fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
         if let QueryAction::FromQueryWorker(res) = action {
-            if let ResponseType::GetLyrics(lyrics) = res.res {
-                self.lyrics = match lyrics {
-                    Ok(content) => match content {
-                        Some(found) => {
-                            if let Some(synced) = found.synced_lyrics {
-                                LyricsSpace::Found(Synced::new(synced))
-                            } else if let Some(plain) = found.plain_lyrics {
-                                LyricsSpace::Plain(Unsynced::new(self.config.clone(), plain))
-                            } else {
-                                LyricsSpace::NotFound(Centered::new(vec![
-                                    "Lyrics not found!".to_string()
-                                ]))
-                            }
-                        }
-                        None => LyricsSpace::NotFound(Centered::new(vec![
-                            "Lyrics not found!".to_string()
-                        ])),
-                    },
-                    Err(e) => LyricsSpace::Error(Centered::new(vec![format!(
-                        "Failed to find lyrics! Reason: {}",
-                        e
-                    )])),
+            if let Some(cover) = &mut self.cover {
+                if let ResponseType::GetCover(d) = res.res {
+                    cover.set_image(d);
+                }
+            } else if let ResponseType::GetLyrics(lyrics) = res.res {
+                if let Some(c) = &mut self.lyrics {
+                    c.handle_lyrics(lyrics);
                 }
             }
         } else if let QueryAction::FromPlayerWorker(FromPlayerWorker::StateChange(s)) = action {
             match s {
                 StateType::Jump(pos) | StateType::Position(pos) => {
                     self.pos = pos;
-                    if let LyricsSpace::Found(l) = &mut self.lyrics {
+                    if let Some(l) = &mut self.lyrics {
                         l.set_pos(self.pos);
                     }
                 }
@@ -163,7 +132,16 @@ impl Renderable for Playing {
             Constraint::Length(1), // Padding
             Constraint::Length(1),
         ]);
-        let areas = vertical.split(area);
+        let area = if let Some(comp) = &mut self.cover {
+            let horizontal =
+                Layout::horizontal([Constraint::Percentage(20), Constraint::Percentage(80)]);
+            let areas = horizontal.split(area);
+            comp.draw(frame, areas[0]);
+            areas[1]
+        } else {
+            area
+        };
+        let info_area = vertical.split(area);
         let msg = trim_long_str(
             format!(
                 "{} - {}",
@@ -175,22 +153,19 @@ impl Renderable for Playing {
             ),
             50,
         );
-        frame.render_widget(Line::raw(msg).bold(), areas[0]);
+        frame.render_widget(Line::raw(msg).bold(), info_area[0]);
         frame.render_widget(
             Line::raw(format!(
                 "{}",
                 self.music.album.clone().unwrap_or("Unknown".to_string())
             )),
-            areas[1],
+            info_area[1],
         );
-        match &mut self.lyrics {
-            LyricsSpace::Found(lyrics) => lyrics.draw(frame, areas[3]),
-            LyricsSpace::Plain(lyrics) => lyrics.draw(frame, areas[3]),
-            LyricsSpace::Fetching(centered)
-            | LyricsSpace::NotFound(centered)
-            | LyricsSpace::Error(centered) => centered.draw(frame, areas[3]),
-            LyricsSpace::Disabled => (),
-        };
+
+        if let Some(comp) = &mut self.lyrics {
+            comp.draw(frame, info_area[3]);
+        }
+
         let symbol = if self.playing { "▶" } else { "⏸" };
         if let Some(len) = self.music.duration {
             if len == 0 {
@@ -200,7 +175,7 @@ impl Renderable for Playing {
                     self.pos.as_secs() % 60,
                     symbol
                 );
-                frame.render_widget(Line::raw(label), areas[5]);
+                frame.render_widget(Line::raw(label), info_area[5]);
             } else {
                 let label = format!(
                     "{:02}:{:02} {} {:02}:{:02}",
@@ -217,7 +192,7 @@ impl Renderable for Playing {
                         .gauge_style(Color::LightBlue)
                         .percent(adjusted)
                         .label(label),
-                    areas[5],
+                    info_area[5],
                 );
             }
         } else {
@@ -227,7 +202,7 @@ impl Renderable for Playing {
                 self.pos.as_secs() % 60,
                 symbol
             );
-            frame.render_widget(Line::raw(label), areas[5]);
+            frame.render_widget(Line::raw(label), info_area[5]);
         }
     }
 }

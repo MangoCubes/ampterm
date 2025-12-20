@@ -178,6 +178,9 @@
 		"lyrics": {
 			"enable": true,
 		},
+		"cover_art": {
+			"enable": true,
+		},
 		"bpmtoy": {
 			"enable": true,
 		},

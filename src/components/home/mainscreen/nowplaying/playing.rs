@@ -1,3 +1,4 @@
+mod imagecomp;
 mod synced;
 mod unsynced;
 use std::time::Duration;

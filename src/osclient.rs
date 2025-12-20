@@ -1,4 +1,4 @@
-use crate::trace_dbg;
+use bytes::Bytes;
 use error::externalerror::ExternalError;
 use rand::distr::Alphanumeric;
 use rand::{rng, Rng};
@@ -12,8 +12,7 @@ use serde::de::DeserializeOwned;
 use serde_json::from_str;
 use std::error::Error;
 use std::fmt::Debug;
-use tracing::debug;
-
+use stream_download::http::ClientResponse;
 mod error;
 pub mod response;
 
@@ -68,22 +67,23 @@ impl OSClient {
         self.get_path("stream", Some(vec![("id", &id)]))
     }
     pub async fn get_playlist(&self, id: String) -> Result<GetPlaylist, ExternalError> {
-        self.query_auth::<GetPlaylist>(Method::GET, "getPlaylist", Some(vec![("id", &id)]))
+        self.query_auth_text::<GetPlaylist>(Method::GET, "getPlaylist", Some(vec![("id", &id)]))
             .await
     }
     pub async fn get_playlists(&self) -> Result<GetPlaylists, ExternalError> {
-        self.query_auth::<GetPlaylists>(Method::GET, "getPlaylists", None)
+        self.query_auth_text::<GetPlaylists>(Method::GET, "getPlaylists", None)
             .await
     }
     pub async fn ping(&self) -> Result<Empty, ExternalError> {
-        self.query_auth::<Empty>(Method::GET, "ping", None).await
+        self.query_auth_text::<Empty>(Method::GET, "ping", None)
+            .await
     }
     pub async fn star(&self, id: String) -> Result<Empty, ExternalError> {
-        self.query_auth::<Empty>(Method::GET, "star", Some(vec![("id", &id)]))
+        self.query_auth_text::<Empty>(Method::GET, "star", Some(vec![("id", &id)]))
             .await
     }
     pub async fn unstar(&self, id: String) -> Result<Empty, ExternalError> {
-        self.query_auth::<Empty>(Method::GET, "unstar", Some(vec![("id", &id)]))
+        self.query_auth_text::<Empty>(Method::GET, "unstar", Some(vec![("id", &id)]))
             .await
     }
     fn get_path(&self, path: &str, query: Option<Vec<(&str, &str)>>) -> Url {
@@ -169,26 +169,62 @@ impl OSClient {
             .send()
             .await
     }
-    // Make a request to an arbitrary endpoint and get its result
-    async fn query_auth<T: DeserializeOwned + Debug>(
+    /// Make a request to an arbitrary endpoint and get binary response, or an decodable error
+    /// Err(ExternalError): Fetching itself failed.
+    /// Ok(Ok(Bytes)): Image data was fetched as expected.
+    /// Ok(Err(T)): Fetching image failed, but we received server response, and the error message
+    /// decoding was successful.
+    async fn query_auth_image<T: DeserializeOwned + Debug>(
+        &self,
+        method: Method,
+        path: &str,
+        query: Option<Vec<(&str, &str)>>,
+    ) -> Result<Result<Bytes, T>, ExternalError> {
+        let res = self.query_auth(method, path, query).await?;
+        match res.content_type() {
+            Some(t) => {
+                if t.starts_with("image") {
+                    let body = res.bytes().await.map_err(|e| ExternalError::req(e))?;
+                    Ok(Ok(body))
+                } else if t == "application/json" {
+                    let body = res.text().await.map_err(|e| ExternalError::req(e))?;
+                    let data =
+                        from_str::<Wrapper<T>>(&body).map_err(|e| ExternalError::decode(e))?;
+                    Ok(Err(data.subsonic_response))
+                } else {
+                    panic!("Received response is neither image nor JSON.");
+                }
+            }
+            None => panic!("Content type not found; Cannot decode response."),
+        }
+    }
+    // Make a request to an arbitrary endpoint and get JSON response
+    async fn query_auth_text<T: DeserializeOwned + Debug>(
         &self,
         method: Method,
         path: &str,
         query: Option<Vec<(&str, &str)>>,
     ) -> Result<T, ExternalError> {
+        let res = self.query_auth(method, path, query).await?;
+        let body = res.text().await.map_err(|e| ExternalError::req(e))?;
+        let data = from_str::<Wrapper<T>>(&body).map_err(|e| ExternalError::decode(e))?;
+        Ok(data.subsonic_response)
+    }
+    // Make a request to an arbitrary endpoint and get its result
+    async fn query_auth(
+        &self,
+        method: Method,
+        path: &str,
+        query: Option<Vec<(&str, &str)>>,
+    ) -> Result<Response, ExternalError> {
         let r = self.query(method, path, query).await;
         let handler = |e: reqwest::Error| ExternalError::req(e);
         let response = r.map_err(handler)?;
         match response.error_for_status() {
-            Ok(r) => {
-                let body = r.text().await.map_err(handler)?;
-                debug!("{body}");
-                let data = from_str::<Wrapper<T>>(&body).map_err(|e| ExternalError::decode(e))?;
-                Ok(data.subsonic_response)
-            }
+            Ok(r) => Ok(r),
             Err(status) => {
                 if let Some(code) = status.status() {
-                    Err(trace_dbg!(ExternalError::res(code)))
+                    Err(ExternalError::res(code))
                 } else {
                     panic!("Received error status code but found no error status code??")
                 }

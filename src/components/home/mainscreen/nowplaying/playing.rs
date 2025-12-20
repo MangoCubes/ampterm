@@ -133,8 +133,7 @@ impl Renderable for Playing {
             Constraint::Length(1),
         ]);
         let area = if let Some(comp) = &mut self.cover {
-            let horizontal =
-                Layout::horizontal([Constraint::Percentage(20), Constraint::Percentage(80)]);
+            let horizontal = Layout::horizontal([Constraint::Length(18), Constraint::Fill(1)]);
             let areas = horizontal.split(area);
             comp.draw(frame, areas[0]);
             areas[1]

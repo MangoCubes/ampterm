@@ -32,7 +32,6 @@ pub struct Playing {
     playing: bool,
     music: Media,
     lyrics: Option<Lyrics>,
-    config: Config,
     cover: Option<ImageComp>,
 }
 
@@ -50,7 +49,7 @@ impl Playing {
         };
 
         let lyrics = if config.features.lyrics.enable {
-            let (comp, action) = Lyrics::new(config.clone(), music.clone());
+            let (comp, action) = Lyrics::new(config, music.clone());
             actions.push(action);
             Some(comp)
         } else {
@@ -59,7 +58,6 @@ impl Playing {
         (
             Self {
                 playing,
-                config,
                 pos: Duration::from_secs(0),
                 music: music,
                 lyrics,
@@ -91,8 +89,8 @@ impl PassKeySeq for Playing {
 impl HandleQuery for Playing {
     fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
         if let QueryAction::FromQueryWorker(res) = action {
-            if let Some(cover) = &mut self.cover {
-                if let ResponseType::GetCover(d) = res.res {
+            if let ResponseType::GetCover(d) = res.res {
+                if let Some(cover) = &mut self.cover {
                     cover.set_image(d);
                 }
             } else if let ResponseType::GetLyrics(lyrics) = res.res {

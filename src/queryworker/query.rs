@@ -1,7 +1,7 @@
+pub mod getcoverart;
 pub mod getplaylist;
 pub mod getplaylists;
 pub mod setcredential;
-use serde::{Deserialize, Serialize};
 
 use crate::{
     compid::CompID,
@@ -13,7 +13,7 @@ use crate::{
     },
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ToQueryWorker {
     /// Specifies the component that should be alerted when the request is both initialised and completed
     /// This ID is limited to a Ratatui component, as requests to [`PlayerWorker`] are implied with
@@ -36,7 +36,7 @@ impl ToQueryWorker {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ResponseType {
     // Responses from the queries
     Star(Result<(), String>),
@@ -46,7 +46,7 @@ pub enum ResponseType {
     SetCredential(Result<(), String>),
     GetLyrics(Result<Option<GetLyricsResponse>, String>),
 }
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct FromQueryWorker {
     /// When a query is completed, the value in [`dest`] specifies which component should be
     /// notified. This value should be the same as the corresponding [`ToQueryWorker`] request.

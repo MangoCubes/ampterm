@@ -149,7 +149,7 @@ impl ToString for TargetedAction {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum QueryAction {
     /// Handle response from the player worker in response to the previous request
     FromPlayerWorker(FromPlayerWorker),
@@ -159,7 +159,7 @@ pub enum QueryAction {
     ToQueryWorker(ToQueryWorker),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Action {
     Multiple(Vec<Action>),
     Targeted(TargetedAction),

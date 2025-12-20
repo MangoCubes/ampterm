@@ -1,5 +1,3 @@
-use serde::{Deserialize, Serialize};
-
 use crate::{
     compid::CompID,
     lyricsclient::getlyrics::GetLyricsParams,
@@ -18,7 +16,7 @@ use crate::{
 ///   - The purpose of the query, and how the response should be handled
 ///
 /// This information is needed to ensure the correct components are updated.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum HighLevelQuery {
     /// Given [`Media`] object, get its URL to play it with [`PlayerWorker`]
     PlayMusicFromURL(Media),
@@ -39,6 +37,7 @@ pub enum HighLevelQuery {
     SetStar { media: MediaID, star: bool },
     /// Fetch lyrics from lrclib.net
     GetLyrics(GetLyricsParams),
+    // GetImage(GetImageParams),
 }
 
 impl HighLevelQuery {

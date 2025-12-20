@@ -5,7 +5,7 @@ local root_patterns = { ".git", ".clang-format", "pyproject.toml", "setup.py" }
 local proj_dir = vim.fs.dirname(vim.fs.find(root_patterns, { upward = true })[1])
 
 local function run_cargo()
-	vim.cmd('silent !kitty sh -c "(source ' .. proj_dir .. '/.envrc && cargo run) || read" &')
+	vim.cmd('silent !term "(source ' .. proj_dir .. '/.envrc && cargo run) || read" &')
 end
 
 vim.keymap.set('n', '<M-s>', run_cargo, { noremap = true, silent = true })

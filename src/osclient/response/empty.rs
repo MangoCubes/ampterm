@@ -10,3 +10,8 @@ pub enum Empty {
     #[serde(alias = "failed")]
     Failed { error: OSError },
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct AlwaysError {
+    pub error: OSError,
+}

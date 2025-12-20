@@ -13,6 +13,8 @@ use serde_json::from_str;
 use std::error::Error;
 use std::fmt::Debug;
 use stream_download::http::ClientResponse;
+
+use crate::osclient::response::empty::AlwaysError;
 mod error;
 pub mod response;
 
@@ -63,6 +65,13 @@ pub struct OSClient {
 // stream_link is an example of this. It returns a link from which a client can stream data
 
 impl OSClient {
+    pub async fn get_cover_art(
+        &self,
+        id: String,
+    ) -> Result<Result<Bytes, AlwaysError>, ExternalError> {
+        self.query_auth_image(Method::GET, "getCoverArt", Some(vec![("id", &id)]))
+            .await
+    }
     pub fn stream_link(&self, id: String) -> Url {
         self.get_path("stream", Some(vec![("id", &id)]))
     }

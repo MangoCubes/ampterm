@@ -51,6 +51,13 @@ impl QueryWorker {
         }
     }
 
+    fn prepare_async(&self) -> (UnboundedSender<Action>, Arc<OSClient>) {
+        match &self.client {
+            Some(client) => (self.action_tx.clone(), client.clone()),
+            None => panic!("Invalid state: Tried querying, but client does not exist!"),
+        }
+    }
+
     #[inline]
     fn send_action(&self, action: FromQueryWorker) {
         let _ = self
@@ -312,6 +319,37 @@ impl QueryWorker {
                             }),
                         );
                         let _ = tx.send(Action::Query(QueryAction::FromQueryWorker(res)));
+                    });
+                }
+                HighLevelQuery::GetImage(cover_id) => {
+                    let (tx, c) = self.prepare_async();
+                    tokio::spawn(async move {
+                        let art = c.get_cover_art(cover_id.0).await;
+                        match art {
+                            Ok(c) => match c {
+                                Err(e) => tx.send(Action::Query(QueryAction::FromQueryWorker(
+                                    FromQueryWorker::new(
+                                        event.dest,
+                                        event.ticket,
+                                        ResponseType::GetCover(Err(e.error.to_string())),
+                                    ),
+                                ))),
+                                Ok(b) => tx.send(Action::Query(QueryAction::FromQueryWorker(
+                                    FromQueryWorker::new(
+                                        event.dest,
+                                        event.ticket,
+                                        ResponseType::GetCover(Ok(b)),
+                                    ),
+                                ))),
+                            },
+                            Err(e) => tx.send(Action::Query(QueryAction::FromQueryWorker(
+                                FromQueryWorker::new(
+                                    event.dest,
+                                    event.ticket,
+                                    ResponseType::GetCover(Err(e.to_string())),
+                                ),
+                            ))),
+                        }
                     });
                 }
             };

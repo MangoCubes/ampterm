@@ -3,6 +3,8 @@ pub mod getplaylist;
 pub mod getplaylists;
 pub mod setcredential;
 
+use bytes::Bytes;
+
 use crate::{
     compid::CompID,
     lyricsclient::getlyrics::GetLyricsResponse,
@@ -45,6 +47,7 @@ pub enum ResponseType {
     GetPlaylist(GetPlaylistResponse),
     SetCredential(Result<(), String>),
     GetLyrics(Result<Option<GetLyricsResponse>, String>),
+    GetCover(Result<Bytes, String>),
 }
 #[derive(Debug, Clone, PartialEq)]
 pub struct FromQueryWorker {

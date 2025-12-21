@@ -98,14 +98,6 @@ impl ToString for LyricsAction {
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 pub enum PlaylistListAction {
-    /// Move the cursor one line up
-    Up,
-    /// Move the cursor one line down
-    Down,
-    /// Jump to the top of the list
-    Top,
-    /// Jump to the bottom of the list
-    Bottom,
     /// Add the entire playlist to the queue
     Add(QueueLocation),
     /// Shuffle the entire playlist, then add it to the queue
@@ -117,10 +109,6 @@ pub enum PlaylistListAction {
 impl ToString for PlaylistListAction {
     fn to_string(&self) -> String {
         match self {
-            PlaylistListAction::Up => "Move up",
-            PlaylistListAction::Down => "Move down",
-            PlaylistListAction::Top => "Move to top",
-            PlaylistListAction::Bottom => "Move to bottom",
             PlaylistListAction::Add(queue_location) => match queue_location {
                 QueueLocation::Front => "Play the entire playlist immediately",
                 QueueLocation::Next => "Play the entire playlist next",

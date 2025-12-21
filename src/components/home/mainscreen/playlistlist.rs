@@ -86,7 +86,6 @@ impl HandleQuery for PlaylistList {
                             self.comp = Comp::Loaded(Loaded::new(
                                 self.config.clone(),
                                 simple_playlists.clone(),
-                                ListState::default().with_selected(Some(0)),
                             ));
                         }
                         GetPlaylistsResponse::Failure(error) => {

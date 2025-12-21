@@ -5,10 +5,13 @@ use crate::{
         action::{Action, QueryAction, QueueAction, TargetedAction},
         localaction::PlaylistListAction,
     },
-    components::traits::{
-        handlekeyseq::{HandleKeySeq, KeySeqResult},
-        handlequery::HandleQuery,
-        renderable::Renderable,
+    components::{
+        lib::visualtable::VisualTable,
+        traits::{
+            handlekeyseq::{HandleKeySeq, KeySeqResult},
+            handlequery::HandleQuery,
+            renderable::Renderable,
+        },
     },
     config::{keybindings::KeyBindings, Config},
     osclient::response::getplaylists::SimplePlaylist,
@@ -22,28 +25,29 @@ use crate::{
         },
     },
 };
+use crossterm::event::KeyEvent;
 use ratatui::{
-    layout::Rect,
+    layout::{Constraint, Rect},
     style::{Style, Stylize},
-    widgets::{List, ListState},
+    widgets::{Row, Table, TableState},
     Frame,
 };
 use tracing::error;
 
 pub struct Loaded {
-    config: Config,
-    comp: List<'static>,
+    autofocus: bool,
+    table: VisualTable,
+    keymap: KeyBindings<PlaylistListAction>,
     list: Vec<SimplePlaylist>,
-    state: ListState,
     callback: HashMap<usize, (PlaylistID, QueueLocation, bool)>,
 }
 
 impl Loaded {
     fn select_playlist(&self) -> Option<Action> {
-        if let Some(pos) = self.state.selected() {
+        if let Some(pos) = self.table.get_current() {
             let key = self.list[pos].id.clone();
             let name = self.list[pos].name.clone();
-            if self.config.behaviour.auto_focus {
+            if self.autofocus {
                 Some(Action::Multiple(vec![
                     Action::Query(QueryAction::ToQueryWorker(ToQueryWorker::new(
                         HighLevelQuery::SelectPlaylist(GetPlaylistParams { name, id: key }),
@@ -64,24 +68,38 @@ impl Loaded {
     }
 
     /// This needs to be a function not tied to &self because it needs to be used by [`Self::new`]
-    fn gen_list(list: &Vec<SimplePlaylist>) -> List<'static> {
-        let items: Vec<String> = list.iter().map(|p| p.name.clone()).collect();
-        List::new(items)
-            .highlight_style(Style::new().reversed())
-            .highlight_symbol(">")
+    pub fn gen_rows(items: &Vec<SimplePlaylist>) -> Vec<Row<'static>> {
+        items
+            .iter()
+            .map(|item| Row::new(vec![item.name.clone(), item.song_count.to_string()]))
+            .collect()
     }
 
-    pub fn new(config: Config, list: Vec<SimplePlaylist>, state: ListState) -> Self {
+    pub fn new(config: Config, list: Vec<SimplePlaylist>) -> Self {
+        fn table_proc(table: Table<'static>) -> Table<'static> {
+            table
+                .highlight_symbol(">")
+                .row_highlight_style(Style::new().reversed())
+        }
+        let rows = Self::gen_rows(&list);
+        let table = VisualTable::new(
+            config.clone(),
+            rows,
+            [Constraint::Fill(1), Constraint::Max(6)].to_vec(),
+            table_proc,
+        );
+        let mut tablestate = TableState::default();
+        tablestate.select(Some(0));
         Self {
-            comp: Self::gen_list(&list),
             list,
-            state,
+            table,
             callback: HashMap::new(),
-            config,
+            autofocus: config.behaviour.auto_focus,
+            keymap: config.local.playlistlist.clone(),
         }
     }
     pub fn add_to_queue(&mut self, ql: QueueLocation, randomise: bool) -> Option<Action> {
-        if let Some(pos) = self.state.selected() {
+        if let Some(pos) = self.table.get_current() {
             let key = self.list[pos].id.clone();
             let name = self.list[pos].name.clone();
             let req = ToQueryWorker::new(HighLevelQuery::AddPlaylistToQueue(GetPlaylistParams {
@@ -91,7 +109,6 @@ impl Loaded {
             self.callback.insert(req.ticket, (key, ql, randomise));
             Some(Action::Query(QueryAction::ToQueryWorker(req)))
         } else {
-            error!("Failed to add playlist to queue: No playlist selected");
             None
         }
     }
@@ -99,7 +116,7 @@ impl Loaded {
 
 impl Renderable for Loaded {
     fn draw(&mut self, frame: &mut Frame, area: Rect) {
-        frame.render_stateful_widget(&self.comp, area, &mut self.state);
+        self.table.draw(frame, area);
     }
 }
 
@@ -140,32 +157,19 @@ impl HandleKeySeq<PlaylistListAction> for Loaded {
     fn get_name(&self) -> &str {
         "PlaylistList"
     }
+    fn pass_to_lower_comp(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
+        self.table.handle_key_seq(keyseq)
+    }
     fn handle_local_action(&mut self, action: PlaylistListAction) -> KeySeqResult {
         match action {
             PlaylistListAction::Add(pos) => match self.add_to_queue(pos, false) {
                 Some(a) => KeySeqResult::ActionNeeded(a),
                 None => KeySeqResult::NoActionNeeded,
             },
-            PlaylistListAction::Up => {
-                self.state.select_previous();
-                KeySeqResult::NoActionNeeded
-            }
-            PlaylistListAction::Down => {
-                self.state.select_next();
-                KeySeqResult::NoActionNeeded
-            }
             PlaylistListAction::ViewSelected => match self.select_playlist() {
                 Some(a) => KeySeqResult::ActionNeeded(a),
                 None => KeySeqResult::NoActionNeeded,
             },
-            PlaylistListAction::Top => {
-                self.state.select_first();
-                KeySeqResult::NoActionNeeded
-            }
-            PlaylistListAction::Bottom => {
-                self.state.select_last();
-                KeySeqResult::NoActionNeeded
-            }
             PlaylistListAction::RandomAdd(pos) => match self.add_to_queue(pos, true) {
                 Some(a) => KeySeqResult::ActionNeeded(a),
                 None => KeySeqResult::NoActionNeeded,
@@ -174,6 +178,6 @@ impl HandleKeySeq<PlaylistListAction> for Loaded {
     }
 
     fn get_keybinds(&self) -> &KeyBindings<PlaylistListAction> {
-        &self.config.local.playlistlist
+        &self.keymap
     }
 }

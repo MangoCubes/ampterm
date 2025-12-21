@@ -47,7 +47,7 @@
 			"<q>": "Close",
 			"<Esc>": "Close",
 		},
-		// Keybinds for any lists that are in the program (except Playlist list, which internally does not use the same list as everything else)
+		// Keybinds for any lists that are in the program
 		"list": {
 			"<k>": "Up",
 			"<j>": "Down",
@@ -109,20 +109,6 @@
 			"<g><g>": "Top",
 		},
 		"playlistlist": {
-			// The playlist list does not use visual table, which is why up/down stuff needs binding.
-			"<k>": "Up",
-			"<j>": "Down",
-			// "<h>": "Left",
-			// "<l>": "Right",
-
-			"<Up>": "Up",
-			"<Down>": "Down",
-			// "<Left>": "Left",
-			// "<Right>": "Right",
-
-			"<Shift-g>": "Bottom",
-			"<g><g>": "Top",
-
 			"<Enter>": "ViewSelected",
 
 			"<i>": { "Add": "Front" },

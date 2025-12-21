@@ -12,9 +12,4 @@ pub struct BehaviourConfig {
     /// Show some internal tasks in the tasks view that may not be very interesting
     #[serde(default)]
     pub show_internal_tasks: bool,
-    /// If true, then if the item that is currently being played is deleted, it is automatically
-    /// skipped. If false, then instead of deleting the item, the item is marked as Temporary (the
-    /// item removes itself from the play queue once it is finished).
-    #[serde(default = "default_true")]
-    pub skip_on_delete: bool,
 }

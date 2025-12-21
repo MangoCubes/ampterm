@@ -157,18 +157,4 @@
         "username": "",
         "password": "",
     },
-	"behaviour": {
-		"auto_focus": true,
-	},
-	"features": {
-		"lyrics": {
-			"enable": true,
-		},
-		"cover_art": {
-			"enable": true,
-		},
-		"bpmtoy": {
-			"enable": true,
-		},
-	}
 }

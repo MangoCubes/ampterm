@@ -61,10 +61,20 @@ impl ImageComp {
             return;
         };
         let Ok(decoded) = reader.decode() else {
-            self.state = State::Error(Centered::new(vec!["Failed to decode image!".to_string()]));
+            self.state = State::Error(Centered::new(vec![
+                "Failed to".to_string(),
+                "decode image!".to_string(),
+            ]));
             return;
         };
-        let mut picker = Picker::from_query_stdio().unwrap();
+        let Ok(mut picker) = Picker::from_query_stdio() else {
+            self.state = State::Error(Centered::new(vec![
+                "Failed to get".to_string(),
+                "terminal image".to_string(),
+                "capabilities!".to_string(),
+            ]));
+            return;
+        };
         picker.set_background_color([0, 0, 0, 0]);
         let image = picker.new_resize_protocol(decoded);
         self.state = State::Loaded(image);

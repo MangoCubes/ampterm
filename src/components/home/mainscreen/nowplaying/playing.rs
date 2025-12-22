@@ -91,11 +91,11 @@ impl HandleQuery for Playing {
         if let QueryAction::FromQueryWorker(res) = action {
             if let ResponseType::GetCover(d) = res.res {
                 if let Some(cover) = &mut self.cover {
-                    cover.set_image(d);
+                    cover.set_image(res.ticket, d);
                 }
             } else if let ResponseType::GetLyrics(lyrics) = res.res {
                 if let Some(c) = &mut self.lyrics {
-                    c.handle_lyrics(lyrics);
+                    c.handle_lyrics(res.ticket, lyrics);
                 }
             }
         } else if let QueryAction::FromPlayerWorker(FromPlayerWorker::StateChange(s)) = action {

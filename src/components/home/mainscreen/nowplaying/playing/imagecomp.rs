@@ -46,7 +46,14 @@ impl ImageComp {
         }
     }
 
-    pub fn set_image(&mut self, d: Result<Bytes, String>) {
+    pub fn set_image(&mut self, ticket: usize, d: Result<Bytes, String>) {
+        if let State::Loading(t, _) = &self.state {
+            if *t != ticket {
+                return;
+            }
+        } else {
+            return;
+        }
         let bytes = match d {
             Ok(b) => b,
             Err(s) => {

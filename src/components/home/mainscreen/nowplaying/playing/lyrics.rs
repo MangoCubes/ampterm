@@ -24,7 +24,7 @@ mod unsynced;
 
 enum State {
     Found(Synced),
-    Fetching(Centered),
+    Fetching(usize, Centered),
     NotFound(Centered),
     Error(Centered),
     Plain(Unsynced),
@@ -37,43 +37,54 @@ pub struct Lyrics {
 
 impl Lyrics {
     pub fn new(config: Config, music: Media) -> (Self, Action) {
+        let query = ToQueryWorker::new(HighLevelQuery::GetLyrics(GetLyricsParams {
+            track_name: music.title.clone(),
+            artist_name: music.artist,
+            album_name: music.album,
+            length: music.duration,
+        }));
         (
             Self {
-                state: State::Fetching(Centered::new(vec![format!(
-                    "Searching for lyrics for {}...",
-                    music.title
-                )])),
+                state: State::Fetching(
+                    query.ticket,
+                    Centered::new(vec![format!("Searching for lyrics for {}...", music.title)]),
+                ),
                 config,
             },
-            Action::Query(QueryAction::ToQueryWorker(ToQueryWorker::new(
-                HighLevelQuery::GetLyrics(GetLyricsParams {
-                    track_name: music.title,
-                    artist_name: music.artist,
-                    album_name: music.album,
-                    length: music.duration,
-                }),
-            ))),
+            Action::Query(QueryAction::ToQueryWorker(query)),
         )
     }
 
-    pub fn handle_lyrics(&mut self, lyrics: Result<Option<GetLyricsResponse>, String>) {
-        self.state = match lyrics {
-            Ok(content) => match content {
-                Some(found) => {
-                    if let Some(synced) = found.synced_lyrics {
-                        State::Found(Synced::new(synced))
-                    } else if let Some(plain) = found.plain_lyrics {
-                        State::Plain(Unsynced::new(self.config.clone(), plain))
-                    } else {
-                        State::NotFound(Centered::new(vec!["Lyrics not found!".to_string()]))
-                    }
+    pub fn handle_lyrics(
+        &mut self,
+        ticket: usize,
+        lyrics: Result<Option<GetLyricsResponse>, String>,
+    ) {
+        if let State::Fetching(t, _) = self.state {
+            if ticket == t {
+                self.state = match lyrics {
+                    Ok(content) => match content {
+                        Some(found) => {
+                            if let Some(synced) = found.synced_lyrics {
+                                State::Found(Synced::new(synced))
+                            } else if let Some(plain) = found.plain_lyrics {
+                                State::Plain(Unsynced::new(self.config.clone(), plain))
+                            } else {
+                                State::NotFound(Centered::new(
+                                    vec!["Lyrics not found!".to_string()],
+                                ))
+                            }
+                        }
+                        None => {
+                            State::NotFound(Centered::new(vec!["Lyrics not found!".to_string()]))
+                        }
+                    },
+                    Err(e) => State::Error(Centered::new(vec![format!(
+                        "Failed to find lyrics! Reason: {}",
+                        e
+                    )])),
                 }
-                None => State::NotFound(Centered::new(vec!["Lyrics not found!".to_string()])),
-            },
-            Err(e) => State::Error(Centered::new(vec![format!(
-                "Failed to find lyrics! Reason: {}",
-                e
-            )])),
+            }
         }
     }
 
@@ -89,7 +100,7 @@ impl Renderable for Lyrics {
         match &mut self.state {
             State::Found(lyrics) => lyrics.draw(frame, area),
             State::Plain(lyrics) => lyrics.draw(frame, area),
-            State::Fetching(centered) | State::NotFound(centered) | State::Error(centered) => {
+            State::Fetching(_, centered) | State::NotFound(centered) | State::Error(centered) => {
                 centered.draw(frame, area)
             }
         };

@@ -142,7 +142,7 @@ impl HandleQuery for Loaded {
                                 error!("Failed to add playlist to queue: {msg}");
                             }
                             // This implies that the returned playlist is empty
-                            GetPlaylistResponse::Partial(_simple_playlist) => return None,
+                            GetPlaylistResponse::Partial(_) => return None,
                         }
                     }
                 }

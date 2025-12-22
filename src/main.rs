@@ -1,8 +1,9 @@
 use clap::Parser;
 use cli::Cli;
-use color_eyre::{eyre::eyre, Result, Section};
+use color_eyre::{eyre::eyre, Result};
+use mpris_server::Player;
 use rodio::cpal::{self, traits::HostTrait};
-use tokio::{sync::mpsc, task::JoinSet};
+use tokio::{select, sync::mpsc, task::JoinSet};
 use tracing::warn;
 
 use crate::{
@@ -104,22 +105,37 @@ async fn main() -> Result<()> {
         args.tick_rate,
         args.frame_rate,
     )?;
-    set.spawn(async move { app.run().await });
 
-    while let Some(res) = set.join_next().await {
-        match res {
-            Ok(r) => match r {
-                Ok(_) => {
-                    return Ok(());
-                }
-                Err(r) => {
-                    return Err(eyre!(r).with_note(|| "A thread has crashed."));
-                }
-            },
-            Err(r) => {
-                return Err(eyre!(r).with_note(|| "Failed to wait for the thread to run."));
+    let local = tokio::task::LocalSet::new();
+
+    set.spawn(async move { app.run().await });
+    let mpris = local.run_until(async {
+        tokio::task::spawn_local(async move {
+            let player = Player::builder("ch.skew.ampterm")
+                .can_play(true)
+                .can_pause(true)
+                .build()
+                .await
+                .expect("Failed to start MPRIS server!");
+            player.run().await
+        })
+        .await
+    });
+    select! {
+        _ = mpris => {
+            panic!("MPRIS server has terminated before the player!");
+        }
+        res = set.join_next() => {
+            match res {
+                Some(report) => match report {
+                    Ok(report) => match report {
+                        Ok(_) => Ok(()),
+                        Err(e) => panic!("A thread crashed: {}", e),
+                    },
+                    Err(_) => panic!("Failed to wait for the thread to run."),
+                },
+                None => unreachable!("No tasks completed??"),
             }
         }
     }
-    Ok(())
 }

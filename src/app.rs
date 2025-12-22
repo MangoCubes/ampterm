@@ -76,7 +76,6 @@ impl App {
             .tick_rate(self.tick_rate)
             .frame_rate(self.frame_rate);
         tui.enter()?;
-
         let action_tx = self.action_tx.clone();
         loop {
             self.handle_events(&mut tui).await?;

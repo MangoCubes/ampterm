@@ -9,13 +9,16 @@ use crate::components::traits::renderable::Renderable;
 
 pub struct Centered {
     paragraph: Paragraph<'static>,
+    lines: u16,
 }
 
 impl Centered {
     pub fn new(msg: Vec<String>) -> Self {
+        let count = msg.len() as u16;
         let lines: Vec<Line> = msg.into_iter().map(|s| Line::raw(s)).collect();
         Centered {
             paragraph: Paragraph::new(lines).centered(),
+            lines: count,
         }
     }
 }
@@ -31,7 +34,12 @@ impl Renderable for Centered {
         frame.render_widget(
             self.paragraph
                 .clone()
-                .block(Block::default().padding(Padding::new(0, 0, area.height / 2, 0)))
+                .block(Block::default().padding(Padding::new(
+                    0,
+                    0,
+                    (area.height - self.lines) / 2,
+                    0,
+                )))
                 .wrap(Wrap { trim: false }),
             centered,
         );

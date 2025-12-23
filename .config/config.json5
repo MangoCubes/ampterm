@@ -99,6 +99,8 @@
 			"<Enter>": "PlaySelected",
 			"<Shift-f>": "ToggleStar",
 			"<d>": "Delete",
+
+			"<z><z>": "FocusPlaying",
 		},
 		// Keybinds for the lyrics page (The popup you get you press the key bound to OpenLyrics in nowplaying)
 		"lyrics": {

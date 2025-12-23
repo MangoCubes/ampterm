@@ -29,7 +29,7 @@ struct AwaitingQueries {
 
 impl AwaitingQueries {
     pub fn play_from_url(&mut self, media: Media) {
-        self.play_from_url = Some((media, 2));
+        self.play_from_url = Some((media, 1));
     }
 }
 

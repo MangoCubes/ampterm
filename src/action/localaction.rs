@@ -59,6 +59,8 @@ pub enum PlayQueueAction {
     ToggleStar,
     /// Jump to a specific location in the play queue
     PlaySelected,
+    /// Move the cursor to the currently playing item
+    FocusPlaying,
 }
 
 impl ToString for PlayQueueAction {
@@ -67,6 +69,7 @@ impl ToString for PlayQueueAction {
             PlayQueueAction::Delete => "Delete items from queue",
             PlayQueueAction::ToggleStar => "Star/unstar items",
             PlayQueueAction::PlaySelected => "Jump to the cursor's position",
+            PlayQueueAction::FocusPlaying => "Focus currently playing item",
         }
         .to_string()
     }

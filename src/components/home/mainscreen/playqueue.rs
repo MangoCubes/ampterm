@@ -463,6 +463,12 @@ impl HandleKeySeq<PlayQueueAction> for PlayQueue {
                 Some(idx) => KeySeqResult::ActionNeeded(self.skip_to(CurrentItem::InQueue(idx))),
                 None => KeySeqResult::NoActionNeeded,
             },
+            PlayQueueAction::FocusPlaying => {
+                if let CurrentItem::NotInQueue(idx) | CurrentItem::InQueue(idx) = self.now_playing {
+                    self.table.focus(idx);
+                };
+                KeySeqResult::NoActionNeeded
+            }
         }
     }
 

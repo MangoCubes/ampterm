@@ -219,6 +219,10 @@ impl VisualTable {
         }
     }
 
+    pub fn focus(&mut self, index: usize) {
+        self.tablestate.select(Some(index));
+    }
+
     /// This function is intended to be called whenever new rows are added to the table. However,
     /// the table must be regenerated in full every update because the new item may affect other
     /// rows too. (Example: "Play now" action causes the item that was being played to stop, and

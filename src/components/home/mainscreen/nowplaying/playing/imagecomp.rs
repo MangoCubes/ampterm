@@ -22,10 +22,13 @@ pub struct ImageComp {
 }
 
 impl ImageComp {
+    pub fn make_query(id: CoverID) -> ToQueryWorker {
+        ToQueryWorker::new(HighLevelQuery::GetCover(id))
+    }
     pub fn new(coverid: Option<String>, mut picker: Picker) -> (Self, Option<Action>) {
         picker.set_background_color([0, 0, 0, 0]);
         if let Some(id) = coverid {
-            let query = ToQueryWorker::new(HighLevelQuery::GetCover(CoverID(id)));
+            let query = Self::make_query(CoverID(id));
             (
                 Self {
                     picker,
@@ -45,6 +48,14 @@ impl ImageComp {
                 None,
             )
         }
+    }
+
+    pub fn wait_for(&mut self, ticket: usize) {
+        self.state = State::Loading(ticket, Centered::new(vec!["Loading cover...".to_string()]));
+    }
+
+    pub fn unset_image(&mut self) {
+        self.state = State::NotFound(Centered::new(vec!["No cover art".to_string()]));
     }
 
     pub fn set_image(&mut self, ticket: usize, d: Result<DynamicImage, String>) {

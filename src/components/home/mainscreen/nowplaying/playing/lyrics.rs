@@ -36,18 +36,22 @@ pub struct Lyrics {
 }
 
 impl Lyrics {
-    pub fn new(config: Config, music: Media) -> (Self, Action) {
-        let query = ToQueryWorker::new(HighLevelQuery::GetLyrics(GetLyricsParams {
-            track_name: music.title.clone(),
+    pub fn make_query(music: Media) -> ToQueryWorker {
+        ToQueryWorker::new(HighLevelQuery::GetLyrics(GetLyricsParams {
+            track_name: music.title,
             artist_name: music.artist,
             album_name: music.album,
             length: music.duration,
-        }));
+        }))
+    }
+    pub fn new(config: Config, music: Media) -> (Self, Action) {
+        let title = music.title.clone();
+        let query = Self::make_query(music);
         (
             Self {
                 state: State::Fetching(
                     query.ticket,
-                    Centered::new(vec![format!("Searching for lyrics for {}...", music.title)]),
+                    Centered::new(vec![format!("Searching for lyrics for {}...", title)]),
                 ),
                 config,
             },
@@ -92,6 +96,13 @@ impl Lyrics {
         if let State::Found(s) = &mut self.state {
             s.set_pos(pos);
         }
+    }
+
+    pub fn wait_for(&mut self, ticket: usize, title: String) {
+        self.state = State::Fetching(
+            ticket,
+            Centered::new(vec![format!("Searching for lyrics for {}...", title)]),
+        );
     }
 }
 

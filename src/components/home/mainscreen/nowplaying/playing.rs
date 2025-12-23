@@ -16,7 +16,8 @@ use crate::{
     helper::strings::trim_long_str,
     osclient::response::getplaylist::Media,
     playerworker::player::{FromPlayerWorker, StateType},
-    queryworker::query::ResponseType,
+    queryworker::query::{getcoverart::CoverID, ResponseType},
+    trace_dbg,
 };
 use crossterm::event::KeyEvent;
 use ratatui::{
@@ -37,10 +38,32 @@ pub struct Playing {
 }
 
 impl Playing {
+    pub fn change_music(&mut self, music: Media) -> Action {
+        let mut actions = vec![];
+        self.pos = Duration::from_secs(0);
+        self.music = music.clone();
+        if let Some(cover) = &mut self.cover {
+            if let Some(id) = music.cover_art.clone() {
+                let q = ImageComp::make_query(CoverID(id));
+                cover.wait_for(q.ticket);
+                actions.push(Action::Query(QueryAction::ToQueryWorker(q)));
+            } else {
+                cover.unset_image();
+            }
+        }
+        if let Some(lyrics) = &mut self.lyrics {
+            let title = music.title.clone();
+            let q = Lyrics::make_query(music);
+            lyrics.wait_for(q.ticket, title);
+            actions.push(Action::Query(QueryAction::ToQueryWorker(q)));
+        }
+
+        Action::Multiple(actions)
+    }
     pub fn new(playing: bool, music: Media, config: Config) -> (Self, Option<Action>) {
         let mut actions = vec![];
         let cover = if config.features.cover_art.enable {
-            if let Ok(picker) = Picker::from_query_stdio() {
+            if let Ok(picker) = trace_dbg!(Picker::from_query_stdio()) {
                 let (comp, action) = ImageComp::new(music.cover_art.clone(), picker);
                 if let Some(a) = action {
                     actions.push(a);

@@ -86,9 +86,13 @@ impl HandleQuery for NowPlaying {
                 StateType::NowPlaying(media),
             )) => match media {
                 Some(n) => {
-                    let (comp, action) = Playing::new(self.playing, n, self.config.clone());
-                    self.comp = Comp::Playing(comp);
-                    action
+                    if let Comp::Playing(comp) = &mut self.comp {
+                        Some(comp.change_music(n))
+                    } else {
+                        let (comp, action) = Playing::new(self.playing, n, self.config.clone());
+                        self.comp = Comp::Playing(comp);
+                        action
+                    }
                 }
                 None => {
                     self.comp = Comp::Stopped(Stopped::new());

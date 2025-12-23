@@ -21,7 +21,7 @@ use crate::{
     },
     config::Config,
     playerworker::player::ToPlayerWorker,
-    queryworker::query::ToQueryWorker,
+    queryworker::{highlevelquery::HighLevelQuery, query::ToQueryWorker},
     tui::{Event, Tui},
 };
 
@@ -103,7 +103,10 @@ impl App {
         let action_tx = self.action_tx.clone();
         match event {
             Event::Quit => action_tx.send(Action::Targeted(TargetedAction::Quit))?,
-            Event::Tick => self.component.on_tick(),
+            Event::Tick => {
+                self.component.on_tick();
+                let _ = self.query_tx.send(ToQueryWorker::new(HighLevelQuery::Tick));
+            }
             Event::Render => self.render(tui)?,
             Event::Resize(x, y) => action_tx.send(Action::Resize(x, y))?,
             Event::Key(key) => self.handle_key_event(key)?,
@@ -217,7 +220,6 @@ impl App {
                         }
                         _ => {}
                     }
-                    debug!("Handling query: {query_action:?}");
                     if let Some(more) = self.component.handle_query(query_action) {
                         debug!("Got {more:?} as a response");
                         self.action_tx.send(more)?

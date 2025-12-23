@@ -42,6 +42,7 @@ pub enum HighLevelQuery {
     /// Fetch lyrics from lrclib.net
     GetLyrics(GetLyricsParams),
     GetCover(CoverID),
+    Tick,
 }
 
 impl HighLevelQuery {
@@ -59,18 +60,24 @@ impl HighLevelQuery {
             }
             HighLevelQuery::GetLyrics(_) => vec![CompID::NowPlaying],
             HighLevelQuery::GetCover(_) => vec![CompID::NowPlaying],
+            HighLevelQuery::Tick => vec![],
         }
     }
 
     pub fn is_internal(&self) -> bool {
         matches!(
             self,
-            HighLevelQuery::PlayMusicFromURL(_) | HighLevelQuery::SetCredential(_)
+            HighLevelQuery::PlayMusicFromURL(_)
+                | HighLevelQuery::SetCredential(_)
+                | HighLevelQuery::Tick
         )
     }
 
     pub fn has_reply(&self) -> bool {
-        !matches!(self, HighLevelQuery::PlayMusicFromURL(_))
+        !matches!(
+            self,
+            HighLevelQuery::PlayMusicFromURL(_) | HighLevelQuery::Tick
+        )
     }
 }
 
@@ -86,6 +93,7 @@ impl ToString for HighLevelQuery {
             HighLevelQuery::SetStar { media: _, star: _ } => "Toggle favourite status of a music",
             HighLevelQuery::GetLyrics(_) => "Fetching lyrics",
             HighLevelQuery::GetCover(_) => "Fetching cover image",
+            HighLevelQuery::Tick => "Tick",
         }
         .to_string()
     }

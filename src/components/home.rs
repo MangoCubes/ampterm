@@ -18,7 +18,6 @@ use crate::{
         handlequery::HandleQuery, handleraw::HandleRaw, ontick::OnTick, renderable::Renderable,
     },
     config::{pathconfig::PathConfig, Config},
-    main,
     queryworker::{
         highlevelquery::HighLevelQuery,
         query::{setcredential::Credential, ResponseType, ToQueryWorker},

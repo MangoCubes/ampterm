@@ -21,9 +21,6 @@ impl Speed {
     pub fn set_speed(&mut self, speed: f32) {
         self.speed = speed;
     }
-    pub fn get_speed(&self) -> f32 {
-        self.speed
-    }
 }
 
 impl Renderable for Speed {

@@ -21,7 +21,7 @@ use ratatui::{
     layout::Rect,
     style::{Modifier, Style, Stylize},
     text::Span,
-    widgets::{Block, ListState},
+    widgets::Block,
     Frame,
 };
 

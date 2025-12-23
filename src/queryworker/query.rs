@@ -3,7 +3,7 @@ pub mod getplaylist;
 pub mod getplaylists;
 pub mod setcredential;
 
-use bytes::Bytes;
+use image::DynamicImage;
 
 use crate::{
     compid::CompID,
@@ -38,7 +38,7 @@ impl ToQueryWorker {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum ResponseType {
     // Responses from the queries
     Star(Result<(), String>),
@@ -47,9 +47,9 @@ pub enum ResponseType {
     GetPlaylist(GetPlaylistResponse),
     SetCredential(Result<(), String>),
     GetLyrics(Result<Option<GetLyricsResponse>, String>),
-    GetCover(Result<Bytes, String>),
+    GetCover(Result<DynamicImage, String>),
 }
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct FromQueryWorker {
     /// When a query is completed, the value in [`dest`] specifies which component should be
     /// notified. This value should be the same as the corresponding [`ToQueryWorker`] request.

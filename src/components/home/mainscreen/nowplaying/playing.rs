@@ -26,6 +26,7 @@ use ratatui::{
     widgets::Gauge,
     Frame,
 };
+use ratatui_image::picker::Picker;
 
 pub struct Playing {
     pos: Duration,
@@ -39,11 +40,16 @@ impl Playing {
     pub fn new(playing: bool, music: Media, config: Config) -> (Self, Option<Action>) {
         let mut actions = vec![];
         let cover = if config.features.cover_art.enable {
-            let (comp, action) = ImageComp::new(music.cover_art.clone());
-            if let Some(a) = action {
-                actions.push(a);
-            };
-            Some(comp)
+            if let Ok(picker) = Picker::from_query_stdio() {
+                let (comp, action) = ImageComp::new(music.cover_art.clone(), picker);
+                if let Some(a) = action {
+                    actions.push(a);
+                };
+                Some(comp)
+            } else {
+                // TODO: Print message indicating failure to determine terminal capabilities
+                None
+            }
         } else {
             None
         };

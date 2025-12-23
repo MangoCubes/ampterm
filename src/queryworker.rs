@@ -1,6 +1,7 @@
 pub mod highlevelquery;
 pub mod query;
 
+use std::io::Cursor;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
@@ -21,7 +22,9 @@ use crate::queryworker::query::getplaylists::GetPlaylistsResponse;
 use crate::queryworker::query::setcredential::Credential;
 use crate::queryworker::query::{FromQueryWorker, ResponseType};
 use crate::trace_dbg;
+use bytes::Bytes;
 use color_eyre::Result;
+use image::{DynamicImage, ImageReader};
 use query::ToQueryWorker;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
@@ -382,9 +385,25 @@ impl QueryWorker {
                             ResponseType::GetCover(Err(e.error.to_string())),
                         ),
                     ))),
-                    Ok(b) => tx.send(Action::Query(QueryAction::FromQueryWorker(
-                        FromQueryWorker::new(dest, ticket, ResponseType::GetCover(Ok(b))),
-                    ))),
+                    Ok(b) => {
+                        fn decode_image(b: Bytes) -> Result<DynamicImage, String> {
+                            let Ok(reader) = ImageReader::new(Cursor::new(b)).with_guessed_format()
+                            else {
+                                return Err("Failed to determine image format!".to_string());
+                            };
+                            let Ok(decoded) = reader.decode() else {
+                                return Err("Failed to decode image!".to_string());
+                            };
+                            Ok(decoded)
+                        }
+                        tx.send(Action::Query(QueryAction::FromQueryWorker(
+                            FromQueryWorker::new(
+                                dest,
+                                ticket,
+                                ResponseType::GetCover(decode_image(b)),
+                            ),
+                        )))
+                    }
                 },
                 Err(e) => tx.send(Action::Query(QueryAction::FromQueryWorker(
                     FromQueryWorker::new(dest, ticket, ResponseType::GetCover(Err(e.to_string()))),

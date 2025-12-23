@@ -1,5 +1,3 @@
-use std::io::Cursor;
-
 use crate::{
     action::action::{Action, QueryAction},
     components::{lib::centered::Centered, traits::renderable::Renderable},
@@ -8,8 +6,7 @@ use crate::{
         query::{getcoverart::CoverID, ToQueryWorker},
     },
 };
-use bytes::Bytes;
-use image::ImageReader;
+use image::DynamicImage;
 use ratatui_image::{picker::Picker, protocol::StatefulProtocol, StatefulImage};
 
 enum State {
@@ -21,14 +18,17 @@ enum State {
 
 pub struct ImageComp {
     state: State,
+    picker: Picker,
 }
 
 impl ImageComp {
-    pub fn new(coverid: Option<String>) -> (Self, Option<Action>) {
+    pub fn new(coverid: Option<String>, mut picker: Picker) -> (Self, Option<Action>) {
+        picker.set_background_color([0, 0, 0, 0]);
         if let Some(id) = coverid {
             let query = ToQueryWorker::new(HighLevelQuery::GetCover(CoverID(id)));
             (
                 Self {
+                    picker,
                     state: State::Loading(
                         query.ticket,
                         Centered::new(vec!["Loading cover...".to_string()]),
@@ -39,6 +39,7 @@ impl ImageComp {
         } else {
             (
                 Self {
+                    picker,
                     state: State::NotFound(Centered::new(vec!["No cover art".to_string()])),
                 },
                 None,
@@ -46,7 +47,7 @@ impl ImageComp {
         }
     }
 
-    pub fn set_image(&mut self, ticket: usize, d: Result<Bytes, String>) {
+    pub fn set_image(&mut self, ticket: usize, d: Result<DynamicImage, String>) {
         if let State::Loading(t, _) = &self.state {
             if *t != ticket {
                 return;
@@ -54,36 +55,14 @@ impl ImageComp {
         } else {
             return;
         }
-        let bytes = match d {
-            Ok(b) => b,
-            Err(s) => {
-                self.state = State::Error(Centered::new(vec![s]));
-                return;
-            }
-        };
-        let Ok(reader) = ImageReader::new(Cursor::new(bytes)).with_guessed_format() else {
-            self.state = State::Error(Centered::new(vec![
-                "Failed to determine image format!".to_string()
-            ]));
-            return;
-        };
-        let Ok(decoded) = reader.decode() else {
+        let Ok(decoded) = d else {
             self.state = State::Error(Centered::new(vec![
                 "Failed to".to_string(),
-                "decode image!".to_string(),
+                "load image!".to_string(),
             ]));
             return;
         };
-        let Ok(mut picker) = Picker::from_query_stdio() else {
-            self.state = State::Error(Centered::new(vec![
-                "Failed to get".to_string(),
-                "terminal image".to_string(),
-                "capabilities!".to_string(),
-            ]));
-            return;
-        };
-        picker.set_background_color([0, 0, 0, 0]);
-        let image = picker.new_resize_protocol(decoded);
+        let image = self.picker.new_resize_protocol(decoded);
         self.state = State::Loaded(image);
     }
 }

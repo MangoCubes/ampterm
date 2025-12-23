@@ -132,18 +132,22 @@ impl PlayQueue {
             CurrentItem::NotInQueue(idx) => {
                 self.now_playing = CurrentItem::InQueue(idx + 1);
                 match self.list.0.get(idx + 1) {
-                    Some(m) => Action::Query(QueryAction::ToQueryWorker(ToQueryWorker::new(
-                        HighLevelQuery::PlayMusicFromURL(m.clone()),
-                    ))),
+                    Some(m) => {
+                        Action::Query(QueryAction::ToPlayerWorker(ToPlayerWorker::PlayMedia {
+                            media: m.clone(),
+                        }))
+                    }
                     None => Action::Query(QueryAction::ToPlayerWorker(ToPlayerWorker::Stop)),
                 }
             }
             CurrentItem::InQueue(idx) => {
                 self.now_playing = CurrentItem::InQueue(idx);
                 match self.list.0.get(idx) {
-                    Some(m) => Action::Query(QueryAction::ToQueryWorker(ToQueryWorker::new(
-                        HighLevelQuery::PlayMusicFromURL(m.clone()),
-                    ))),
+                    Some(m) => {
+                        Action::Query(QueryAction::ToPlayerWorker(ToPlayerWorker::PlayMedia {
+                            media: m.clone(),
+                        }))
+                    }
                     None => Action::Query(QueryAction::ToPlayerWorker(ToPlayerWorker::Stop)),
                 }
             }

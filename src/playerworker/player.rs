@@ -44,6 +44,9 @@ pub enum ToPlayerWorker {
         music: Media,
         url: String,
     },
+    PlayMedia {
+        media: Media,
+    },
     Kill,
     Tick,
 }

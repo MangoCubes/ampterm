@@ -121,6 +121,7 @@ impl App {
                 self.action_tx.send(action)?;
             }
         } else {
+            debug!("{key:?}");
             self.key_stack.push(key);
 
             let res = if let Some(r) = self.component.handle_key_seq(&self.key_stack) {
@@ -149,7 +150,6 @@ impl App {
 
     async fn handle_actions(&mut self, tui: &mut Tui) -> Result<()> {
         while let Ok(action) = self.action_rx.try_recv() {
-            debug!("{action:?}");
             match action {
                 Action::Multiple(actions) => {
                     for a in actions {

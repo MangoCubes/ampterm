@@ -21,6 +21,8 @@ use crate::action::action::{Action, QueryAction};
 use crate::config::Config;
 use crate::playerworker::player::{FromPlayerWorker, StateType};
 use crate::playerworker::realtime::RealTime;
+use crate::queryworker::highlevelquery::HighLevelQuery;
+use crate::queryworker::query::ToQueryWorker;
 use crate::trace_dbg;
 
 enum WorkerState {
@@ -189,14 +191,21 @@ impl PlayerWorker {
                 ToPlayerWorker::Pause => self.pause_stream(),
                 ToPlayerWorker::Resume => self.continue_stream(),
                 ToPlayerWorker::Kill => self.should_quit = true,
-                ToPlayerWorker::PlayURL { music, url } => {
+                ToPlayerWorker::PlayMedia { media } => {
+                    self.send_action(FromPlayerWorker::StateChange(StateType::NowPlaying(Some(
+                        media.clone(),
+                    ))));
+                    let _ = self
+                        .action_tx
+                        .send(Action::Query(QueryAction::ToQueryWorker(
+                            ToQueryWorker::new(HighLevelQuery::PlayMusicFromURL(media)),
+                        )));
+                }
+                ToPlayerWorker::PlayURL { music: _, url } => {
                     self.sink.stop();
                     if let WorkerState::Playing(token) = &self.state {
                         token.cancel();
                     };
-                    self.send_action(FromPlayerWorker::StateChange(StateType::NowPlaying(Some(
-                        music,
-                    ))));
                     let token = self.play_from_url(url);
                     self.timer.reset();
                     self.state = WorkerState::Playing(token);

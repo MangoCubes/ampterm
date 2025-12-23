@@ -5,6 +5,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use crate::action::action::{Action, QueryAction};
+use crate::compid::CompID;
 use crate::config::Config;
 use crate::lyricsclient::lrclib::LrcLib;
 use crate::lyricsclient::LyricsClient;
@@ -14,6 +15,7 @@ use crate::osclient::response::getplaylists::GetPlaylists;
 use crate::osclient::OSClient;
 use crate::playerworker::player::ToPlayerWorker;
 use crate::queryworker::highlevelquery::HighLevelQuery;
+use crate::queryworker::query::getcoverart::CoverID;
 use crate::queryworker::query::getplaylist::GetPlaylistResponse;
 use crate::queryworker::query::getplaylists::GetPlaylistsResponse;
 use crate::queryworker::query::setcredential::Credential;
@@ -25,11 +27,15 @@ use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
 struct AwaitingQueries {
     play_from_url: Option<(Media, u16)>,
+    get_cover: Option<(Vec<CompID>, usize, CoverID, u16)>,
 }
 
 impl AwaitingQueries {
     pub fn play_from_url(&mut self, media: Media) {
-        self.play_from_url = Some((media, 1));
+        self.play_from_url = Some((media, 2));
+    }
+    pub fn get_cover(&mut self, compid: Vec<CompID>, ticket: usize, id: CoverID) {
+        self.get_cover = Some((compid, ticket, id, 2));
     }
 }
 
@@ -66,6 +72,21 @@ impl QueryWorker {
         if let Some(m) = play {
             self.awaiting.play_from_url = None;
             self.play_from_url(m);
+        }
+
+        let cover = if let Some((compid, ticket, id, remaining)) = &mut self.awaiting.get_cover {
+            if *remaining == 0 {
+                Some((compid.clone(), *ticket, id.clone()))
+            } else {
+                *remaining -= 1;
+                None
+            }
+        } else {
+            None
+        };
+        if let Some((compid, ticket, id)) = cover {
+            self.awaiting.get_cover = None;
+            self.get_cover(compid, ticket, id);
         }
     }
 
@@ -337,35 +358,7 @@ impl QueryWorker {
                     });
                 }
                 HighLevelQuery::GetCover(cover_id) => {
-                    let (tx, c) = self.prepare_async();
-                    tokio::spawn(async move {
-                        let art = c.get_cover_art(cover_id.0).await;
-                        match art {
-                            Ok(c) => match c {
-                                Err(e) => tx.send(Action::Query(QueryAction::FromQueryWorker(
-                                    FromQueryWorker::new(
-                                        event.dest,
-                                        event.ticket,
-                                        ResponseType::GetCover(Err(e.error.to_string())),
-                                    ),
-                                ))),
-                                Ok(b) => tx.send(Action::Query(QueryAction::FromQueryWorker(
-                                    FromQueryWorker::new(
-                                        event.dest,
-                                        event.ticket,
-                                        ResponseType::GetCover(Ok(b)),
-                                    ),
-                                ))),
-                            },
-                            Err(e) => tx.send(Action::Query(QueryAction::FromQueryWorker(
-                                FromQueryWorker::new(
-                                    event.dest,
-                                    event.ticket,
-                                    ResponseType::GetCover(Err(e.to_string())),
-                                ),
-                            ))),
-                        }
-                    });
+                    self.awaiting.get_cover(event.dest, event.ticket, cover_id);
                 }
                 HighLevelQuery::Tick => self.on_tick(),
             };
@@ -374,6 +367,30 @@ impl QueryWorker {
             }
         }
         Ok(())
+    }
+
+    fn get_cover(&mut self, dest: Vec<CompID>, ticket: usize, cover_id: CoverID) {
+        let (tx, c) = self.prepare_async();
+        tokio::spawn(async move {
+            let art = c.get_cover_art(cover_id.0).await;
+            match art {
+                Ok(c) => match c {
+                    Err(e) => tx.send(Action::Query(QueryAction::FromQueryWorker(
+                        FromQueryWorker::new(
+                            dest,
+                            ticket,
+                            ResponseType::GetCover(Err(e.error.to_string())),
+                        ),
+                    ))),
+                    Ok(b) => tx.send(Action::Query(QueryAction::FromQueryWorker(
+                        FromQueryWorker::new(dest, ticket, ResponseType::GetCover(Ok(b))),
+                    ))),
+                },
+                Err(e) => tx.send(Action::Query(QueryAction::FromQueryWorker(
+                    FromQueryWorker::new(dest, ticket, ResponseType::GetCover(Err(e.to_string()))),
+                ))),
+            }
+        });
     }
 
     fn play_from_url(&mut self, media: Media) {
@@ -397,6 +414,7 @@ impl QueryWorker {
         let (req_tx, req_rx) = mpsc::unbounded_channel();
         let awaiting = AwaitingQueries {
             play_from_url: None,
+            get_cover: None,
         };
         Self {
             lyrics: Arc::new(LrcLib::new(config.clone())),

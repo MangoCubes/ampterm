@@ -19,7 +19,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::action::action::{Action, TargetedAction};
 use crate::config::Config;
-use crate::playerworker::player::{FromPlayerWorker, StateType};
+use crate::playerworker::player::FromPlayerWorker;
 use crate::playerworker::realtime::RealTime;
 use crate::queryworker::highlevelquery::HighLevelQuery;
 use crate::queryworker::query::ToQueryWorker;
@@ -45,12 +45,12 @@ pub struct PlayerWorker {
 impl PlayerWorker {
     fn continue_stream(&mut self) {
         self.sink.play();
-        self.send_player_msg(FromPlayerWorker::StateChange(StateType::Playing(true)));
+        self.send_player_msg(FromPlayerWorker::Playing(true));
     }
 
     fn pause_stream(&mut self) {
         self.sink.pause();
-        self.send_player_msg(FromPlayerWorker::StateChange(StateType::Playing(false)));
+        self.send_player_msg(FromPlayerWorker::Playing(false));
     }
 
     fn jump(&mut self, offset: f32) -> Duration {
@@ -195,17 +195,13 @@ impl PlayerWorker {
                         token.cancel();
                     };
                     self.timer.reset();
-                    self.send_player_msg(FromPlayerWorker::StateChange(StateType::NowPlaying(
-                        None,
-                    )));
+                    self.send_player_msg(FromPlayerWorker::NowPlaying(None));
                 }
                 ToPlayerWorker::Pause => self.pause_stream(),
                 ToPlayerWorker::Resume => self.continue_stream(),
                 ToPlayerWorker::Kill => self.should_quit = true,
                 ToPlayerWorker::PlayMedia { media } => {
-                    self.send_player_msg(FromPlayerWorker::StateChange(StateType::NowPlaying(
-                        Some(media.clone()),
-                    )));
+                    self.send_player_msg(FromPlayerWorker::NowPlaying(Some(media.clone())));
                     let _ = self.action_tx.send(Action::ToQuery(ToQueryWorker::new(
                         HighLevelQuery::PlayMusicFromURL(media),
                     )));
@@ -223,9 +219,7 @@ impl PlayerWorker {
                     if let Err(e) = self.sink.try_seek(Duration::from_secs(0)) {
                         self.send_err(format!("Failed to seek: {}", e));
                     } else {
-                        self.send_player_msg(FromPlayerWorker::StateChange(StateType::Jump(
-                            Duration::from_secs(0),
-                        )));
+                        self.send_player_msg(FromPlayerWorker::Jump(Duration::from_secs(0)));
                     };
                     self.timer.reset();
                 }
@@ -234,12 +228,12 @@ impl PlayerWorker {
                     let new_speed = current + by;
                     let cleaned = if new_speed <= 0.0 { 0.01 } else { new_speed };
                     self.change_speed(cleaned);
-                    self.send_player_msg(FromPlayerWorker::StateChange(StateType::Speed(cleaned)));
+                    self.send_player_msg(FromPlayerWorker::Speed(cleaned));
                 }
                 ToPlayerWorker::SetSpeed(to) => {
                     let cleaned = if to <= 0.0 { 0.01 } else { to };
                     self.change_speed(cleaned);
-                    self.send_player_msg(FromPlayerWorker::StateChange(StateType::Speed(cleaned)));
+                    self.send_player_msg(FromPlayerWorker::Speed(cleaned));
                 }
                 ToPlayerWorker::ChangeVolume(by) => {
                     let current = self.sink.volume();
@@ -252,7 +246,7 @@ impl PlayerWorker {
                         new_vol
                     };
                     self.sink.set_volume(cleaned);
-                    self.send_player_msg(FromPlayerWorker::StateChange(StateType::Volume(cleaned)));
+                    self.send_player_msg(FromPlayerWorker::Volume(cleaned));
                 }
                 ToPlayerWorker::SetVolume(to) => {
                     let cleaned = if to < 0.0 {
@@ -263,7 +257,7 @@ impl PlayerWorker {
                         to
                     };
                     self.sink.set_volume(cleaned);
-                    self.send_player_msg(FromPlayerWorker::StateChange(StateType::Volume(cleaned)));
+                    self.send_player_msg(FromPlayerWorker::Volume(cleaned));
                 }
                 ToPlayerWorker::ResumeOrPause => {
                     if self.sink.is_paused() {
@@ -274,7 +268,7 @@ impl PlayerWorker {
                 }
                 ToPlayerWorker::ChangePosition(by) => {
                     let newpos = self.jump(by);
-                    self.send_player_msg(FromPlayerWorker::StateChange(StateType::Jump(newpos)));
+                    self.send_player_msg(FromPlayerWorker::Jump(newpos));
                 }
                 ToPlayerWorker::Tick => {
                     // There is a bug with rodio that happens when a new music is loaded. The
@@ -286,9 +280,7 @@ impl PlayerWorker {
                     // This issue is addressed by [`self.timer`], where if the position somehow
                     // goes backwards, it is blindly trusted.
                     self.timer.add(self.sink.get_pos(), self.sink.speed());
-                    self.send_player_msg(FromPlayerWorker::StateChange(StateType::Position(
-                        self.timer.get_now(),
-                    )));
+                    self.send_player_msg(FromPlayerWorker::Position(self.timer.get_now()));
                 }
             };
             if self.should_quit {

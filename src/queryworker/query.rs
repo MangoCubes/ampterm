@@ -1,4 +1,3 @@
-pub mod getcoverart;
 pub mod getplaylist;
 pub mod setcredential;
 

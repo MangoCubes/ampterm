@@ -1,10 +1,11 @@
 use crate::{
     compid::CompID,
     lyricsclient::getlyrics::GetLyricsParams,
-    osclient::{response::getplaylist::Media, types::MediaID},
-    queryworker::query::{
-        getcoverart::CoverID, getplaylist::GetPlaylistParams, setcredential::Credential,
+    osclient::{
+        response::getplaylist::Media,
+        types::{CoverID, MediaID},
     },
+    queryworker::query::{getplaylist::GetPlaylistParams, setcredential::Credential},
 };
 
 /// [`HighLevelQuery`] are sort of a wrapper of normal HTTP queries. These correspond more closely
@@ -60,15 +61,6 @@ impl HighLevelQuery {
             HighLevelQuery::GetCover(_) => vec![CompID::ImageComp],
             HighLevelQuery::Tick => vec![],
         }
-    }
-
-    pub fn is_internal(&self) -> bool {
-        matches!(
-            self,
-            HighLevelQuery::PlayMusicFromURL(_)
-                | HighLevelQuery::SetCredential(_)
-                | HighLevelQuery::Tick
-        )
     }
 }
 

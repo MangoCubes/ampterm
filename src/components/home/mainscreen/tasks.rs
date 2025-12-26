@@ -69,11 +69,15 @@ impl Tasks {
 
     pub fn update_task(&mut self, ticket: &usize, status: &QueryStatus) {
         match status {
-            QueryStatus::Requested | QueryStatus::Started => {}
-            QueryStatus::Cached(_) | QueryStatus::Finished(_) => {
+            QueryStatus::Finished(_) => {
                 self.tasks.remove(ticket);
             }
-            QueryStatus::Aborted => todo!(),
+            QueryStatus::Aborted => {
+                if let Some((_, status)) = self.tasks.get_mut(ticket) {
+                    *status = Status::Failed;
+                }
+            }
+            _ => {}
         };
         self.table = Table::new(
             self.gen_rows(),

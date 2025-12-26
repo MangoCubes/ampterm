@@ -53,11 +53,7 @@ pub enum ResponseType {
 #[derive(Debug, Clone)]
 pub enum QueryStatus {
     /// Query has been received by the QueryWorker
-    Requested,
-    /// Query to an external resource must be made
-    Started,
-    /// Query is completed without using external resources
-    Cached(ResponseType),
+    Requested(HighLevelQuery),
     /// Query has been aborted
     Aborted,
     /// Query has been finished with external resources

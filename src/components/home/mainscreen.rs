@@ -106,11 +106,10 @@ impl HandleMode for MainScreen {
 
 impl HandleRaw for MainScreen {
     fn handle_raw(&mut self, key: KeyEvent) -> Option<Action> {
-        let action = match &mut self.state {
+        match &mut self.state {
             CurrentlySelected::PlaylistQueue => self.pl_queue.handle_raw(key),
             _ => None,
-        };
-        self.track_task(action)
+        }
     }
 }
 
@@ -144,30 +143,11 @@ impl PassKeySeq for MainScreen {
         if matches!(res, Some(_)) {
             self.key_stack.drain(..);
         };
-        if let Some(KeySeqResult::ActionNeeded(Action::ToQuery(ToQueryWorker {
-            dest: _,
-            ticket,
-            query,
-        }))) = &res
-        {
-            self.tasks.register_task(ticket, query);
-        }
         res
     }
 }
 
 impl MainScreen {
-    fn track_task(&mut self, action: Option<Action>) -> Option<Action> {
-        if let Some(Action::ToQuery(ToQueryWorker {
-            dest: _,
-            ticket,
-            query,
-        })) = &action
-        {
-            self.tasks.register_task(ticket, query);
-        };
-        action
-    }
     fn show_help(&mut self) {
         self.help.display(self.get_help());
         self.popup = Popup::Help;
@@ -279,10 +259,8 @@ impl Renderable for MainScreen {
 
 impl HandlePlayer for MainScreen {
     fn handle_player(&mut self, pw: FromPlayerWorker) -> Option<Action> {
-        let a = self.now_playing.handle_player(pw.clone());
-        let now_playing = self.track_task(a);
-        let b = self.playqueue.handle_player(pw);
-        let playqueue = self.track_task(b);
+        let now_playing = self.now_playing.handle_player(pw.clone());
+        let playqueue = self.playqueue.handle_player(pw);
         if let Some(a) = now_playing {
             if let Some(b) = playqueue {
                 Some(Action::Multiple(vec![a, b]))
@@ -298,7 +276,7 @@ impl HandlePlayer for MainScreen {
 impl HandleQuery for MainScreen {
     fn handle_query(&mut self, dest: CompID, ticket: usize, res: QueryStatus) -> Option<Action> {
         self.tasks.update_task(&ticket, &res);
-        let action = match dest {
+        match dest {
             CompID::PlaylistList => self.pl_list.handle_query(dest, ticket, res),
             CompID::PlaylistQueue => self.pl_queue.handle_query(dest, ticket, res),
             CompID::NowPlaying | CompID::Lyrics | CompID::ImageComp => {
@@ -306,15 +284,14 @@ impl HandleQuery for MainScreen {
             }
             CompID::PlayQueue => self.playqueue.handle_query(dest, ticket, res),
             _ => unreachable!(),
-        };
-        self.track_task(action)
+        }
     }
 }
 
 impl HandleAction for MainScreen {
     fn handle_action(&mut self, action: TargetedAction) -> Option<Action> {
         self.key_stack.drain(..);
-        let res = match action {
+        match action {
             TargetedAction::ToggleHelp => {
                 if matches!(self.popup, Popup::Help) {
                     self.popup = Popup::None;
@@ -424,7 +401,6 @@ impl HandleAction for MainScreen {
                 None
             }
             _ => None,
-        };
-        self.track_task(res)
+        }
     }
 }

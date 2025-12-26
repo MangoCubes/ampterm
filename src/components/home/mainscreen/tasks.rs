@@ -9,10 +9,7 @@ use ratatui::{
     Frame,
 };
 
-use crate::{
-    components::traits::renderable::Renderable,
-    queryworker::{highlevelquery::HighLevelQuery, query::QueryStatus},
-};
+use crate::{components::traits::renderable::Renderable, queryworker::query::QueryStatus};
 
 #[derive(Clone)]
 enum Status {
@@ -77,7 +74,9 @@ impl Tasks {
                     *status = Status::Failed;
                 }
             }
-            _ => {}
+            QueryStatus::Requested(q) => {
+                self.tasks.insert(*ticket, (q.to_string(), Status::Running));
+            }
         };
         self.table = Table::new(
             self.gen_rows(),
@@ -87,11 +86,6 @@ impl Tasks {
 
     pub fn get_task_count(&self) -> usize {
         self.tasks.len()
-    }
-
-    pub fn register_task(&mut self, ticket: &usize, query: &HighLevelQuery) {
-        self.tasks
-            .insert(*ticket, (query.to_string(), Status::Running));
     }
 }
 

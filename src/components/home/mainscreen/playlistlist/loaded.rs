@@ -15,13 +15,12 @@ use crate::{
         },
     },
     config::{keybindings::KeyBindings, Config},
-    osclient::response::getplaylists::SimplePlaylist,
+    osclient::{response::getplaylists::SimplePlaylist, types::PlaylistID},
     playerworker::player::QueueLocation,
     queryworker::{
         highlevelquery::HighLevelQuery,
         query::{
             getplaylist::{GetPlaylistParams, GetPlaylistResponse},
-            getplaylists::PlaylistID,
             QueryStatus, ResponseType, ToQueryWorker,
         },
     },

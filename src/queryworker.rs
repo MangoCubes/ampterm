@@ -135,9 +135,9 @@ impl QueryWorker {
                             let cc = c.clone();
                             tokio::spawn(async move {
                                 let req = if star {
-                                    cc.star(media.0).await
+                                    cc.star(media).await
                                 } else {
-                                    cc.unstar(media.0).await
+                                    cc.unstar(media).await
                                 };
                                 let result = match req {
                                     Ok(_) => ResponseType::Star(Ok(())),
@@ -255,8 +255,7 @@ impl QueryWorker {
                             let tx = self.action_tx.clone();
                             let client = c.clone();
                             tokio::spawn(async move {
-                                let res =
-                                    client.get_playlist(String::from(params.id.clone())).await;
+                                let res = client.get_playlist(params.id.clone()).await;
                                 match res {
                                     Ok(c) => match c {
                                         GetPlaylist::Ok { playlist } => match playlist {
@@ -436,7 +435,7 @@ impl QueryWorker {
         match &self.client {
             Some(c) => {
                 let id = media.id.clone();
-                let url = c.stream_link(id.0).to_string();
+                let url = c.stream_link(id).to_string();
                 let _ = self
                     .action_tx
                     .send(Action::ToPlayer(ToPlayerWorker::PlayURL {

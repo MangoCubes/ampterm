@@ -22,14 +22,14 @@ use crate::{
         },
     },
     config::{keybindings::KeyBindings, Config},
-    osclient::response::getplaylist::{FullPlaylist, Media},
+    osclient::{
+        response::getplaylist::{FullPlaylist, Media},
+        types::MediaID,
+    },
     playerworker::player::QueueLocation,
     queryworker::{
         highlevelquery::HighLevelQuery,
-        query::{
-            getplaylist::{GetPlaylistParams, MediaID},
-            ToQueryWorker,
-        },
+        query::{getplaylist::GetPlaylistParams, ToQueryWorker},
     },
 };
 use crossterm::event::KeyEvent;

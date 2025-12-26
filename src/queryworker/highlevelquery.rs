@@ -1,11 +1,9 @@
 use crate::{
     compid::CompID,
     lyricsclient::getlyrics::GetLyricsParams,
-    osclient::response::getplaylist::Media,
+    osclient::{response::getplaylist::Media, types::MediaID},
     queryworker::query::{
-        getcoverart::CoverID,
-        getplaylist::{GetPlaylistParams, MediaID},
-        setcredential::Credential,
+        getcoverart::CoverID, getplaylist::GetPlaylistParams, setcredential::Credential,
     },
 };
 

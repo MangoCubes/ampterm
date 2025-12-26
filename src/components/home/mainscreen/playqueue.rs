@@ -27,11 +27,11 @@ use crate::{
     },
     config::{keybindings::KeyBindings, Config},
     helper::selection::{ModifiableList, Selection},
-    osclient::response::getplaylist::Media,
+    osclient::{response::getplaylist::Media, types::MediaID},
     playerworker::player::{FromPlayerWorker, QueueLocation, ToPlayerWorker},
     queryworker::{
         highlevelquery::HighLevelQuery,
-        query::{getplaylist::MediaID, QueryStatus, ToQueryWorker},
+        query::{QueryStatus, ToQueryWorker},
     },
 };
 

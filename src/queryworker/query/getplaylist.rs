@@ -1,12 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    osclient::response::{getplaylist::FullPlaylist, getplaylists::SimplePlaylist},
-    queryworker::query::getplaylists::PlaylistID,
+use crate::osclient::{
+    response::{getplaylist::FullPlaylist, getplaylists::SimplePlaylist},
+    types::PlaylistID,
 };
-
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
-pub struct MediaID(pub String);
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GetPlaylistParams {

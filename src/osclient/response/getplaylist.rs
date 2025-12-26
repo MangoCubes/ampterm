@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    osclient::response::getplaylists::SimplePlaylist,
-    queryworker::query::{getplaylist::MediaID, getplaylists::PlaylistID},
+use crate::osclient::{
+    response::getplaylists::SimplePlaylist,
+    types::{MediaID, PlaylistID},
 };
 
 use super::oserror::OSError;

@@ -109,7 +109,11 @@ impl App {
             Event::Quit => action_tx.send(Action::Targeted(TargetedAction::Quit))?,
             Event::Tick => {
                 self.component.on_tick();
-                let _ = self.query_tx.send(ToQueryWorker::new(HighLevelQuery::Tick));
+                let _ = self.query_tx.send(ToQueryWorker {
+                    dest: vec![],
+                    query: HighLevelQuery::Tick,
+                    ticket: 0,
+                });
             }
             Event::Render => self.render(tui)?,
             Event::Resize(x, y) => action_tx.send(Action::Resize(x, y))?,

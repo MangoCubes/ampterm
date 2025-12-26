@@ -5,7 +5,7 @@ use std::io::Cursor;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
-use crate::action::action::{Action, QueryAction};
+use crate::action::action::Action;
 use crate::compid::CompID;
 use crate::config::Config;
 use crate::lyricsclient::lrclib::LrcLib;
@@ -20,7 +20,7 @@ use crate::queryworker::query::getcoverart::CoverID;
 use crate::queryworker::query::getplaylist::GetPlaylistResponse;
 use crate::queryworker::query::getplaylists::GetPlaylistsResponse;
 use crate::queryworker::query::setcredential::Credential;
-use crate::queryworker::query::{FromQueryWorker, ResponseType};
+use crate::queryworker::query::{QueryStatus, ResponseType};
 use crate::trace_dbg;
 use bytes::Bytes;
 use color_eyre::Result;
@@ -110,13 +110,6 @@ impl QueryWorker {
         }
     }
 
-    #[inline]
-    fn send_action(&self, action: FromQueryWorker) {
-        let _ = self
-            .action_tx
-            .send(Action::ToQuery(QueryAction::FromQueryWorker(action)));
-    }
-
     pub async fn run(&mut self) -> Result<()> {
         trace_dbg!("Starting QueryWorker...");
         loop {
@@ -139,9 +132,11 @@ impl QueryWorker {
                                     Ok(_) => ResponseType::Star(Ok(())),
                                     Err(err) => ResponseType::Star(Err(err.to_string())),
                                 };
-                                tx.send(Action::ToQuery(QueryAction::FromQueryWorker(
-                                    FromQueryWorker::new(event.dest, event.ticket, result),
-                                )))
+                                tx.send(Action::FromQuery {
+                                    dest: event.dest,
+                                    ticket: event.ticket,
+                                    res: QueryStatus::Finished(result),
+                                })
                             });
                         }
                         None => tracing::error!(
@@ -169,19 +164,20 @@ impl QueryWorker {
                     match client {
                         Ok(client) => {
                             self.client = Some(Arc::from(client));
-                            self.send_action(FromQueryWorker::new(
-                                event.dest,
-                                event.ticket,
-                                ResponseType::SetCredential(Ok(())),
-                            ));
+                            self.action_tx.send(Action::FromQuery {
+                                dest: event.dest,
+                                ticket: event.ticket,
+                                res: QueryStatus::Finished(ResponseType::SetCredential(Ok(()))),
+                            })?;
                         }
                         Err(err) => {
-                            self.send_action(FromQueryWorker::new(
-                                event.dest,
-                                event.ticket,
-                                ResponseType::SetCredential(Err(err.to_string())),
-                            ));
-                            // return Err(eyre!("Failed to log in: {}", err.to_string()));
+                            self.action_tx.send(Action::FromQuery {
+                                dest: event.dest,
+                                ticket: event.ticket,
+                                res: QueryStatus::Finished(ResponseType::SetCredential(Err(
+                                    err.to_string()
+                                ))),
+                            })?;
                         }
                     };
                 }
@@ -192,13 +188,11 @@ impl QueryWorker {
                             let cc = c.clone();
                             tokio::spawn(async move {
                                 let res = QueryWorker::get_playlists(cc).await;
-                                let _ = tx.send(Action::ToQuery(QueryAction::FromQueryWorker(
-                                    FromQueryWorker::new(
-                                        event.dest,
-                                        event.ticket,
-                                        ResponseType::GetPlaylists(res),
-                                    ),
-                                )));
+                                let _ = tx.send(Action::FromQuery {
+                                    dest: event.dest,
+                                    ticket: event.ticket,
+                                    res: QueryStatus::Finished(ResponseType::GetPlaylists(res)),
+                                });
                             });
                         }
                         None => tracing::error!(
@@ -215,28 +209,26 @@ impl QueryWorker {
                                 let ping = c.ping().await;
                                 match ping {
                                     Ok(c) => match c {
-                                        Empty::Ok => tx.send(Action::ToQuery(
-                                            QueryAction::FromQueryWorker(FromQueryWorker::new(
-                                                event.dest,
-                                                event.ticket,
-                                                ResponseType::Ping(Ok(())),
-                                            )),
-                                        )),
-                                        Empty::Failed { error } => tx.send(Action::ToQuery(
-                                            QueryAction::FromQueryWorker(FromQueryWorker::new(
-                                                event.dest,
-                                                event.ticket,
-                                                ResponseType::Ping(Err(error.to_string())),
-                                            )),
-                                        )),
+                                        Empty::Ok => tx.send(Action::FromQuery {
+                                            dest: event.dest,
+                                            ticket: event.ticket,
+                                            res: QueryStatus::Finished(ResponseType::Ping(Ok(()))),
+                                        }),
+                                        Empty::Failed { error } => tx.send(Action::FromQuery {
+                                            dest: event.dest,
+                                            ticket: event.ticket,
+                                            res: QueryStatus::Finished(ResponseType::Ping(Err(
+                                                error.to_string(),
+                                            ))),
+                                        }),
                                     },
-                                    Err(e) => tx.send(Action::ToQuery(
-                                        QueryAction::FromQueryWorker(FromQueryWorker::new(
-                                            event.dest,
-                                            event.ticket,
-                                            ResponseType::Ping(Err(e.to_string())),
-                                        )),
-                                    )),
+                                    Err(e) => tx.send(Action::FromQuery {
+                                        dest: event.dest,
+                                        ticket: event.ticket,
+                                        res: QueryStatus::Finished(ResponseType::Ping(Err(
+                                            e.to_string()
+                                        ))),
+                                    }),
                                 }
                             });
                         }
@@ -257,20 +249,19 @@ impl QueryWorker {
                                 match res {
                                     Ok(c) => match c {
                                         GetPlaylist::Ok { playlist } => match playlist {
-                                            IndeterminedPlaylist::FullPlaylist(full_playlist) => tx
-                                                .send(Action::ToQuery(
-                                                    QueryAction::FromQueryWorker(
-                                                        FromQueryWorker::new(
-                                                            event.dest,
-                                                            event.ticket,
-                                                            ResponseType::GetPlaylist(
-                                                                GetPlaylistResponse::Success(
-                                                                    full_playlist,
-                                                                ),
+                                            IndeterminedPlaylist::FullPlaylist(full_playlist) => {
+                                                let _ = tx.send(Action::FromQuery {
+                                                    dest: event.dest,
+                                                    ticket: event.ticket,
+                                                    res: QueryStatus::Finished(
+                                                        ResponseType::GetPlaylist(
+                                                            GetPlaylistResponse::Success(
+                                                                full_playlist,
                                                             ),
                                                         ),
                                                     ),
-                                                )),
+                                                });
+                                            }
                                             IndeterminedPlaylist::AmpacheEmpty(simple_playlist) => {
                                                 let res = match simple_playlist.get(0) {
                                                     Some(playlist) => {
@@ -284,58 +275,60 @@ impl QueryWorker {
                                                         msg: "Playlist not found!".to_string(),
                                                     },
                                                 };
-                                                tx.send(Action::ToQuery(
-                                                    QueryAction::FromQueryWorker(
-                                                        FromQueryWorker::new(
-                                                            event.dest,
-                                                            event.ticket,
-                                                            ResponseType::GetPlaylist(res),
-                                                        ),
+                                                let _ = tx.send(Action::FromQuery {
+                                                    dest: event.dest,
+                                                    ticket: event.ticket,
+                                                    res: QueryStatus::Finished(
+                                                        ResponseType::GetPlaylist(res),
                                                     ),
-                                                ))
+                                                });
                                             }
                                             IndeterminedPlaylist::NavidromeEmpty(
                                                 simple_playlist,
-                                            ) => tx.send(Action::ToQuery(
-                                                QueryAction::FromQueryWorker(FromQueryWorker::new(
-                                                    event.dest,
-                                                    event.ticket,
-                                                    ResponseType::GetPlaylist(
-                                                        GetPlaylistResponse::Partial(
-                                                            simple_playlist,
+                                            ) => {
+                                                let _ = tx.send(Action::FromQuery {
+                                                    dest: event.dest,
+                                                    ticket: event.ticket,
+                                                    res: QueryStatus::Finished(
+                                                        ResponseType::GetPlaylist(
+                                                            GetPlaylistResponse::Partial(
+                                                                simple_playlist,
+                                                            ),
                                                         ),
                                                     ),
-                                                )),
-                                            )),
+                                                });
+                                            }
                                         },
 
-                                        GetPlaylist::Failed { error } => tx.send(Action::ToQuery(
-                                            QueryAction::FromQueryWorker(FromQueryWorker::new(
-                                                event.dest,
-                                                event.ticket,
-                                                ResponseType::GetPlaylist(
-                                                    GetPlaylistResponse::Failure {
-                                                        id: params.id,
-                                                        name: params.name,
-                                                        msg: error.to_string(),
-                                                    },
+                                        GetPlaylist::Failed { error } => {
+                                            let _ = tx.send(Action::FromQuery {
+                                                dest: event.dest,
+                                                ticket: event.ticket,
+                                                res: QueryStatus::Finished(
+                                                    ResponseType::GetPlaylist(
+                                                        GetPlaylistResponse::Failure {
+                                                            id: params.id,
+                                                            name: params.name,
+                                                            msg: error.to_string(),
+                                                        },
+                                                    ),
                                                 ),
-                                            )),
-                                        )),
+                                            });
+                                        }
                                     },
-                                    Err(e) => tx.send(Action::ToQuery(
-                                        QueryAction::FromQueryWorker(FromQueryWorker::new(
-                                            event.dest,
-                                            event.ticket,
-                                            ResponseType::GetPlaylist(
+                                    Err(e) => {
+                                        let _ = tx.send(Action::FromQuery {
+                                            dest: event.dest,
+                                            ticket: event.ticket,
+                                            res: QueryStatus::Finished(ResponseType::GetPlaylist(
                                                 GetPlaylistResponse::Failure {
                                                     id: params.id,
                                                     name: params.name,
                                                     msg: e.to_string(),
                                                 },
-                                            ),
-                                        )),
-                                    )),
+                                            )),
+                                        });
+                                    }
                                 }
                             });
                         }
@@ -351,15 +344,16 @@ impl QueryWorker {
                     let c = self.lyrics.clone();
                     let tx = self.action_tx.clone();
                     tokio::spawn(async move {
-                        let res = FromQueryWorker::new(
-                            event.dest,
-                            event.ticket,
-                            ResponseType::GetLyrics(match c.search(params).await {
-                                Ok(success) => Ok(success),
-                                Err(failed) => Err(failed.to_string()),
-                            }),
-                        );
-                        let _ = tx.send(Action::ToQuery(QueryAction::FromQueryWorker(res)));
+                        let _ = tx.send(Action::FromQuery {
+                            dest: event.dest,
+                            ticket: event.ticket,
+                            res: QueryStatus::Finished(ResponseType::GetLyrics(
+                                match c.search(params).await {
+                                    Ok(success) => Ok(success),
+                                    Err(failed) => Err(failed.to_string()),
+                                },
+                            )),
+                        });
                     });
                 }
                 HighLevelQuery::GetCover(cover_id) => {
@@ -380,13 +374,15 @@ impl QueryWorker {
             let art = c.get_cover_art(cover_id.0).await;
             match art {
                 Ok(c) => match c {
-                    Err(e) => tx.send(Action::ToQuery(QueryAction::FromQueryWorker(
-                        FromQueryWorker::new(
+                    Err(e) => {
+                        let _ = tx.send(Action::FromQuery {
                             dest,
                             ticket,
-                            ResponseType::GetCover(Err(e.error.to_string())),
-                        ),
-                    ))),
+                            res: QueryStatus::Finished(ResponseType::GetCover(Err(e
+                                .error
+                                .to_string()))),
+                        });
+                    }
                     Ok(b) => {
                         fn decode_image(b: Bytes) -> Result<DynamicImage, String> {
                             let Ok(reader) = ImageReader::new(Cursor::new(b)).with_guessed_format()
@@ -398,18 +394,20 @@ impl QueryWorker {
                             };
                             Ok(decoded)
                         }
-                        tx.send(Action::ToQuery(QueryAction::FromQueryWorker(
-                            FromQueryWorker::new(
-                                dest,
-                                ticket,
-                                ResponseType::GetCover(decode_image(b)),
-                            ),
-                        )))
+                        let _ = tx.send(Action::FromQuery {
+                            dest,
+                            ticket,
+                            res: QueryStatus::Finished(ResponseType::GetCover(decode_image(b))),
+                        });
                     }
                 },
-                Err(e) => tx.send(Action::ToQuery(QueryAction::FromQueryWorker(
-                    FromQueryWorker::new(dest, ticket, ResponseType::GetCover(Err(e.to_string()))),
-                ))),
+                Err(e) => {
+                    let _ = tx.send(Action::FromQuery {
+                        dest,
+                        ticket,
+                        res: QueryStatus::Finished(ResponseType::GetCover(Err(e.to_string()))),
+                    });
+                }
             }
         });
     }
@@ -421,9 +419,10 @@ impl QueryWorker {
                 let url = c.stream_link(id.0).to_string();
                 let _ = self
                     .action_tx
-                    .send(Action::ToQuery(QueryAction::ToPlayerWorker(
-                        ToPlayerWorker::PlayURL { music: media, url },
-                    )));
+                    .send(Action::ToPlayer(ToPlayerWorker::PlayURL {
+                        music: media,
+                        url,
+                    }));
             }
             None => tracing::error!("Invalid state: Tried querying, but client does not exist!"),
         };

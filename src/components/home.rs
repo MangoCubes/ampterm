@@ -13,14 +13,17 @@ use ratatui::{layout::Rect, Frame};
 
 use crate::{
     action::action::{Action, Mode, TargetedAction},
+    compid::CompID,
     components::traits::{
         handleaction::HandleAction, handlekeyseq::PassKeySeq, handlemode::HandleMode,
-        handlequery::HandleQuery, handleraw::HandleRaw, ontick::OnTick, renderable::Renderable,
+        handleplayer::HandlePlayer, handlequery::HandleQuery, handleraw::HandleRaw, ontick::OnTick,
+        renderable::Renderable,
     },
     config::{pathconfig::PathConfig, Config},
+    playerworker::player::FromPlayerWorker,
     queryworker::{
         highlevelquery::HighLevelQuery,
-        query::{setcredential::Credential, ResponseType, ToQueryWorker},
+        query::{setcredential::Credential, QueryStatus, ResponseType, ToQueryWorker},
     },
 };
 
@@ -42,6 +45,23 @@ impl OnTick for Home {
         if let Comp::Main(main_screen) = &mut self.component {
             main_screen.on_tick();
         };
+    }
+}
+
+impl HandlePlayer for Home {
+    fn handle_player(&mut self, pw: FromPlayerWorker) -> Option<Action> {
+        todo!()
+    }
+}
+
+impl HandleQuery for Home {
+    fn handle_query(
+        &mut self,
+        dest: Vec<CompID>,
+        ticket: usize,
+        res: QueryStatus,
+    ) -> Option<Action> {
+        todo!()
     }
 }
 

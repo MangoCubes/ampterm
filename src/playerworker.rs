@@ -58,9 +58,7 @@ impl PlayerWorker {
             self.timer
                 .move_time_by(self.sink.get_pos(), self.sink.speed(), offset);
         if let Err(e) = self.sink.try_seek(sink_pos) {
-            self.send_player_msg(Action::Targeted(TargetedAction::Error(format!(
-                "Seeking failed! Reason: {e}"
-            ))));
+            self.send_err(format!("Seeking failed! Reason: {e}"));
         };
         newpos
     }
@@ -137,8 +135,8 @@ impl PlayerWorker {
             select! {
                 _ = cloned_token.cancelled() => {
                     stream_token.cancel();
-                    let _ = action_tx.send(Action::ToQuery(QueryAction::FromPlayerWorker(
-                                FromPlayerWorker::Message("Stream cancelled by user.".to_string()),
+                    let _ = action_tx.send(Action::Targeted(TargetedAction::Info(
+                                "Stream cancelled by user.".to_string()
                     )));
                     // Player does not need to do anything more, as cancellation
                     // happens only when the stream is stopped or skipped
@@ -150,9 +148,9 @@ impl PlayerWorker {
                         }
 
                         Err(e) => {
-                            let _ = action_tx.send(Action::ToQuery(
-                                        FromPlayerWorker::Error(e.to_string()),
-                            ));
+                            let _ = action_tx.send(Action::Targeted(TargetedAction::Err(
+                                        e.to_string()
+                            )));
                         }
                     }
                     // Regardless of the error occurred, move on
@@ -164,6 +162,19 @@ impl PlayerWorker {
             }
         });
         token
+    }
+
+    #[inline]
+    fn send_info(&self, msg: String) {
+        let _ = self
+            .action_tx
+            .send(Action::Targeted(TargetedAction::Info(msg)));
+    }
+    #[inline]
+    fn send_err(&self, msg: String) {
+        let _ = self
+            .action_tx
+            .send(Action::Targeted(TargetedAction::Err(msg)));
     }
 
     #[inline]
@@ -195,11 +206,9 @@ impl PlayerWorker {
                     self.send_player_msg(FromPlayerWorker::StateChange(StateType::NowPlaying(
                         Some(media.clone()),
                     )));
-                    let _ = self
-                        .action_tx
-                        .send(Action::ToQuery(QueryAction::ToQueryWorker(
-                            ToQueryWorker::new(HighLevelQuery::PlayMusicFromURL(media)),
-                        )));
+                    let _ = self.action_tx.send(Action::ToQuery(ToQueryWorker::new(
+                        HighLevelQuery::PlayMusicFromURL(media),
+                    )));
                 }
                 ToPlayerWorker::PlayURL { music: _, url } => {
                     self.sink.stop();
@@ -212,10 +221,7 @@ impl PlayerWorker {
                 }
                 ToPlayerWorker::GoToStart => {
                     if let Err(e) = self.sink.try_seek(Duration::from_secs(0)) {
-                        self.send_player_msg(FromPlayerWorker::Message(format!(
-                            "Failed to seek: {}",
-                            e
-                        )));
+                        self.send_err(format!("Failed to seek: {}", e));
                     } else {
                         self.send_player_msg(FromPlayerWorker::StateChange(StateType::Jump(
                             Duration::from_secs(0),

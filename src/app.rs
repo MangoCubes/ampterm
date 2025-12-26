@@ -13,6 +13,7 @@ use crate::{
             handleaction::HandleAction,
             handlekeyseq::{KeySeqResult, PassKeySeq},
             handlemode::HandleMode,
+            handleplayer::HandlePlayer,
             handlequery::HandleQuery,
             handleraw::HandleRaw,
             ontick::OnTick,
@@ -161,36 +162,31 @@ impl App {
                     TargetedAction::Resume => self.should_suspend = false,
                     TargetedAction::ClearScreen => tui.terminal.clear()?,
                     TargetedAction::Quit => self.should_quit = true,
-                    TargetedAction::Play => {
-                        let _ = self.player_tx.send(ToPlayerWorker::Resume);
-                    }
-                    TargetedAction::Pause => {
-                        let _ = self.player_tx.send(ToPlayerWorker::Pause);
-                    }
+                    TargetedAction::Play => self.player_tx.send(ToPlayerWorker::Resume)?,
+                    TargetedAction::Pause => self.player_tx.send(ToPlayerWorker::Pause)?,
                     TargetedAction::PlayOrPause => {
-                        let _ = self.player_tx.send(ToPlayerWorker::ResumeOrPause);
+                        self.player_tx.send(ToPlayerWorker::ResumeOrPause)?
                     }
                     TargetedAction::ChangeVolume(delta) => {
-                        let _ = self.player_tx.send(ToPlayerWorker::ChangeVolume(delta));
+                        self.player_tx.send(ToPlayerWorker::ChangeVolume(delta))?
                     }
+
                     TargetedAction::SetVolume(to) => {
-                        let _ = self.player_tx.send(ToPlayerWorker::SetVolume(to));
+                        self.player_tx.send(ToPlayerWorker::SetVolume(to))?
                     }
                     TargetedAction::ChangeSpeed(delta) => {
-                        let _ = self.player_tx.send(ToPlayerWorker::ChangeSpeed(delta));
+                        self.player_tx.send(ToPlayerWorker::ChangeSpeed(delta))?
                     }
                     TargetedAction::SetSpeed(to) => {
-                        let _ = self.player_tx.send(ToPlayerWorker::SetSpeed(to));
+                        self.player_tx.send(ToPlayerWorker::SetSpeed(to))?
                     }
                     TargetedAction::ChangePosition(by) => {
                         if let Some(more) = self.component.handle_action(targeted_action) {
                             self.action_tx.send(more)?
                         }
-                        let _ = self.player_tx.send(ToPlayerWorker::ChangePosition(by));
+                        self.player_tx.send(ToPlayerWorker::ChangePosition(by))?
                     }
-                    TargetedAction::GoToStart => {
-                        let _ = self.player_tx.send(ToPlayerWorker::GoToStart);
-                    }
+                    TargetedAction::GoToStart => self.player_tx.send(ToPlayerWorker::GoToStart)?,
                     TargetedAction::EndKeySeq => {
                         self.key_stack.drain(..);
                         if let Some(more) = self.component.handle_action(targeted_action) {
@@ -210,23 +206,17 @@ impl App {
                     self.mode = mode;
                     self.component.handle_mode(mode);
                 }
-                Action::ToQuery(query_action) => {
-                    match &query_action {
-                        QueryAction::ToPlayerWorker(to_player_worker) => {
-                            self.player_tx.send(to_player_worker.clone())?
-                        }
-                        QueryAction::ToQueryWorker(to_query_worker) => {
-                            self.query_tx.send(to_query_worker.clone())?
-                        }
-                        _ => {}
-                    }
-                    if let Some(more) = self.component.handle_query(query_action) {
-                        debug!("Got {more:?} as a response");
+                Action::ToQuery(query_action) => self.query_tx.send(query_action)?,
+                Action::ToPlayer(to_player_worker) => self.player_tx.send(to_player_worker)?,
+                Action::FromPlayer(pw) => {
+                    if let Some(more) = self.component.handle_player(pw) {
                         self.action_tx.send(more)?
                     }
                 }
-                Action::ToPlayer(to_player_worker) => {
-                    self.player_tx.send(to_player_worker);
+                Action::FromQuery { dest, ticket, res } => {
+                    if let Some(more) = self.component.handle_query(dest, ticket, res) {
+                        self.action_tx.send(more)?
+                    }
                 }
             };
         }

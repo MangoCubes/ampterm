@@ -120,8 +120,8 @@ impl Renderable for Loaded {
 
 impl HandleQuery for Loaded {
     fn handle_query(&mut self, _dest: CompID, ticket: usize, res: QueryStatus) -> Option<Action> {
-        if let Some(cb) = self.callback.remove(&ticket) {
-            if let QueryStatus::Finished(ResponseType::GetPlaylist(res)) = res {
+        if let QueryStatus::Finished(ResponseType::GetPlaylist(res)) = res {
+            if let Some(cb) = self.callback.remove(&ticket) {
                 match res {
                     GetPlaylistResponse::Success(full_playlist) => {
                         return Some(Action::Targeted(TargetedAction::Queue(if cb.2 {

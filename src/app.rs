@@ -22,7 +22,10 @@ use crate::{
     },
     config::Config,
     playerworker::player::ToPlayerWorker,
-    queryworker::{highlevelquery::HighLevelQuery, query::ToQueryWorker},
+    queryworker::{
+        highlevelquery::HighLevelQuery,
+        query::{QueryStatus, ToQueryWorker},
+    },
     tui::{Event, Tui},
 };
 
@@ -206,7 +209,18 @@ impl App {
                     self.mode = mode;
                     self.component.handle_mode(mode);
                 }
-                Action::ToQuery(query_action) => self.query_tx.send(query_action)?,
+                Action::ToQuery(t) => {
+                    for d in &t.dest {
+                        if let Some(more) = self.component.handle_query(
+                            d.clone(),
+                            t.ticket,
+                            QueryStatus::Requested(t.query.clone()),
+                        ) {
+                            self.action_tx.send(more)?
+                        }
+                    }
+                    self.query_tx.send(t)?
+                }
                 Action::ToPlayer(to_player_worker) => self.player_tx.send(to_player_worker)?,
                 Action::FromPlayer(pw) => {
                     if let Some(more) = self.component.handle_player(pw) {

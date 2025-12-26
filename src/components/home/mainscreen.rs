@@ -144,6 +144,14 @@ impl PassKeySeq for MainScreen {
         if matches!(res, Some(_)) {
             self.key_stack.drain(..);
         };
+        if let Some(KeySeqResult::ActionNeeded(Action::ToQuery(ToQueryWorker {
+            dest: _,
+            ticket,
+            query,
+        }))) = &res
+        {
+            self.tasks.register_task(ticket, query);
+        }
         res
     }
 }
@@ -293,7 +301,10 @@ impl HandleQuery for MainScreen {
         let action = match dest {
             CompID::PlaylistList => self.pl_list.handle_query(dest, ticket, res),
             CompID::PlaylistQueue => self.pl_queue.handle_query(dest, ticket, res),
-            CompID::NowPlaying => self.now_playing.handle_query(dest, ticket, res),
+            CompID::NowPlaying | CompID::Lyrics | CompID::ImageComp => {
+                self.now_playing.handle_query(dest, ticket, res)
+            }
+            CompID::PlayQueue => self.playqueue.handle_query(dest, ticket, res),
             _ => unreachable!(),
         };
         self.track_task(action)

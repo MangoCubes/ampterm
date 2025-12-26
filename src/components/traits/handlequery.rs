@@ -4,10 +4,5 @@ use crate::{
 };
 
 pub trait HandleQuery: Renderable {
-    fn handle_query(
-        &mut self,
-        dest: Vec<CompID>,
-        ticket: usize,
-        res: QueryStatus,
-    ) -> Option<Action>;
+    fn handle_query(&mut self, dest: CompID, ticket: usize, res: QueryStatus) -> Option<Action>;
 }

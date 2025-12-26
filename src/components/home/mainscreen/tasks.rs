@@ -9,12 +9,31 @@ use ratatui::{
     Frame,
 };
 
-use crate::{components::traits::renderable::Renderable, queryworker::query::ToQueryWorker};
+use crate::{
+    components::traits::renderable::Renderable,
+    queryworker::{highlevelquery::HighLevelQuery, query::QueryStatus},
+};
+
+#[derive(Clone)]
+enum Status {
+    Running,
+    Failed,
+}
+
+impl ToString for Status {
+    fn to_string(&self) -> String {
+        match self {
+            Status::Running => "Running",
+            Status::Failed => "Failed!",
+        }
+        .to_string()
+    }
+}
 
 pub struct Tasks {
     border: Block<'static>,
     table: Table<'static>,
-    tasks: HashMap<usize, ToQueryWorker>,
+    tasks: HashMap<usize, (String, Status)>,
     show_internal: bool,
 }
 
@@ -42,34 +61,20 @@ impl Tasks {
             .tasks
             .clone()
             .into_iter()
-            .map(|(id, t)| {
-                Row::new(vec![
-                    id.to_string(),
-                    t.query.to_string(),
-                    "Running".to_string(),
-                ])
-            })
+            .map(|(id, (msg, status))| Row::new(vec![id.to_string(), msg, status.to_string()]))
             .collect();
         rows.insert(0, Row::new(vec!["ID", "Task", "Status"]));
         rows
     }
 
-    pub fn register_task(&mut self, task: ToQueryWorker) {
-        if !task.query.has_reply() {
-            return;
-        }
-        if task.query.is_internal() && !self.show_internal {
-            return;
-        }
-        self.tasks.insert(task.ticket, task);
-        self.table = Table::new(
-            self.gen_rows(),
-            [Constraint::Max(4), Constraint::Min(1), Constraint::Max(10)],
-        );
-    }
-
-    pub fn unregister_task(&mut self, task: &FromQueryWorker) {
-        self.tasks.remove(&task.ticket);
+    pub fn update_task(&mut self, ticket: &usize, status: &QueryStatus) {
+        match status {
+            QueryStatus::Requested | QueryStatus::Started => {}
+            QueryStatus::Cached(_) | QueryStatus::Finished(_) => {
+                self.tasks.remove(ticket);
+            }
+            QueryStatus::Aborted => todo!(),
+        };
         self.table = Table::new(
             self.gen_rows(),
             [Constraint::Max(4), Constraint::Min(1), Constraint::Max(10)],
@@ -78,6 +83,11 @@ impl Tasks {
 
     pub fn get_task_count(&self) -> usize {
         self.tasks.len()
+    }
+
+    pub fn register_task(&mut self, ticket: &usize, query: &HighLevelQuery) {
+        self.tasks
+            .insert(*ticket, (query.to_string(), Status::Running));
     }
 }
 

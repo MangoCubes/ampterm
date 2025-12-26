@@ -214,8 +214,12 @@ impl App {
                     }
                 }
                 Action::FromQuery { dest, ticket, res } => {
-                    if let Some(more) = self.component.handle_query(dest, ticket, res) {
-                        self.action_tx.send(more)?
+                    let more_actions: Vec<Action> = dest
+                        .into_iter()
+                        .filter_map(|c| self.component.handle_query(c, ticket, res.clone()))
+                        .collect();
+                    for a in more_actions {
+                        self.action_tx.send(a)?
                     }
                 }
             };

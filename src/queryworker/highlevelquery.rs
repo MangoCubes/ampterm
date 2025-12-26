@@ -72,13 +72,6 @@ impl HighLevelQuery {
                 | HighLevelQuery::Tick
         )
     }
-
-    pub fn has_reply(&self) -> bool {
-        !matches!(
-            self,
-            HighLevelQuery::PlayMusicFromURL(_) | HighLevelQuery::Tick
-        )
-    }
 }
 
 impl ToString for HighLevelQuery {

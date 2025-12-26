@@ -103,8 +103,13 @@ impl HandlePlayer for NowPlaying {
                     None
                 }
             }
-            FromPlayerWorker::Jump(duration) => todo!(),
-            FromPlayerWorker::Position(duration) => todo!(),
+            FromPlayerWorker::Jump(_) | FromPlayerWorker::Position(_) => {
+                if let Comp::Playing(playing) = &mut self.comp {
+                    playing.handle_player(pw)
+                } else {
+                    None
+                }
+            }
             FromPlayerWorker::NowPlaying(media) => match media {
                 Some(n) => {
                     if let Comp::Playing(comp) = &mut self.comp {
@@ -132,6 +137,7 @@ impl HandlePlayer for NowPlaying {
                     None
                 }
             }
+            FromPlayerWorker::Finished => None,
         }
     }
 }

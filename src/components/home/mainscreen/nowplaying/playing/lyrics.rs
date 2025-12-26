@@ -5,18 +5,23 @@ use ratatui::{prelude::Rect, Frame};
 
 use crate::{
     action::action::Action,
+    compid::CompID,
     components::{
         home::mainscreen::nowplaying::playing::lyrics::{synced::Synced, unsynced::Unsynced},
         lib::centered::Centered,
         traits::{
             handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult, PassKeySeq},
+            handlequery::HandleQuery,
             renderable::Renderable,
         },
     },
     config::Config,
     lyricsclient::getlyrics::{GetLyricsParams, GetLyricsResponse},
     osclient::response::getplaylist::Media,
-    queryworker::{highlevelquery::HighLevelQuery, query::ToQueryWorker},
+    queryworker::{
+        highlevelquery::HighLevelQuery,
+        query::{QueryStatus, ResponseType, ToQueryWorker},
+    },
 };
 
 mod synced;
@@ -103,6 +108,15 @@ impl Lyrics {
             ticket,
             Centered::new(vec![format!("Searching for lyrics for {}...", title)]),
         );
+    }
+}
+
+impl HandleQuery for Lyrics {
+    fn handle_query(&mut self, _dest: CompID, ticket: usize, res: QueryStatus) -> Option<Action> {
+        if let QueryStatus::Finished(ResponseType::GetLyrics(lyrics)) = res {
+            self.handle_lyrics(ticket, lyrics);
+        };
+        None
     }
 }
 

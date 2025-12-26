@@ -4,10 +4,12 @@ use std::time::Duration;
 
 use crate::{
     action::action::Action,
+    compid::CompID,
     components::{
         home::mainscreen::nowplaying::playing::{imagecomp::ImageComp, lyrics::Lyrics},
         traits::{
             handlekeyseq::{ComponentKeyHelp, KeySeqResult, PassKeySeq},
+            handleplayer::HandlePlayer,
             handlequery::HandleQuery,
             renderable::Renderable,
         },
@@ -15,8 +17,8 @@ use crate::{
     config::Config,
     helper::strings::trim_long_str,
     osclient::response::getplaylist::Media,
-    playerworker::player::{FromPlayerWorker, StateType},
-    queryworker::query::{getcoverart::CoverID, ResponseType},
+    playerworker::player::FromPlayerWorker,
+    queryworker::query::{getcoverart::CoverID, QueryStatus},
     trace_dbg,
 };
 use crossterm::event::KeyEvent;
@@ -97,6 +99,28 @@ impl Playing {
     }
 }
 
+impl HandlePlayer for Playing {
+    fn handle_player(&mut self, pw: FromPlayerWorker) -> Option<Action> {
+        match pw {
+            FromPlayerWorker::Jump(pos) | FromPlayerWorker::Position(pos) => {
+                self.pos = pos;
+                if let Some(l) = &mut self.lyrics {
+                    l.set_pos(self.pos);
+                }
+            }
+            FromPlayerWorker::NowPlaying(Some(media)) => {
+                self.pos = Duration::from_secs(0);
+                self.music = media.clone();
+            }
+            FromPlayerWorker::Playing(p) => {
+                self.playing = p;
+            }
+            _ => {}
+        };
+        None
+    }
+}
+
 impl PassKeySeq for Playing {
     fn handle_key_seq(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
         if let Some(c) = &mut self.lyrics {
@@ -116,36 +140,24 @@ impl PassKeySeq for Playing {
 }
 
 impl HandleQuery for Playing {
-    fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
-        if let QueryAction::FromQueryWorker(res) = action {
-            if let ResponseType::GetCover(d) = res.res {
-                if let Some(cover) = &mut self.cover {
-                    cover.set_image(res.ticket, d);
-                }
-            } else if let ResponseType::GetLyrics(lyrics) = res.res {
-                if let Some(c) = &mut self.lyrics {
-                    c.handle_lyrics(res.ticket, lyrics);
+    fn handle_query(&mut self, dest: CompID, ticket: usize, res: QueryStatus) -> Option<Action> {
+        match dest {
+            CompID::ImageComp => {
+                if let Some(i) = &mut self.cover {
+                    i.handle_query(dest, ticket, res)
+                } else {
+                    None
                 }
             }
-        } else if let QueryAction::FromPlayerWorker(FromPlayerWorker::StateChange(s)) = action {
-            match s {
-                StateType::Jump(pos) | StateType::Position(pos) => {
-                    self.pos = pos;
-                    if let Some(l) = &mut self.lyrics {
-                        l.set_pos(self.pos);
-                    }
+            CompID::Lyrics => {
+                if let Some(l) = &mut self.lyrics {
+                    l.handle_query(dest, ticket, res)
+                } else {
+                    None
                 }
-                StateType::NowPlaying(Some(media)) => {
-                    self.pos = Duration::from_secs(0);
-                    self.music = media.clone();
-                }
-                StateType::Playing(p) => {
-                    self.playing = p;
-                }
-                _ => {}
-            };
-        };
-        None
+            }
+            _ => unreachable!(),
+        }
     }
 }
 

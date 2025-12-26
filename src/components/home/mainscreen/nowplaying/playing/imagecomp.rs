@@ -1,9 +1,13 @@
 use crate::{
     action::action::Action,
-    components::{lib::centered::Centered, traits::renderable::Renderable},
+    compid::CompID,
+    components::{
+        lib::centered::Centered,
+        traits::{handlequery::HandleQuery, renderable::Renderable},
+    },
     queryworker::{
         highlevelquery::HighLevelQuery,
-        query::{getcoverart::CoverID, ToQueryWorker},
+        query::{getcoverart::CoverID, QueryStatus, ResponseType, ToQueryWorker},
     },
 };
 use image::DynamicImage;
@@ -75,6 +79,15 @@ impl ImageComp {
         };
         let image = self.picker.new_resize_protocol(decoded);
         self.state = State::Loaded(image);
+    }
+}
+
+impl HandleQuery for ImageComp {
+    fn handle_query(&mut self, _dest: CompID, ticket: usize, res: QueryStatus) -> Option<Action> {
+        if let QueryStatus::Finished(ResponseType::GetCover(d)) = res {
+            self.set_image(ticket, d);
+        };
+        None
     }
 }
 

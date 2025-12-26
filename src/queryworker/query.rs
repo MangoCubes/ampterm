@@ -55,7 +55,7 @@ pub enum QueryStatus {
     /// Query has been received by the QueryWorker
     Requested(HighLevelQuery),
     /// Query has been aborted
-    Aborted,
+    Aborted(bool),
     /// Query has been finished with external resources
     Finished(ResponseType),
 }

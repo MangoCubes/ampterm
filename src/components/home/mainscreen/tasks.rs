@@ -69,9 +69,13 @@ impl Tasks {
             QueryStatus::Finished(_) => {
                 self.tasks.remove(ticket);
             }
-            QueryStatus::Aborted => {
+            QueryStatus::Aborted(cancelled) => {
                 if let Some((_, status)) = self.tasks.get_mut(ticket) {
-                    *status = Status::Failed;
+                    if *cancelled {
+                        self.tasks.remove(ticket);
+                    } else {
+                        *status = Status::Failed;
+                    }
                 }
             }
             QueryStatus::Requested(q) => {

@@ -34,11 +34,22 @@ struct AwaitingQueries {
 }
 
 impl AwaitingQueries {
-    pub fn play_from_url(&mut self, media: Media) {
+    pub fn register_play_from_url(&mut self, media: Media) {
         self.play_from_url = Some((media, 2));
     }
-    pub fn get_cover(&mut self, compid: Vec<CompID>, ticket: usize, id: CoverID) {
+    pub fn register_get_cover(
+        &mut self,
+        compid: Vec<CompID>,
+        ticket: usize,
+        id: CoverID,
+    ) -> Option<usize> {
+        let ret = if let Some((_, ticket, _, _)) = self.get_cover {
+            Some(ticket)
+        } else {
+            None
+        };
         self.get_cover = Some((compid, ticket, id, 2));
+        ret
     }
 }
 
@@ -338,7 +349,7 @@ impl QueryWorker {
                     };
                 }
                 HighLevelQuery::PlayMusicFromURL(media) => {
-                    self.awaiting.play_from_url(media);
+                    self.awaiting.register_play_from_url(media);
                 }
                 HighLevelQuery::GetLyrics(params) => {
                     let c = self.lyrics.clone();
@@ -357,7 +368,16 @@ impl QueryWorker {
                     });
                 }
                 HighLevelQuery::GetCover(cover_id) => {
-                    self.awaiting.get_cover(event.dest, event.ticket, cover_id);
+                    if let Some(prev) =
+                        self.awaiting
+                            .register_get_cover(event.dest.clone(), event.ticket, cover_id)
+                    {
+                        let _ = self.action_tx.send(Action::FromQuery {
+                            dest: event.dest,
+                            ticket: prev,
+                            res: QueryStatus::Aborted(true),
+                        });
+                    }
                 }
                 HighLevelQuery::Tick => self.on_tick(),
             };

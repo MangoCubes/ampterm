@@ -51,16 +51,6 @@ pub enum ToPlayerWorker {
     Tick,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum StateType {
-    Playing(bool),
-    Jump(Duration),
-    Position(Duration),
-    NowPlaying(Option<Media>),
-    Volume(f32),
-    Speed(f32),
-}
-
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum PlayOrder {
     Normal,
@@ -70,7 +60,11 @@ pub enum PlayOrder {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum FromPlayerWorker {
-    /// Send current state of the player
-    StateChange(StateType),
+    Playing(bool),
+    Jump(Duration),
+    Position(Duration),
+    NowPlaying(Option<Media>),
+    Volume(f32),
+    Speed(f32),
     Finished,
 }

@@ -19,7 +19,7 @@ use crate::{
             focusable::Focusable,
             handleaction::HandleAction,
             handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult},
-            handlequery::HandleQuery,
+            handleplayer::HandlePlayer,
             renderable::Renderable,
         },
     },
@@ -334,11 +334,12 @@ impl Renderable for PlayQueue {
     }
 }
 
-impl HandleQuery for PlayQueue {
-    fn handle_query(&mut self, action: crate::action::action::QueryAction) -> Option<Action> {
-        match action {
-            QueryAction::FromPlayerWorker(FromPlayerWorker::Finished) => Some(self.skip(1)),
-            _ => None,
+impl HandlePlayer for PlayQueue {
+    fn handle_player(&mut self, pw: FromPlayerWorker) -> Option<Action> {
+        if let FromPlayerWorker::Finished = pw {
+            Some(self.skip(1))
+        } else {
+            None
         }
     }
 }

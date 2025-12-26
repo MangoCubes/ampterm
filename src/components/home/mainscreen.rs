@@ -271,8 +271,10 @@ impl Renderable for MainScreen {
 
 impl HandlePlayer for MainScreen {
     fn handle_player(&mut self, pw: FromPlayerWorker) -> Option<Action> {
-        let now_playing = self.track_task(self.now_playing.handle_player(pw.clone()));
-        let playqueue = self.track_task(self.playqueue.handle_player(pw));
+        let a = self.now_playing.handle_player(pw.clone());
+        let now_playing = self.track_task(a);
+        let b = self.playqueue.handle_player(pw);
+        let playqueue = self.track_task(b);
         if let Some(a) = now_playing {
             if let Some(b) = playqueue {
                 Some(Action::Multiple(vec![a, b]))
@@ -291,7 +293,6 @@ impl HandleQuery for MainScreen {
         let action = match dest {
             CompID::PlaylistList => self.pl_list.handle_query(dest, ticket, res),
             CompID::PlaylistQueue => self.pl_queue.handle_query(dest, ticket, res),
-            CompID::PlayQueue => self.playqueue.handle_query(dest, ticket, res),
             CompID::NowPlaying => self.now_playing.handle_query(dest, ticket, res),
             _ => unreachable!(),
         };

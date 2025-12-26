@@ -23,6 +23,5 @@ pub enum CompID {
     MainScreen,
     PlaylistList,
     PlaylistQueue,
-    PlayQueue,
     NowPlaying,
 }

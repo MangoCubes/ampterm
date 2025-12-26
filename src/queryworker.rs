@@ -12,13 +12,12 @@ use crate::lyricsclient::lrclib::LrcLib;
 use crate::lyricsclient::LyricsClient;
 use crate::osclient::response::empty::Empty;
 use crate::osclient::response::getplaylist::{GetPlaylist, IndeterminedPlaylist, Media};
-use crate::osclient::response::getplaylists::GetPlaylists;
+use crate::osclient::response::getplaylists::{GetPlaylists, SimplePlaylist};
 use crate::osclient::OSClient;
 use crate::playerworker::player::ToPlayerWorker;
 use crate::queryworker::highlevelquery::HighLevelQuery;
 use crate::queryworker::query::getcoverart::CoverID;
 use crate::queryworker::query::getplaylist::GetPlaylistResponse;
-use crate::queryworker::query::getplaylists::GetPlaylistsResponse;
 use crate::queryworker::query::setcredential::Credential;
 use crate::queryworker::query::{QueryStatus, ResponseType};
 use crate::trace_dbg;
@@ -104,13 +103,13 @@ impl QueryWorker {
         }
     }
 
-    pub async fn get_playlists(c: Arc<OSClient>) -> GetPlaylistsResponse {
+    pub async fn get_playlists(c: Arc<OSClient>) -> Result<Vec<SimplePlaylist>, String> {
         match c.get_playlists().await {
             Ok(r) => match r {
-                GetPlaylists::Ok { playlists } => GetPlaylistsResponse::Success(playlists.playlist),
-                GetPlaylists::Failed { error } => GetPlaylistsResponse::Failure(error.to_string()),
+                GetPlaylists::Ok { playlists } => Ok(playlists.playlist),
+                GetPlaylists::Failed { error } => Err(error.to_string()),
             },
-            Err(e) => GetPlaylistsResponse::Failure(e.to_string()),
+            Err(e) => Err(e.to_string()),
         }
     }
 

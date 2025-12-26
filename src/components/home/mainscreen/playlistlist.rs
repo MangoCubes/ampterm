@@ -15,7 +15,7 @@ use crate::{
         },
     },
     config::Config,
-    queryworker::query::{getplaylists::GetPlaylistsResponse, QueryStatus, ResponseType},
+    queryworker::query::{QueryStatus, ResponseType},
 };
 use crossterm::event::KeyEvent;
 use ratatui::{
@@ -81,11 +81,11 @@ impl HandleQuery for PlaylistList {
     fn handle_query(&mut self, dest: CompID, ticket: usize, res: QueryStatus) -> Option<Action> {
         if let QueryStatus::Finished(ResponseType::GetPlaylists(res)) = res {
             match res {
-                GetPlaylistsResponse::Success(simple_playlists) => {
+                Ok(simple_playlists) => {
                     self.comp =
                         Comp::Loaded(Loaded::new(self.config.clone(), simple_playlists.clone()));
                 }
-                GetPlaylistsResponse::Failure(error) => {
+                Err(error) => {
                     self.comp = Comp::Error(Error::new(error.clone()));
                 }
             }

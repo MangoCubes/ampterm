@@ -13,6 +13,7 @@ use crate::{
         action::{Action, QueueAction, TargetedAction},
         localaction::PlayQueueAction,
     },
+    compid::CompID,
     components::{
         lib::visualtable::{VisualSelection, VisualTable},
         traits::{
@@ -20,6 +21,7 @@ use crate::{
             handleaction::HandleAction,
             handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult},
             handleplayer::HandlePlayer,
+            handlequery::HandleQuery,
             renderable::Renderable,
         },
     },
@@ -29,7 +31,7 @@ use crate::{
     playerworker::player::{FromPlayerWorker, QueueLocation, ToPlayerWorker},
     queryworker::{
         highlevelquery::HighLevelQuery,
-        query::{getplaylist::MediaID, ToQueryWorker},
+        query::{getplaylist::MediaID, QueryStatus, ToQueryWorker},
     },
 };
 
@@ -100,7 +102,7 @@ impl PlayQueue {
             now_playing: CurrentItem::InQueue(0),
         }
     }
-    pub fn set_star(&mut self, media: &MediaID, star: bool) -> Option<Action> {
+    pub fn set_star(&mut self, media: &MediaID, star: bool) {
         self.list.0 = self
             .list
             .0
@@ -118,7 +120,6 @@ impl PlayQueue {
             })
             .collect();
         self.regen_rows();
-        None
     }
 
     /// Regenerate all rows based on the current state, and rerender the table in full
@@ -483,5 +484,14 @@ impl Focusable for PlayQueue {
         } else {
             self.table.disable_visual_discard();
         }
+    }
+}
+
+impl HandleQuery for PlayQueue {
+    fn handle_query(&mut self, _dest: CompID, _ticket: usize, res: QueryStatus) -> Option<Action> {
+        if let QueryStatus::Requested(HighLevelQuery::SetStar { media, star }) = res {
+            self.set_star(&media, star);
+        }
+        None
     }
 }

@@ -10,15 +10,17 @@ use ratatui::{
 
 use crate::{
     action::{
-        action::{Action, QueryAction, QueueAction, TargetedAction},
+        action::{Action, QueueAction, TargetedAction},
         localaction::PlayQueueAction,
     },
+    compid::CompID,
     components::{
         lib::visualtable::{VisualSelection, VisualTable},
         traits::{
             focusable::Focusable,
             handleaction::HandleAction,
             handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult},
+            handleplayer::HandlePlayer,
             handlequery::HandleQuery,
             renderable::Renderable,
         },
@@ -29,7 +31,7 @@ use crate::{
     playerworker::player::{FromPlayerWorker, QueueLocation, ToPlayerWorker},
     queryworker::{
         highlevelquery::HighLevelQuery,
-        query::{getplaylist::MediaID, ToQueryWorker},
+        query::{getplaylist::MediaID, QueryStatus, ToQueryWorker},
     },
 };
 
@@ -100,7 +102,7 @@ impl PlayQueue {
             now_playing: CurrentItem::InQueue(0),
         }
     }
-    pub fn set_star(&mut self, media: &MediaID, star: bool) -> Option<Action> {
+    pub fn set_star(&mut self, media: &MediaID, star: bool) {
         self.list.0 = self
             .list
             .0
@@ -118,7 +120,6 @@ impl PlayQueue {
             })
             .collect();
         self.regen_rows();
-        None
     }
 
     /// Regenerate all rows based on the current state, and rerender the table in full
@@ -132,28 +133,20 @@ impl PlayQueue {
             CurrentItem::NotInQueue(idx) => {
                 self.now_playing = CurrentItem::InQueue(idx + 1);
                 match self.list.0.get(idx + 1) {
-                    Some(m) => {
-                        Action::Query(QueryAction::ToPlayerWorker(ToPlayerWorker::PlayMedia {
-                            media: m.clone(),
-                        }))
-                    }
-                    None => Action::Query(QueryAction::ToPlayerWorker(ToPlayerWorker::Stop)),
+                    Some(m) => Action::ToPlayer(ToPlayerWorker::PlayMedia { media: m.clone() }),
+                    None => Action::ToPlayer(ToPlayerWorker::Stop),
                 }
             }
             CurrentItem::InQueue(idx) => {
                 self.now_playing = CurrentItem::InQueue(idx);
                 match self.list.0.get(idx) {
-                    Some(m) => {
-                        Action::Query(QueryAction::ToPlayerWorker(ToPlayerWorker::PlayMedia {
-                            media: m.clone(),
-                        }))
-                    }
-                    None => Action::Query(QueryAction::ToPlayerWorker(ToPlayerWorker::Stop)),
+                    Some(m) => Action::ToPlayer(ToPlayerWorker::PlayMedia { media: m.clone() }),
+                    None => Action::ToPlayer(ToPlayerWorker::Stop),
                 }
             }
             _ => {
                 self.now_playing = to;
-                Action::Query(QueryAction::ToPlayerWorker(ToPlayerWorker::Stop))
+                Action::ToPlayer(ToPlayerWorker::Stop)
             }
         };
         self.regen_rows();
@@ -342,11 +335,12 @@ impl Renderable for PlayQueue {
     }
 }
 
-impl HandleQuery for PlayQueue {
-    fn handle_query(&mut self, action: crate::action::action::QueryAction) -> Option<Action> {
-        match action {
-            QueryAction::FromPlayerWorker(FromPlayerWorker::Finished) => Some(self.skip(1)),
-            _ => None,
+impl HandlePlayer for PlayQueue {
+    fn handle_player(&mut self, pw: FromPlayerWorker) -> Option<Action> {
+        if let FromPlayerWorker::Finished = pw {
+            Some(self.skip(1))
+        } else {
+            None
         }
     }
 }
@@ -451,9 +445,10 @@ impl HandleKeySeq<PlayQueueAction> for PlayQueue {
                 .into_iter()
                 .map(|(id, star)| {
                     self.set_star(&id, star);
-                    Action::Query(QueryAction::ToQueryWorker(ToQueryWorker::new(
-                        HighLevelQuery::SetStar { media: id, star },
-                    )))
+                    Action::ToQuery(ToQueryWorker::new(HighLevelQuery::SetStar {
+                        media: id,
+                        star,
+                    }))
                 })
                 .collect();
 
@@ -489,5 +484,14 @@ impl Focusable for PlayQueue {
         } else {
             self.table.disable_visual_discard();
         }
+    }
+}
+
+impl HandleQuery for PlayQueue {
+    fn handle_query(&mut self, _dest: CompID, _ticket: usize, res: QueryStatus) -> Option<Action> {
+        if let QueryStatus::Requested(HighLevelQuery::SetStar { media, star }) = res {
+            self.set_star(&media, star);
+        }
+        None
     }
 }

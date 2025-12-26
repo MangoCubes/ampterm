@@ -1,7 +1,5 @@
-use std::thread::sleep_ms;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
-use libc::usleep;
 use reqwest::Url;
 use stream_download::http::HttpStream;
 use stream_download::source::SourceStream;
@@ -9,8 +7,7 @@ use stream_download::storage::temp::TempStorageProvider;
 use stream_download::{Settings, StreamDownload, StreamPhase};
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::action::action::{Action, QueryAction};
-use crate::playerworker::player::FromPlayerWorker;
+use crate::action::action::{Action, TargetedAction};
 
 use super::streamerror::StreamError;
 
@@ -54,9 +51,7 @@ impl StreamReader {
                 }
                 _ => String::default(),
             };
-            action_tx.send(Action::Query(QueryAction::FromPlayerWorker(
-                FromPlayerWorker::Message(msg),
-            )));
+            action_tx.send(Action::Targeted(TargetedAction::Info(msg)));
         });
         match StreamDownload::new_http(url, TempStorageProvider::new(), settings).await {
             Ok(reader) => Ok(reader),

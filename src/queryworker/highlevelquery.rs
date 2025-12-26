@@ -58,8 +58,8 @@ impl HighLevelQuery {
             HighLevelQuery::SetStar { media: _, star: _ } => {
                 vec![CompID::PlaylistQueue, CompID::PlayQueue]
             }
-            HighLevelQuery::GetLyrics(_) => vec![CompID::NowPlaying],
-            HighLevelQuery::GetCover(_) => vec![CompID::NowPlaying],
+            HighLevelQuery::GetLyrics(_) => vec![CompID::Lyrics],
+            HighLevelQuery::GetCover(_) => vec![CompID::ImageComp],
             HighLevelQuery::Tick => vec![],
         }
     }
@@ -70,13 +70,6 @@ impl HighLevelQuery {
             HighLevelQuery::PlayMusicFromURL(_)
                 | HighLevelQuery::SetCredential(_)
                 | HighLevelQuery::Tick
-        )
-    }
-
-    pub fn has_reply(&self) -> bool {
-        !matches!(
-            self,
-            HighLevelQuery::PlayMusicFromURL(_) | HighLevelQuery::Tick
         )
     }
 }

@@ -1,8 +1,5 @@
 use crate::{
-    action::{
-        action::{Action, QueryAction},
-        localaction::PlaylistQueueAction,
-    },
+    action::{action::Action, localaction::PlaylistQueueAction},
     components::{
         home::mainscreen::playlistqueue::PlaylistQueue,
         lib::centered::Centered,
@@ -59,14 +56,12 @@ impl HandleKeySeq<PlaylistQueueAction> for Error {
     }
     fn handle_local_action(&mut self, action: PlaylistQueueAction) -> KeySeqResult {
         match action {
-            PlaylistQueueAction::Refresh => {
-                KeySeqResult::ActionNeeded(Action::Query(QueryAction::ToQueryWorker(
-                    ToQueryWorker::new(HighLevelQuery::SelectPlaylist(GetPlaylistParams {
-                        name: self.name.clone(),
-                        id: self.id.clone(),
-                    })),
-                )))
-            }
+            PlaylistQueueAction::Refresh => KeySeqResult::ActionNeeded(Action::ToQuery(
+                ToQueryWorker::new(HighLevelQuery::SelectPlaylist(GetPlaylistParams {
+                    name: self.name.clone(),
+                    id: self.id.clone(),
+                })),
+            )),
             _ => KeySeqResult::NoActionNeeded,
         }
     }

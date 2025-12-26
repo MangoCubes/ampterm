@@ -7,7 +7,7 @@ mod playqueue;
 mod tasks;
 
 use crate::{
-    action::action::{Action, Mode, QueryAction, TargetedAction},
+    action::action::{Action, Mode, TargetedAction},
     compid::CompID,
     components::{
         home::mainscreen::{bpmtoy::BPMToy, help::Help, tasks::Tasks},
@@ -16,6 +16,7 @@ use crate::{
             handleaction::HandleAction,
             handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult, PassKeySeq},
             handlemode::HandleMode,
+            handleplayer::HandlePlayer,
             handlequery::HandleQuery,
             handleraw::HandleRaw,
             ontick::OnTick,
@@ -24,7 +25,10 @@ use crate::{
     },
     config::{keyparser::KeyParser, Config},
     playerworker::player::FromPlayerWorker,
-    queryworker::{highlevelquery::HighLevelQuery, query::ToQueryWorker},
+    queryworker::{
+        highlevelquery::HighLevelQuery,
+        query::{QueryStatus, ToQueryWorker},
+    },
 };
 use crossterm::event::KeyEvent;
 use nowplaying::NowPlaying;
@@ -86,6 +90,19 @@ impl HandleMode for MainScreen {
         self.current_mode = mode;
     }
 }
+
+// For every function that returns Option<Action>, the following code must be added to ensure all
+// tasks are correctly tracked by the task viewer.
+//
+// if let Some(Action::ToQuery(ToQueryWorker {
+//     dest: _,
+//     ticket,
+//     query,
+// })) = &action
+// {
+//     self.tasks.register_task(ticket, query);
+// }
+// action
 
 impl HandleRaw for MainScreen {
     fn handle_raw(&mut self, key: KeyEvent) -> Option<Action> {
@@ -156,9 +173,7 @@ impl MainScreen {
                 help: Help::new(config),
             },
             Action::Multiple(vec![
-                Action::Query(QueryAction::ToQueryWorker(ToQueryWorker::new(
-                    HighLevelQuery::ListPlaylists,
-                ))),
+                Action::ToQuery(ToQueryWorker::new(HighLevelQuery::ListPlaylists)),
                 Action::ChangeMode(Mode::Normal),
             ]),
         )
@@ -242,64 +257,33 @@ impl Renderable for MainScreen {
     }
 }
 
+impl HandlePlayer for MainScreen {
+    fn handle_player(&mut self, pw: FromPlayerWorker) -> Option<Action> {
+        let now_playing = self.now_playing.handle_player(pw.clone());
+        let playqueue = self.playqueue.handle_player(pw);
+        if let Some(a) = now_playing {
+            if let Some(b) = playqueue {
+                Some(Action::Multiple(vec![a, b]))
+            } else {
+                Some(a)
+            }
+        } else {
+            playqueue
+        }
+    }
+}
+
 impl HandleQuery for MainScreen {
-    fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
-        match action {
-            QueryAction::ToQueryWorker(ref req) => {
-                let _ = self.tasks.register_task(req.clone());
-                let mut results = vec![];
-
-                for dest in &req.dest {
-                    let res = match dest {
-                        CompID::PlaylistList => self.pl_list.handle_query(action.clone()),
-                        CompID::PlaylistQueue => self.pl_queue.handle_query(action.clone()),
-                        CompID::PlayQueue => self.playqueue.handle_query(action.clone()),
-                        CompID::NowPlaying => self.now_playing.handle_query(action.clone()),
-                        _ => unreachable!("Action propagated to nonexistent component: {:?}", dest),
-                    };
-                    if let Some(a) = res {
-                        results.push(a);
-                    }
-                }
-                Some(Action::Multiple(results))
+    fn handle_query(&mut self, dest: CompID, ticket: usize, res: QueryStatus) -> Option<Action> {
+        self.tasks.update_task(&ticket, &res);
+        match dest {
+            CompID::PlaylistList => self.pl_list.handle_query(dest, ticket, res),
+            CompID::PlaylistQueue => self.pl_queue.handle_query(dest, ticket, res),
+            CompID::NowPlaying | CompID::Lyrics | CompID::ImageComp => {
+                self.now_playing.handle_query(dest, ticket, res)
             }
-            QueryAction::FromQueryWorker(ref res) => {
-                let _ = self.tasks.unregister_task(&res);
-                let mut results = vec![];
-
-                for dest in &res.dest {
-                    let res = match dest {
-                        CompID::PlaylistList => self.pl_list.handle_query(action.clone()),
-                        CompID::PlaylistQueue => self.pl_queue.handle_query(action.clone()),
-                        CompID::PlayQueue => self.playqueue.handle_query(action.clone()),
-                        CompID::NowPlaying => self.now_playing.handle_query(action.clone()),
-                        _ => unreachable!("Action propagated to nonexistent component: {:?}", dest),
-                    };
-                    if let Some(a) = res {
-                        results.push(a);
-                    }
-                }
-                Some(Action::Multiple(results))
-            }
-            QueryAction::FromPlayerWorker(ref pw) => match pw {
-                FromPlayerWorker::StateChange(_) => {
-                    let results: Vec<Action> = [
-                        self.now_playing.handle_query(action.clone()),
-                        self.playqueue.handle_query(action),
-                    ]
-                    .into_iter()
-                    .filter_map(|a| a)
-                    .collect();
-
-                    Some(Action::Multiple(results))
-                }
-                FromPlayerWorker::Error(msg) | FromPlayerWorker::Message(msg) => {
-                    self.message = msg.clone();
-                    None
-                }
-                FromPlayerWorker::Finished => self.playqueue.handle_query(action),
-            },
-            _ => None,
+            CompID::PlayQueue => self.playqueue.handle_query(dest, ticket, res),
+            _ => unreachable!(),
         }
     }
 }

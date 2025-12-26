@@ -12,15 +12,18 @@ use mainscreen::MainScreen;
 use ratatui::{layout::Rect, Frame};
 
 use crate::{
-    action::action::{Action, Mode, QueryAction, TargetedAction},
+    action::action::{Action, Mode, TargetedAction},
+    compid::CompID,
     components::traits::{
         handleaction::HandleAction, handlekeyseq::PassKeySeq, handlemode::HandleMode,
-        handlequery::HandleQuery, handleraw::HandleRaw, ontick::OnTick, renderable::Renderable,
+        handleplayer::HandlePlayer, handlequery::HandleQuery, handleraw::HandleRaw, ontick::OnTick,
+        renderable::Renderable,
     },
     config::{pathconfig::PathConfig, Config},
+    playerworker::player::FromPlayerWorker,
     queryworker::{
         highlevelquery::HighLevelQuery,
-        query::{setcredential::Credential, ResponseType, ToQueryWorker},
+        query::{setcredential::Credential, QueryStatus, ResponseType, ToQueryWorker},
     },
 };
 
@@ -42,6 +45,60 @@ impl OnTick for Home {
         if let Comp::Main(main_screen) = &mut self.component {
             main_screen.on_tick();
         };
+    }
+}
+
+impl HandlePlayer for Home {
+    fn handle_player(&mut self, pw: FromPlayerWorker) -> Option<Action> {
+        if let Comp::Main(main_screen) = &mut self.component {
+            main_screen.handle_player(pw)
+        } else {
+            None
+        }
+    }
+}
+
+impl HandleQuery for Home {
+    fn handle_query(&mut self, dest: CompID, ticket: usize, res: QueryStatus) -> Option<Action> {
+        match &mut self.component {
+            Comp::Main(main_screen) => main_screen.handle_query(dest, ticket, res),
+            Comp::Loading(_) => {
+                // Child component can change in two cases:
+                // 1. Login is successful regardless of the current child component
+                // 2. Login with the config credentials fails
+                if let QueryStatus::Finished(ResponseType::Ping(p)) = res {
+                    match p {
+                        Ok(()) => {
+                            // Switch child component to MainScreen
+                            let (comp, actions) = MainScreen::new(self.config.clone());
+                            self.component = Comp::Main(comp);
+                            Some(actions)
+                        }
+                        Err(err) => {
+                            // Switch child component to Login
+                            self.component = Comp::Login(Login::new(Some(vec![
+                                "Failed to query the server with the given credentials!"
+                                    .to_string(),
+                                format!("Error: {}", err),
+                            ])));
+                            Some(Action::ChangeMode(Mode::Insert))
+                        }
+                    }
+                } else {
+                    None
+                }
+            }
+            Comp::Login(login) => {
+                if let QueryStatus::Finished(ResponseType::Ping(Ok(()))) = res {
+                    // Switch child component to MainScreen
+                    let (comp, actions) = MainScreen::new(self.config.clone());
+                    self.component = Comp::Main(comp);
+                    Some(actions)
+                } else {
+                    login.handle_query(dest, ticket, res)
+                }
+            }
+        }
     }
 }
 
@@ -117,12 +174,10 @@ impl Home {
                 (
                     Comp::Loading(Loading::new(url, username)),
                     vec![
-                        Action::Query(QueryAction::ToQueryWorker(ToQueryWorker::new(
-                            HighLevelQuery::SetCredential(creds),
-                        ))),
-                        Action::Query(QueryAction::ToQueryWorker(ToQueryWorker::new(
+                        Action::ToQuery(ToQueryWorker::new(HighLevelQuery::SetCredential(creds))),
+                        Action::ToQuery(ToQueryWorker::new(
                             HighLevelQuery::CheckCredentialValidity,
-                        ))),
+                        )),
                     ],
                 )
             }
@@ -168,57 +223,6 @@ impl HandleMode for Home {
     fn handle_mode(&mut self, mode: Mode) {
         if let Comp::Main(main_screen) = &mut self.component {
             main_screen.handle_mode(mode);
-        }
-    }
-}
-
-impl HandleQuery for Home {
-    fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
-        match &mut self.component {
-            Comp::Main(main_screen) => main_screen.handle_query(action),
-            Comp::Login(login) => {
-                if let QueryAction::FromQueryWorker(res) = &action {
-                    if let ResponseType::Ping(Ok(())) = &res.res {
-                        // Switch child component to MainScreen
-                        let (comp, actions) = MainScreen::new(self.config.clone());
-                        self.component = Comp::Main(comp);
-                        Some(actions)
-                    } else {
-                        login.handle_query(action)
-                    }
-                } else {
-                    None
-                }
-            }
-            Comp::Loading(_) => {
-                // Child component can change in two cases:
-                // 1. Login is successful regardless of the current child component
-                // 2. Login with the config credentials fails
-                if let QueryAction::FromQueryWorker(res) = &action {
-                    if let ResponseType::Ping(pr) = &res.res {
-                        match pr {
-                            Ok(()) => {
-                                // Switch child component to MainScreen
-                                let (comp, actions) = MainScreen::new(self.config.clone());
-                                self.component = Comp::Main(comp);
-                                return Some(actions);
-                            }
-                            Err(err) => {
-                                if let Comp::Loading(_) = &self.component {
-                                    // Switch child component to Login
-                                    self.component = Comp::Login(Login::new(Some(vec![
-                                        "Failed to query the server with the given credentials!"
-                                            .to_string(),
-                                        format!("Error: {}", err),
-                                    ])));
-                                    return Some(Action::ChangeMode(Mode::Insert));
-                                }
-                            }
-                        }
-                    };
-                };
-                None
-            }
         }
     }
 }

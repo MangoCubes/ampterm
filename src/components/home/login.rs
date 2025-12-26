@@ -9,7 +9,8 @@ use ratatui::{
 use tui_textarea::{CursorMove, TextArea};
 
 use crate::{
-    action::action::{Action, QueryAction, TargetedAction},
+    action::action::{Action, TargetedAction},
+    compid::CompID,
     components::{
         lib::checkbox::Checkbox,
         traits::{
@@ -19,7 +20,7 @@ use crate::{
     },
     queryworker::{
         highlevelquery::HighLevelQuery,
-        query::{setcredential::Credential, ResponseType, ToQueryWorker},
+        query::{setcredential::Credential, QueryStatus, ResponseType, ToQueryWorker},
     },
 };
 
@@ -127,7 +128,7 @@ impl Login {
         self.status = Status::Pending(q.ticket);
         self.status_msg = Some(vec!["Logging in...".to_string()]);
         self.update_style();
-        Some(Action::Query(QueryAction::ToQueryWorker(q)))
+        Some(Action::ToQuery(q))
     }
     pub fn new(msg: Option<Vec<String>>) -> Self {
         let mut res = Self {
@@ -187,34 +188,23 @@ impl Renderable for Login {
 }
 
 impl HandleQuery for Login {
-    fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
-        if let QueryAction::FromQueryWorker(res) = action {
-            if let Status::Pending(ticket) = self.status {
-                if ticket == res.ticket {
-                    if let ResponseType::SetCredential(r) = res.res {
-                        match r {
-                            Ok(()) => {
-                                let q = ToQueryWorker::new(HighLevelQuery::CheckCredentialValidity);
-                                self.status = Status::Pending(q.ticket);
-                                return Some(Action::Query(QueryAction::ToQueryWorker(q)));
-                            }
-                            Err(msg) => {
-                                self.status_msg =
-                                    Some(vec!["Failed to log in! Error:".to_string(), msg]);
-                                self.status = Status::Error;
-                                self.update_style();
-                            }
-                        }
-                    } else if let ResponseType::Ping(Err(msg)) = res.res {
-                        self.status_msg = Some(vec!["Failed to log in! Error:".to_string(), msg]);
-                        self.status = Status::Error;
-                        self.update_style();
-                    }
+    fn handle_query(&mut self, _dest: CompID, ticket: usize, res: QueryStatus) -> Option<Action> {
+        if let Status::Pending(t) = self.status {
+            if ticket == t {
+                if let QueryStatus::Finished(ResponseType::Ping(Err(msg))) = res {
+                    self.status_msg = Some(vec!["Failed to log in! Error:".to_string(), msg]);
+                    self.status = Status::Error;
+                    self.update_style();
                 }
             }
         }
         None
     }
+    // fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
+    //     if let QueryAction::FromQueryWorker(res) = action {
+    //     }
+    //     None
+    // }
 }
 
 impl HandleRaw for Login {

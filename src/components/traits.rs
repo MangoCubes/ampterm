@@ -2,6 +2,7 @@ pub mod focusable;
 pub mod handleaction;
 pub mod handlekeyseq;
 pub mod handlemode;
+pub mod handleplayer;
 pub mod handlequery;
 pub mod handleraw;
 pub mod ontick;

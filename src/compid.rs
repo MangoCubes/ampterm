@@ -24,6 +24,7 @@ pub enum CompID {
     PlaylistList,
     PlaylistQueue,
     PlayQueue,
-    Tasks,
     NowPlaying,
+    ImageComp,
+    Lyrics,
 }

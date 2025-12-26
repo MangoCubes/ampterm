@@ -2,9 +2,10 @@ use std::collections::HashMap;
 
 use crate::{
     action::{
-        action::{Action, QueryAction, QueueAction, TargetedAction},
+        action::{Action, QueueAction, TargetedAction},
         localaction::PlaylistListAction,
     },
+    compid::CompID,
     components::{
         lib::visualtable::VisualTable,
         traits::{
@@ -21,7 +22,7 @@ use crate::{
         query::{
             getplaylist::{GetPlaylistParams, GetPlaylistResponse},
             getplaylists::PlaylistID,
-            ResponseType, ToQueryWorker,
+            QueryStatus, ResponseType, ToQueryWorker,
         },
     },
 };
@@ -49,17 +50,14 @@ impl Loaded {
             let name = self.list[pos].name.clone();
             if self.autofocus {
                 Some(Action::Multiple(vec![
-                    Action::Query(QueryAction::ToQueryWorker(ToQueryWorker::new(
-                        HighLevelQuery::SelectPlaylist(GetPlaylistParams { name, id: key }),
+                    Action::ToQuery(ToQueryWorker::new(HighLevelQuery::SelectPlaylist(
+                        GetPlaylistParams { name, id: key },
                     ))),
                     Action::Targeted(TargetedAction::FocusPlaylistQueue),
                 ]))
             } else {
-                Some(Action::Query(QueryAction::ToQueryWorker(
-                    ToQueryWorker::new(HighLevelQuery::SelectPlaylist(GetPlaylistParams {
-                        name,
-                        id: key,
-                    })),
+                Some(Action::ToQuery(ToQueryWorker::new(
+                    HighLevelQuery::SelectPlaylist(GetPlaylistParams { name, id: key }),
                 )))
             }
         } else {
@@ -107,7 +105,7 @@ impl Loaded {
                 id: key.clone(),
             }));
             self.callback.insert(req.ticket, (key, ql, randomise));
-            Some(Action::Query(QueryAction::ToQueryWorker(req)))
+            Some(Action::ToQuery(req))
         } else {
             None
         }
@@ -121,33 +119,28 @@ impl Renderable for Loaded {
 }
 
 impl HandleQuery for Loaded {
-    fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
-        match action {
-            QueryAction::FromQueryWorker(res) => {
-                if let Some(cb) = self.callback.remove(&res.ticket) {
-                    if let ResponseType::GetPlaylist(res) = res.res {
-                        match res {
-                            GetPlaylistResponse::Success(full_playlist) => {
-                                return Some(Action::Targeted(TargetedAction::Queue(if cb.2 {
-                                    QueueAction::RandomAdd(full_playlist.entry, cb.1)
-                                } else {
-                                    QueueAction::Add(full_playlist.entry, cb.1)
-                                })));
-                            }
-                            GetPlaylistResponse::Failure {
-                                id: _,
-                                name: _,
-                                msg,
-                            } => {
-                                error!("Failed to add playlist to queue: {msg}");
-                            }
-                            // This implies that the returned playlist is empty
-                            GetPlaylistResponse::Partial(_) => return None,
-                        }
+    fn handle_query(&mut self, _dest: CompID, ticket: usize, res: QueryStatus) -> Option<Action> {
+        if let QueryStatus::Finished(ResponseType::GetPlaylist(res)) = res {
+            if let Some(cb) = self.callback.remove(&ticket) {
+                match res {
+                    GetPlaylistResponse::Success(full_playlist) => {
+                        return Some(Action::Targeted(TargetedAction::Queue(if cb.2 {
+                            QueueAction::RandomAdd(full_playlist.entry, cb.1)
+                        } else {
+                            QueueAction::Add(full_playlist.entry, cb.1)
+                        })));
                     }
+                    GetPlaylistResponse::Failure {
+                        id: _,
+                        name: _,
+                        msg,
+                    } => {
+                        error!("Failed to add playlist to queue: {msg}");
+                    }
+                    // This implies that the returned playlist is empty
+                    GetPlaylistResponse::Partial(_) => return None,
                 }
             }
-            _ => {}
         };
         None
     }

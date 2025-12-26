@@ -3,7 +3,8 @@ mod loaded;
 mod loading;
 
 use crate::{
-    action::action::{Action, QueryAction},
+    action::action::Action,
+    compid::CompID,
     components::{
         home::mainscreen::playlistlist::{error::Error, loaded::Loaded, loading::Loading},
         traits::{
@@ -14,7 +15,7 @@ use crate::{
         },
     },
     config::Config,
-    queryworker::query::{getplaylists::GetPlaylistsResponse, ResponseType},
+    queryworker::query::{getplaylists::GetPlaylistsResponse, QueryStatus, ResponseType},
 };
 use crossterm::event::KeyEvent;
 use ratatui::{
@@ -77,31 +78,24 @@ impl Renderable for PlaylistList {
 }
 
 impl HandleQuery for PlaylistList {
-    fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
-        match &action {
-            QueryAction::FromQueryWorker(qw) => {
-                if let ResponseType::GetPlaylists(res) = &qw.res {
-                    match res {
-                        GetPlaylistsResponse::Success(simple_playlists) => {
-                            self.comp = Comp::Loaded(Loaded::new(
-                                self.config.clone(),
-                                simple_playlists.clone(),
-                            ));
-                        }
-                        GetPlaylistsResponse::Failure(error) => {
-                            self.comp = Comp::Error(Error::new(error.clone()));
-                        }
-                    }
-                    None
-                } else {
-                    if let Comp::Loaded(comp) = &mut self.comp {
-                        comp.handle_query(action)
-                    } else {
-                        None
-                    }
+    fn handle_query(&mut self, dest: CompID, ticket: usize, res: QueryStatus) -> Option<Action> {
+        if let QueryStatus::Finished(ResponseType::GetPlaylists(res)) = res {
+            match res {
+                GetPlaylistsResponse::Success(simple_playlists) => {
+                    self.comp =
+                        Comp::Loaded(Loaded::new(self.config.clone(), simple_playlists.clone()));
+                }
+                GetPlaylistsResponse::Failure(error) => {
+                    self.comp = Comp::Error(Error::new(error.clone()));
                 }
             }
-            _ => None,
+            None
+        } else {
+            if let Comp::Loaded(comp) = &mut self.comp {
+                comp.handle_query(dest, ticket, res)
+            } else {
+                None
+            }
         }
     }
 }

@@ -14,18 +14,21 @@ use ratatui::{
 use stopped::Stopped;
 
 use crate::{
-    action::action::{Action, QueryAction},
+    action::action::Action,
+    compid::CompID,
     components::{
         home::mainscreen::nowplaying::{speed::Speed, volume::Volume},
         traits::{
             focusable::Focusable,
             handlekeyseq::{ComponentKeyHelp, KeySeqResult, PassKeySeq},
+            handleplayer::HandlePlayer,
             handlequery::HandleQuery,
             renderable::Renderable,
         },
     },
     config::Config,
-    playerworker::player::{FromPlayerWorker, StateType},
+    playerworker::player::FromPlayerWorker,
+    queryworker::query::QueryStatus,
 };
 
 enum Comp {
@@ -80,11 +83,34 @@ impl NowPlaying {
 }
 
 impl HandleQuery for NowPlaying {
-    fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
-        match action {
-            QueryAction::FromPlayerWorker(FromPlayerWorker::StateChange(
-                StateType::NowPlaying(media),
-            )) => match media {
+    fn handle_query(&mut self, dest: CompID, ticket: usize, res: QueryStatus) -> Option<Action> {
+        if let Comp::Playing(p) = &mut self.comp {
+            p.handle_query(dest, ticket, res)
+        } else {
+            None
+        }
+    }
+}
+
+impl HandlePlayer for NowPlaying {
+    fn handle_player(&mut self, pw: FromPlayerWorker) -> Option<Action> {
+        match pw {
+            FromPlayerWorker::Playing(p) => {
+                self.playing = p;
+                if let Comp::Playing(playing) = &mut self.comp {
+                    playing.handle_player(pw)
+                } else {
+                    None
+                }
+            }
+            FromPlayerWorker::Jump(_) | FromPlayerWorker::Position(_) => {
+                if let Comp::Playing(playing) = &mut self.comp {
+                    playing.handle_player(pw)
+                } else {
+                    None
+                }
+            }
+            FromPlayerWorker::NowPlaying(media) => match media {
                 Some(n) => {
                     if let Comp::Playing(comp) = &mut self.comp {
                         Some(comp.change_music(n))
@@ -99,30 +125,19 @@ impl HandleQuery for NowPlaying {
                     None
                 }
             },
-            QueryAction::FromPlayerWorker(FromPlayerWorker::StateChange(StateType::Volume(v))) => {
+            FromPlayerWorker::Volume(v) => {
                 self.volume.set_volume(v);
                 None
             }
-            QueryAction::FromPlayerWorker(FromPlayerWorker::StateChange(StateType::Speed(s))) => {
+            FromPlayerWorker::Speed(s) => {
                 self.speed.set_speed(s);
                 if let Comp::Playing(playing) = &mut self.comp {
-                    playing.handle_query(action)
+                    playing.handle_player(pw)
                 } else {
                     None
                 }
             }
-            QueryAction::FromPlayerWorker(FromPlayerWorker::StateChange(StateType::Playing(p))) => {
-                self.playing = p;
-                if let Comp::Playing(playing) = &mut self.comp {
-                    playing.handle_query(action)
-                } else {
-                    None
-                }
-            }
-            _ => match &mut self.comp {
-                Comp::Playing(playing) => playing.handle_query(action),
-                Comp::Stopped(_) => None,
-            },
+            FromPlayerWorker::Finished => None,
         }
     }
 }

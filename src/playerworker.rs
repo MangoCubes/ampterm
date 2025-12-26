@@ -1,4 +1,5 @@
 pub mod player;
+pub mod playerstatus;
 mod realtime;
 mod streamerror;
 mod streamreader;
@@ -13,6 +14,7 @@ use streamerror::StreamError;
 use streamreader::StreamReader;
 use tokio::select;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
+use tokio::sync::RwLock;
 use tokio::task::JoinHandle;
 use tokio::time::sleep;
 use tokio_util::sync::CancellationToken;
@@ -20,6 +22,7 @@ use tokio_util::sync::CancellationToken;
 use crate::action::action::{Action, TargetedAction};
 use crate::config::Config;
 use crate::playerworker::player::FromPlayerWorker;
+use crate::playerworker::playerstatus::PlayerStatus;
 use crate::playerworker::realtime::RealTime;
 use crate::queryworker::highlevelquery::HighLevelQuery;
 use crate::queryworker::query::ToQueryWorker;
@@ -33,6 +36,7 @@ enum WorkerState {
 
 pub struct PlayerWorker {
     state: WorkerState,
+    playerstatus: Arc<RwLock<PlayerStatus>>,
     player_tx: UnboundedSender<ToPlayerWorker>,
     player_rx: UnboundedReceiver<ToPlayerWorker>,
     action_tx: UnboundedSender<Action>,
@@ -43,14 +47,18 @@ pub struct PlayerWorker {
 }
 
 impl PlayerWorker {
-    fn continue_stream(&mut self) {
+    async fn continue_stream(&mut self) {
         self.sink.play();
         self.send_player_msg(FromPlayerWorker::Playing(true));
+        let mut lock = self.playerstatus.write().await;
+        lock.playing = true;
     }
 
-    fn pause_stream(&mut self) {
+    async fn pause_stream(&mut self) {
         self.sink.pause();
         self.send_player_msg(FromPlayerWorker::Playing(false));
+        let mut lock = self.playerstatus.write().await;
+        lock.playing = false;
     }
 
     fn jump(&mut self, offset: f32) -> Duration {
@@ -196,12 +204,16 @@ impl PlayerWorker {
                     };
                     self.timer.reset();
                     self.send_player_msg(FromPlayerWorker::NowPlaying(None));
+                    let mut lock = self.playerstatus.write().await;
+                    lock.now_playing = None;
                 }
-                ToPlayerWorker::Pause => self.pause_stream(),
-                ToPlayerWorker::Resume => self.continue_stream(),
+                ToPlayerWorker::Pause => self.pause_stream().await,
+                ToPlayerWorker::Resume => self.continue_stream().await,
                 ToPlayerWorker::Kill => self.should_quit = true,
                 ToPlayerWorker::PlayMedia { media } => {
                     self.send_player_msg(FromPlayerWorker::NowPlaying(Some(media.clone())));
+                    let mut lock = self.playerstatus.write().await;
+                    lock.now_playing = Some(media.clone());
                     let _ = self.action_tx.send(Action::ToQuery(ToQueryWorker::new(
                         HighLevelQuery::PlayMusicFromURL(media),
                     )));
@@ -229,11 +241,15 @@ impl PlayerWorker {
                     let cleaned = if new_speed <= 0.0 { 0.01 } else { new_speed };
                     self.change_speed(cleaned);
                     self.send_player_msg(FromPlayerWorker::Speed(cleaned));
+                    let mut lock = self.playerstatus.write().await;
+                    lock.speed = cleaned;
                 }
                 ToPlayerWorker::SetSpeed(to) => {
                     let cleaned = if to <= 0.0 { 0.01 } else { to };
                     self.change_speed(cleaned);
                     self.send_player_msg(FromPlayerWorker::Speed(cleaned));
+                    let mut lock = self.playerstatus.write().await;
+                    lock.speed = cleaned;
                 }
                 ToPlayerWorker::ChangeVolume(by) => {
                     let current = self.sink.volume();
@@ -247,6 +263,8 @@ impl PlayerWorker {
                     };
                     self.sink.set_volume(cleaned);
                     self.send_player_msg(FromPlayerWorker::Volume(cleaned));
+                    let mut lock = self.playerstatus.write().await;
+                    lock.volume = cleaned;
                 }
                 ToPlayerWorker::SetVolume(to) => {
                     let cleaned = if to < 0.0 {
@@ -258,12 +276,14 @@ impl PlayerWorker {
                     };
                     self.sink.set_volume(cleaned);
                     self.send_player_msg(FromPlayerWorker::Volume(cleaned));
+                    let mut lock = self.playerstatus.write().await;
+                    lock.volume = cleaned;
                 }
                 ToPlayerWorker::ResumeOrPause => {
                     if self.sink.is_paused() {
-                        self.continue_stream();
+                        self.continue_stream().await;
                     } else {
-                        self.pause_stream();
+                        self.pause_stream().await;
                     }
                 }
                 ToPlayerWorker::ChangePosition(by) => {
@@ -280,7 +300,10 @@ impl PlayerWorker {
                     // This issue is addressed by [`self.timer`], where if the position somehow
                     // goes backwards, it is blindly trusted.
                     self.timer.add(self.sink.get_pos(), self.sink.speed());
-                    self.send_player_msg(FromPlayerWorker::Position(self.timer.get_now()));
+                    let pos = self.timer.get_now();
+                    self.send_player_msg(FromPlayerWorker::Position(pos));
+                    let mut lock = self.playerstatus.write().await;
+                    lock.position = pos;
                 }
             };
             if self.should_quit {
@@ -293,11 +316,17 @@ impl PlayerWorker {
 }
 
 impl PlayerWorker {
-    pub fn new(handle: OutputStream, sender: UnboundedSender<Action>, config: Config) -> Self {
+    pub fn new(
+        playerstatus: Arc<RwLock<PlayerStatus>>,
+        handle: OutputStream,
+        sender: UnboundedSender<Action>,
+        config: Config,
+    ) -> Self {
         let (player_tx, player_rx) = mpsc::unbounded_channel();
         let sink = Arc::from(rodio::Sink::connect_new(handle.mixer()));
         sink.set_volume(config.init_state.volume);
         Self {
+            playerstatus,
             handle,
             player_tx,
             player_rx,

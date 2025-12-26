@@ -14,7 +14,7 @@ use ratatui::{
 use stopped::Stopped;
 
 use crate::{
-    action::action::{Action, QueryAction},
+    action::action::Action,
     components::{
         home::mainscreen::nowplaying::{speed::Speed, volume::Volume},
         traits::{

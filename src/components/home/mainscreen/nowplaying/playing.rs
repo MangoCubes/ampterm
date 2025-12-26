@@ -3,7 +3,7 @@ mod lyrics;
 use std::time::Duration;
 
 use crate::{
-    action::action::{Action, QueryAction},
+    action::action::Action,
     components::{
         home::mainscreen::nowplaying::playing::{imagecomp::ImageComp, lyrics::Lyrics},
         traits::{
@@ -46,7 +46,7 @@ impl Playing {
             if let Some(id) = music.cover_art.clone() {
                 let q = ImageComp::make_query(CoverID(id));
                 cover.wait_for(q.ticket);
-                actions.push(Action::Query(QueryAction::ToQueryWorker(q)));
+                actions.push(Action::ToQuery(q));
             } else {
                 cover.unset_image();
             }
@@ -55,7 +55,7 @@ impl Playing {
             let title = music.title.clone();
             let q = Lyrics::make_query(music);
             lyrics.wait_for(q.ticket, title);
-            actions.push(Action::Query(QueryAction::ToQueryWorker(q)));
+            actions.push(Action::ToQuery(q));
         }
 
         Action::Multiple(actions)

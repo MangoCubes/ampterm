@@ -1,5 +1,5 @@
 use crate::{
-    action::action::{Action, QueryAction},
+    action::action::Action,
     components::{lib::centered::Centered, traits::renderable::Renderable},
     queryworker::{
         highlevelquery::HighLevelQuery,
@@ -37,7 +37,7 @@ impl ImageComp {
                         Centered::new(vec!["Loading cover...".to_string()]),
                     ),
                 },
-                Some(Action::Query(QueryAction::ToQueryWorker(query))),
+                Some(Action::ToQuery(query)),
             )
         } else {
             (

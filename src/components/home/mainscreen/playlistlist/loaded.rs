@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     action::{
-        action::{Action, QueryAction, QueueAction, TargetedAction},
+        action::{Action, QueueAction, TargetedAction},
         localaction::PlaylistListAction,
     },
     components::{
@@ -49,17 +49,14 @@ impl Loaded {
             let name = self.list[pos].name.clone();
             if self.autofocus {
                 Some(Action::Multiple(vec![
-                    Action::Query(QueryAction::ToQueryWorker(ToQueryWorker::new(
-                        HighLevelQuery::SelectPlaylist(GetPlaylistParams { name, id: key }),
+                    Action::ToQuery(ToQueryWorker::new(HighLevelQuery::SelectPlaylist(
+                        GetPlaylistParams { name, id: key },
                     ))),
                     Action::Targeted(TargetedAction::FocusPlaylistQueue),
                 ]))
             } else {
-                Some(Action::Query(QueryAction::ToQueryWorker(
-                    ToQueryWorker::new(HighLevelQuery::SelectPlaylist(GetPlaylistParams {
-                        name,
-                        id: key,
-                    })),
+                Some(Action::ToQuery(ToQueryWorker::new(
+                    HighLevelQuery::SelectPlaylist(GetPlaylistParams { name, id: key }),
                 )))
             }
         } else {
@@ -107,7 +104,7 @@ impl Loaded {
                 id: key.clone(),
             }));
             self.callback.insert(req.ticket, (key, ql, randomise));
-            Some(Action::Query(QueryAction::ToQueryWorker(req)))
+            Some(Action::ToQuery(req))
         } else {
             None
         }

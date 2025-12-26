@@ -4,7 +4,7 @@ use crossterm::event::KeyEvent;
 use ratatui::{prelude::Rect, Frame};
 
 use crate::{
-    action::action::{Action, QueryAction},
+    action::action::Action,
     components::{
         home::mainscreen::nowplaying::playing::lyrics::{synced::Synced, unsynced::Unsynced},
         lib::centered::Centered,
@@ -55,7 +55,7 @@ impl Lyrics {
                 ),
                 config,
             },
-            Action::Query(QueryAction::ToQueryWorker(query)),
+            Action::ToQuery(query),
         )
     }
 

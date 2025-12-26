@@ -9,7 +9,7 @@ use ratatui::{
 use tui_textarea::{CursorMove, TextArea};
 
 use crate::{
-    action::action::{Action, QueryAction, TargetedAction},
+    action::action::{Action, TargetedAction},
     components::{
         lib::checkbox::Checkbox,
         traits::{
@@ -127,7 +127,7 @@ impl Login {
         self.status = Status::Pending(q.ticket);
         self.status_msg = Some(vec!["Logging in...".to_string()]);
         self.update_style();
-        Some(Action::Query(QueryAction::ToQueryWorker(q)))
+        Some(Action::ToQuery(q))
     }
     pub fn new(msg: Option<Vec<String>>) -> Self {
         let mut res = Self {
@@ -196,7 +196,7 @@ impl HandleQuery for Login {
                             Ok(()) => {
                                 let q = ToQueryWorker::new(HighLevelQuery::CheckCredentialValidity);
                                 self.status = Status::Pending(q.ticket);
-                                return Some(Action::Query(QueryAction::ToQueryWorker(q)));
+                                return Some(Action::ToQuery(q));
                             }
                             Err(msg) => {
                                 self.status_msg =

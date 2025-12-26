@@ -73,7 +73,4 @@ pub enum FromPlayerWorker {
     /// Send current state of the player
     StateChange(StateType),
     Finished,
-    // Error sent out from the player to the components
-    Error(String),
-    Message(String),
 }

@@ -3,7 +3,7 @@ mod loaded;
 mod loading;
 
 use crate::{
-    action::action::{Action, QueryAction},
+    action::action::Action,
     components::{
         home::mainscreen::playlistlist::{error::Error, loaded::Loaded, loading::Loading},
         traits::{

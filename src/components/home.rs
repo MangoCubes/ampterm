@@ -12,7 +12,7 @@ use mainscreen::MainScreen;
 use ratatui::{layout::Rect, Frame};
 
 use crate::{
-    action::action::{Action, Mode, QueryAction, TargetedAction},
+    action::action::{Action, Mode, TargetedAction},
     components::traits::{
         handleaction::HandleAction, handlekeyseq::PassKeySeq, handlemode::HandleMode,
         handlequery::HandleQuery, handleraw::HandleRaw, ontick::OnTick, renderable::Renderable,
@@ -117,12 +117,10 @@ impl Home {
                 (
                     Comp::Loading(Loading::new(url, username)),
                     vec![
-                        Action::Query(QueryAction::ToQueryWorker(ToQueryWorker::new(
-                            HighLevelQuery::SetCredential(creds),
-                        ))),
-                        Action::Query(QueryAction::ToQueryWorker(ToQueryWorker::new(
+                        Action::ToQuery(ToQueryWorker::new(HighLevelQuery::SetCredential(creds))),
+                        Action::ToQuery(ToQueryWorker::new(
                             HighLevelQuery::CheckCredentialValidity,
-                        ))),
+                        )),
                     ],
                 )
             }

@@ -6,7 +6,7 @@ use tokio::sync::mpsc::{self};
 use tracing::debug;
 
 use crate::{
-    action::action::{Action, Mode, QueryAction, TargetedAction},
+    action::action::{Action, Mode, TargetedAction},
     components::{
         home::Home,
         traits::{
@@ -210,7 +210,7 @@ impl App {
                     self.mode = mode;
                     self.component.handle_mode(mode);
                 }
-                Action::Query(query_action) => {
+                Action::ToQuery(query_action) => {
                     match &query_action {
                         QueryAction::ToPlayerWorker(to_player_worker) => {
                             self.player_tx.send(to_player_worker.clone())?
@@ -224,6 +224,9 @@ impl App {
                         debug!("Got {more:?} as a response");
                         self.action_tx.send(more)?
                     }
+                }
+                Action::ToPlayer(to_player_worker) => {
+                    self.player_tx.send(to_player_worker);
                 }
             };
         }

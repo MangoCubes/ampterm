@@ -5,7 +5,7 @@ mod loading;
 mod notselected;
 
 use crate::{
-    action::action::{Action, QueryAction},
+    action::action::Action,
     compid::CompID,
     components::{
         home::mainscreen::playlistqueue::{empty::Empty, loading::Loading},

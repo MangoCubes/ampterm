@@ -49,19 +49,17 @@ pub enum ResponseType {
     GetLyrics(Result<Option<GetLyricsResponse>, String>),
     GetCover(Result<DynamicImage, String>),
 }
-#[derive(Debug, Clone)]
-pub struct FromQueryWorker {
-    /// When a query is completed, the value in [`dest`] specifies which component should be
-    /// notified. This value should be the same as the corresponding [`ToQueryWorker`] request.
-    pub dest: Vec<CompID>,
-    /// Uniquely identifies the request and response
-    pub ticket: usize,
-    /// Actual response body
-    pub res: ResponseType,
-}
 
-impl FromQueryWorker {
-    pub fn new(dest: Vec<CompID>, ticket: usize, res: ResponseType) -> Self {
-        Self { dest, ticket, res }
-    }
+#[derive(Debug, Clone)]
+pub enum QueryStatus {
+    /// Query has been received by the QueryWorker
+    Requested,
+    /// Query to an external resource must be made
+    Started,
+    /// Query is completed without using external resources
+    Cached(ResponseType),
+    /// Query has been aborted
+    Aborted,
+    /// Query has been finished with external resources
+    Finished(ResponseType),
 }

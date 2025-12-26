@@ -1,8 +1,13 @@
 use crate::{
-    action::action::{Action, QueryAction},
-    components::traits::renderable::Renderable,
+    action::action::Action, compid::CompID, components::traits::renderable::Renderable,
+    queryworker::query::QueryStatus,
 };
 
 pub trait HandleQuery: Renderable {
-    fn handle_query(&mut self, action: QueryAction) -> Option<Action>;
+    fn handle_query(
+        &mut self,
+        dest: Vec<CompID>,
+        ticket: usize,
+        res: QueryStatus,
+    ) -> Option<Action>;
 }

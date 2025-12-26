@@ -9,10 +9,7 @@ use ratatui::{
     Frame,
 };
 
-use crate::{
-    components::traits::renderable::Renderable,
-    queryworker::query::{FromQueryWorker, ToQueryWorker},
-};
+use crate::{components::traits::renderable::Renderable, queryworker::query::ToQueryWorker};
 
 pub struct Tasks {
     border: Block<'static>,

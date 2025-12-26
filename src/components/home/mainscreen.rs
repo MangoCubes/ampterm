@@ -7,7 +7,7 @@ mod playqueue;
 mod tasks;
 
 use crate::{
-    action::action::{Action, Mode, QueryAction, TargetedAction},
+    action::action::{Action, Mode, TargetedAction},
     compid::CompID,
     components::{
         home::mainscreen::{bpmtoy::BPMToy, help::Help, tasks::Tasks},
@@ -156,9 +156,7 @@ impl MainScreen {
                 help: Help::new(config),
             },
             Action::Multiple(vec![
-                Action::Query(QueryAction::ToQueryWorker(ToQueryWorker::new(
-                    HighLevelQuery::ListPlaylists,
-                ))),
+                Action::ToQuery(ToQueryWorker::new(HighLevelQuery::ListPlaylists)),
                 Action::ChangeMode(Mode::Normal),
             ]),
         )

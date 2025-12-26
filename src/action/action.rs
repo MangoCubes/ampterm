@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    compid::CompID,
     osclient::response::getplaylist::Media,
     playerworker::player::{FromPlayerWorker, QueueLocation, ToPlayerWorker},
-    queryworker::query::{FromQueryWorker, ToQueryWorker},
+    queryworker::query::{QueryStatus, ToQueryWorker},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -91,6 +92,10 @@ pub enum TargetedAction {
     Resume,
     ClearScreen,
     Quit,
+
+    Debug(String),
+    Info(String),
+    Err(String),
 }
 
 impl ToString for TargetedAction {
@@ -145,18 +150,11 @@ impl ToString for TargetedAction {
                     format!("Seek backwards {} seconds", -p)
                 }
             }
+            TargetedAction::Info(_) => "Display information message".to_string(),
+            TargetedAction::Debug(_) => "Display debug message".to_string(),
+            TargetedAction::Err(_) => "Display error message".to_string(),
         }
     }
-}
-
-#[derive(Debug, Clone)]
-pub enum QueryAction {
-    /// Handle response from the player worker in response to the previous request
-    FromPlayerWorker(FromPlayerWorker),
-    /// Receive a response from the query worker in response to the previous request
-    FromQueryWorker(FromQueryWorker),
-    ToPlayerWorker(ToPlayerWorker),
-    ToQueryWorker(ToQueryWorker),
 }
 
 #[derive(Debug, Clone)]
@@ -165,5 +163,12 @@ pub enum Action {
     Targeted(TargetedAction),
     Resize(u16, u16),
     ChangeMode(Mode),
-    Query(QueryAction),
+    ToQuery(ToQueryWorker),
+    ToPlayer(ToPlayerWorker),
+    FromPlayer(FromPlayerWorker),
+    FromQuery {
+        dest: Vec<CompID>,
+        ticket: usize,
+        res: QueryStatus,
+    },
 }

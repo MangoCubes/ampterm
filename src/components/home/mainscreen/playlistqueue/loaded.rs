@@ -2,7 +2,7 @@ mod filter;
 mod search;
 use crate::{
     action::{
-        action::{Action, Mode, QueryAction, QueueAction, TargetedAction},
+        action::{Action, Mode, QueueAction, TargetedAction},
         localaction::PlaylistQueueAction,
     },
     components::{
@@ -337,9 +337,10 @@ impl HandleKeySeq<PlaylistQueueAction> for Loaded {
                 }
                 .into_iter()
                 .map(|(id, star)| {
-                    Action::Query(QueryAction::ToQueryWorker(ToQueryWorker::new(
-                        HighLevelQuery::SetStar { media: id, star },
-                    )))
+                    Action::ToQuery(ToQueryWorker::new(HighLevelQuery::SetStar {
+                        media: id,
+                        star,
+                    }))
                 })
                 .collect();
 
@@ -355,11 +356,11 @@ impl HandleKeySeq<PlaylistQueueAction> for Loaded {
             },
             PlaylistQueueAction::Refresh => {
                 self.table.bump_cursor_pos();
-                KeySeqResult::ActionNeeded(Action::Query(QueryAction::ToQueryWorker(
-                    ToQueryWorker::new(HighLevelQuery::SelectPlaylist(GetPlaylistParams {
+                KeySeqResult::ActionNeeded(Action::ToQuery(ToQueryWorker::new(
+                    HighLevelQuery::SelectPlaylist(GetPlaylistParams {
                         name: self.name.to_string(),
                         id: self.playlist.id.clone(),
-                    })),
+                    }),
                 )))
             }
             PlaylistQueueAction::RandomAdd(pos) => match self.add_selection_to_queue(pos, true) {

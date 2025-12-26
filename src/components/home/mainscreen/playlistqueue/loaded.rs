@@ -112,6 +112,11 @@ impl Loaded {
                 Row::new(vec![
                     item.artist.clone().unwrap_or("Unknown".to_string()),
                     item.title.clone(),
+                    if let Some(len) = item.duration {
+                        format!("{:02}:{:02}", len / 60, len % 60)
+                    } else {
+                        "".to_string()
+                    },
                     item.get_fav_marker(),
                 ])
             })
@@ -131,7 +136,8 @@ impl Loaded {
             [
                 Constraint::Ratio(1, 3),
                 Constraint::Ratio(2, 3),
-                Constraint::Min(1),
+                Constraint::Length(5),
+                Constraint::Length(1),
             ]
             .to_vec(),
             table_proc,

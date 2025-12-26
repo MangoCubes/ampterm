@@ -20,7 +20,7 @@ use crate::{
     config::Config,
     queryworker::{
         highlevelquery::HighLevelQuery,
-        query::{getplaylist::GetPlaylistResponse, ResponseType},
+        query::{getplaylist::GetPlaylistResponse, QueryStatus, ResponseType},
     },
 };
 use crossterm::event::KeyEvent;
@@ -116,62 +116,37 @@ impl PassKeySeq for PlaylistQueue {
 }
 
 impl HandleQuery for PlaylistQueue {
-    fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
-        match action {
-            QueryAction::ToQueryWorker(qw) => {
-                if qw.dest.contains(&CompID::PlaylistQueue) {
-                    match qw.query {
-                        HighLevelQuery::SelectPlaylist(params) => {
-                            self.comp =
-                                Comp::Loading(Loading::new(params.name, self.enabled), qw.ticket);
-                            None
-                        }
-                        HighLevelQuery::SetStar { media, star } => {
-                            if let Comp::Loaded(loaded) = &mut self.comp {
-                                loaded.set_star(media, star)
-                            } else {
-                                None
-                            }
-                        }
-                        _ => None,
-                    }
-                } else {
-                    None
-                }
+    fn handle_query(&mut self, _dest: CompID, ticket: usize, res: QueryStatus) -> Option<Action> {
+        if let QueryStatus::Requested(HighLevelQuery::SetStar { media, star }) = res {
+            if let Comp::Loaded(loaded) = &mut self.comp {
+                loaded.set_star(media, star);
             }
-            QueryAction::FromQueryWorker(qw) => {
-                if let ResponseType::GetPlaylist(res) = qw.res {
-                    match res {
-                        GetPlaylistResponse::Success(full_playlist) => {
-                            if let Comp::Loading(_, ticket) = self.comp {
-                                if ticket == qw.ticket {
-                                    self.comp = Comp::Loaded(Loaded::new(
-                                        self.config.clone(),
-                                        full_playlist.name.clone(),
-                                        full_playlist,
-                                        self.enabled,
-                                    ));
-                                }
-                            }
-                        }
-                        GetPlaylistResponse::Failure { id, name, msg } => {
-                            self.comp = Comp::Error(Error::new(
+        } else if let QueryStatus::Requested(HighLevelQuery::SelectPlaylist(params)) = res {
+            self.comp = Comp::Loading(Loading::new(params.name, self.enabled), ticket);
+        } else if let QueryStatus::Finished(ResponseType::GetPlaylist(r)) = res {
+            match r {
+                GetPlaylistResponse::Success(full_playlist) => {
+                    if let Comp::Loading(_, t) = self.comp {
+                        if t == ticket {
+                            self.comp = Comp::Loaded(Loaded::new(
                                 self.config.clone(),
-                                id,
-                                name,
-                                msg,
+                                full_playlist.name.clone(),
+                                full_playlist,
                                 self.enabled,
                             ));
                         }
-                        GetPlaylistResponse::Partial(simple_playlist) => {
-                            self.comp = Comp::Empty(Empty::new(simple_playlist.name, self.enabled))
-                        }
                     }
-                };
-                None
+                }
+                GetPlaylistResponse::Partial(simple_playlist) => {
+                    self.comp = Comp::Empty(Empty::new(simple_playlist.name, self.enabled));
+                }
+                GetPlaylistResponse::Failure { id, name, msg } => {
+                    self.comp =
+                        Comp::Error(Error::new(self.config.clone(), id, name, msg, self.enabled));
+                }
             }
-            _ => None,
         }
+        None
     }
 }
 

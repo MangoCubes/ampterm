@@ -1,9 +1,9 @@
-use std::sync::Arc;
+use std::{future, sync::Arc};
 
 use mpris_server::{
     zbus::{fdo, Result},
-    LoopStatus, Metadata, PlaybackRate, PlaybackStatus, PlayerInterface, RootInterface, Time,
-    TrackId, Volume,
+    LoopStatus, Metadata, PlaybackRate, PlaybackStatus, PlayerInterface, RootInterface, Server,
+    Time, TrackId, Volume,
 };
 use tokio::sync::{mpsc::UnboundedSender, RwLock};
 
@@ -80,6 +80,13 @@ impl AmptermMpris {
             action_tx,
             playerstatus,
         }
+    }
+    pub async fn run(&self, server: &Server<AmptermMpris>) {
+        server
+            .properties_changed([])
+            .await
+            .expect("Failed to emit initial MPRIS states.");
+        future::pending::<()>().await;
     }
 }
 

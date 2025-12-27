@@ -3,7 +3,7 @@ use std::{future, sync::Arc};
 use clap::Parser;
 use cli::Cli;
 use color_eyre::{eyre::eyre, Result};
-use mpris_server::Server;
+use mpris_server::{Property, Server, Signal};
 use rodio::cpal::{self, traits::HostTrait};
 use tokio::{
     select,
@@ -129,11 +129,7 @@ async fn main() -> Result<()> {
             let server = Server::new("ch.skew.ampterm", player)
                 .await
                 .expect("Failed to start MPRIS server!");
-            server
-                .properties_changed([])
-                .await
-                .expect("Failed to emit initial MPRIS states.");
-            future::pending::<()>().await;
+            server.imp().run(&server).await;
         })
         .await
     });

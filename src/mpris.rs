@@ -115,13 +115,6 @@ impl AmptermMpris {
                             })])
                             .await;
                     }
-                    FromPlayerWorker::Jump(duration) | FromPlayerWorker::Position(duration) => {
-                        let _ = server
-                            .emit(Signal::Seeked {
-                                position: Time::from_millis(duration.as_millis() as i64),
-                            })
-                            .await;
-                    }
                     FromPlayerWorker::NowPlaying(media) => {
                         let _ = server
                             .properties_changed([Property::Metadata(

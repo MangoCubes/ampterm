@@ -21,7 +21,7 @@ use crate::{
         },
     },
     config::Config,
-    playerworker::player::ToPlayerWorker,
+    playerworker::player::{FromPlayerWorker, ToPlayerWorker},
     queryworker::{
         highlevelquery::HighLevelQuery,
         query::{QueryStatus, ToQueryWorker},
@@ -42,6 +42,7 @@ pub struct App {
     query_tx: mpsc::UnboundedSender<ToQueryWorker>,
     player_tx: mpsc::UnboundedSender<ToPlayerWorker>,
     mode: Mode,
+    mpris_tx: mpsc::UnboundedSender<FromPlayerWorker>,
 }
 
 impl App {
@@ -49,6 +50,7 @@ impl App {
         config: Config,
         action_tx: mpsc::UnboundedSender<Action>,
         action_rx: mpsc::UnboundedReceiver<Action>,
+        mpris_tx: mpsc::UnboundedSender<FromPlayerWorker>,
         query_tx: mpsc::UnboundedSender<ToQueryWorker>,
         player_tx: mpsc::UnboundedSender<ToPlayerWorker>,
         tick_rate: f64,
@@ -59,6 +61,7 @@ impl App {
             let _ = action_tx.send(a);
         });
         Ok(Self {
+            mpris_tx,
             tick_rate,
             frame_rate,
             component,
@@ -233,6 +236,7 @@ impl App {
                 }
                 Action::ToPlayer(to_player_worker) => self.player_tx.send(to_player_worker)?,
                 Action::FromPlayer(pw) => {
+                    let _ = self.mpris_tx.send(pw.clone());
                     if let Some(more) = self.component.handle_player(pw) {
                         self.action_tx.send(more)?
                     }

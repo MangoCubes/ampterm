@@ -1,9 +1,9 @@
-use std::{future, sync::Arc};
+use std::sync::Arc;
 
 use clap::Parser;
 use cli::Cli;
 use color_eyre::{eyre::eyre, Result};
-use mpris_server::{Property, Server, Signal};
+use mpris_server::Server;
 use rodio::cpal::{self, traits::HostTrait};
 use tokio::{
     select,
@@ -109,11 +109,13 @@ async fn main() -> Result<()> {
     let player_tx = pw.get_tx();
     // Start query worker
     set.spawn(async move { pw.run().await });
+    let (mpris_tx, mpris_rx) = mpsc::unbounded_channel();
 
     let mut app = App::new(
         config,
         action_tx.clone(),
         action_rx,
+        mpris_tx,
         query_tx,
         player_tx,
         args.tick_rate,
@@ -129,7 +131,7 @@ async fn main() -> Result<()> {
             let server = Server::new("ch.skew.ampterm", player)
                 .await
                 .expect("Failed to start MPRIS server!");
-            server.imp().run(&server).await;
+            server.imp().run(mpris_rx, &server).await;
         })
         .await
     });

@@ -1,15 +1,19 @@
-use std::{future, sync::Arc};
+use std::sync::Arc;
 
 use mpris_server::{
     zbus::{fdo, Result},
-    LoopStatus, Metadata, PlaybackRate, PlaybackStatus, PlayerInterface, RootInterface, Server,
-    Time, TrackId, Volume,
+    LoopStatus, Metadata, PlaybackRate, PlaybackStatus, PlayerInterface, Property, RootInterface,
+    Server, Signal, Time, TrackId, Volume,
 };
-use tokio::sync::{mpsc::UnboundedSender, RwLock};
+use tokio::sync::{
+    mpsc::{UnboundedReceiver, UnboundedSender},
+    RwLock,
+};
 
 use crate::{
     action::action::{Action, TargetedAction},
-    playerworker::playerstatus::PlayerStatus,
+    osclient::response::getplaylist::Media,
+    playerworker::{player::FromPlayerWorker, playerstatus::PlayerStatus},
 };
 
 pub struct AmptermMpris {
@@ -68,6 +72,19 @@ impl RootInterface for AmptermMpris {
 }
 
 impl AmptermMpris {
+    async fn get_media_metadata(media: &Option<Media>) -> Metadata {
+        let metadata = Metadata::builder();
+        if let Some(media) = &media {
+            metadata
+                .artist([media.artist.clone().unwrap_or("Unknown Artist".to_string())])
+                .album(media.album.clone().unwrap_or("Unknown Album".to_string()))
+                .title(media.title.clone())
+                .length(Time::from_secs(media.duration.unwrap_or(0) as i64))
+                .build()
+        } else {
+            metadata.title("Nothing in queue").build()
+        }
+    }
     fn send(&self, ta: TargetedAction) {
         let _ = self.action_tx.send(Action::Targeted(ta));
     }
@@ -81,12 +98,49 @@ impl AmptermMpris {
             playerstatus,
         }
     }
-    pub async fn run(&self, server: &Server<AmptermMpris>) {
-        server
-            .properties_changed([])
-            .await
-            .expect("Failed to emit initial MPRIS states.");
-        future::pending::<()>().await;
+    pub async fn run(
+        &self,
+        mut mpris_rx: UnboundedReceiver<FromPlayerWorker>,
+        server: &Server<AmptermMpris>,
+    ) {
+        loop {
+            while let Some(ev) = mpris_rx.recv().await {
+                match ev {
+                    FromPlayerWorker::Playing(b) => {
+                        let _ = server
+                            .properties_changed([Property::PlaybackStatus(if b {
+                                PlaybackStatus::Playing
+                            } else {
+                                PlaybackStatus::Paused
+                            })])
+                            .await;
+                    }
+                    FromPlayerWorker::Jump(duration) | FromPlayerWorker::Position(duration) => {
+                        let _ = server
+                            .emit(Signal::Seeked {
+                                position: Time::from_millis(duration.as_millis() as i64),
+                            })
+                            .await;
+                    }
+                    FromPlayerWorker::NowPlaying(media) => {
+                        let _ = server
+                            .properties_changed([Property::Metadata(
+                                Self::get_media_metadata(&media).await,
+                            )])
+                            .await;
+                    }
+                    FromPlayerWorker::Volume(v) => {
+                        let _ = server
+                            .properties_changed([Property::Volume(v.into())])
+                            .await;
+                    }
+                    FromPlayerWorker::Speed(s) => {
+                        let _ = server.properties_changed([Property::Rate(s.into())]).await;
+                    }
+                    _ => {}
+                }
+            }
+        }
     }
 }
 
@@ -165,18 +219,8 @@ impl PlayerInterface for AmptermMpris {
     }
 
     async fn metadata(&self) -> fdo::Result<Metadata> {
-        let mut metadata = Metadata::builder();
         let lock = self.playerstatus.read().await;
-        if let Some(media) = &lock.now_playing {
-            metadata = metadata
-                .artist([media.artist.clone().unwrap_or("Unknown Artist".to_string())])
-                .album(media.album.clone().unwrap_or("Unknown Album".to_string()))
-                .title(media.title.clone())
-                .length(Time::from_secs(media.size.unwrap_or(0) as i64));
-        } else {
-            metadata = metadata.title("Nothing in queue")
-        }
-        Ok(metadata.build())
+        Ok(Self::get_media_metadata(&lock.now_playing).await)
     }
 
     async fn volume(&self) -> fdo::Result<Volume> {

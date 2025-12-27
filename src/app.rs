@@ -193,6 +193,12 @@ impl App {
                         }
                         self.player_tx.send(ToPlayerWorker::ChangePosition(by))?
                     }
+                    TargetedAction::SetPosition(to) => {
+                        if let Some(more) = self.component.handle_action(targeted_action) {
+                            self.action_tx.send(more)?
+                        }
+                        self.player_tx.send(ToPlayerWorker::SetPosition(to))?
+                    }
                     TargetedAction::GoToStart => self.player_tx.send(ToPlayerWorker::GoToStart)?,
                     TargetedAction::EndKeySeq => {
                         self.key_stack.drain(..);

@@ -67,6 +67,7 @@ pub enum TargetedAction {
     SetVolume(f32),
     SetSpeed(f32),
     ChangePosition(f32),
+    SetPosition(f32),
 
     // Action for moving between boxes
     WindowUp,
@@ -150,6 +151,7 @@ impl ToString for TargetedAction {
                     format!("Seek backwards {} seconds", -p)
                 }
             }
+            TargetedAction::SetPosition(v) => format!("Set current position to {}s", v),
             TargetedAction::Info(_) => "Display information message".to_string(),
             TargetedAction::Debug(_) => "Display debug message".to_string(),
             TargetedAction::Err(_) => "Display error message".to_string(),

@@ -23,7 +23,7 @@ use crate::action::action::{Action, TargetedAction};
 use crate::config::Config;
 use crate::playerworker::player::FromPlayerWorker;
 use crate::playerworker::playerstatus::PlayerStatus;
-use crate::playerworker::realtime::RealTime;
+use crate::playerworker::realtime::{PosTime, RealTime};
 use crate::queryworker::highlevelquery::HighLevelQuery;
 use crate::queryworker::query::ToQueryWorker;
 use crate::trace_dbg;
@@ -59,6 +59,16 @@ impl PlayerWorker {
         self.send_player_msg(FromPlayerWorker::Playing(false));
         let mut lock = self.playerstatus.write().await;
         lock.playing = false;
+    }
+
+    fn jump_to(&mut self, to: f32) -> Duration {
+        let (newpos, sink_pos) = self
+            .timer
+            .move_time_to(PosTime::from_secs_f32(to), self.sink.speed());
+        if let Err(e) = self.sink.try_seek(sink_pos) {
+            self.send_err(format!("Seeking failed! Reason: {e}"));
+        };
+        newpos
     }
 
     fn jump(&mut self, offset: f32) -> Duration {
@@ -288,6 +298,10 @@ impl PlayerWorker {
                 }
                 ToPlayerWorker::ChangePosition(by) => {
                     let newpos = self.jump(by);
+                    self.send_player_msg(FromPlayerWorker::Jump(newpos));
+                }
+                ToPlayerWorker::SetPosition(to) => {
+                    let newpos = self.jump_to(to);
                     self.send_player_msg(FromPlayerWorker::Jump(newpos));
                 }
                 ToPlayerWorker::Tick => {

@@ -3,7 +3,7 @@ use std::{future, sync::Arc};
 use clap::Parser;
 use cli::Cli;
 use color_eyre::{eyre::eyre, Result};
-use mpris_server::{Server, Signal, Time};
+use mpris_server::Server;
 use rodio::cpal::{self, traits::HostTrait};
 use tokio::{
     select,

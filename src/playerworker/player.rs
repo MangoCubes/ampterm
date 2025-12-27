@@ -38,6 +38,8 @@ pub enum ToPlayerWorker {
     SetSpeed(f32),
 
     ChangePosition(f32),
+    /// Sets the position absolutely
+    SetPosition(f32),
 
     /// Below should not be used by the user directly.
     PlayURL {

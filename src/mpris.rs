@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, thread::sleep, time::Duration};
 
 use mpris_server::{
     zbus::{fdo, Result},
@@ -114,7 +114,8 @@ impl PlayerInterface for AmptermMpris {
         Ok(())
     }
 
-    async fn seek(&self, _offset: Time) -> fdo::Result<()> {
+    async fn seek(&self, offset: Time) -> fdo::Result<()> {
+        self.send(TargetedAction::ChangePosition(offset.as_secs() as f32));
         Ok(())
     }
 
@@ -161,6 +162,8 @@ impl PlayerInterface for AmptermMpris {
         let lock = self.playerstatus.read().await;
         if let Some(media) = &lock.now_playing {
             metadata = metadata
+                .artist([media.artist.clone().unwrap_or("Unknown Artist".to_string())])
+                .album(media.album.clone().unwrap_or("Unknown Album".to_string()))
                 .title(media.title.clone())
                 .length(Time::from_secs(media.size.unwrap_or(0) as i64));
         } else {
@@ -173,7 +176,8 @@ impl PlayerInterface for AmptermMpris {
         Ok(Volume::default())
     }
 
-    async fn set_volume(&self, _volume: Volume) -> Result<()> {
+    async fn set_volume(&self, volume: Volume) -> Result<()> {
+        self.send(TargetedAction::SetVolume(volume as f32));
         Ok(())
     }
 
@@ -207,7 +211,7 @@ impl PlayerInterface for AmptermMpris {
     }
 
     async fn can_seek(&self) -> fdo::Result<bool> {
-        Ok(false)
+        Ok(true)
     }
 
     async fn can_control(&self) -> fdo::Result<bool> {

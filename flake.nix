@@ -2,7 +2,7 @@
   description = "Rust development environment";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -32,7 +32,7 @@
           inherit buildInputs nativeBuildInputs;
           src = ./.;
           name = "ampterm";
-          cargoHash = "sha256-bT6V02RLetwGRl0EcYk971g9mYNIKx16GVrt97G6ryY=";
+          cargoHash = "sha256-0L7pPMRTCiN+UbskwgqQ63rcUZxlkKTJ+cpZm1VlMOs=";
         };
         devShells.default = pkgs.mkShell {
           packages = (

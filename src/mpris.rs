@@ -159,7 +159,7 @@ impl PlayerInterface for AmptermMpris {
     }
 
     async fn stop(&self) -> fdo::Result<()> {
-        self.send(TargetedAction::Pause); // For now
+        self.send(TargetedAction::Stop); // For now
         Ok(())
     }
 

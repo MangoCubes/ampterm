@@ -174,6 +174,7 @@ impl App {
                     TargetedAction::Quit => self.should_quit = true,
                     TargetedAction::Play => self.player_tx.send(ToPlayerWorker::Resume)?,
                     TargetedAction::Pause => self.player_tx.send(ToPlayerWorker::Pause)?,
+                    TargetedAction::Stop => self.player_tx.send(ToPlayerWorker::Stop)?,
                     TargetedAction::PlayOrPause => {
                         self.player_tx.send(ToPlayerWorker::ResumeOrPause)?
                     }

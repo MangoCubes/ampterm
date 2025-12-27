@@ -215,7 +215,11 @@ impl PlayerWorker {
                     self.timer.reset();
                     let mut lock = self.playerstatus.write().await;
                     lock.now_playing = None;
+                    lock.playing = false;
+                    lock.position = Duration::from_secs(0);
                     self.send_player_msg(FromPlayerWorker::NowPlaying(None));
+                    self.send_player_msg(FromPlayerWorker::Position(Duration::from_secs(0)));
+                    self.send_player_msg(FromPlayerWorker::Playing(false));
                 }
                 ToPlayerWorker::Pause => self.pause_stream().await,
                 ToPlayerWorker::Resume => self.continue_stream().await,

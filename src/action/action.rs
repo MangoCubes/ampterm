@@ -57,6 +57,7 @@ impl ToString for QueueAction {
 pub enum TargetedAction {
     Play,
     Pause,
+    Stop,
     PlayOrPause,
     Skip,
     Previous,
@@ -104,6 +105,7 @@ impl ToString for TargetedAction {
         match self {
             TargetedAction::Play => "Play music".to_string(),
             TargetedAction::Pause => "Pause music".to_string(),
+            TargetedAction::Stop => "Stop music".to_string(),
             TargetedAction::PlayOrPause => "Play/Pause".to_string(),
             TargetedAction::Skip => "Skip to next music".to_string(),
             TargetedAction::Previous => "Skip to previous music".to_string(),

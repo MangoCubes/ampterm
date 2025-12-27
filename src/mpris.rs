@@ -163,6 +163,8 @@ impl PlayerInterface for AmptermMpris {
             metadata = metadata
                 .title(media.title.clone())
                 .length(Time::from_secs(media.size.unwrap_or(0) as i64));
+        } else {
+            metadata = metadata.title("Nothing in queue")
         }
         Ok(metadata.build())
     }

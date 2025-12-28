@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::queryworker::query::getplaylists::PlaylistID;
+use crate::osclient::types::PlaylistID;
 
 use super::oserror::OSError;
 

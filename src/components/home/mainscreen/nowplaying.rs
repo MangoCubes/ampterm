@@ -28,7 +28,7 @@ use crate::{
     },
     config::Config,
     playerworker::player::FromPlayerWorker,
-    queryworker::query::QueryStatus,
+    queryworker::{highlevelquery::HighLevelQuery, query::QueryStatus},
 };
 
 enum Comp {
@@ -82,12 +82,26 @@ impl NowPlaying {
     }
 }
 
+/// There are three types of query that may pass this area: PlayFromURL, GetCover, GetLyrics
+/// Last two are requested only when the current component is [`Comp::Playing`], but PlayFromURL
+/// may appear when the current component is [`Comp::Stopped`].
+
 impl HandleQuery for NowPlaying {
     fn handle_query(&mut self, dest: CompID, ticket: usize, res: QueryStatus) -> Option<Action> {
         if let Comp::Playing(p) = &mut self.comp {
-            p.handle_query(dest, ticket, res)
+            if let QueryStatus::Requested(HighLevelQuery::PlayMusicFromURL(m)) = res {
+                Some(p.change_music(m))
+            } else {
+                p.handle_query(dest, ticket, res)
+            }
         } else {
-            None
+            if let QueryStatus::Requested(HighLevelQuery::PlayMusicFromURL(m)) = res {
+                let (comp, action) = Playing::new(self.playing, m, self.config.clone());
+                self.comp = Comp::Playing(comp);
+                action
+            } else {
+                None
+            }
         }
     }
 }

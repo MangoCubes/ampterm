@@ -1,6 +1,4 @@
-pub mod getcoverart;
 pub mod getplaylist;
-pub mod getplaylists;
 pub mod setcredential;
 
 use image::DynamicImage;
@@ -8,10 +6,9 @@ use image::DynamicImage;
 use crate::{
     compid::CompID,
     lyricsclient::getlyrics::GetLyricsResponse,
+    osclient::response::getplaylists::SimplePlaylist,
     queryworker::{
-        highlevelquery::HighLevelQuery,
-        query::{getplaylist::GetPlaylistResponse, getplaylists::GetPlaylistsResponse},
-        QueryWorker,
+        highlevelquery::HighLevelQuery, query::getplaylist::GetPlaylistResponse, QueryWorker,
     },
 };
 
@@ -43,7 +40,7 @@ pub enum ResponseType {
     // Responses from the queries
     Star(Result<(), String>),
     Ping(Result<(), String>),
-    GetPlaylists(GetPlaylistsResponse),
+    GetPlaylists(Result<Vec<SimplePlaylist>, String>),
     GetPlaylist(GetPlaylistResponse),
     SetCredential(Result<(), String>),
     GetLyrics(Result<Option<GetLyricsResponse>, String>),

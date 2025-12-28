@@ -10,9 +10,10 @@ use crate::{
         },
     },
     config::{keybindings::KeyBindings, Config},
+    osclient::types::PlaylistID,
     queryworker::{
         highlevelquery::HighLevelQuery,
-        query::{getplaylist::GetPlaylistParams, getplaylists::PlaylistID, ToQueryWorker},
+        query::{getplaylist::GetPlaylistParams, ToQueryWorker},
     },
 };
 use ratatui::{layout::Rect, Frame};

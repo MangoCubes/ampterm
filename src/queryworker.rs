@@ -12,13 +12,12 @@ use crate::lyricsclient::lrclib::LrcLib;
 use crate::lyricsclient::LyricsClient;
 use crate::osclient::response::empty::Empty;
 use crate::osclient::response::getplaylist::{GetPlaylist, IndeterminedPlaylist, Media};
-use crate::osclient::response::getplaylists::GetPlaylists;
+use crate::osclient::response::getplaylists::{GetPlaylists, SimplePlaylist};
+use crate::osclient::types::CoverID;
 use crate::osclient::OSClient;
 use crate::playerworker::player::ToPlayerWorker;
 use crate::queryworker::highlevelquery::HighLevelQuery;
-use crate::queryworker::query::getcoverart::CoverID;
 use crate::queryworker::query::getplaylist::GetPlaylistResponse;
-use crate::queryworker::query::getplaylists::GetPlaylistsResponse;
 use crate::queryworker::query::setcredential::Credential;
 use crate::queryworker::query::{QueryStatus, ResponseType};
 use crate::trace_dbg;
@@ -104,13 +103,13 @@ impl QueryWorker {
         }
     }
 
-    pub async fn get_playlists(c: Arc<OSClient>) -> GetPlaylistsResponse {
+    pub async fn get_playlists(c: Arc<OSClient>) -> Result<Vec<SimplePlaylist>, String> {
         match c.get_playlists().await {
             Ok(r) => match r {
-                GetPlaylists::Ok { playlists } => GetPlaylistsResponse::Success(playlists.playlist),
-                GetPlaylists::Failed { error } => GetPlaylistsResponse::Failure(error.to_string()),
+                GetPlaylists::Ok { playlists } => Ok(playlists.playlist),
+                GetPlaylists::Failed { error } => Err(error.to_string()),
             },
-            Err(e) => GetPlaylistsResponse::Failure(e.to_string()),
+            Err(e) => Err(e.to_string()),
         }
     }
 
@@ -135,9 +134,9 @@ impl QueryWorker {
                             let cc = c.clone();
                             tokio::spawn(async move {
                                 let req = if star {
-                                    cc.star(media.0).await
+                                    cc.star(media).await
                                 } else {
-                                    cc.unstar(media.0).await
+                                    cc.unstar(media).await
                                 };
                                 let result = match req {
                                     Ok(_) => ResponseType::Star(Ok(())),
@@ -255,8 +254,7 @@ impl QueryWorker {
                             let tx = self.action_tx.clone();
                             let client = c.clone();
                             tokio::spawn(async move {
-                                let res =
-                                    client.get_playlist(String::from(params.id.clone())).await;
+                                let res = client.get_playlist(params.id.clone()).await;
                                 match res {
                                     Ok(c) => match c {
                                         GetPlaylist::Ok { playlist } => match playlist {
@@ -436,7 +434,7 @@ impl QueryWorker {
         match &self.client {
             Some(c) => {
                 let id = media.id.clone();
-                let url = c.stream_link(id.0).to_string();
+                let url = c.stream_link(id).to_string();
                 let _ = self
                     .action_tx
                     .send(Action::ToPlayer(ToPlayerWorker::PlayURL {

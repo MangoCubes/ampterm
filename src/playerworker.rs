@@ -1,4 +1,5 @@
 pub mod player;
+pub mod playerstatus;
 mod realtime;
 mod streamerror;
 mod streamreader;
@@ -13,6 +14,7 @@ use streamerror::StreamError;
 use streamreader::StreamReader;
 use tokio::select;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
+use tokio::sync::RwLock;
 use tokio::task::JoinHandle;
 use tokio::time::sleep;
 use tokio_util::sync::CancellationToken;
@@ -20,7 +22,8 @@ use tokio_util::sync::CancellationToken;
 use crate::action::action::{Action, TargetedAction};
 use crate::config::Config;
 use crate::playerworker::player::FromPlayerWorker;
-use crate::playerworker::realtime::RealTime;
+use crate::playerworker::playerstatus::PlayerStatus;
+use crate::playerworker::realtime::{PosTime, RealTime};
 use crate::queryworker::highlevelquery::HighLevelQuery;
 use crate::queryworker::query::ToQueryWorker;
 use crate::trace_dbg;
@@ -33,6 +36,7 @@ enum WorkerState {
 
 pub struct PlayerWorker {
     state: WorkerState,
+    playerstatus: Arc<RwLock<PlayerStatus>>,
     player_tx: UnboundedSender<ToPlayerWorker>,
     player_rx: UnboundedReceiver<ToPlayerWorker>,
     action_tx: UnboundedSender<Action>,
@@ -43,14 +47,28 @@ pub struct PlayerWorker {
 }
 
 impl PlayerWorker {
-    fn continue_stream(&mut self) {
+    async fn continue_stream(&mut self) {
         self.sink.play();
+        let mut lock = self.playerstatus.write().await;
+        lock.playing = true;
         self.send_player_msg(FromPlayerWorker::Playing(true));
     }
 
-    fn pause_stream(&mut self) {
+    async fn pause_stream(&mut self) {
         self.sink.pause();
+        let mut lock = self.playerstatus.write().await;
+        lock.playing = false;
         self.send_player_msg(FromPlayerWorker::Playing(false));
+    }
+
+    fn jump_to(&mut self, to: f32) -> Duration {
+        let (newpos, sink_pos) = self
+            .timer
+            .move_time_to(PosTime::from_secs_f32(to), self.sink.speed());
+        if let Err(e) = self.sink.try_seek(sink_pos) {
+            self.send_err(format!("Seeking failed! Reason: {e}"));
+        };
+        newpos
     }
 
     fn jump(&mut self, offset: f32) -> Duration {
@@ -195,23 +213,33 @@ impl PlayerWorker {
                         token.cancel();
                     };
                     self.timer.reset();
+                    let mut lock = self.playerstatus.write().await;
+                    lock.now_playing = None;
+                    lock.playing = false;
+                    lock.position = Duration::from_secs(0);
                     self.send_player_msg(FromPlayerWorker::NowPlaying(None));
+                    self.send_player_msg(FromPlayerWorker::Position(Duration::from_secs(0)));
+                    self.send_player_msg(FromPlayerWorker::Playing(false));
                 }
-                ToPlayerWorker::Pause => self.pause_stream(),
-                ToPlayerWorker::Resume => self.continue_stream(),
+                ToPlayerWorker::Pause => self.pause_stream().await,
+                ToPlayerWorker::Resume => self.continue_stream().await,
                 ToPlayerWorker::Kill => self.should_quit = true,
                 ToPlayerWorker::PlayMedia { media } => {
-                    self.send_player_msg(FromPlayerWorker::NowPlaying(Some(media.clone())));
                     let _ = self.action_tx.send(Action::ToQuery(ToQueryWorker::new(
-                        HighLevelQuery::PlayMusicFromURL(media),
+                        HighLevelQuery::PlayMusicFromURL(media.clone()),
                     )));
                 }
-                ToPlayerWorker::PlayURL { music: _, url } => {
+                ToPlayerWorker::PlayURL { music, url } => {
                     self.sink.stop();
                     if let WorkerState::Playing(token) = &self.state {
                         token.cancel();
                     };
+                    let mut lock = self.playerstatus.write().await;
+                    lock.now_playing = Some(music.clone());
+                    lock.playing = true;
                     let token = self.play_from_url(url);
+                    self.send_player_msg(FromPlayerWorker::NowPlaying(Some(music)));
+                    self.send_player_msg(FromPlayerWorker::Playing(true));
                     self.timer.reset();
                     self.state = WorkerState::Playing(token);
                 }
@@ -228,11 +256,15 @@ impl PlayerWorker {
                     let new_speed = current + by;
                     let cleaned = if new_speed <= 0.0 { 0.01 } else { new_speed };
                     self.change_speed(cleaned);
+                    let mut lock = self.playerstatus.write().await;
+                    lock.speed = cleaned;
                     self.send_player_msg(FromPlayerWorker::Speed(cleaned));
                 }
                 ToPlayerWorker::SetSpeed(to) => {
                     let cleaned = if to <= 0.0 { 0.01 } else { to };
                     self.change_speed(cleaned);
+                    let mut lock = self.playerstatus.write().await;
+                    lock.speed = cleaned;
                     self.send_player_msg(FromPlayerWorker::Speed(cleaned));
                 }
                 ToPlayerWorker::ChangeVolume(by) => {
@@ -246,6 +278,8 @@ impl PlayerWorker {
                         new_vol
                     };
                     self.sink.set_volume(cleaned);
+                    let mut lock = self.playerstatus.write().await;
+                    lock.volume = cleaned;
                     self.send_player_msg(FromPlayerWorker::Volume(cleaned));
                 }
                 ToPlayerWorker::SetVolume(to) => {
@@ -257,17 +291,23 @@ impl PlayerWorker {
                         to
                     };
                     self.sink.set_volume(cleaned);
+                    let mut lock = self.playerstatus.write().await;
+                    lock.volume = cleaned;
                     self.send_player_msg(FromPlayerWorker::Volume(cleaned));
                 }
                 ToPlayerWorker::ResumeOrPause => {
                     if self.sink.is_paused() {
-                        self.continue_stream();
+                        self.continue_stream().await;
                     } else {
-                        self.pause_stream();
+                        self.pause_stream().await;
                     }
                 }
                 ToPlayerWorker::ChangePosition(by) => {
                     let newpos = self.jump(by);
+                    self.send_player_msg(FromPlayerWorker::Jump(newpos));
+                }
+                ToPlayerWorker::SetPosition(to) => {
+                    let newpos = self.jump_to(to);
                     self.send_player_msg(FromPlayerWorker::Jump(newpos));
                 }
                 ToPlayerWorker::Tick => {
@@ -280,7 +320,10 @@ impl PlayerWorker {
                     // This issue is addressed by [`self.timer`], where if the position somehow
                     // goes backwards, it is blindly trusted.
                     self.timer.add(self.sink.get_pos(), self.sink.speed());
-                    self.send_player_msg(FromPlayerWorker::Position(self.timer.get_now()));
+                    let pos = self.timer.get_now();
+                    let mut lock = self.playerstatus.write().await;
+                    lock.position = pos;
+                    self.send_player_msg(FromPlayerWorker::Position(pos));
                 }
             };
             if self.should_quit {
@@ -293,11 +336,17 @@ impl PlayerWorker {
 }
 
 impl PlayerWorker {
-    pub fn new(handle: OutputStream, sender: UnboundedSender<Action>, config: Config) -> Self {
+    pub fn new(
+        playerstatus: Arc<RwLock<PlayerStatus>>,
+        handle: OutputStream,
+        sender: UnboundedSender<Action>,
+        config: Config,
+    ) -> Self {
         let (player_tx, player_rx) = mpsc::unbounded_channel();
         let sink = Arc::from(rodio::Sink::connect_new(handle.mixer()));
         sink.set_volume(config.init_state.volume);
         Self {
+            playerstatus,
             handle,
             player_tx,
             player_rx,

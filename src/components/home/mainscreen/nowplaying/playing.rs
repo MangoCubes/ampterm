@@ -16,9 +16,9 @@ use crate::{
     },
     config::Config,
     helper::strings::trim_long_str,
-    osclient::response::getplaylist::Media,
+    osclient::{response::getplaylist::Media, types::CoverID},
     playerworker::player::FromPlayerWorker,
-    queryworker::query::{getcoverart::CoverID, QueryStatus},
+    queryworker::query::QueryStatus,
     trace_dbg,
 };
 use crossterm::event::KeyEvent;

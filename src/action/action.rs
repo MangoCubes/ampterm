@@ -57,6 +57,7 @@ impl ToString for QueueAction {
 pub enum TargetedAction {
     Play,
     Pause,
+    Stop,
     PlayOrPause,
     Skip,
     Previous,
@@ -67,6 +68,7 @@ pub enum TargetedAction {
     SetVolume(f32),
     SetSpeed(f32),
     ChangePosition(f32),
+    SetPosition(f32),
 
     // Action for moving between boxes
     WindowUp,
@@ -103,6 +105,7 @@ impl ToString for TargetedAction {
         match self {
             TargetedAction::Play => "Play music".to_string(),
             TargetedAction::Pause => "Pause music".to_string(),
+            TargetedAction::Stop => "Stop music".to_string(),
             TargetedAction::PlayOrPause => "Play/Pause".to_string(),
             TargetedAction::Skip => "Skip to next music".to_string(),
             TargetedAction::Previous => "Skip to previous music".to_string(),
@@ -150,6 +153,7 @@ impl ToString for TargetedAction {
                     format!("Seek backwards {} seconds", -p)
                 }
             }
+            TargetedAction::SetPosition(v) => format!("Set current position to {}s", v),
             TargetedAction::Info(_) => "Display information message".to_string(),
             TargetedAction::Debug(_) => "Display debug message".to_string(),
             TargetedAction::Err(_) => "Display error message".to_string(),

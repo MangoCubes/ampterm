@@ -1,15 +1,22 @@
+use std::sync::Arc;
+
 use clap::Parser;
 use cli::Cli;
 use color_eyre::{eyre::eyre, Result};
-use mpris_server::Player;
+use mpris_server::Server;
 use rodio::cpal::{self, traits::HostTrait};
-use tokio::{select, sync::mpsc, task::JoinSet};
+use tokio::{
+    select,
+    sync::{mpsc, RwLock},
+    task::JoinSet,
+};
 use tracing::warn;
 
 use crate::{
     app::App,
     config::{pathconfig::PathConfig, Config},
-    playerworker::PlayerWorker,
+    mpris::AmptermMpris,
+    playerworker::{playerstatus::PlayerStatus, PlayerWorker},
     queryworker::QueryWorker,
 };
 
@@ -23,6 +30,7 @@ mod errors;
 mod helper;
 mod logging;
 mod lyricsclient;
+mod mpris;
 mod osclient;
 mod playerworker;
 mod queryworker;
@@ -62,6 +70,7 @@ async fn main() -> Result<()> {
 
     log_alsa_error();
 
+    let playerstatus = Arc::from(RwLock::from(PlayerStatus::default()));
     let args = Cli::parse();
     if let Some(msg) = args.is_valid() {
         return Err(eyre!(msg));
@@ -91,15 +100,22 @@ async fn main() -> Result<()> {
     // Start query worker
     set.spawn(async move { qw.run().await });
 
-    let mut pw = PlayerWorker::new(handle, action_tx.clone(), config.clone());
+    let mut pw = PlayerWorker::new(
+        playerstatus.clone(),
+        handle,
+        action_tx.clone(),
+        config.clone(),
+    );
     let player_tx = pw.get_tx();
     // Start query worker
     set.spawn(async move { pw.run().await });
+    let (mpris_tx, mpris_rx) = mpsc::unbounded_channel();
 
     let mut app = App::new(
         config,
-        action_tx,
+        action_tx.clone(),
         action_rx,
+        mpris_tx,
         query_tx,
         player_tx,
         args.tick_rate,
@@ -111,13 +127,11 @@ async fn main() -> Result<()> {
     set.spawn(async move { app.run().await });
     let mpris = local.run_until(async {
         tokio::task::spawn_local(async move {
-            let player = Player::builder("ch.skew.ampterm")
-                .can_play(true)
-                .can_pause(true)
-                .build()
+            let player = AmptermMpris::new(action_tx, playerstatus.clone());
+            let server = Server::new("ch.skew.ampterm", player)
                 .await
                 .expect("Failed to start MPRIS server!");
-            player.run().await
+            server.imp().run(mpris_rx, &server).await;
         })
         .await
     });

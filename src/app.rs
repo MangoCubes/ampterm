@@ -21,7 +21,7 @@ use crate::{
         },
     },
     config::Config,
-    playerworker::player::ToPlayerWorker,
+    playerworker::player::{FromPlayerWorker, ToPlayerWorker},
     queryworker::{
         highlevelquery::HighLevelQuery,
         query::{QueryStatus, ToQueryWorker},
@@ -42,6 +42,7 @@ pub struct App {
     query_tx: mpsc::UnboundedSender<ToQueryWorker>,
     player_tx: mpsc::UnboundedSender<ToPlayerWorker>,
     mode: Mode,
+    mpris_tx: mpsc::UnboundedSender<FromPlayerWorker>,
 }
 
 impl App {
@@ -49,6 +50,7 @@ impl App {
         config: Config,
         action_tx: mpsc::UnboundedSender<Action>,
         action_rx: mpsc::UnboundedReceiver<Action>,
+        mpris_tx: mpsc::UnboundedSender<FromPlayerWorker>,
         query_tx: mpsc::UnboundedSender<ToQueryWorker>,
         player_tx: mpsc::UnboundedSender<ToPlayerWorker>,
         tick_rate: f64,
@@ -59,6 +61,7 @@ impl App {
             let _ = action_tx.send(a);
         });
         Ok(Self {
+            mpris_tx,
             tick_rate,
             frame_rate,
             component,
@@ -109,7 +112,11 @@ impl App {
             Event::Quit => action_tx.send(Action::Targeted(TargetedAction::Quit))?,
             Event::Tick => {
                 self.component.on_tick();
-                let _ = self.query_tx.send(ToQueryWorker::new(HighLevelQuery::Tick));
+                let _ = self.query_tx.send(ToQueryWorker {
+                    dest: vec![],
+                    query: HighLevelQuery::Tick,
+                    ticket: 0,
+                });
             }
             Event::Render => self.render(tui)?,
             Event::Resize(x, y) => action_tx.send(Action::Resize(x, y))?,
@@ -167,6 +174,7 @@ impl App {
                     TargetedAction::Quit => self.should_quit = true,
                     TargetedAction::Play => self.player_tx.send(ToPlayerWorker::Resume)?,
                     TargetedAction::Pause => self.player_tx.send(ToPlayerWorker::Pause)?,
+                    TargetedAction::Stop => self.player_tx.send(ToPlayerWorker::Stop)?,
                     TargetedAction::PlayOrPause => {
                         self.player_tx.send(ToPlayerWorker::ResumeOrPause)?
                     }
@@ -188,6 +196,12 @@ impl App {
                             self.action_tx.send(more)?
                         }
                         self.player_tx.send(ToPlayerWorker::ChangePosition(by))?
+                    }
+                    TargetedAction::SetPosition(to) => {
+                        if let Some(more) = self.component.handle_action(targeted_action) {
+                            self.action_tx.send(more)?
+                        }
+                        self.player_tx.send(ToPlayerWorker::SetPosition(to))?
                     }
                     TargetedAction::GoToStart => self.player_tx.send(ToPlayerWorker::GoToStart)?,
                     TargetedAction::EndKeySeq => {
@@ -223,6 +237,7 @@ impl App {
                 }
                 Action::ToPlayer(to_player_worker) => self.player_tx.send(to_player_worker)?,
                 Action::FromPlayer(pw) => {
+                    let _ = self.mpris_tx.send(pw.clone());
                     if let Some(more) = self.component.handle_player(pw) {
                         self.action_tx.send(more)?
                     }

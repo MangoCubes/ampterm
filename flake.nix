@@ -42,7 +42,7 @@
               jq
               rustup
               # This is necessary for opening bash from Neovim
-              bash
+              bashInteractive
             ]
           );
           inherit buildInputs nativeBuildInputs;

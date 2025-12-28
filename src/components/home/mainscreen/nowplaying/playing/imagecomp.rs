@@ -5,9 +5,10 @@ use crate::{
         lib::centered::Centered,
         traits::{handlequery::HandleQuery, renderable::Renderable},
     },
+    osclient::types::CoverID,
     queryworker::{
         highlevelquery::HighLevelQuery,
-        query::{getcoverart::CoverID, QueryStatus, ResponseType, ToQueryWorker},
+        query::{QueryStatus, ResponseType, ToQueryWorker},
     },
 };
 use image::DynamicImage;

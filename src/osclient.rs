@@ -15,8 +15,10 @@ use std::fmt::Debug;
 use stream_download::http::ClientResponse;
 
 use crate::osclient::response::empty::AlwaysError;
+use crate::osclient::types::{MediaID, PlaylistID};
 mod error;
 pub mod response;
+pub mod types;
 
 #[derive(Debug)]
 enum Credential {
@@ -72,10 +74,10 @@ impl OSClient {
         self.query_auth_image(Method::GET, "getCoverArt", Some(vec![("id", &id)]))
             .await
     }
-    pub fn stream_link(&self, id: String) -> Url {
+    pub fn stream_link(&self, id: MediaID) -> Url {
         self.get_path("stream", Some(vec![("id", &id)]))
     }
-    pub async fn get_playlist(&self, id: String) -> Result<GetPlaylist, ExternalError> {
+    pub async fn get_playlist(&self, id: PlaylistID) -> Result<GetPlaylist, ExternalError> {
         self.query_auth_text::<GetPlaylist>(Method::GET, "getPlaylist", Some(vec![("id", &id)]))
             .await
     }
@@ -87,11 +89,11 @@ impl OSClient {
         self.query_auth_text::<Empty>(Method::GET, "ping", None)
             .await
     }
-    pub async fn star(&self, id: String) -> Result<Empty, ExternalError> {
+    pub async fn star(&self, id: MediaID) -> Result<Empty, ExternalError> {
         self.query_auth_text::<Empty>(Method::GET, "star", Some(vec![("id", &id)]))
             .await
     }
-    pub async fn unstar(&self, id: String) -> Result<Empty, ExternalError> {
+    pub async fn unstar(&self, id: MediaID) -> Result<Empty, ExternalError> {
         self.query_auth_text::<Empty>(Method::GET, "unstar", Some(vec![("id", &id)]))
             .await
     }

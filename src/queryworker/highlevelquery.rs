@@ -62,6 +62,9 @@ impl HighLevelQuery {
             HighLevelQuery::Tick => vec![],
         }
     }
+    pub fn show_task(&self) -> bool {
+        !matches!(self, HighLevelQuery::PlayMusicFromURL(_))
+    }
 }
 
 impl ToString for HighLevelQuery {

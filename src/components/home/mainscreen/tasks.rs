@@ -79,7 +79,9 @@ impl Tasks {
                 }
             }
             QueryStatus::Requested(q) => {
-                self.tasks.insert(*ticket, (q.to_string(), Status::Running));
+                if q.show_task() {
+                    self.tasks.insert(*ticket, (q.to_string(), Status::Running));
+                }
             }
         };
         self.table = Table::new(

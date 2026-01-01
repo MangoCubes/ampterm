@@ -178,4 +178,6 @@ pub enum Action {
         ticket: usize,
         res: QueryStatus,
     },
+    #[cfg(test)]
+    Snapshot(String),
 }

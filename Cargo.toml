@@ -64,3 +64,6 @@ tui-textarea = "*"
 [build-dependencies]
 anyhow = "1.0.90"
 vergen-gix = { version = "1.0.2", features = ["build", "cargo"] }
+
+[dev-dependencies]
+insta = "1.46.0"

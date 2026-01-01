@@ -1,6 +1,7 @@
 use color_eyre::Result;
 
 use crossterm::event::KeyEvent;
+
 use ratatui::prelude::Rect;
 use tokio::sync::mpsc::{self};
 use tracing::debug;
@@ -31,8 +32,6 @@ use crate::{
 
 pub struct App {
     config: Config,
-    tick_rate: f64,
-    frame_rate: f64,
     component: Home,
     should_quit: bool,
     should_suspend: bool,
@@ -43,6 +42,7 @@ pub struct App {
     player_tx: mpsc::UnboundedSender<ToPlayerWorker>,
     mode: Mode,
     mpris_tx: mpsc::UnboundedSender<FromPlayerWorker>,
+    tui: Tui,
 }
 
 impl App {
@@ -61,9 +61,8 @@ impl App {
             let _ = action_tx.send(a);
         });
         Ok(Self {
+            tui: Tui::new()?.tick_rate(tick_rate).frame_rate(frame_rate),
             mpris_tx,
-            tick_rate,
-            frame_rate,
             component,
             should_quit: false,
             should_suspend: false,
@@ -78,33 +77,29 @@ impl App {
     }
 
     pub async fn run(&mut self) -> Result<()> {
-        let mut tui = Tui::new()?
-            // .mouse(true) // uncomment this line to enable mouse support
-            .tick_rate(self.tick_rate)
-            .frame_rate(self.frame_rate);
-        tui.enter()?;
+        self.tui.enter()?;
         let action_tx = self.action_tx.clone();
         loop {
-            self.handle_events(&mut tui).await?;
-            self.handle_actions(&mut tui).await?;
+            self.handle_events().await?;
+            self.handle_actions().await?;
             if self.should_suspend {
-                tui.suspend()?;
+                self.tui.suspend()?;
                 action_tx.send(Action::Targeted(TargetedAction::Resume))?;
                 action_tx.send(Action::Targeted(TargetedAction::ClearScreen))?;
                 // tui.mouse(true);
-                tui.enter()?;
+                self.tui.enter()?;
             } else if self.should_quit {
-                tui.stop()?;
+                self.tui.stop()?;
                 break;
             }
         }
         // let _ = tokio::join!(self.query_thread);
-        tui.exit()?;
+        self.tui.exit()?;
         Ok(())
     }
 
-    async fn handle_events(&mut self, tui: &mut Tui) -> Result<()> {
-        let Some(event) = tui.next_event().await else {
+    async fn handle_events(&mut self) -> Result<()> {
+        let Some(event) = self.tui.next_event().await else {
             return Ok(());
         };
         let action_tx = self.action_tx.clone();
@@ -118,7 +113,7 @@ impl App {
                     ticket: 0,
                 });
             }
-            Event::Render => self.render(tui)?,
+            Event::Render => self.render()?,
             Event::Resize(x, y) => action_tx.send(Action::Resize(x, y))?,
             Event::Key(key) => self.handle_key_event(key)?,
             _ => {}
@@ -159,7 +154,7 @@ impl App {
         Ok(())
     }
 
-    async fn handle_actions(&mut self, tui: &mut Tui) -> Result<()> {
+    async fn handle_actions(&mut self) -> Result<()> {
         while let Ok(action) = self.action_rx.try_recv() {
             match action {
                 Action::Multiple(actions) => {
@@ -170,7 +165,7 @@ impl App {
                 Action::Targeted(targeted_action) => match targeted_action {
                     TargetedAction::Suspend => self.should_suspend = true,
                     TargetedAction::Resume => self.should_suspend = false,
-                    TargetedAction::ClearScreen => tui.terminal.clear()?,
+                    TargetedAction::ClearScreen => self.tui.terminal.clear()?,
                     TargetedAction::Quit => self.should_quit = true,
                     TargetedAction::Play => self.player_tx.send(ToPlayerWorker::Resume)?,
                     TargetedAction::Pause => self.player_tx.send(ToPlayerWorker::Pause)?,
@@ -218,7 +213,7 @@ impl App {
                         }
                     }
                 },
-                Action::Resize(w, h) => self.handle_resize(tui, w, h)?,
+                Action::Resize(w, h) => self.handle_resize(w, h)?,
                 Action::ChangeMode(mode) => {
                     self.mode = mode;
                     self.component.handle_mode(mode);
@@ -251,19 +246,22 @@ impl App {
                         self.action_tx.send(a)?
                     }
                 }
+                #[cfg(test)]
+                Action::Snapshot(name) => insta::assert_snapshot!(name, self.tui.backend()),
             };
         }
         Ok(())
     }
 
-    fn handle_resize(&mut self, tui: &mut Tui, w: u16, h: u16) -> Result<()> {
-        tui.resize(Rect::new(0, 0, w, h))?;
-        self.render(tui)?;
+    fn handle_resize(&mut self, w: u16, h: u16) -> Result<()> {
+        self.tui.resize(Rect::new(0, 0, w, h))?;
+        self.render()?;
         Ok(())
     }
 
-    fn render(&mut self, tui: &mut Tui) -> Result<()> {
-        tui.draw(|frame| self.component.draw(frame, frame.area()))?;
+    fn render(&mut self) -> Result<()> {
+        self.tui
+            .draw(|frame| self.component.draw(frame, frame.area()))?;
         Ok(())
     }
 }

@@ -1,7 +1,12 @@
 #![allow(dead_code)] // Remove this once you start using the code
 
+#[cfg(not(test))]
+use ratatui::backend::CrosstermBackend as Backend;
+#[cfg(not(test))]
+use std::io::Stdout;
+
 use std::{
-    io::{stdout, Stdout},
+    io::stdout,
     ops::{Deref, DerefMut},
     time::Duration,
 };
@@ -16,7 +21,8 @@ use crossterm::{
     terminal::{EnterAlternateScreen, LeaveAlternateScreen},
 };
 use futures::{FutureExt, StreamExt};
-use ratatui::backend::CrosstermBackend as Backend;
+#[cfg(test)]
+use ratatui::backend::TestBackend;
 use serde::{Deserialize, Serialize};
 use tokio::{
     sync::mpsc::{self, UnboundedReceiver, UnboundedSender},
@@ -42,8 +48,13 @@ pub enum Event {
     Resize(u16, u16),
 }
 
+#[cfg(test)]
+type Term = ratatui::Terminal<TestBackend>;
+#[cfg(not(test))]
+type Term = ratatui::Terminal<Backend<Stdout>>;
+
 pub struct Tui {
-    pub terminal: ratatui::Terminal<Backend<Stdout>>,
+    pub terminal: Term,
     pub task: JoinHandle<()>,
     pub cancellation_token: CancellationToken,
     pub event_rx: UnboundedReceiver<Event>,
@@ -58,6 +69,9 @@ impl Tui {
     pub fn new() -> Result<Self> {
         let (event_tx, event_rx) = mpsc::unbounded_channel();
         Ok(Self {
+            #[cfg(test)]
+            terminal: ratatui::Terminal::new(TestBackend::new(320, 80))?,
+            #[cfg(not(test))]
             terminal: ratatui::Terminal::new(Backend::new(stdout()))?,
             task: tokio::spawn(async {}),
             cancellation_token: CancellationToken::new(),
@@ -215,7 +229,7 @@ impl Tui {
 }
 
 impl Deref for Tui {
-    type Target = ratatui::Terminal<Backend<Stdout>>;
+    type Target = Term;
 
     fn deref(&self) -> &Self::Target {
         &self.terminal

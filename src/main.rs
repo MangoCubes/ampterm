@@ -2,21 +2,28 @@ use std::sync::Arc;
 
 use clap::Parser;
 use cli::Cli;
-use color_eyre::{eyre::eyre, Result};
+use color_eyre::{
+    eyre::{eyre, Error},
+    Result,
+};
 use mpris_server::Server;
 use rodio::cpal::{self, traits::HostTrait};
 use tokio::{
     select,
-    sync::{mpsc, RwLock},
+    sync::{
+        mpsc::{self, UnboundedReceiver, UnboundedSender},
+        RwLock,
+    },
     task::JoinSet,
 };
 use tracing::warn;
 
 use crate::{
+    action::action::Action,
     app::App,
     config::{pathconfig::PathConfig, Config},
     mpris::AmptermMpris,
-    playerworker::{playerstatus::PlayerStatus, PlayerWorker},
+    playerworker::{player::FromPlayerWorker, playerstatus::PlayerStatus, PlayerWorker},
     queryworker::QueryWorker,
 };
 
@@ -34,6 +41,7 @@ mod mpris;
 mod osclient;
 mod playerworker;
 mod queryworker;
+mod tests;
 mod tui;
 
 pub fn log_alsa_error() {
@@ -63,24 +71,26 @@ pub fn log_alsa_error() {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    crate::errors::init()?;
-    crate::logging::init()?;
-
-    log_alsa_error();
-
-    let playerstatus = Arc::from(RwLock::from(PlayerStatus::default()));
-    let args = Cli::parse();
-    if let Some(msg) = args.is_valid() {
-        return Err(eyre!(msg));
-    }
+pub fn run(
+    args: Cli,
+) -> Result<(
+    UnboundedSender<Action>,
+    Arc<RwLock<PlayerStatus>>,
+    UnboundedReceiver<FromPlayerWorker>,
+    JoinSet<Result<(), Error>>,
+)> {
     let config = Config::new(PathConfig::new(
         args.data,
         args.no_data,
         args.config,
         args.no_config,
     ))?;
+
+    let playerstatus = Arc::from(RwLock::from(PlayerStatus::default()));
+    let (action_tx, action_rx) = mpsc::unbounded_channel();
+    let (mpris_tx, mpris_rx) = mpsc::unbounded_channel();
+    let mut qw = QueryWorker::new(action_tx.clone(), config.clone());
+    let query_tx = qw.get_tx();
 
     // Set up audio stuff
     let host = cpal::default_host();
@@ -93,13 +103,6 @@ async fn main() -> Result<()> {
 
     let mut set = JoinSet::new();
 
-    // Communication channel for [`App`]
-    let (action_tx, action_rx) = mpsc::unbounded_channel();
-    let mut qw = QueryWorker::new(action_tx.clone(), config.clone());
-    let query_tx = qw.get_tx();
-    // Start query worker
-    set.spawn(async move { qw.run().await });
-
     let mut pw = PlayerWorker::new(
         playerstatus.clone(),
         handle,
@@ -107,9 +110,6 @@ async fn main() -> Result<()> {
         config.clone(),
     );
     let player_tx = pw.get_tx();
-    // Start query worker
-    set.spawn(async move { pw.run().await });
-    let (mpris_tx, mpris_rx) = mpsc::unbounded_channel();
 
     let mut app = App::new(
         config,
@@ -122,12 +122,36 @@ async fn main() -> Result<()> {
         args.frame_rate,
     )?;
 
-    let local = tokio::task::LocalSet::new();
-
+    // Start query worker
+    set.spawn(async move { qw.run().await });
+    // Start query worker
+    set.spawn(async move { pw.run().await });
+    // Start app
     set.spawn(async move { app.run().await });
+
+    Ok((action_tx, playerstatus, mpris_rx, set))
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    crate::errors::init()?;
+    crate::logging::init()?;
+
+    log_alsa_error();
+
+    let args = Cli::parse();
+    if let Some(msg) = args.is_valid() {
+        return Err(eyre!(msg));
+    }
+
+    let Ok((action_tx, playerstatus, mpris_rx, mut set)) = run(args) else {
+        return Ok(());
+    };
+
+    let local = tokio::task::LocalSet::new();
     let mpris = local.run_until(async {
         tokio::task::spawn_local(async move {
-            let player = AmptermMpris::new(action_tx, playerstatus.clone());
+            let player = AmptermMpris::new(action_tx, playerstatus);
             let server = Server::new("ch.skew.ampterm", player)
                 .await
                 .expect("Failed to start MPRIS server!");

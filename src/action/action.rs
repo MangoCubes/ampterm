@@ -70,6 +70,8 @@ pub enum TargetedAction {
     ChangePosition(f32),
     SetPosition(f32),
 
+    Shuffle,
+
     // Action for moving between boxes
     WindowUp,
     WindowDown,
@@ -157,6 +159,7 @@ impl ToString for TargetedAction {
             TargetedAction::Info(_) => "Display information message".to_string(),
             TargetedAction::Debug(_) => "Display debug message".to_string(),
             TargetedAction::Err(_) => "Display error message".to_string(),
+            TargetedAction::Shuffle => "Shuffle music".to_string(),
         }
     }
 }

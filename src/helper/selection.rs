@@ -5,7 +5,6 @@ pub struct ModifiableList<T: Clone>(pub Vec<T>);
 
 pub enum Selection {
     Single(usize),
-    Range(usize, usize),
     Multiple(Vec<bool>),
 }
 
@@ -16,11 +15,6 @@ impl<T: Clone> ModifiableList<T> {
     /// Delete a row specified by the provided index
     fn delete_single(&mut self, index: usize) {
         self.remove(index);
-    }
-
-    /// Delete a range
-    fn delete_range(&mut self, start: usize, end: usize) {
-        self.drain(start..=end);
     }
 
     /// Delete rows where selected[index] is true
@@ -64,27 +58,6 @@ impl<T: Clone> ModifiableList<T> {
                     }
                 }
             }
-            Selection::Range(start, end) => {
-                if *start == 0 && *end == (len - 1) {
-                    // Everything is deleted
-                    None
-                } else if idx < *start {
-                    // Current item comes before the start of the range
-                    Some((idx, false))
-                } else if idx > *end {
-                    // Current item comes after the end of the range
-                    Some((idx - (end - start + 1), false))
-                } else {
-                    // Current item is deleted, point at the item that is just before the start of
-                    // range
-                    if *start == 0 {
-                        // Handle edge case where there is no item before the range
-                        Some((0, true))
-                    } else {
-                        Some((start - 1, true))
-                    }
-                }
-            }
             Selection::Multiple(items) => {
                 // [`safe_items`] specifies the number of items that are NOT deleted by this
                 // operation and comes before the current item. Essentially, it's the number of
@@ -120,7 +93,6 @@ impl<T: Clone> ModifiableList<T> {
     pub fn delete(&mut self, selection: &Selection) {
         match selection {
             Selection::Single(index) => self.delete_single(*index),
-            Selection::Range(start, end) => self.delete_range(*start, *end),
             Selection::Multiple(items) => self.delete_multiple(items),
         }
     }

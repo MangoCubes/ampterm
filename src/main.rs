@@ -2,16 +2,16 @@ use std::sync::Arc;
 
 use clap::Parser;
 use cli::Cli;
-use color_eyre::{
-    eyre::{eyre, Error},
-    Result,
-};
+use color_eyre::{eyre::eyre, Result};
 use mpris_server::Server;
-use rodio::cpal::{self, traits::HostTrait};
+use rodio::{
+    cpal::{self, traits::HostTrait},
+    OutputStream,
+};
 use tokio::{
     select,
     sync::{
-        mpsc::{self, UnboundedReceiver, UnboundedSender},
+        mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
         RwLock,
     },
     task::JoinSet,
@@ -71,97 +71,44 @@ pub fn log_alsa_error() {
     }
 }
 
-pub fn run(
-    args: Cli,
-) -> Result<(
-    UnboundedSender<Action>,
-    Arc<RwLock<PlayerStatus>>,
-    UnboundedReceiver<FromPlayerWorker>,
-    JoinSet<Result<(), Error>>,
-)> {
-    let config = Config::new(PathConfig::new(
-        args.data,
-        args.no_data,
-        args.config,
-        args.no_config,
-    ))?;
-
-    let playerstatus = Arc::from(RwLock::from(PlayerStatus::default()));
-    let (action_tx, action_rx) = mpsc::unbounded_channel();
-    let (mpris_tx, mpris_rx) = mpsc::unbounded_channel();
-    let mut qw = QueryWorker::new(action_tx.clone(), config.clone());
-    let query_tx = qw.get_tx();
-
-    // Set up audio stuff
-    let host = cpal::default_host();
-    let device = host.default_output_device().unwrap();
-    let handle = rodio::OutputStreamBuilder::from_device(device)
-        .unwrap()
-        .with_buffer_size(cpal::BufferSize::Fixed(4096))
-        .open_stream()
-        .unwrap();
-
-    let mut set = JoinSet::new();
-
-    let mut pw = PlayerWorker::new(
-        playerstatus.clone(),
-        handle,
-        action_tx.clone(),
-        config.clone(),
-    );
-    let player_tx = pw.get_tx();
-
-    let mut app = App::new(
-        config,
-        action_tx.clone(),
-        action_rx,
-        mpris_tx,
-        query_tx,
-        player_tx,
-        args.tick_rate,
-        args.frame_rate,
-    )?;
-
-    // Start query worker
-    set.spawn(async move { qw.run().await });
-    // Start query worker
-    set.spawn(async move { pw.run().await });
-    // Start app
-    set.spawn(async move { app.run().await });
-
-    Ok((action_tx, playerstatus, mpris_rx, set))
-}
-
-#[tokio::main]
-async fn main() -> Result<()> {
-    crate::errors::init()?;
-    crate::logging::init()?;
-
-    log_alsa_error();
-
-    let args = Cli::parse();
-    if let Some(msg) = args.is_valid() {
-        return Err(eyre!(msg));
-    }
-
-    let Ok((action_tx, playerstatus, mpris_rx, mut set)) = run(args) else {
-        return Ok(());
-    };
-
+async fn start_mpris(
+    action_tx: UnboundedSender<Action>,
+    mpris_rx: UnboundedReceiver<FromPlayerWorker>,
+    playerstatus: Arc<RwLock<PlayerStatus>>,
+) -> std::result::Result<(), tokio::task::JoinError> {
     let local = tokio::task::LocalSet::new();
-    let mpris = local.run_until(async {
-        tokio::task::spawn_local(async move {
-            let player = AmptermMpris::new(action_tx, playerstatus);
-            let server = Server::new("ch.skew.ampterm", player)
-                .await
-                .expect("Failed to start MPRIS server!");
-            server.imp().run(mpris_rx, &server).await;
+    local
+        .run_until(async {
+            tokio::task::spawn_local(async move {
+                let player = AmptermMpris::new(action_tx, playerstatus);
+                let server = Server::new("ch.skew.ampterm", player)
+                    .await
+                    .expect("Failed to start MPRIS server!");
+                server.imp().run(mpris_rx, &server).await;
+            })
+            .await
         })
         .await
-    });
+}
+
+async fn start_with_mpris(
+    mut app: App,
+    mut set: JoinSet<Result<()>>,
+    action_tx: UnboundedSender<Action>,
+    mpris_rx: UnboundedReceiver<FromPlayerWorker>,
+    playerstatus: Arc<RwLock<PlayerStatus>>,
+) -> Result<()> {
+    let mpris = start_mpris(action_tx, mpris_rx, playerstatus);
+
     select! {
         _ = mpris => {
             panic!("MPRIS server has terminated before the player!");
+        }
+        res = app.run() => {
+            match res {
+                Ok(()) => Ok(()),
+                Err(e) => panic!("UI panicked! Error: {}", e),
+            }
         }
         res = set.join_next() => {
             match res {
@@ -176,4 +123,81 @@ async fn main() -> Result<()> {
             }
         }
     }
+}
+
+pub fn start_workers(
+    handle: OutputStream,
+    action_tx: UnboundedSender<Action>,
+    action_rx: UnboundedReceiver<Action>,
+    mpris_tx: UnboundedSender<FromPlayerWorker>,
+    config: Config,
+    playerstatus: Arc<RwLock<PlayerStatus>>,
+    tick_rate: f64,
+    frame_rate: f64,
+) -> Result<(App, JoinSet<Result<()>>)> {
+    let mut set = JoinSet::new();
+    let mut pw = PlayerWorker::new(playerstatus, handle, action_tx.clone(), config.clone());
+    let mut qw = QueryWorker::new(action_tx.clone(), config.clone());
+    let player_tx = pw.get_tx();
+    let query_tx = qw.get_tx();
+
+    let app = App::new(
+        config, action_tx, action_rx, mpris_tx, query_tx, player_tx, tick_rate, frame_rate,
+    )?;
+
+    // Start query worker
+    set.spawn(async move { qw.run().await });
+    // Start query worker
+    set.spawn(async move { pw.run().await });
+    Ok((app, set))
+}
+
+pub fn get_audio_handle() -> OutputStream {
+    let host = cpal::default_host();
+    let device = host.default_output_device().unwrap();
+    rodio::OutputStreamBuilder::from_device(device)
+        .unwrap()
+        .with_buffer_size(cpal::BufferSize::Fixed(4096))
+        .open_stream()
+        .unwrap()
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    crate::errors::init()?;
+    crate::logging::init()?;
+
+    log_alsa_error();
+
+    let args = Cli::parse();
+    if let Some(msg) = args.is_valid() {
+        return Err(eyre!(msg));
+    }
+
+    let config = Config::new(PathConfig::new(
+        args.data,
+        args.no_data,
+        args.config,
+        args.no_config,
+    ))?;
+
+    let playerstatus = Arc::from(RwLock::from(PlayerStatus::default()));
+    let (action_tx, action_rx) = unbounded_channel();
+    let (mpris_tx, mpris_rx) = unbounded_channel();
+
+    // Set up audio stuff
+    let handle = get_audio_handle();
+
+    let (app, set) = start_workers(
+        handle,
+        action_tx.clone(),
+        action_rx,
+        mpris_tx,
+        config,
+        playerstatus.clone(),
+        args.tick_rate,
+        args.frame_rate,
+    )?;
+
+    start_with_mpris(app, set, action_tx, mpris_rx, playerstatus).await
 }

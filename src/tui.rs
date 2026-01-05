@@ -70,7 +70,7 @@ impl Tui {
         let (event_tx, event_rx) = mpsc::unbounded_channel();
         Ok(Self {
             #[cfg(test)]
-            terminal: ratatui::Terminal::new(TestBackend::new(320, 80))?,
+            terminal: ratatui::Terminal::new(TestBackend::new(160, 40))?,
             #[cfg(not(test))]
             terminal: ratatui::Terminal::new(Backend::new(stdout()))?,
             task: tokio::spawn(async {}),

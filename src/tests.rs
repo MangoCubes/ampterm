@@ -2,8 +2,7 @@
 mod tests {
     use std::{sync::Arc, time::Duration};
 
-    use color_eyre::Result;
-    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+    use color_eyre::{eyre::eyre, Result};
     use tokio::{
         select,
         sync::{
@@ -14,20 +13,24 @@ mod tests {
     };
 
     use crate::{
+        action::action::{Action, TargetedAction},
         config::Config,
         get_audio_handle,
         playerworker::playerstatus::PlayerStatus,
         start_workers,
-        tui::{Event, Tui},
     };
 
-    async fn send_keys(event_tx: UnboundedSender<Event>) -> Result<()> {
-        let _ = event_tx.send(Event::Key(KeyEvent::new(
-            KeyCode::Char('a'),
-            KeyModifiers::NONE,
-        )));
+    /// The actual function that sends various actions to the player
+    /// This function should never return before the app terminates
+    async fn send_keys(action_tx: UnboundedSender<Action>) -> Result<()> {
         sleep(Duration::from_secs(1)).await;
-        Ok(())
+        let _ = action_tx.send(Action::Snapshot("Snap 1".to_string()));
+
+        // Send out Quit action to the player
+        let _ = action_tx.send(Action::Targeted(TargetedAction::Quit));
+        // Ensure the player quits within 1 second
+        sleep(Duration::from_secs(1)).await;
+        Err(eyre!("Failed to quit in time!"))
     }
 
     #[tokio::test]
@@ -35,33 +38,27 @@ mod tests {
         let playerstatus = Arc::from(RwLock::from(PlayerStatus::default()));
         let (action_tx, action_rx) = unbounded_channel();
         let (mpris_tx, _) = unbounded_channel();
-        let tui = Tui::new()
-            .unwrap()
-            // .mouse(true) // uncomment this line to enable mouse support
-            .tick_rate(2.0)
-            .frame_rate(60.0);
-        let backend = tui.backend();
-        let event_tx = tui.event_tx.clone();
         let (mut app, mut set) = start_workers(
             get_audio_handle(),
-            action_tx,
+            action_tx.clone(),
             action_rx,
             mpris_tx,
             Config::default(),
             playerstatus,
-            tui,
+            60.0,
+            2.0,
         )
         .unwrap();
         let err = select! {
-            res = send_keys(event_tx) => {
+            res = send_keys(action_tx) => {
                 match res {
-                    Ok(()) => None,
+                    Ok(()) => Some("Test function somehow died??".to_string()),
                     Err(e) => Some(format!("Test function failed! Error: {}", e)),
                 }
             }
             res = app.run() => {
                 match res {
-                    Ok(()) => Some("UI has terminated itself prematurely.".to_string()),
+                    Ok(()) => None,
                     Err(e) => Some(format!("UI panicked! Error: {}", e)),
                 }
             }
@@ -78,8 +75,6 @@ mod tests {
                 }
             }
         };
-        if let Some(err) = err {
-            panic!("{}", err);
-        }
+        assert_eq!(err, None);
     }
 }

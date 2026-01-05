@@ -41,6 +41,7 @@ mod mpris;
 mod osclient;
 mod playerworker;
 mod queryworker;
+#[cfg(test)]
 mod tests;
 mod tui;
 

@@ -213,7 +213,7 @@ impl Renderable for Playing {
                     self.pos.as_secs() % 60,
                     symbol
                 );
-                frame.render_widget(Line::raw(label), info_area[5]);
+                frame.render_widget(Line::raw(label).centered(), info_area[5]);
             } else {
                 let label = format!(
                     "{:02}:{:02} {} {:02}:{:02}",
@@ -240,7 +240,7 @@ impl Renderable for Playing {
                 self.pos.as_secs() % 60,
                 symbol
             );
-            frame.render_widget(Line::raw(label), info_area[5]);
+            frame.render_widget(Line::raw(label).centered(), info_area[5]);
         }
     }
 }

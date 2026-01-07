@@ -1,5 +1,5 @@
 use crossterm::event::KeyEvent;
-use rand::seq::SliceRandom;
+use rand::{rng, seq::SliceRandom};
 use ratatui::{
     layout::{Constraint, Rect},
     style::{Color, Modifier, Style, Stylize},
@@ -310,6 +310,23 @@ impl PlayQueue {
         );
         Block::bordered().title(title).border_style(style)
     }
+
+    fn shuffle(&mut self) {
+        let shuffle_from = match self.now_playing {
+            CurrentItem::BeforeFirst => 0,
+            CurrentItem::AfterLast => {
+                return;
+            }
+            CurrentItem::NotInQueue(i) | CurrentItem::InQueue(i) => i + 1,
+        };
+        if shuffle_from < self.list.len() {
+            self.table.reset_selections();
+            let slice = &mut self.list.0[shuffle_from..];
+            let mut rng = rng();
+            slice.shuffle(&mut rng);
+            self.regen_rows();
+        }
+    }
 }
 
 impl Renderable for PlayQueue {
@@ -348,6 +365,10 @@ impl HandlePlayer for PlayQueue {
 impl HandleAction for PlayQueue {
     fn handle_action(&mut self, action: TargetedAction) -> Option<Action> {
         let a = match action {
+            TargetedAction::Shuffle => {
+                self.shuffle();
+                None
+            }
             TargetedAction::Skip => Some(self.skip(1)),
             TargetedAction::Previous => Some(self.skip(-1)),
             TargetedAction::Queue(a) => match a {
@@ -466,6 +487,10 @@ impl HandleKeySeq<PlayQueueAction> for PlayQueue {
                 if let CurrentItem::NotInQueue(idx) | CurrentItem::InQueue(idx) = self.now_playing {
                     self.table.focus(idx);
                 };
+                KeySeqResult::NoActionNeeded
+            }
+            PlayQueueAction::Randomise => {
+                self.shuffle();
                 KeySeqResult::NoActionNeeded
             }
         }

@@ -101,6 +101,8 @@
 			"<d>": "Delete",
 
 			"<z><z>": "FocusPlaying",
+
+			"<r>": "Randomise",
 		},
 		// Keybinds for the lyrics page (The popup you get you press the key bound to OpenLyrics in nowplaying)
 		"lyrics": {

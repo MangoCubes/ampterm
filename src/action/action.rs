@@ -1,3 +1,5 @@
+#[cfg(test)]
+use crossterm::event::KeyEvent;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -69,6 +71,8 @@ pub enum TargetedAction {
     SetSpeed(f32),
     ChangePosition(f32),
     SetPosition(f32),
+
+    Shuffle,
 
     // Action for moving between boxes
     WindowUp,
@@ -157,6 +161,7 @@ impl ToString for TargetedAction {
             TargetedAction::Info(_) => "Display information message".to_string(),
             TargetedAction::Debug(_) => "Display debug message".to_string(),
             TargetedAction::Err(_) => "Display error message".to_string(),
+            TargetedAction::Shuffle => "Shuffle music".to_string(),
         }
     }
 }
@@ -175,4 +180,10 @@ pub enum Action {
         ticket: usize,
         res: QueryStatus,
     },
+    #[cfg(test)]
+    TestKey(Option<String>, KeyEvent),
+    #[cfg(test)]
+    TestKeys(String, Vec<KeyEvent>),
+    #[cfg(test)]
+    Snapshot(String),
 }

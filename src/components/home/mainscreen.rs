@@ -308,9 +308,10 @@ impl HandleAction for MainScreen {
                 self.show_help();
                 None
             }
-            TargetedAction::Queue(_) | TargetedAction::Skip | TargetedAction::Previous => {
-                self.playqueue.handle_action(action)
-            }
+            TargetedAction::Queue(_)
+            | TargetedAction::Skip
+            | TargetedAction::Previous
+            | TargetedAction::Shuffle => self.playqueue.handle_action(action),
             TargetedAction::WindowUp | TargetedAction::WindowDown => {
                 self.state = match &self.state {
                     CurrentlySelected::PlaylistList => {

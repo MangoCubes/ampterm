@@ -3,7 +3,7 @@ use std::sync::Arc;
 use mpris_server::{
     zbus::{fdo, Result},
     LoopStatus, Metadata, PlaybackRate, PlaybackStatus, PlayerInterface, Property, RootInterface,
-    Server, Signal, Time, TrackId, Volume,
+    Server, Time, TrackId, Volume,
 };
 use tokio::sync::{
     mpsc::{UnboundedReceiver, UnboundedSender},
@@ -207,7 +207,10 @@ impl PlayerInterface for AmptermMpris {
         Ok(())
     }
 
-    async fn set_shuffle(&self, _shuffle: bool) -> Result<()> {
+    async fn set_shuffle(&self, shuffle: bool) -> Result<()> {
+        if shuffle {
+            self.send(TargetedAction::Shuffle);
+        }
         Ok(())
     }
 

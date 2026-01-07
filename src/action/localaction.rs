@@ -61,6 +61,8 @@ pub enum PlayQueueAction {
     PlaySelected,
     /// Move the cursor to the currently playing item
     FocusPlaying,
+    /// Randomise the order of everything that comes after item that is currently being played
+    Randomise,
 }
 
 impl ToString for PlayQueueAction {
@@ -70,6 +72,7 @@ impl ToString for PlayQueueAction {
             PlayQueueAction::ToggleStar => "Star/unstar items",
             PlayQueueAction::PlaySelected => "Jump to the cursor's position",
             PlayQueueAction::FocusPlaying => "Focus currently playing item",
+            PlayQueueAction::Randomise => "Randomise queued items",
         }
         .to_string()
     }

@@ -158,6 +158,14 @@ impl App {
         while let Ok(action) = self.action_rx.try_recv() {
             match action {
                 #[cfg(test)]
+                Action::TestKey(name, event) => {
+                    self.handle_key_event(event).unwrap();
+                    self.render().unwrap();
+                    if let Some(n) = name {
+                        insta::assert_snapshot!(n, self.tui.backend());
+                    }
+                }
+                #[cfg(test)]
                 Action::TestKeys(name, events) => {
                     events
                         .into_iter()

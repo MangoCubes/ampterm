@@ -181,6 +181,8 @@ pub enum Action {
         res: QueryStatus,
     },
     #[cfg(test)]
+    TestKey(Option<String>, KeyEvent),
+    #[cfg(test)]
     TestKeys(String, Vec<KeyEvent>),
     #[cfg(test)]
     Snapshot(String),

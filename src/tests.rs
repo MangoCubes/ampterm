@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use color_eyre::{eyre::eyre, Result};
-use crossterm::event::KeyEvent;
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use tokio::{
     select,
     sync::{
@@ -28,20 +28,73 @@ impl TestModule {
         Self { action_tx }
     }
 
-    async fn send_keys(&self, name: &str, keys: Vec<KeyEvent>) {
-        let _ = self
-            .action_tx
-            .send(Action::TestKeys(name.to_string(), keys));
+    fn send_string(&self, name: &str, text: &str) {
+        let seq: Vec<KeyEvent> = text
+            .chars()
+            .map(|c| KeyEvent::new(KeyCode::Char(c), KeyModifiers::NONE))
+            .collect();
+        self.send_keys(name, seq);
     }
 
-    async fn send_action(&self, action: TargetedAction) {
-        let _ = self.action_tx.send(Action::Targeted(action));
+    fn send_key_test(&self, name: &str, key: KeyCode, modifier: KeyModifiers) {
+        self.action_tx
+            .send(Action::TestKey(
+                Some(name.to_string()),
+                KeyEvent::new(key, modifier),
+            ))
+            .unwrap();
+    }
+
+    fn send_key(&self, key: KeyCode, modifier: KeyModifiers) {
+        self.action_tx
+            .send(Action::TestKey(None, KeyEvent::new(key, modifier)))
+            .unwrap();
+    }
+
+    fn send_enter(&self, name: &str) {
+        self.action_tx
+            .send(Action::TestKey(
+                Some(name.to_string()),
+                KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE),
+            ))
+            .unwrap();
+    }
+
+    fn send_keys(&self, name: &str, keys: Vec<KeyEvent>) {
+        self.action_tx
+            .send(Action::TestKeys(name.to_string(), keys))
+            .unwrap();
+    }
+
+    fn send_action(&self, action: TargetedAction) {
+        self.action_tx.send(Action::Targeted(action)).unwrap();
+    }
+
+    fn snap(&self, name: &str) {
+        self.action_tx
+            .send(Action::Snapshot(name.to_string()))
+            .unwrap();
+    }
+
+    fn test1_loginscreen(&self) {
+        self.snap("Test 1a - Login Screen");
+        self.send_string("Test 1b", "nonexistent-url-goes-here.dontwreckmytest");
+        self.send_key(KeyCode::Tab, KeyModifiers::NONE);
+        self.send_key(KeyCode::Tab, KeyModifiers::NONE);
+        self.send_string("Test 1c", "password");
+        self.send_key(KeyCode::Up, KeyModifiers::NONE);
+        self.send_string("Test 1d", "Username!");
+        self.send_key(KeyCode::Tab, KeyModifiers::SHIFT);
+        self.send_key(KeyCode::Tab, KeyModifiers::SHIFT);
+        self.send_key_test("Test 1e", KeyCode::Char(' '), KeyModifiers::NONE);
+        self.send_enter("Test 1f");
     }
 
     async fn run_test(&self) -> Result<()> {
         sleep(Duration::from_secs(1)).await;
+        self.test1_loginscreen();
         // Send out Quit action to the player
-        self.send_action(TargetedAction::Quit).await;
+        self.send_action(TargetedAction::Quit);
         // Ensure the player quits within 1 second
         // The player should quit, and take the run_test function out before it returns
         sleep(Duration::from_secs(1)).await;

@@ -1,3 +1,5 @@
+#[cfg(test)]
+use crossterm::event::KeyEvent;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -178,6 +180,8 @@ pub enum Action {
         ticket: usize,
         res: QueryStatus,
     },
+    #[cfg(test)]
+    TestKeys(String, Vec<KeyEvent>),
     #[cfg(test)]
     Snapshot(String),
 }

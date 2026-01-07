@@ -157,6 +157,19 @@ impl App {
     async fn handle_actions(&mut self) -> Result<()> {
         while let Ok(action) = self.action_rx.try_recv() {
             match action {
+                #[cfg(test)]
+                Action::TestKeys(name, events) => {
+                    events
+                        .into_iter()
+                        .for_each(|k| self.handle_key_event(k).unwrap());
+                    // Ensure the UI is rendered properly just before transmitting response
+                    self.render().unwrap();
+                    insta::assert_snapshot!(name, self.tui.backend());
+                }
+                #[cfg(test)]
+                Action::Snapshot(name) => {
+                    insta::assert_snapshot!(name, self.tui.backend());
+                }
                 Action::Multiple(actions) => {
                     for a in actions {
                         self.action_tx.send(a)?
@@ -246,8 +259,6 @@ impl App {
                         self.action_tx.send(a)?
                     }
                 }
-                #[cfg(test)]
-                Action::Snapshot(name) => insta::assert_snapshot!(name, self.tui.backend()),
             };
         }
         Ok(())

@@ -1,6 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use color_eyre::{eyre::eyre, Result};
+use crossterm::event::KeyEvent;
 use tokio::{
     select,
     sync::{
@@ -18,18 +19,38 @@ use crate::{
     start_workers,
 };
 
+struct TestModule {
+    action_tx: UnboundedSender<Action>,
+}
+
+impl TestModule {
+    fn new(action_tx: UnboundedSender<Action>) -> Self {
+        Self { action_tx }
+    }
+
+    async fn send_keys(&self, name: &str, keys: Vec<KeyEvent>) {
+        let _ = self
+            .action_tx
+            .send(Action::TestKeys(name.to_string(), keys));
+    }
+
+    async fn send_action(&self, action: TargetedAction) {
+        let _ = self.action_tx.send(Action::Targeted(action));
+    }
+
+    async fn run_test(&self) -> Result<()> {
+        sleep(Duration::from_secs(1)).await;
+        // Send out Quit action to the player
+        self.send_action(TargetedAction::Quit).await;
+        // Ensure the player quits within 1 second
+        // The player should quit, and take the run_test function out before it returns
+        sleep(Duration::from_secs(1)).await;
+        Err(eyre!("Failed to quit in time!"))
+    }
+}
+
 /// The actual function that sends various actions to the player
 /// This function should never return before the app terminates
-async fn send_keys(action_tx: UnboundedSender<Action>) -> Result<()> {
-    sleep(Duration::from_secs(1)).await;
-    let _ = action_tx.send(Action::Snapshot("Snap 1".to_string()));
-
-    // Send out Quit action to the player
-    let _ = action_tx.send(Action::Targeted(TargetedAction::Quit));
-    // Ensure the player quits within 1 second
-    sleep(Duration::from_secs(1)).await;
-    Err(eyre!("Failed to quit in time!"))
-}
 
 #[tokio::test]
 async fn test_main() {
@@ -47,8 +68,9 @@ async fn test_main() {
         2.0,
     )
     .unwrap();
+    let test = TestModule::new(action_tx);
     let err = select! {
-        res = send_keys(action_tx) => {
+        res = test.run_test() => {
             match res {
                 Ok(()) => Some("Test function somehow died??".to_string()),
                 Err(e) => Some(format!("Test function failed! Error: {}", e)),

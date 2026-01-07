@@ -37,6 +37,7 @@ use playlistqueue::PlaylistQueue;
 use playqueue::PlayQueue;
 use ratatui::{
     layout::{Constraint, Layout, Rect},
+    style::{Color, Stylize},
     widgets::{Paragraph, Wrap},
     Frame,
 };
@@ -71,7 +72,7 @@ pub struct MainScreen {
     popup: Popup,
     bpmtoy: Option<BPMToy>,
     playqueue: PlayQueue,
-    message: String,
+    message: (bool, String),
     key_stack: Vec<String>,
     current_mode: Mode,
     help: Help,
@@ -167,7 +168,7 @@ impl MainScreen {
                 } else {
                     None
                 },
-                message: "You are now logged in.".to_string(),
+                message: (false, "You are now logged in.".to_string()),
                 key_stack: vec![],
                 popup: Popup::None,
                 help: Help::new(config),
@@ -246,10 +247,13 @@ impl Renderable for MainScreen {
             .wrap(Wrap { trim: false }),
             areas[0],
         );
-        frame.render_widget(
-            Paragraph::new(self.message.clone()).wrap(Wrap { trim: false }),
-            text_areas[1],
-        );
+        let (is_err, msg) = self.message.clone();
+
+        let mut msg_comp = Paragraph::new(msg).wrap(Wrap { trim: false });
+        if is_err {
+            msg_comp = msg_comp.fg(Color::Red);
+        }
+        frame.render_widget(msg_comp, text_areas[1]);
         frame.render_widget(
             Paragraph::new(self.key_stack.join(" ")).wrap(Wrap { trim: false }),
             text_areas[2],
@@ -399,6 +403,14 @@ impl HandleAction for MainScreen {
                     Popup::Tasks => self.popup = Popup::None,
                     _ => self.popup = Popup::Tasks,
                 };
+                None
+            }
+            TargetedAction::Info(msg) => {
+                self.message = (false, msg);
+                None
+            }
+            TargetedAction::Err(msg) => {
+                self.message = (true, msg);
                 None
             }
             _ => None,

@@ -32,7 +32,7 @@
           inherit buildInputs nativeBuildInputs;
           src = ./.;
           name = "ampterm";
-          cargoHash = "sha256-0L7pPMRTCiN+UbskwgqQ63rcUZxlkKTJ+cpZm1VlMOs=";
+          cargoHash = "sha256-njAVC9ha6Lp8CsrlpCp635PVyMCU0kOHEnkqdZpKUhQ=";
         };
         devShells.default = pkgs.mkShell {
           packages = (

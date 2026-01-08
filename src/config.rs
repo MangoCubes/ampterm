@@ -9,6 +9,7 @@ pub mod keyparser;
 pub mod localkeybinds;
 mod lyricsconfig;
 pub mod pathconfig;
+mod playlistsconfig;
 mod styleconfig;
 
 use keybindings::KeyBindings;
@@ -30,6 +31,7 @@ use crate::{
         featuresconfig::FeaturesConfig,
         localkeybinds::LocalKeyBinds,
         pathconfig::PathConfig,
+        playlistsconfig::PlaylistsConfig,
         styleconfig::StyleConfig,
     },
 };
@@ -66,6 +68,8 @@ pub struct Config {
     pub features: FeaturesConfig,
     #[serde(default)]
     pub behaviour: BehaviourConfig,
+    #[serde(default)]
+    pub playlists: PlaylistsConfig,
 }
 
 lazy_static! {

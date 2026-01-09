@@ -319,6 +319,15 @@ impl HandleKeySeq<PlaylistQueueAction> for Loaded {
 
     fn handle_local_action(&mut self, action: PlaylistQueueAction) -> KeySeqResult {
         match action {
+            PlaylistQueueAction::ViewInfo => {
+                if let Some(pos) = self.table.get_current() {
+                    KeySeqResult::ActionNeeded(Action::Targeted(TargetedAction::ViewMediaInfo(
+                        self.playlist.entry[pos].clone(),
+                    )))
+                } else {
+                    KeySeqResult::NoActionNeeded
+                }
+            }
             PlaylistQueueAction::ToggleStar => {
                 let (selection, action) = self.table.get_selection_reset();
                 let mut items: Vec<Action> = match selection {

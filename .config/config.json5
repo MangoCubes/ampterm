@@ -116,7 +116,6 @@
 			"<Enter>": "ViewSelected",
 
 			"<i>": { "Add": "Front" },
-			"<Shift-i>": { "Add": "Front" },
 			"<a>": { "Add": "Next" },
 			"<Shift-a>": { "Add": "Last" },
 
@@ -124,6 +123,8 @@
 			"<r><Shift-i>": { "RandomAdd": "Front" },
 			"<r><a>": { "RandomAdd": "Next" },
 			"<r><Shift-a>": { "RandomAdd": "Last" },
+
+			"<Shift-i>": "ViewInfo"
 		},
 		"playlistqueue": {
 			"<Shift-r>": "Refresh",
@@ -146,6 +147,8 @@
 
 			"</>": "Search",
 			"<Ctrl-l>": "ClearSearch",
+
+			"<Shift-i>": "ViewInfo",
 		},
 	},
     // Use legacy authentication that sends the password instead of token and salt

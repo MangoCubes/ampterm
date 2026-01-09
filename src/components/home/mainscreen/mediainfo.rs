@@ -1,7 +1,9 @@
 use ratatui::{
-    layout::Constraint,
+    layout::{Constraint, Flex, Layout},
     prelude::Rect,
-    widgets::{Row, Table, TableState},
+    style::{Modifier, Style, Stylize},
+    text::Span,
+    widgets::{Block, Clear, Row, Table, TableState},
     Frame,
 };
 
@@ -19,6 +21,7 @@ pub struct MediaInfo {
     table: Table<'static>,
     state: TableState,
     binds: KeyBindings<ListAction>,
+    block: Block<'static>,
 }
 
 impl MediaInfo {
@@ -101,13 +104,27 @@ impl MediaInfo {
             table: Table::new(rows, [Constraint::Fill(1), Constraint::Fill(1)]),
             state: TableState::default().with_offset(0),
             binds,
+            block: {
+                let style = Style::new().white();
+                let title = Span::styled(
+                    "Playlist Information",
+                    Style::default().add_modifier(Modifier::BOLD),
+                );
+                Block::bordered().title(title).border_style(style)
+            },
         }
     }
 }
 
 impl Renderable for MediaInfo {
     fn draw(&mut self, frame: &mut Frame, area: Rect) {
-        frame.render_stateful_widget(&self.table, area, &mut self.state);
+        let vertical = Layout::vertical([Constraint::Percentage(50)]).flex(Flex::Center);
+        let horizontal = Layout::horizontal([Constraint::Percentage(50)]).flex(Flex::Center);
+        let [area] = vertical.areas(area);
+        let [area] = horizontal.areas(area);
+        frame.render_widget(Clear, area);
+        frame.render_widget(&self.block, area);
+        frame.render_stateful_widget(&self.table, self.block.inner(area), &mut self.state);
     }
 }
 

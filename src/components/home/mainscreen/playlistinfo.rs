@@ -8,7 +8,7 @@ use ratatui::{
 };
 
 use crate::{
-    action::localaction::ListAction,
+    action::localaction::PopupAction,
     components::traits::{
         handlekeyseq::{HandleKeySeq, KeySeqResult},
         renderable::Renderable,
@@ -20,12 +20,12 @@ use crate::{
 pub struct PlaylistInfo {
     table: Table<'static>,
     state: TableState,
-    binds: KeyBindings<ListAction>,
+    binds: KeyBindings<PopupAction>,
     block: Block<'static>,
 }
 
 impl PlaylistInfo {
-    pub fn new(playlist: SimplePlaylist, binds: KeyBindings<ListAction>) -> Self {
+    pub fn new(playlist: SimplePlaylist, binds: KeyBindings<PopupAction>) -> Self {
         let rows: Vec<Row<'static>> = [
             ["Name".to_string(), playlist.name],
             [
@@ -90,23 +90,23 @@ impl Renderable for PlaylistInfo {
         frame.render_stateful_widget(&self.table, self.block.inner(area), &mut self.state);
     }
 }
-impl HandleKeySeq<ListAction> for PlaylistInfo {
+impl HandleKeySeq<PopupAction> for PlaylistInfo {
     fn get_name(&self) -> &str {
         "MediaInfo"
     }
 
-    fn handle_local_action(&mut self, action: ListAction) -> KeySeqResult {
+    fn handle_local_action(&mut self, action: PopupAction) -> KeySeqResult {
         match action {
-            ListAction::Up => self.state.select_previous(),
-            ListAction::Down => self.state.select_next(),
-            ListAction::Top => self.state.select_first(),
-            ListAction::Bottom => self.state.select_last(),
+            PopupAction::Up => self.state.select_previous(),
+            PopupAction::Down => self.state.select_next(),
+            PopupAction::Top => self.state.select_first(),
+            PopupAction::Bottom => self.state.select_last(),
             _ => {}
         };
         KeySeqResult::NoActionNeeded
     }
 
-    fn get_keybinds(&self) -> &KeyBindings<ListAction> {
+    fn get_keybinds(&self) -> &KeyBindings<PopupAction> {
         &self.binds
     }
 }

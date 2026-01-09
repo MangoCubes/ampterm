@@ -33,6 +33,13 @@
           src = ./.;
           name = "ampterm";
           cargoHash = "sha256-njAVC9ha6Lp8CsrlpCp635PVyMCU0kOHEnkqdZpKUhQ=";
+          doCheck = false;
+        };
+        meta = {
+          description = "OpenSubsonic compatible, keyboard oriented terminal music player";
+          homepage = "https://github.com/MangoCubes/ampterm";
+          license = nixpkgs.lib.licenses.gplv3;
+          maintainers = [ ];
         };
         devShells.default = pkgs.mkShell {
           packages = (

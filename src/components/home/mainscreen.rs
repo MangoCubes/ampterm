@@ -312,13 +312,13 @@ impl HandleAction for MainScreen {
             TargetedAction::ViewPlaylistInfo(playlist) => {
                 self.popup = Popup::PlaylistInfo(PlaylistInfo::new(
                     playlist,
-                    self.config.local.list.clone(),
+                    self.config.local.popup.clone(),
                 ));
                 None
             }
             TargetedAction::ViewMediaInfo(media) => {
                 self.popup =
-                    Popup::MediaInfo(MediaInfo::new(media, self.config.local.list.clone()));
+                    Popup::MediaInfo(MediaInfo::new(media, self.config.local.popup.clone()));
                 None
             }
             TargetedAction::ToggleHelp => {
@@ -329,7 +329,7 @@ impl HandleAction for MainScreen {
                 };
                 None
             }
-            TargetedAction::CloseHelp => {
+            TargetedAction::ClosePopup => {
                 self.popup = Popup::None;
                 None
             }

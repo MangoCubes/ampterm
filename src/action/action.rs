@@ -91,7 +91,7 @@ pub enum TargetedAction {
     EndKeySeq,
 
     OpenHelp,
-    CloseHelp,
+    ClosePopup,
     ToggleHelp,
 
     Suspend,
@@ -138,7 +138,7 @@ impl ToString for TargetedAction {
             TargetedAction::ToggleTasks => "Toggle tasks view".to_string(),
             TargetedAction::EndKeySeq => "Reset key sequence".to_string(),
             TargetedAction::OpenHelp => "Open help menu".to_string(),
-            TargetedAction::CloseHelp => "Close help menu".to_string(),
+            TargetedAction::ClosePopup => "Close help menu".to_string(),
             TargetedAction::ToggleHelp => "Toggle help menu".to_string(),
             TargetedAction::Suspend => "Suspend program".to_string(),
             TargetedAction::Resume => "Resume program".to_string(),

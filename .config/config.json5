@@ -166,9 +166,9 @@
     // This may be necessary if you are using servers like Ampache, which does not support token-based authentication yet
     "use_legacy_auth": false,
     "auth": {
-        "url": "echo URL",
-        "username": "echo USERNAME",
-        "password": "echo PASSWORD",
+        "url": "echo https://demo.navidrome.org/app",
+        "username": "echo demo",
+        "password": "echo demo",
     },
     "unsafe_auth": {
         "url": "",

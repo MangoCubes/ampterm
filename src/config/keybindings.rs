@@ -54,11 +54,9 @@ impl<T: PartialEq + DeserializeOwned + Debug + Clone + ToString> KeyBindings<T> 
         Some(format!("<{}>", msg))
     }
 
-    pub fn find_action(&self, action: T) -> Option<&Vec<KeyEvent>> {
+    fn find_action(&self, action: T) -> Option<&Vec<KeyEvent>> {
         self.0
             .iter()
             .find_map(|(key, val)| if action == *val { Some(key) } else { None })
-        // .iter()
-        // .find_map(|(key, &val)| if val == value { Some(key) } else { None })
     }
 }

@@ -177,10 +177,20 @@ impl MainScreen {
                 playqueue: PlayQueue::new(false, config.clone()),
                 now_playing: NowPlaying::new(false, config.clone()),
                 help: Help::new(config.clone()),
+                message: (false, {
+                    if let Some(s) = config.global.find_action_str(TargetedAction::OpenHelp) {
+                        format!("Welcome to Ampterm. Press {} at any point to see all of its keybindings.", s)
+                    } else if let Some(s) =
+                        config.global.find_action_str(TargetedAction::ToggleHelp)
+                    {
+                        format!("Welcome to Ampterm. Press {} at any point to see all of its keybindings.", s)
+                    } else {
+                        "Welcome to Ampterm".to_string()
+                    }
+                }),
                 config,
                 state: CurrentlySelected::PlaylistList,
                 current_mode: Mode::Normal,
-                message: (false, "You are now logged in.".to_string()),
                 key_stack: vec![],
                 popup: Popup::None,
             },

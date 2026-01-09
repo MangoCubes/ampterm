@@ -55,7 +55,12 @@ impl PlaylistInfo {
             ["Duration".to_string(), {
                 let secs = playlist.duration;
                 if secs > (60 * 60) {
-                    format!("{:02}:{:02}:{:02}", secs / (60 * 60), secs / 60, secs % 60)
+                    format!(
+                        "{:02}:{:02}:{:02}",
+                        secs / (60 * 60),
+                        (secs % (60 * 60)) / 60,
+                        secs % 60
+                    )
                 } else {
                     format!("{:02}:{:02}", secs / 60, secs % 60)
                 }

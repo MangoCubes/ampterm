@@ -99,12 +99,20 @@ impl MediaInfo {
                     "".to_string()
                 },
             ],
+            [
+                "Starred At".to_string(),
+                if let Some(c) = media.starred {
+                    c.to_string()
+                } else {
+                    "".to_string()
+                },
+            ],
         ]
         .into_iter()
         .map(Row::new)
         .collect();
         Self {
-            table: Table::new(rows, [Constraint::Fill(1), Constraint::Fill(1)]),
+            table: Table::new(rows, [Constraint::Max(15), Constraint::Fill(1)]),
             state: TableState::default().with_selected(0),
             binds,
             block: {

@@ -31,6 +31,7 @@ impl PlaylistInfo {
     pub fn new(playlist: SimplePlaylist, binds: KeyBindings<PopupAction>) -> Self {
         let rows: Vec<Row<'static>> = [
             ["Name".to_string(), playlist.name],
+            ["ID".to_string(), playlist.id.to_string()],
             [
                 "Owner".to_string(),
                 if let Some(o) = playlist.owner {
@@ -72,7 +73,7 @@ impl PlaylistInfo {
         .map(Row::new)
         .collect();
         Self {
-            table: Table::new(rows, [Constraint::Fill(1), Constraint::Fill(1)]),
+            table: Table::new(rows, [Constraint::Max(14), Constraint::Fill(1)]),
             state: TableState::default().with_selected(0),
             binds,
             block: {

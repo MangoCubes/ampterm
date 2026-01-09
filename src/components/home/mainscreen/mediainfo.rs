@@ -50,15 +50,39 @@ impl MediaInfo {
                     "".to_string()
                 },
             ],
-            ["Genre".to_string(), media.genre.unwrap_or("".to_string())],
             [
-                "Duration".to_string(),
-                if let Some(duration) = media.duration {
-                    duration.to_string()
+                "Play Count".to_string(),
+                if let Some(c) = media.play_count {
+                    c.to_string()
                 } else {
                     "".to_string()
                 },
             ],
+            [
+                "BPM".to_string(),
+                if let Some(c) = media.bpm {
+                    c.to_string()
+                } else {
+                    "".to_string()
+                },
+            ],
+            ["Genre".to_string(), media.genre.unwrap_or("".to_string())],
+            ["Duration".to_string(), {
+                if let Some(secs) = media.duration {
+                    if secs > (60 * 60) {
+                        format!(
+                            "{:02}:{:02}:{:02}",
+                            secs / (60 * 60),
+                            (secs % (60 * 60)) / 60,
+                            secs % 60
+                        )
+                    } else {
+                        format!("{:02}:{:02}", secs / 60, secs % 60)
+                    }
+                } else {
+                    "".to_string()
+                }
+            }],
             [
                 "Bit Rate".to_string(),
                 if let Some(t) = media.bit_rate {
@@ -70,7 +94,17 @@ impl MediaInfo {
             [
                 "File Size".to_string(),
                 if let Some(s) = media.size {
-                    s.to_string()
+                    if s < 1000 {
+                        format!("{} Bytes", s)
+                    } else if s < 1000 * 1000 {
+                        format!("{} KB", (s / 1000))
+                    } else if s < 1000 * 1000 * 1000 {
+                        format!("{} MB", (s / (1000 * 1000)))
+                    } else if s < 1000 * 1000 * 1000 * 1000 {
+                        format!("{} GB", (s / (1000 * 1000 * 1000)))
+                    } else {
+                        "Really big".to_string()
+                    }
                 } else {
                     "".to_string()
                 },

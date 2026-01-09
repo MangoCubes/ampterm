@@ -18,6 +18,39 @@ This program is personally tested against [[https://ampache.org/][Ampache]], a f
   - Plain lyrics is also supported, but will not scroll automatically
 - Speed changes ([[id:f6ba8087-ccaf-4712-81c2-4bf76f62335e][unfortunately the pitch changes for now]])
 - BPM toy: Tap a key (T by default) to the beat to see its BPM
+* Installation
+** NixOS
+Add the following input to your =flake.nix=
+#+begin_src nix
+  inputs = {
+    ampterm.url = "github:MangoCubes/ampterm";
+  };
+#+end_src
+Then you can import =inputs.ampterm.homeManager.default= to your config. You can configure =ampterm= with the following code:
+#+begin_src nix
+{ inputs, ... }:
+{
+  imports = [ inputs.ampterm.homeManager.default ];
+  programs.ampterm = {
+    enable = true;
+    # This entire section gets converted into JSON.  
+    extraOptions = {
+      auth = {
+        url = "echo https://your-opensubsonic-instance.com";
+        username = "echo admin";
+        password = "secret-tool lookup Path '/Ampache'";
+      };
+      use_legacy_auth = true;
+      behaviour.auto_focus = true;
+      features = {
+        lyrics.enable = true;
+        bpmtoy.enable = true;
+        cover_art.enable = true;
+      };
+    };
+  };
+}
+#+end_src
 * Configuration
 The program comes with a set of default keybindings, which can be seen in =/.config=. However, you can put more keybindings in =~/.config/ampache/config.json= to add to them, or override existing ones.
 * Planned Features

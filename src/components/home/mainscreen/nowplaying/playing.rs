@@ -3,7 +3,7 @@ mod lyrics;
 use std::time::Duration;
 
 use crate::{
-    action::action::Action,
+    action::action::{Action, TargetedAction},
     compid::CompID,
     components::{
         home::mainscreen::nowplaying::playing::{imagecomp::ImageComp, lyrics::Lyrics},
@@ -72,7 +72,10 @@ impl Playing {
                 };
                 Some(comp)
             } else {
-                // TODO: Print message indicating failure to determine terminal capabilities
+                actions.push(Action::Targeted(TargetedAction::Info(
+                    "Failed to determine terminal capabilities. Restarting ampterm may help."
+                        .to_string(),
+                )));
                 None
             }
         } else {

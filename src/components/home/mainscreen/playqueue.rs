@@ -79,8 +79,6 @@ pub struct PlayQueue {
 ///    This is indicated with green (darker green used if the item has already been played)
 /// 4. Current cursor position (Cursor position)
 ///    This is indicated with > and inversion
-///
-/// As a result, a dedicated list component has to be made
 impl PlayQueue {
     pub fn new(enabled: bool, config: Config) -> Self {
         fn table_proc(table: Table<'static>) -> Table<'static> {
@@ -264,6 +262,26 @@ impl PlayQueue {
             }
         }
     }
+
+    fn get_time_left(&self) -> (usize, usize) {
+        let items = match self.now_playing {
+            CurrentItem::BeforeFirst => &self.list.0,
+            CurrentItem::AfterLast => {
+                return (0, 0);
+            }
+            CurrentItem::NotInQueue(idx) | CurrentItem::InQueue(idx) => {
+                if self.list.len() == 0 {
+                    return (0, 0);
+                }
+                &self.list.0[idx + 1..]
+            }
+        };
+        let count = items.len();
+        (
+            count,
+            items.iter().map(|m| m.duration.unwrap_or(0) as usize).sum(),
+        )
+    }
     fn add_to_queue(&mut self, items: Vec<Media>, at: QueueLocation) -> Option<Action> {
         let max = self.list.len();
         let idx = match at {
@@ -308,7 +326,25 @@ impl PlayQueue {
                 Style::default().add_modifier(Modifier::DIM)
             },
         );
-        Block::bordered().title(title).border_style(style)
+        let (count, length) = self.get_time_left();
+        let minute = length / 60;
+        let secs = length % 60;
+        let bottom_title = if minute >= 60 {
+            let hours = minute / 60;
+            format!(
+                "Remaining: {} ({:02}:{:02}:{:02})",
+                count,
+                hours,
+                minute % 60,
+                secs
+            )
+        } else {
+            format!("Remaining: {} ({:02}:{:02})", count, minute, secs)
+        };
+        Block::bordered()
+            .title(title)
+            .title_bottom(bottom_title)
+            .border_style(style)
     }
 
     fn shuffle(&mut self) {

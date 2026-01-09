@@ -166,6 +166,15 @@ impl HandleKeySeq<PlaylistListAction> for Loaded {
                 Some(a) => KeySeqResult::ActionNeeded(a),
                 None => KeySeqResult::NoActionNeeded,
             },
+            PlaylistListAction::ViewInfo => {
+                if let Some(pos) = self.table.get_current() {
+                    KeySeqResult::ActionNeeded(Action::Targeted(TargetedAction::ViewPlaylistInfo(
+                        self.list[pos].clone(),
+                    )))
+                } else {
+                    KeySeqResult::NoActionNeeded
+                }
+            }
         }
     }
 

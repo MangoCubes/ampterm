@@ -1,0 +1,125 @@
+use ratatui::{
+    layout::{Constraint, Flex, Layout},
+    prelude::Rect,
+    style::{Modifier, Style, Stylize},
+    text::Span,
+    widgets::{Block, Clear, Row, Table, TableState},
+    Frame,
+};
+
+use crate::{
+    action::{
+        action::{Action, TargetedAction},
+        localaction::PopupAction,
+    },
+    components::traits::{
+        handlekeyseq::{HandleKeySeq, KeySeqResult},
+        renderable::Renderable,
+    },
+    config::keybindings::KeyBindings,
+    osclient::response::getplaylists::SimplePlaylist,
+};
+
+pub struct PlaylistInfo {
+    table: Table<'static>,
+    state: TableState,
+    binds: KeyBindings<PopupAction>,
+    block: Block<'static>,
+}
+
+impl PlaylistInfo {
+    pub fn new(playlist: SimplePlaylist, binds: KeyBindings<PopupAction>) -> Self {
+        let rows: Vec<Row<'static>> = [
+            ["Name".to_string(), playlist.name],
+            ["ID".to_string(), playlist.id.to_string()],
+            [
+                "Owner".to_string(),
+                if let Some(o) = playlist.owner {
+                    o
+                } else {
+                    "".to_string()
+                },
+            ],
+            [
+                "Public".to_string(),
+                if let Some(p) = playlist.public {
+                    if p {
+                        "Yes".to_string()
+                    } else {
+                        "No".to_string()
+                    }
+                } else {
+                    "".to_string()
+                },
+            ],
+            ["Song Count".to_string(), playlist.song_count.to_string()],
+            ["Duration".to_string(), {
+                let secs = playlist.duration;
+                if secs > (60 * 60) {
+                    format!(
+                        "{:02}:{:02}:{:02}",
+                        secs / (60 * 60),
+                        (secs % (60 * 60)) / 60,
+                        secs % 60
+                    )
+                } else {
+                    format!("{:02}:{:02}", secs / 60, secs % 60)
+                }
+            }],
+            ["Created At".to_string(), playlist.created],
+            ["Last Modified".to_string(), playlist.changed],
+        ]
+        .into_iter()
+        .map(Row::new)
+        .collect();
+        Self {
+            table: Table::new(rows, [Constraint::Max(13), Constraint::Fill(1)])
+                .row_highlight_style(Style::new().reversed())
+                .highlight_symbol(">"),
+            state: TableState::new().with_selected(Some(0)),
+            binds,
+            block: {
+                let style = Style::new().white();
+                let title = Span::styled(
+                    "Playlist Information",
+                    Style::default().add_modifier(Modifier::BOLD),
+                );
+                Block::bordered().title(title).border_style(style)
+            },
+        }
+    }
+}
+
+impl Renderable for PlaylistInfo {
+    fn draw(&mut self, frame: &mut Frame, area: Rect) {
+        let vertical = Layout::vertical([Constraint::Percentage(60)]).flex(Flex::Center);
+        let horizontal = Layout::horizontal([Constraint::Percentage(60)]).flex(Flex::Center);
+        let [area] = vertical.areas(area);
+        let [area] = horizontal.areas(area);
+        frame.render_widget(Clear, area);
+        frame.render_widget(&self.block, area);
+        frame.render_stateful_widget(&self.table, self.block.inner(area), &mut self.state);
+    }
+}
+impl HandleKeySeq<PopupAction> for PlaylistInfo {
+    fn get_name(&self) -> &str {
+        "MediaInfo"
+    }
+
+    fn handle_local_action(&mut self, action: PopupAction) -> KeySeqResult {
+        match action {
+            PopupAction::Up => self.state.select_previous(),
+            PopupAction::Down => self.state.select_next(),
+            PopupAction::Top => self.state.select_first(),
+            PopupAction::Bottom => self.state.select_last(),
+            PopupAction::Close => {
+                return KeySeqResult::ActionNeeded(Action::Targeted(TargetedAction::ClosePopup));
+            }
+        };
+        KeySeqResult::NoActionNeeded
+    }
+
+    fn get_keybinds(&self) -> &KeyBindings<PopupAction> {
+        &self.binds
+    }
+}

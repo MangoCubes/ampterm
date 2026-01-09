@@ -110,6 +110,8 @@ pub enum PlaylistListAction {
     RandomAdd(QueueLocation),
     /// Open the seleced playlist in the playlist queue view
     ViewSelected,
+
+    ViewInfo,
 }
 
 impl ToString for PlaylistListAction {
@@ -126,6 +128,7 @@ impl ToString for PlaylistListAction {
                 QueueLocation::Next => "Shuffle the playlist and play it next",
                 QueueLocation::Last => "Shuffle the playlist and append it to the queue",
             },
+            PlaylistListAction::ViewInfo => "View details of the current playlist",
         }
         .to_string()
     }
@@ -149,6 +152,7 @@ pub enum PlaylistQueueAction {
     /// non-matching elements. User can jump between matched items with SearchNext and SearchPrev.
     Search,
     ClearSearch,
+    ViewInfo,
 }
 
 impl ToString for PlaylistQueueAction {
@@ -170,6 +174,7 @@ impl ToString for PlaylistQueueAction {
             PlaylistQueueAction::ClearFilter => "Remove filter",
             PlaylistQueueAction::Search => "Search for a specific keyword",
             PlaylistQueueAction::ClearSearch => "Clear the current search",
+            PlaylistQueueAction::ViewInfo => "View details of the current media",
         }
         .to_string()
     }
@@ -187,4 +192,26 @@ pub enum HelpAction {
     Right,
     /// Close help page
     Close,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub enum PopupAction {
+    Up,
+    Down,
+    Top,
+    Bottom,
+    Close,
+}
+
+impl ToString for PopupAction {
+    fn to_string(&self) -> String {
+        match self {
+            PopupAction::Up => "Move up",
+            PopupAction::Down => "Move down",
+            PopupAction::Top => "Move to top",
+            PopupAction::Bottom => "Move to bottom",
+            PopupAction::Close => "Close popup",
+        }
+        .to_string()
+    }
 }

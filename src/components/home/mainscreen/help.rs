@@ -64,7 +64,7 @@ impl HandleKeySeq<HelpAction> for Help {
                 }
             }
             HelpAction::Close => {
-                return KeySeqResult::ActionNeeded(Action::Targeted(TargetedAction::CloseHelp));
+                return KeySeqResult::ActionNeeded(Action::Targeted(TargetedAction::ClosePopup));
             }
             _ => {}
         };

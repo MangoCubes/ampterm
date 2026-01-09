@@ -3,7 +3,7 @@ use serde::Deserialize;
 use crate::{
     action::localaction::{
         HelpAction, ListAction, LyricsAction, PlayQueueAction, PlaylistListAction,
-        PlaylistQueueAction,
+        PlaylistQueueAction, PopupAction,
     },
     config::keybindings::KeyBindings,
 };
@@ -24,4 +24,6 @@ pub struct LocalKeyBinds {
     pub playlistlist: KeyBindings<PlaylistListAction>,
 
     pub playlistqueue: KeyBindings<PlaylistQueueAction>,
+
+    pub popup: KeyBindings<PopupAction>,
 }

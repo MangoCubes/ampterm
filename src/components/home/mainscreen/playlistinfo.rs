@@ -73,8 +73,10 @@ impl PlaylistInfo {
         .map(Row::new)
         .collect();
         Self {
-            table: Table::new(rows, [Constraint::Max(14), Constraint::Fill(1)]),
-            state: TableState::default().with_selected(0),
+            table: Table::new(rows, [Constraint::Max(13), Constraint::Fill(1)])
+                .row_highlight_style(Style::new().reversed())
+                .highlight_symbol(">"),
+            state: TableState::new().with_selected(Some(0)),
             binds,
             block: {
                 let style = Style::new().white();
@@ -90,8 +92,8 @@ impl PlaylistInfo {
 
 impl Renderable for PlaylistInfo {
     fn draw(&mut self, frame: &mut Frame, area: Rect) {
-        let vertical = Layout::vertical([Constraint::Percentage(50)]).flex(Flex::Center);
-        let horizontal = Layout::horizontal([Constraint::Percentage(50)]).flex(Flex::Center);
+        let vertical = Layout::vertical([Constraint::Percentage(60)]).flex(Flex::Center);
+        let horizontal = Layout::horizontal([Constraint::Percentage(60)]).flex(Flex::Center);
         let [area] = vertical.areas(area);
         let [area] = horizontal.areas(area);
         frame.render_widget(Clear, area);

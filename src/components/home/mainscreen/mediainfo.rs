@@ -84,9 +84,33 @@ impl MediaInfo {
                 }
             }],
             [
+                "Content Type".to_string(),
+                if let Some(t) = media.content_type {
+                    t
+                } else {
+                    "".to_string()
+                },
+            ],
+            [
+                "Path".to_string(),
+                if let Some(t) = media.path {
+                    t
+                } else {
+                    "".to_string()
+                },
+            ],
+            [
                 "Bit Rate".to_string(),
                 if let Some(t) = media.bit_rate {
                     t.to_string()
+                } else {
+                    "".to_string()
+                },
+            ],
+            [
+                "Sampling Rate".to_string(),
+                if let Some(c) = media.sampling_rate {
+                    c.to_string()
                 } else {
                     "".to_string()
                 },

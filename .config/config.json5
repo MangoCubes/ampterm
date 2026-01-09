@@ -156,7 +156,10 @@
 
 			"<Shift-g>": "Bottom",
 			"<g><g>": "Top",
+
 			"<q>": "Close",
+			"<Esc>": "Close",
+			"<Shift-i>": "Close",
 		}
 	},
     // Use legacy authentication that sends the password instead of token and salt

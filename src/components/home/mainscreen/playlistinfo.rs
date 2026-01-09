@@ -8,7 +8,10 @@ use ratatui::{
 };
 
 use crate::{
-    action::localaction::PopupAction,
+    action::{
+        action::{Action, TargetedAction},
+        localaction::PopupAction,
+    },
     components::traits::{
         handlekeyseq::{HandleKeySeq, KeySeqResult},
         renderable::Renderable,
@@ -65,7 +68,7 @@ impl PlaylistInfo {
         .collect();
         Self {
             table: Table::new(rows, [Constraint::Fill(1), Constraint::Fill(1)]),
-            state: TableState::default().with_offset(0),
+            state: TableState::default().with_selected(0),
             binds,
             block: {
                 let style = Style::new().white();
@@ -101,7 +104,9 @@ impl HandleKeySeq<PopupAction> for PlaylistInfo {
             PopupAction::Down => self.state.select_next(),
             PopupAction::Top => self.state.select_first(),
             PopupAction::Bottom => self.state.select_last(),
-            _ => {}
+            PopupAction::Close => {
+                return KeySeqResult::ActionNeeded(Action::Targeted(TargetedAction::ClosePopup));
+            }
         };
         KeySeqResult::NoActionNeeded
     }

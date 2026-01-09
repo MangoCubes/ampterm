@@ -9,7 +9,8 @@ use std::time::Duration;
 
 use color_eyre::Result;
 use player::ToPlayerWorker;
-use rodio::{OutputStream, Sink};
+use rodio::cpal::traits::HostTrait;
+use rodio::{cpal, OutputStream, Sink};
 use streamerror::StreamError;
 use streamreader::StreamReader;
 use tokio::select;
@@ -338,16 +339,21 @@ impl PlayerWorker {
 impl PlayerWorker {
     pub fn new(
         playerstatus: Arc<RwLock<PlayerStatus>>,
-        handle: OutputStream,
         sender: UnboundedSender<Action>,
         config: Config,
     ) -> Self {
         let (player_tx, player_rx) = mpsc::unbounded_channel();
+        let host = cpal::default_host();
+        let device = host.default_output_device().unwrap();
+        let handle = rodio::OutputStreamBuilder::from_device(device)
+            .unwrap()
+            .with_buffer_size(cpal::BufferSize::Fixed(4096))
+            .open_stream()
+            .unwrap();
         let sink = Arc::from(rodio::Sink::connect_new(handle.mixer()));
         sink.set_volume(config.init_state.volume);
         Self {
             playerstatus,
-            handle,
             player_tx,
             player_rx,
             action_tx: sender,
@@ -355,6 +361,7 @@ impl PlayerWorker {
             sink,
             state: WorkerState::Idle,
             timer: RealTime::new(),
+            handle,
         }
     }
     pub fn get_tx(&self) -> UnboundedSender<ToPlayerWorker> {

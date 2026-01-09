@@ -14,7 +14,6 @@ use tokio::{
 use crate::{
     action::action::{Action, TargetedAction},
     config::Config,
-    get_audio_handle,
     playerworker::playerstatus::PlayerStatus,
     start_workers,
 };
@@ -111,7 +110,6 @@ async fn test_main() {
     let (action_tx, action_rx) = unbounded_channel();
     let (mpris_tx, _) = unbounded_channel();
     let (mut app, mut set) = start_workers(
-        get_audio_handle(),
         action_tx.clone(),
         action_rx,
         mpris_tx,

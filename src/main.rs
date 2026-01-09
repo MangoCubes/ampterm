@@ -4,10 +4,6 @@ use clap::Parser;
 use cli::Cli;
 use color_eyre::{eyre::eyre, Result};
 use mpris_server::Server;
-use rodio::{
-    cpal::{self, traits::HostTrait},
-    OutputStream,
-};
 use tokio::{
     select,
     sync::{
@@ -127,7 +123,6 @@ async fn start_with_mpris(
 }
 
 pub fn start_workers(
-    handle: OutputStream,
     action_tx: UnboundedSender<Action>,
     action_rx: UnboundedReceiver<Action>,
     mpris_tx: UnboundedSender<FromPlayerWorker>,
@@ -137,7 +132,7 @@ pub fn start_workers(
     frame_rate: f64,
 ) -> Result<(App, JoinSet<Result<()>>)> {
     let mut set = JoinSet::new();
-    let mut pw = PlayerWorker::new(playerstatus, handle, action_tx.clone(), config.clone());
+    let mut pw = PlayerWorker::new(playerstatus, action_tx.clone(), config.clone());
     let mut qw = QueryWorker::new(action_tx.clone(), config.clone());
     let player_tx = pw.get_tx();
     let query_tx = qw.get_tx();
@@ -151,16 +146,6 @@ pub fn start_workers(
     // Start query worker
     set.spawn(async move { pw.run().await });
     Ok((app, set))
-}
-
-pub fn get_audio_handle() -> OutputStream {
-    let host = cpal::default_host();
-    let device = host.default_output_device().unwrap();
-    rodio::OutputStreamBuilder::from_device(device)
-        .unwrap()
-        .with_buffer_size(cpal::BufferSize::Fixed(4096))
-        .open_stream()
-        .unwrap()
 }
 
 #[tokio::main]
@@ -186,11 +171,7 @@ async fn main() -> Result<()> {
     let (action_tx, action_rx) = unbounded_channel();
     let (mpris_tx, mpris_rx) = unbounded_channel();
 
-    // Set up audio stuff
-    let handle = get_audio_handle();
-
     let (app, set) = start_workers(
-        handle,
         action_tx.clone(),
         action_rx,
         mpris_tx,

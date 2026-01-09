@@ -1,6 +1,8 @@
 mod bpmtoy;
 mod help;
+mod mediainfo;
 mod nowplaying;
+mod playlistinfo;
 pub mod playlistlist;
 mod playlistqueue;
 mod playqueue;
@@ -10,7 +12,10 @@ use crate::{
     action::action::{Action, Mode, TargetedAction},
     compid::CompID,
     components::{
-        home::mainscreen::{bpmtoy::BPMToy, help::Help, tasks::Tasks},
+        home::mainscreen::{
+            bpmtoy::BPMToy, help::Help, mediainfo::MediaInfo, playlistinfo::PlaylistInfo,
+            tasks::Tasks,
+        },
         traits::{
             focusable::Focusable,
             handleaction::HandleAction,
@@ -61,6 +66,8 @@ enum Popup {
     None,
     Tasks,
     Help,
+    MediaInfo(MediaInfo),
+    PlaylistInfo(PlaylistInfo),
 }
 
 pub struct MainScreen {
@@ -76,6 +83,7 @@ pub struct MainScreen {
     key_stack: Vec<String>,
     current_mode: Mode,
     help: Help,
+    config: Config,
 }
 
 impl OnTick for MainScreen {
@@ -131,7 +139,7 @@ impl PassKeySeq for MainScreen {
                 self.key_stack.push(KeyParser::key_event_to_string(k));
             };
         }
-        let res = match self.popup {
+        let res = match &mut self.popup {
             Popup::None => match &self.state {
                 CurrentlySelected::PlaylistList => self.pl_list.handle_key_seq(keyseq),
                 CurrentlySelected::PlaylistQueue => self.pl_queue.handle_key_seq(keyseq),
@@ -140,6 +148,8 @@ impl PassKeySeq for MainScreen {
             },
             Popup::Tasks => None,
             Popup::Help => self.help.handle_key_seq(keyseq),
+            Popup::MediaInfo(comp) => comp.handle_key_seq(keyseq),
+            Popup::PlaylistInfo(comp) => comp.handle_key_seq(keyseq),
         };
         if matches!(res, Some(_)) {
             self.key_stack.drain(..);
@@ -156,22 +166,23 @@ impl MainScreen {
     pub fn new(config: Config) -> (Self, Action) {
         (
             Self {
-                state: CurrentlySelected::PlaylistList,
-                current_mode: Mode::Normal,
-                pl_list: PlaylistList::new(config.clone(), true),
-                pl_queue: PlaylistQueue::new(config.clone(), false),
-                playqueue: PlayQueue::new(false, config.clone()),
-                now_playing: NowPlaying::new(false, config.clone()),
-                tasks: Tasks::new(config.behaviour.show_internal_tasks),
-                bpmtoy: if config.features.bpmtoy.enable {
+                bpmtoy: if config.features.bpmtoy.enable.clone() {
                     Some(BPMToy::new(config.clone()))
                 } else {
                     None
                 },
+                tasks: Tasks::new(config.behaviour.show_internal_tasks.clone()),
+                pl_list: PlaylistList::new(config.clone(), true),
+                pl_queue: PlaylistQueue::new(config.clone(), false),
+                playqueue: PlayQueue::new(false, config.clone()),
+                now_playing: NowPlaying::new(false, config.clone()),
+                help: Help::new(config.clone()),
+                config,
+                state: CurrentlySelected::PlaylistList,
+                current_mode: Mode::Normal,
                 message: (false, "You are now logged in.".to_string()),
                 key_stack: vec![],
                 popup: Popup::None,
-                help: Help::new(config),
             },
             Action::Multiple(vec![
                 Action::ToQuery(ToQueryWorker::new(HighLevelQuery::ListPlaylists)),
@@ -226,10 +237,12 @@ impl Renderable for MainScreen {
             self.now_playing.draw(frame, areas[2]);
         }
 
-        match self.popup {
+        match &mut self.popup {
             Popup::None => {}
             Popup::Tasks => self.tasks.draw(frame, area),
             Popup::Help => self.help.draw(frame, area),
+            Popup::PlaylistInfo(comp) => comp.draw(frame, area),
+            Popup::MediaInfo(comp) => comp.draw(frame, area),
         }
 
         frame.render_widget(
@@ -296,6 +309,18 @@ impl HandleAction for MainScreen {
     fn handle_action(&mut self, action: TargetedAction) -> Option<Action> {
         self.key_stack.drain(..);
         match action {
+            TargetedAction::ViewPlaylistInfo(playlist) => {
+                self.popup = Popup::PlaylistInfo(PlaylistInfo::new(
+                    playlist,
+                    self.config.local.list.clone(),
+                ));
+                None
+            }
+            TargetedAction::ViewMediaInfo(media) => {
+                self.popup =
+                    Popup::MediaInfo(MediaInfo::new(media, self.config.local.list.clone()));
+                None
+            }
             TargetedAction::ToggleHelp => {
                 if matches!(self.popup, Popup::Help) {
                     self.popup = Popup::None;

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     compid::CompID,
-    osclient::response::getplaylist::Media,
+    osclient::response::{getplaylist::Media, getplaylists::SimplePlaylist},
     playerworker::player::{FromPlayerWorker, QueueLocation, ToPlayerWorker},
     queryworker::query::{QueryStatus, ToQueryWorker},
 };
@@ -102,6 +102,9 @@ pub enum TargetedAction {
     Debug(String),
     Info(String),
     Err(String),
+
+    ViewPlaylistInfo(SimplePlaylist),
+    ViewMediaInfo(Media),
 }
 
 impl ToString for TargetedAction {
@@ -162,6 +165,8 @@ impl ToString for TargetedAction {
             TargetedAction::Debug(_) => "Display debug message".to_string(),
             TargetedAction::Err(_) => "Display error message".to_string(),
             TargetedAction::Shuffle => "Shuffle music".to_string(),
+            TargetedAction::ViewPlaylistInfo(_) => "View playlist's information".to_string(),
+            TargetedAction::ViewMediaInfo(_) => "View media's information".to_string(),
         }
     }
 }

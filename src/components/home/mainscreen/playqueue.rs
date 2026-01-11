@@ -529,6 +529,12 @@ impl HandleKeySeq<PlayQueueAction> for PlayQueue {
                 self.shuffle();
                 KeySeqResult::NoActionNeeded
             }
+            PlayQueueAction::ViewInfo => match self.table.get_current() {
+                Some(idx) => KeySeqResult::ActionNeeded(Action::Targeted(
+                    TargetedAction::ViewMediaInfo(self.list.0[idx].clone()),
+                )),
+                None => KeySeqResult::NoActionNeeded,
+            },
         }
     }
 

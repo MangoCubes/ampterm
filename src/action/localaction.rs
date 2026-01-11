@@ -63,6 +63,8 @@ pub enum PlayQueueAction {
     FocusPlaying,
     /// Randomise the order of everything that comes after item that is currently being played
     Randomise,
+    /// Display metadata of the highlighted song
+    ViewInfo,
 }
 
 impl ToString for PlayQueueAction {
@@ -73,6 +75,7 @@ impl ToString for PlayQueueAction {
             PlayQueueAction::PlaySelected => "Jump to the cursor's position",
             PlayQueueAction::FocusPlaying => "Focus currently playing item",
             PlayQueueAction::Randomise => "Randomise queued items",
+            PlayQueueAction::ViewInfo => "Display metadata of the highlighted song",
         }
         .to_string()
     }

@@ -75,14 +75,18 @@ impl TestModule {
             .unwrap();
     }
 
+    fn test2_mainscreen(&self) {
+        self.snap("Test 2a - Main Screen");
+    }
+
     fn test1_loginscreen(&self) {
         self.snap("Test 1a - Login Screen");
-        self.send_string("Test 1b", "nonexistent-url-goes-here.dontwreckmytest");
+        self.send_string("Test 1b", "music.local");
         self.send_key(KeyCode::Tab, KeyModifiers::NONE);
         self.send_key(KeyCode::Tab, KeyModifiers::NONE);
-        self.send_string("Test 1c", "password");
+        self.send_string("Test 1c", "ampache");
         self.send_key(KeyCode::Up, KeyModifiers::NONE);
-        self.send_string("Test 1d", "Username!");
+        self.send_string("Test 1d", "ampache");
         self.send_key(KeyCode::Tab, KeyModifiers::SHIFT);
         self.send_key(KeyCode::Tab, KeyModifiers::SHIFT);
         self.send_key_test("Test 1e", KeyCode::Char(' '), KeyModifiers::NONE);
@@ -92,6 +96,9 @@ impl TestModule {
     async fn run_test(&self) -> Result<()> {
         sleep(Duration::from_secs(1)).await;
         self.test1_loginscreen();
+        sleep(Duration::from_secs(1)).await;
+        self.test2_mainscreen();
+        sleep(Duration::from_secs(1)).await;
         // Send out Quit action to the player
         self.send_action(TargetedAction::Quit);
         // Ensure the player quits within 1 second

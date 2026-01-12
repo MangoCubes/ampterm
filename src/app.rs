@@ -56,10 +56,8 @@ impl App {
         tick_rate: f64,
         frame_rate: f64,
     ) -> Result<Self> {
-        let (component, actions) = Home::new(config.clone());
-        actions.into_iter().for_each(|a| {
-            let _ = action_tx.send(a);
-        });
+        let (component, action) = Home::new(config.clone());
+        let _ = action_tx.send(action);
         Ok(Self {
             tui: Tui::new()?.tick_rate(tick_rate).frame_rate(frame_rate),
             mpris_tx,

@@ -154,43 +154,6 @@ impl QueryWorker {
                         ),
                     };
                 }
-                HighLevelQuery::SetCredential(creds) => {
-                    let client = match creds {
-                        Credential::Password {
-                            url,
-                            secure,
-                            username,
-                            password,
-                            legacy,
-                        } => OSClient::use_password(url, username, password, legacy, secure),
-                        Credential::APIKey {
-                            url,
-                            secure,
-                            username,
-                            apikey,
-                        } => OSClient::use_apikey(url, username, apikey, secure),
-                    };
-
-                    match client {
-                        Ok(client) => {
-                            self.client = Some(Arc::from(client));
-                            self.action_tx.send(Action::FromQuery {
-                                dest: event.dest,
-                                ticket: event.ticket,
-                                res: QueryStatus::Finished(ResponseType::SetCredential(Ok(()))),
-                            })?;
-                        }
-                        Err(err) => {
-                            self.action_tx.send(Action::FromQuery {
-                                dest: event.dest,
-                                ticket: event.ticket,
-                                res: QueryStatus::Finished(ResponseType::SetCredential(Err(
-                                    err.to_string()
-                                ))),
-                            })?;
-                        }
-                    };
-                }
                 HighLevelQuery::ListPlaylists => {
                     let tx = self.action_tx.clone();
                     match &self.client {
@@ -210,11 +173,26 @@ impl QueryWorker {
                         ),
                     };
                 }
-                HighLevelQuery::CheckCredentialValidity => {
-                    let tx = self.action_tx.clone();
-                    match &self.client {
-                        Some(client) => {
-                            let c = client.clone();
+                HighLevelQuery::Login(creds) => {
+                    let client = match creds {
+                        Credential::Password {
+                            url,
+                            secure,
+                            username,
+                            password,
+                            legacy,
+                        } => OSClient::use_password(url, username, password, legacy, secure),
+                        Credential::APIKey {
+                            url,
+                            secure,
+                            username,
+                            apikey,
+                        } => OSClient::use_apikey(url, username, apikey, secure),
+                    };
+                    match client {
+                        Ok(client) => {
+                            self.client = Some(Arc::from(client));
+                            let (tx, c) = self.prepare_async();
                             tokio::spawn(async move {
                                 let ping = c.ping().await;
                                 match ping {
@@ -222,12 +200,12 @@ impl QueryWorker {
                                         Empty::Ok => tx.send(Action::FromQuery {
                                             dest: event.dest,
                                             ticket: event.ticket,
-                                            res: QueryStatus::Finished(ResponseType::Ping(Ok(()))),
+                                            res: QueryStatus::Finished(ResponseType::Login(Ok(()))),
                                         }),
                                         Empty::Failed { error } => tx.send(Action::FromQuery {
                                             dest: event.dest,
                                             ticket: event.ticket,
-                                            res: QueryStatus::Finished(ResponseType::Ping(Err(
+                                            res: QueryStatus::Finished(ResponseType::Login(Err(
                                                 error.to_string(),
                                             ))),
                                         }),
@@ -235,17 +213,23 @@ impl QueryWorker {
                                     Err(e) => tx.send(Action::FromQuery {
                                         dest: event.dest,
                                         ticket: event.ticket,
-                                        res: QueryStatus::Finished(ResponseType::Ping(Err(
+                                        res: QueryStatus::Finished(ResponseType::Login(Err(
                                             e.to_string()
                                         ))),
                                     }),
                                 }
                             });
                         }
-                        None => tracing::error!(
-                            "Invalid state: Tried querying, but client does not exist!"
-                        ),
-                    }
+                        Err(err) => {
+                            self.action_tx.send(Action::FromQuery {
+                                dest: event.dest,
+                                ticket: event.ticket,
+                                res: QueryStatus::Finished(ResponseType::Login(Err(
+                                    err.to_string()
+                                ))),
+                            })?;
+                        }
+                    };
                 }
                 HighLevelQuery::SelectPlaylist(params)
                 | HighLevelQuery::AddPlaylistToQueue(params) => {

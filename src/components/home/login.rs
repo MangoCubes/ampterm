@@ -118,7 +118,7 @@ impl Login {
         let url = self.url.lines()[0].clone();
         let username = self.username.lines()[0].clone();
         let password = self.password.lines()[0].clone();
-        let q = ToQueryWorker::new(HighLevelQuery::SetCredential(Credential::Password {
+        let q = ToQueryWorker::new(HighLevelQuery::Login(Credential::Password {
             url,
             secure: true,
             username,
@@ -191,7 +191,7 @@ impl HandleQuery for Login {
     fn handle_query(&mut self, _dest: CompID, ticket: usize, res: QueryStatus) -> Option<Action> {
         if let Status::Pending(t) = self.status {
             if ticket == t {
-                if let QueryStatus::Finished(ResponseType::Ping(Err(msg))) = res {
+                if let QueryStatus::Finished(ResponseType::Login(Err(msg))) = res {
                     self.status_msg = Some(vec!["Failed to log in! Error:".to_string(), msg]);
                     self.status = Status::Error;
                     self.update_style();
@@ -200,11 +200,6 @@ impl HandleQuery for Login {
         }
         None
     }
-    // fn handle_query(&mut self, action: QueryAction) -> Option<Action> {
-    //     if let QueryAction::FromQueryWorker(res) = action {
-    //     }
-    //     None
-    // }
 }
 
 impl HandleRaw for Login {

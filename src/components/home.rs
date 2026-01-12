@@ -66,7 +66,7 @@ impl HandleQuery for Home {
                 // Child component can change in two cases:
                 // 1. Login is successful regardless of the current child component
                 // 2. Login with the config credentials fails
-                if let QueryStatus::Finished(ResponseType::Ping(p)) = res {
+                if let QueryStatus::Finished(ResponseType::Login(p)) = res {
                     match p {
                         Ok(()) => {
                             // Switch child component to MainScreen
@@ -89,7 +89,7 @@ impl HandleQuery for Home {
                 }
             }
             Comp::Login(login) => {
-                if let QueryStatus::Finished(ResponseType::Ping(Ok(()))) = res {
+                if let QueryStatus::Finished(ResponseType::Login(Ok(()))) = res {
                     // Switch child component to MainScreen
                     let (comp, actions) = MainScreen::new(self.config.clone());
                     self.component = Comp::Main(comp);
@@ -128,7 +128,7 @@ impl HandleAction for Home {
 }
 
 impl Home {
-    pub fn new(config: Config) -> (Self, Vec<Action>) {
+    pub fn new(config: Config) -> (Self, Action) {
         let auth = config.clone().auth;
         let config_creds = if let Some(creds) = auth {
             fn run_cmd(cmd: &String) -> Result<String> {
@@ -167,18 +167,13 @@ impl Home {
                 None => None,
             }
         };
-        let (comp, actions): (Comp, Vec<Action>) = match config_creds {
+        let (comp, actions): (Comp, Action) = match config_creds {
             Some(creds) => {
                 let url = creds.get_url();
                 let username = creds.get_username();
                 (
                     Comp::Loading(Loading::new(url, username)),
-                    vec![
-                        Action::ToQuery(ToQueryWorker::new(HighLevelQuery::SetCredential(creds))),
-                        Action::ToQuery(ToQueryWorker::new(
-                            HighLevelQuery::CheckCredentialValidity,
-                        )),
-                    ],
+                    Action::ToQuery(ToQueryWorker::new(HighLevelQuery::Login(creds))),
                 )
             }
             None => {
@@ -186,7 +181,7 @@ impl Home {
                     "No credentials detected in the config.".to_string(),
                     format!("(Loaded config from {:?})", PathConfig::get_config_dir()),
                 ]));
-                (Comp::Login(comp), vec![Action::ChangeMode(Mode::Insert)])
+                (Comp::Login(comp), Action::ChangeMode(Mode::Insert))
             }
         };
         (

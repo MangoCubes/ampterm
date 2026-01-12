@@ -84,9 +84,9 @@ impl TestModule {
         self.send_string("Test 1b", "music.local");
         self.send_key(KeyCode::Tab, KeyModifiers::NONE);
         self.send_key(KeyCode::Tab, KeyModifiers::NONE);
-        self.send_string("Test 1c", "ampache");
+        self.send_string("Test 1c", "password");
         self.send_key(KeyCode::Up, KeyModifiers::NONE);
-        self.send_string("Test 1d", "ampache");
+        self.send_string("Test 1d", "admin");
         self.send_key(KeyCode::Tab, KeyModifiers::SHIFT);
         self.send_key(KeyCode::Tab, KeyModifiers::SHIFT);
         self.send_key_test("Test 1e", KeyCode::Char(' '), KeyModifiers::NONE);

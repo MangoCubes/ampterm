@@ -369,15 +369,19 @@ impl Renderable for PlayQueue {
     fn draw(&mut self, frame: &mut Frame, area: Rect) {
         let title = if let Some(pos) = self.table.get_current() {
             let len = self.list.0.len();
-            format!(
-                "Queue ({}/{})",
-                if pos == usize::MAX || pos >= len {
+            if len == 0 {
+                "Queue (0)".to_string()
+            } else {
+                format!(
+                    "Queue ({}/{})",
+                    if pos == usize::MAX || pos >= len {
+                        len
+                    } else {
+                        pos + 1
+                    },
                     len
-                } else {
-                    pos + 1
-                },
-                len
-            )
+                )
+            }
         } else {
             format!("Queue ({})", self.list.0.len())
         };

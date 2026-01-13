@@ -20,6 +20,12 @@ pub struct PathConfig {
     pub config: Option<PathBuf>,
 }
 
+pub enum PathType {
+    Custom(String),
+    Default,
+    None,
+}
+
 /// Path priority:
 /// 1. Path specified via --data or --config
 /// 2. Environment variable set via AMPTERM_DATA or AMPTERM_CONFIG
@@ -48,27 +54,18 @@ impl PathConfig {
     fn project_directory() -> Option<ProjectDirs> {
         ProjectDirs::from("ch", "skew", env!("CARGO_PKG_NAME"))
     }
-    pub fn new(
-        data_str: Option<String>,
-        no_data: bool,
-        config_str: Option<String>,
-        no_config: bool,
-    ) -> Self {
-        let data = if no_data {
-            TempDir::new()
+    pub fn new(data_str: PathType, config_str: PathType) -> Self {
+        let data = match data_str {
+            PathType::Custom(p) => PathBuf::from(p),
+            PathType::Default => Self::get_data_dir(),
+            PathType::None => TempDir::new()
                 .expect("Failed to create temporary data directory!")
-                .into_path()
-        } else if let Some(p) = data_str {
-            PathBuf::from(p)
-        } else {
-            Self::get_data_dir()
+                .into_path(),
         };
-        let config = if no_config {
-            None
-        } else if let Some(p) = config_str {
-            Some(PathBuf::from(p))
-        } else {
-            Some(Self::get_config_dir())
+        let config = match config_str {
+            PathType::Custom(p) => Some(PathBuf::from(p)),
+            PathType::Default => Some(Self::get_config_dir()),
+            PathType::None => None,
         };
         Self { data, config }
     }

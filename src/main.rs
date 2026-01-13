@@ -17,7 +17,10 @@ use tracing::warn;
 use crate::{
     action::action::Action,
     app::App,
-    config::{pathconfig::PathConfig, Config},
+    config::{
+        pathconfig::{PathConfig, PathType},
+        Config,
+    },
     mpris::AmptermMpris,
     playerworker::{player::FromPlayerWorker, playerstatus::PlayerStatus, PlayerWorker},
     queryworker::QueryWorker,
@@ -160,12 +163,23 @@ async fn main() -> Result<()> {
         return Err(eyre!(msg));
     }
 
-    let config = Config::new(PathConfig::new(
-        args.data,
-        args.no_data,
-        args.config,
-        args.no_config,
-    ))?;
+    let data_str = if args.no_data {
+        PathType::None
+    } else if let Some(p) = args.data {
+        PathType::Custom(p)
+    } else {
+        PathType::Default
+    };
+
+    let config_str = if args.no_config {
+        PathType::None
+    } else if let Some(p) = args.config {
+        PathType::Custom(p)
+    } else {
+        PathType::Default
+    };
+
+    let config = Config::new(PathConfig::new(data_str, config_str))?;
 
     let playerstatus = Arc::from(RwLock::from(PlayerStatus::default()));
     let (action_tx, action_rx) = unbounded_channel();

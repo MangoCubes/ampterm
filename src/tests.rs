@@ -13,7 +13,10 @@ use tokio::{
 
 use crate::{
     action::action::{Action, TargetedAction},
-    config::Config,
+    config::{
+        pathconfig::{PathConfig, PathType},
+        Config,
+    },
     playerworker::playerstatus::PlayerStatus,
     start_workers,
 };
@@ -120,7 +123,7 @@ async fn test_main() {
         action_tx.clone(),
         action_rx,
         mpris_tx,
-        Config::default(),
+        Config::new(PathConfig::new(PathType::None, PathType::None)).unwrap(),
         playerstatus,
         60.0,
         2.0,

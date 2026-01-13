@@ -185,7 +185,7 @@ impl MainScreen {
                     {
                         format!("Welcome to Ampterm. Press {} at any point to see all of its keybindings.", s)
                     } else {
-                        "Welcome to Ampterm".to_string()
+                        "Welcome to Ampterm.".to_string()
                     }
                 }),
                 config,

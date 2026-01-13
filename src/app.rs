@@ -125,7 +125,6 @@ impl App {
                 self.action_tx.send(action)?;
             }
         } else {
-            debug!("{key:?}");
             self.key_stack.push(key);
 
             let res = if let Some(r) = self.component.handle_key_seq(&self.key_stack) {
@@ -156,21 +155,17 @@ impl App {
         while let Ok(action) = self.action_rx.try_recv() {
             match action {
                 #[cfg(test)]
-                Action::TestKey(name, event) => {
+                Action::TestKey(event) => {
                     self.handle_key_event(event).unwrap();
                     self.render().unwrap();
-                    if let Some(n) = name {
-                        insta::assert_snapshot!(n, self.tui.backend());
-                    }
                 }
                 #[cfg(test)]
-                Action::TestKeys(name, events) => {
+                Action::TestKeys(events) => {
                     events
                         .into_iter()
                         .for_each(|k| self.handle_key_event(k).unwrap());
                     // Ensure the UI is rendered properly just before transmitting response
                     self.render().unwrap();
-                    insta::assert_snapshot!(name, self.tui.backend());
                 }
                 #[cfg(test)]
                 Action::Snapshot(name) => {

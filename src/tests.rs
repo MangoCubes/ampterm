@@ -23,87 +23,137 @@ use crate::{
 
 struct TestModule {
     action_tx: UnboundedSender<Action>,
+    main: i32,
+    sub: i32,
 }
 
 impl TestModule {
     fn new(action_tx: UnboundedSender<Action>) -> Self {
-        Self { action_tx }
+        Self {
+            action_tx,
+            main: 0,
+            sub: 1,
+        }
     }
 
-    fn send_string(&self, name: &str, text: &str) {
+    fn new_test_section(&mut self, id: i32) {
+        self.main = id;
+        self.sub = 1;
+    }
+
+    fn gen_test_id(&mut self) -> String {
+        let name = format!("Test {}-{:03}", self.main, self.sub);
+        self.sub += 1;
+        return name;
+    }
+
+    async fn send_string(&mut self, text: &str) {
         let seq: Vec<KeyEvent> = text
             .chars()
             .map(|c| KeyEvent::new(KeyCode::Char(c), KeyModifiers::NONE))
             .collect();
-        self.send_keys(name, seq);
+        self.send_keys(seq).await;
     }
 
-    fn send_key_test(&self, name: &str, key: KeyCode, modifier: KeyModifiers) {
+    async fn send_key(&mut self, key: KeyCode, modifier: KeyModifiers) {
         self.action_tx
-            .send(Action::TestKey(
-                Some(name.to_string()),
-                KeyEvent::new(key, modifier),
-            ))
+            .send(Action::TestKey(KeyEvent::new(key, modifier)))
+            .unwrap();
+        sleep(Duration::from_millis(10)).await;
+        self.snap();
+    }
+
+    async fn send_key_skiptest(&self, key: KeyCode, modifier: KeyModifiers) {
+        self.action_tx
+            .send(Action::TestKey(KeyEvent::new(key, modifier)))
             .unwrap();
     }
 
-    fn send_key(&self, key: KeyCode, modifier: KeyModifiers) {
+    async fn send_enter(&mut self) {
         self.action_tx
-            .send(Action::TestKey(None, KeyEvent::new(key, modifier)))
+            .send(Action::TestKey(KeyEvent::new(
+                KeyCode::Enter,
+                KeyModifiers::NONE,
+            )))
             .unwrap();
+        sleep(Duration::from_millis(10)).await;
+        self.snap();
     }
 
-    fn send_enter(&self, name: &str) {
-        self.action_tx
-            .send(Action::TestKey(
-                Some(name.to_string()),
-                KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE),
-            ))
-            .unwrap();
+    async fn send_keys(&mut self, keys: Vec<KeyEvent>) {
+        self.action_tx.send(Action::TestKeys(keys)).unwrap();
+        sleep(Duration::from_millis(10)).await;
+        self.snap();
     }
 
-    fn send_keys(&self, name: &str, keys: Vec<KeyEvent>) {
-        self.action_tx
-            .send(Action::TestKeys(name.to_string(), keys))
-            .unwrap();
-    }
-
-    fn send_action(&self, action: TargetedAction) {
+    async fn send_action(&mut self, action: TargetedAction) {
         self.action_tx.send(Action::Targeted(action)).unwrap();
+        sleep(Duration::from_millis(10)).await;
+        self.snap();
     }
 
-    fn snap(&self, name: &str) {
-        self.action_tx
-            .send(Action::Snapshot(name.to_string()))
-            .unwrap();
+    fn snap(&mut self) {
+        let id = self.gen_test_id();
+        self.action_tx.send(Action::Snapshot(id)).unwrap();
     }
 
-    fn test2_mainscreen(&self) {
-        self.snap("Test 2a - Main Screen");
+    async fn test3_playlistlist(&mut self) {
+        self.new_test_section(3);
+        self.send_key(KeyCode::Char('g'), KeyModifiers::SHIFT).await;
+        self.send_key(KeyCode::Up, KeyModifiers::NONE).await;
+        self.send_string("gg").await;
+        self.send_key(KeyCode::Down, KeyModifiers::NONE).await;
+        self.send_enter().await;
     }
 
-    fn test1_loginscreen(&self) {
-        self.snap("Test 1a - Login Screen");
-        self.send_string("Test 1b", "music.local");
-        self.send_key(KeyCode::Tab, KeyModifiers::NONE);
-        self.send_key(KeyCode::Tab, KeyModifiers::NONE);
-        self.send_string("Test 1c", "password");
-        self.send_key(KeyCode::Up, KeyModifiers::NONE);
-        self.send_string("Test 1d", "admin");
-        self.send_key(KeyCode::Tab, KeyModifiers::SHIFT);
-        self.send_key(KeyCode::Tab, KeyModifiers::SHIFT);
-        self.send_key_test("Test 1e", KeyCode::Char(' '), KeyModifiers::NONE);
-        self.send_enter("Test 1f");
+    async fn test2_mainscreen(&mut self) {
+        self.new_test_section(2);
+        self.snap();
+        self.send_key(KeyCode::Char('t'), KeyModifiers::NONE).await;
+        self.send_key(KeyCode::Up, KeyModifiers::CONTROL).await;
+        self.send_key(KeyCode::Up, KeyModifiers::CONTROL).await;
+        self.send_key(KeyCode::Up, KeyModifiers::CONTROL).await;
+        self.send_key(KeyCode::Up, KeyModifiers::CONTROL).await;
+        self.send_key(KeyCode::Down, KeyModifiers::CONTROL).await;
+        self.send_key(KeyCode::Char('t'), KeyModifiers::SHIFT).await;
+        self.send_key(KeyCode::Char('t'), KeyModifiers::SHIFT).await;
+        self.send_key(KeyCode::Char('t'), KeyModifiers::SHIFT).await;
+        self.send_key(KeyCode::Char('?'), KeyModifiers::NONE).await;
+        self.send_key(KeyCode::Left, KeyModifiers::NONE).await;
+        self.send_key(KeyCode::Left, KeyModifiers::NONE).await;
+        self.send_key(KeyCode::Right, KeyModifiers::NONE).await;
+        self.send_key(KeyCode::Esc, KeyModifiers::NONE).await;
     }
 
-    async fn run_test(&self) -> Result<()> {
+    async fn test1_loginscreen(&mut self) {
+        self.new_test_section(1);
+        self.snap();
+        self.send_string("music.local").await;
+        self.send_key_skiptest(KeyCode::Tab, KeyModifiers::NONE)
+            .await;
+        self.send_key_skiptest(KeyCode::Tab, KeyModifiers::NONE)
+            .await;
+        self.send_string("password").await;
+        self.send_key_skiptest(KeyCode::Up, KeyModifiers::NONE)
+            .await;
+        self.send_string("admin").await;
+        self.send_key_skiptest(KeyCode::Tab, KeyModifiers::SHIFT)
+            .await;
+        self.send_key_skiptest(KeyCode::Tab, KeyModifiers::SHIFT)
+            .await;
+        self.send_key(KeyCode::Char(' '), KeyModifiers::NONE).await;
+        self.send_enter().await;
+    }
+
+    async fn run_test(&mut self) -> Result<()> {
         sleep(Duration::from_secs(1)).await;
-        self.test1_loginscreen();
+        self.test1_loginscreen().await;
         sleep(Duration::from_secs(1)).await;
-        self.test2_mainscreen();
+        self.test2_mainscreen().await;
+        self.test3_playlistlist().await;
         sleep(Duration::from_secs(1)).await;
         // Send out Quit action to the player
-        self.send_action(TargetedAction::Quit);
+        self.send_action(TargetedAction::Quit).await;
         // Ensure the player quits within 1 second
         // The player should quit, and take the run_test function out before it returns
         sleep(Duration::from_secs(1)).await;
@@ -129,7 +179,7 @@ async fn test_main() {
         2.0,
     )
     .unwrap();
-    let test = TestModule::new(action_tx);
+    let mut test = TestModule::new(action_tx);
     let err = select! {
         res = test.run_test() => {
             match res {

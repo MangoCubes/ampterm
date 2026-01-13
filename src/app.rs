@@ -174,6 +174,7 @@ impl App {
                 }
                 #[cfg(test)]
                 Action::Snapshot(name) => {
+                    self.render().unwrap();
                     insta::assert_snapshot!(name, self.tui.backend());
                     self.debug_tx.send(true).unwrap();
                 }

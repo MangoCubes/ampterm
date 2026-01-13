@@ -19,8 +19,8 @@
 		"<Shift-Left>": { "ChangePosition": -5.0 },
 		"<Shift-Right>": { "ChangePosition": 5.0 },
 
-		"<Ctrl-Up>": { "ChangeSpeed": 0.05 },
-		"<Ctrl-Down>": { "ChangeSpeed": -0.05 },
+		"<Ctrl-Up>": { "ChangeSpeed": 0.1 },
+		"<Ctrl-Down>": { "ChangeSpeed": -0.1 },
 		"<Ctrl-Space>": { "SetSpeed": 1.00 },
 
 		"<0>": "GoToStart",

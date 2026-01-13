@@ -128,50 +128,34 @@ impl QueryWorker {
             };
             match event.query {
                 HighLevelQuery::SetStar { media, star } => {
-                    let tx = self.action_tx.clone();
-                    match &self.client {
-                        Some(c) => {
-                            let cc = c.clone();
-                            tokio::spawn(async move {
-                                let req = if star {
-                                    cc.star(media).await
-                                } else {
-                                    cc.unstar(media).await
-                                };
-                                let result = match req {
-                                    Ok(_) => ResponseType::Star(Ok(())),
-                                    Err(err) => ResponseType::Star(Err(err.to_string())),
-                                };
-                                tx.send(Action::FromQuery {
-                                    dest: event.dest,
-                                    ticket: event.ticket,
-                                    res: QueryStatus::Finished(result),
-                                })
-                            });
-                        }
-                        None => tracing::error!(
-                            "Invalid state: Tried querying, but client does not exist!"
-                        ),
-                    };
+                    let (tx, c) = self.prepare_async();
+                    tokio::spawn(async move {
+                        let req = if star {
+                            c.star(media).await
+                        } else {
+                            c.unstar(media).await
+                        };
+                        let result = match req {
+                            Ok(_) => ResponseType::Star(Ok(())),
+                            Err(err) => ResponseType::Star(Err(err.to_string())),
+                        };
+                        tx.send(Action::FromQuery {
+                            dest: event.dest,
+                            ticket: event.ticket,
+                            res: QueryStatus::Finished(result),
+                        })
+                    });
                 }
                 HighLevelQuery::ListPlaylists => {
-                    let tx = self.action_tx.clone();
-                    match &self.client {
-                        Some(c) => {
-                            let cc = c.clone();
-                            tokio::spawn(async move {
-                                let res = QueryWorker::get_playlists(cc).await;
-                                let _ = tx.send(Action::FromQuery {
-                                    dest: event.dest,
-                                    ticket: event.ticket,
-                                    res: QueryStatus::Finished(ResponseType::GetPlaylists(res)),
-                                });
-                            });
-                        }
-                        None => tracing::error!(
-                            "Invalid state: Tried querying, but client does not exist!"
-                        ),
-                    };
+                    let (tx, c) = self.prepare_async();
+                    tokio::spawn(async move {
+                        let res = QueryWorker::get_playlists(c).await;
+                        let _ = tx.send(Action::FromQuery {
+                            dest: event.dest,
+                            ticket: event.ticket,
+                            res: QueryStatus::Finished(ResponseType::GetPlaylists(res)),
+                        });
+                    });
                 }
                 HighLevelQuery::Login(creds) => {
                     let client = match creds {
@@ -233,102 +217,82 @@ impl QueryWorker {
                 }
                 HighLevelQuery::SelectPlaylist(params)
                 | HighLevelQuery::AddPlaylistToQueue(params) => {
-                    match &self.client {
-                        Some(c) => {
-                            let tx = self.action_tx.clone();
-                            let client = c.clone();
-                            tokio::spawn(async move {
-                                let res = client.get_playlist(params.id.clone()).await;
-                                match res {
-                                    Ok(c) => match c {
-                                        GetPlaylist::Ok { playlist } => match playlist {
-                                            IndeterminedPlaylist::FullPlaylist(full_playlist) => {
-                                                let _ = tx.send(Action::FromQuery {
-                                                    dest: event.dest,
-                                                    ticket: event.ticket,
-                                                    res: QueryStatus::Finished(
-                                                        ResponseType::GetPlaylist(
-                                                            GetPlaylistResponse::Success(
-                                                                full_playlist,
-                                                            ),
-                                                        ),
-                                                    ),
-                                                });
-                                            }
-                                            IndeterminedPlaylist::AmpacheEmpty(simple_playlist) => {
-                                                let res = match simple_playlist.get(0) {
-                                                    Some(playlist) => {
-                                                        let pl = playlist.to_owned();
-                                                        GetPlaylistResponse::Partial(pl)
-                                                    }
-
-                                                    None => GetPlaylistResponse::Failure {
-                                                        id: params.id,
-                                                        name: params.name,
-                                                        msg: "Playlist not found!".to_string(),
-                                                    },
-                                                };
-                                                let _ = tx.send(Action::FromQuery {
-                                                    dest: event.dest,
-                                                    ticket: event.ticket,
-                                                    res: QueryStatus::Finished(
-                                                        ResponseType::GetPlaylist(res),
-                                                    ),
-                                                });
-                                            }
-                                            IndeterminedPlaylist::NavidromeEmpty(
-                                                simple_playlist,
-                                            ) => {
-                                                let _ = tx.send(Action::FromQuery {
-                                                    dest: event.dest,
-                                                    ticket: event.ticket,
-                                                    res: QueryStatus::Finished(
-                                                        ResponseType::GetPlaylist(
-                                                            GetPlaylistResponse::Partial(
-                                                                simple_playlist,
-                                                            ),
-                                                        ),
-                                                    ),
-                                                });
-                                            }
-                                        },
-
-                                        GetPlaylist::Failed { error } => {
-                                            let _ = tx.send(Action::FromQuery {
-                                                dest: event.dest,
-                                                ticket: event.ticket,
-                                                res: QueryStatus::Finished(
-                                                    ResponseType::GetPlaylist(
-                                                        GetPlaylistResponse::Failure {
-                                                            id: params.id,
-                                                            name: params.name,
-                                                            msg: error.to_string(),
-                                                        },
-                                                    ),
-                                                ),
-                                            });
-                                        }
-                                    },
-                                    Err(e) => {
+                    let (tx, c) = self.prepare_async();
+                    tokio::spawn(async move {
+                        let res = c.get_playlist(params.id.clone()).await;
+                        match res {
+                            Ok(c) => match c {
+                                GetPlaylist::Ok { playlist } => match playlist {
+                                    IndeterminedPlaylist::FullPlaylist(full_playlist) => {
                                         let _ = tx.send(Action::FromQuery {
                                             dest: event.dest,
                                             ticket: event.ticket,
                                             res: QueryStatus::Finished(ResponseType::GetPlaylist(
-                                                GetPlaylistResponse::Failure {
-                                                    id: params.id,
-                                                    name: params.name,
-                                                    msg: e.to_string(),
-                                                },
+                                                GetPlaylistResponse::Success(full_playlist),
                                             )),
                                         });
                                     }
+                                    IndeterminedPlaylist::AmpacheEmpty(simple_playlist) => {
+                                        let res = match simple_playlist.get(0) {
+                                            Some(playlist) => {
+                                                let pl = playlist.to_owned();
+                                                GetPlaylistResponse::Partial(pl)
+                                            }
+
+                                            None => GetPlaylistResponse::Failure {
+                                                id: params.id,
+                                                name: params.name,
+                                                msg: "Playlist not found!".to_string(),
+                                            },
+                                        };
+                                        let _ = tx.send(Action::FromQuery {
+                                            dest: event.dest,
+                                            ticket: event.ticket,
+                                            res: QueryStatus::Finished(ResponseType::GetPlaylist(
+                                                res,
+                                            )),
+                                        });
+                                    }
+                                    IndeterminedPlaylist::NavidromeEmpty(simple_playlist) => {
+                                        let _ = tx.send(Action::FromQuery {
+                                            dest: event.dest,
+                                            ticket: event.ticket,
+                                            res: QueryStatus::Finished(ResponseType::GetPlaylist(
+                                                GetPlaylistResponse::Partial(simple_playlist),
+                                            )),
+                                        });
+                                    }
+                                },
+
+                                GetPlaylist::Failed { error } => {
+                                    let _ = tx.send(Action::FromQuery {
+                                        dest: event.dest,
+                                        ticket: event.ticket,
+                                        res: QueryStatus::Finished(ResponseType::GetPlaylist(
+                                            GetPlaylistResponse::Failure {
+                                                id: params.id,
+                                                name: params.name,
+                                                msg: error.to_string(),
+                                            },
+                                        )),
+                                    });
                                 }
-                            });
+                            },
+                            Err(e) => {
+                                let _ = tx.send(Action::FromQuery {
+                                    dest: event.dest,
+                                    ticket: event.ticket,
+                                    res: QueryStatus::Finished(ResponseType::GetPlaylist(
+                                        GetPlaylistResponse::Failure {
+                                            id: params.id,
+                                            name: params.name,
+                                            msg: e.to_string(),
+                                        },
+                                    )),
+                                });
+                            }
                         }
-                        None => tracing::error!(
-                            "Invalid state: Tried querying, but client does not exist!"
-                        ),
-                    };
+                    });
                 }
                 HighLevelQuery::PlayMusicFromURL(media) => {
                     self.awaiting.register_play_from_url(media);

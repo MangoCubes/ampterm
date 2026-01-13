@@ -5,7 +5,7 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use tokio::{
     select,
     sync::{
-        mpsc::{unbounded_channel, UnboundedSender},
+        mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
         RwLock,
     },
     time::sleep,
@@ -23,16 +23,26 @@ use crate::{
 
 struct TestModule {
     action_tx: UnboundedSender<Action>,
+    debug_rx: UnboundedReceiver<bool>,
     main: i32,
     sub: i32,
 }
 
 impl TestModule {
-    fn new(action_tx: UnboundedSender<Action>) -> Self {
+    fn new(action_tx: UnboundedSender<Action>, debug_rx: UnboundedReceiver<bool>) -> Self {
         Self {
+            debug_rx,
             action_tx,
             main: 0,
             sub: 1,
+        }
+    }
+
+    async fn wait_confirmation(&mut self) {
+        match self.debug_rx.recv().await {
+            Some(false) => panic!("Component responded with error!"),
+            Some(true) => {}
+            None => panic!("Debug feedback channel got closed before the test is over!"),
         }
     }
 
@@ -59,11 +69,10 @@ impl TestModule {
         self.action_tx
             .send(Action::TestKey(KeyEvent::new(key, modifier)))
             .unwrap();
-        sleep(Duration::from_millis(10)).await;
-        self.snap();
+        self.snap().await;
     }
 
-    async fn send_key_skiptest(&self, key: KeyCode, modifier: KeyModifiers) {
+    async fn send_key_skiptest(&mut self, key: KeyCode, modifier: KeyModifiers) {
         self.action_tx
             .send(Action::TestKey(KeyEvent::new(key, modifier)))
             .unwrap();
@@ -76,25 +85,22 @@ impl TestModule {
                 KeyModifiers::NONE,
             )))
             .unwrap();
-        sleep(Duration::from_millis(10)).await;
-        self.snap();
+        self.snap().await;
     }
 
     async fn send_keys(&mut self, keys: Vec<KeyEvent>) {
         self.action_tx.send(Action::TestKeys(keys)).unwrap();
-        sleep(Duration::from_millis(10)).await;
-        self.snap();
+        self.snap().await;
     }
 
     async fn send_action(&mut self, action: TargetedAction) {
         self.action_tx.send(Action::Targeted(action)).unwrap();
-        sleep(Duration::from_millis(10)).await;
-        self.snap();
     }
 
-    fn snap(&mut self) {
+    async fn snap(&mut self) {
         let id = self.gen_test_id();
         self.action_tx.send(Action::Snapshot(id)).unwrap();
+        self.wait_confirmation().await;
     }
 
     async fn test3_playlistlist(&mut self) {
@@ -108,7 +114,7 @@ impl TestModule {
 
     async fn test2_mainscreen(&mut self) {
         self.new_test_section(2);
-        self.snap();
+        self.snap().await;
         self.send_key(KeyCode::Char('t'), KeyModifiers::NONE).await;
         self.send_key(KeyCode::Up, KeyModifiers::CONTROL).await;
         self.send_key(KeyCode::Up, KeyModifiers::CONTROL).await;
@@ -123,11 +129,12 @@ impl TestModule {
         self.send_key(KeyCode::Left, KeyModifiers::NONE).await;
         self.send_key(KeyCode::Right, KeyModifiers::NONE).await;
         self.send_key(KeyCode::Esc, KeyModifiers::NONE).await;
+        self.snap().await;
     }
 
     async fn test1_loginscreen(&mut self) {
         self.new_test_section(1);
-        self.snap();
+        self.snap().await;
         self.send_string("music.local").await;
         self.send_key_skiptest(KeyCode::Tab, KeyModifiers::NONE)
             .await;
@@ -168,6 +175,7 @@ impl TestModule {
 async fn test_main() {
     let playerstatus = Arc::from(RwLock::from(PlayerStatus::default()));
     let (action_tx, action_rx) = unbounded_channel();
+    let (debug_tx, debug_rx) = unbounded_channel();
     let (mpris_tx, _) = unbounded_channel();
     let (mut app, mut set) = start_workers(
         action_tx.clone(),
@@ -177,9 +185,11 @@ async fn test_main() {
         playerstatus,
         60.0,
         2.0,
+        debug_tx,
     )
     .unwrap();
-    let mut test = TestModule::new(action_tx);
+    let mut test = TestModule::new(action_tx, debug_rx);
+    set.spawn(async move { app.run().await });
     let err = select! {
         res = test.run_test() => {
             match res {
@@ -187,17 +197,11 @@ async fn test_main() {
                 Err(e) => Some(format!("Test function failed! Error: {}", e)),
             }
         }
-        res = app.run() => {
-            match res {
-                Ok(()) => None,
-                Err(e) => Some(format!("UI panicked! Error: {}", e)),
-            }
-        }
         res = set.join_next() => {
             match res {
                 Some(report) => match report {
                     Ok(report) => match report {
-                        Ok(_) => Some("A worker has terminated itself prematurely.".to_string()),
+                        Ok(()) => None,
                         Err(e) => Some(format!("A worker crashed: {}", e)),
                     },
                     Err(_) => Some("Failed to wait for the thread to run.".to_string()),

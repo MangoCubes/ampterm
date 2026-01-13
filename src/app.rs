@@ -3,7 +3,7 @@ use color_eyre::Result;
 use crossterm::event::KeyEvent;
 
 use ratatui::prelude::Rect;
-use tokio::sync::mpsc::{self};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use tracing::debug;
 
 use crate::{
@@ -36,25 +36,28 @@ pub struct App {
     should_quit: bool,
     should_suspend: bool,
     key_stack: Vec<KeyEvent>,
-    action_tx: mpsc::UnboundedSender<Action>,
-    action_rx: mpsc::UnboundedReceiver<Action>,
-    query_tx: mpsc::UnboundedSender<ToQueryWorker>,
-    player_tx: mpsc::UnboundedSender<ToPlayerWorker>,
+    action_tx: UnboundedSender<Action>,
+    action_rx: UnboundedReceiver<Action>,
+    query_tx: UnboundedSender<ToQueryWorker>,
+    player_tx: UnboundedSender<ToPlayerWorker>,
     mode: Mode,
-    mpris_tx: mpsc::UnboundedSender<FromPlayerWorker>,
+    mpris_tx: UnboundedSender<FromPlayerWorker>,
     tui: Tui,
+    #[cfg(test)]
+    debug_tx: UnboundedSender<bool>,
 }
 
 impl App {
     pub fn new(
         config: Config,
-        action_tx: mpsc::UnboundedSender<Action>,
-        action_rx: mpsc::UnboundedReceiver<Action>,
-        mpris_tx: mpsc::UnboundedSender<FromPlayerWorker>,
-        query_tx: mpsc::UnboundedSender<ToQueryWorker>,
-        player_tx: mpsc::UnboundedSender<ToPlayerWorker>,
+        action_tx: UnboundedSender<Action>,
+        action_rx: UnboundedReceiver<Action>,
+        mpris_tx: UnboundedSender<FromPlayerWorker>,
+        query_tx: UnboundedSender<ToQueryWorker>,
+        player_tx: UnboundedSender<ToPlayerWorker>,
         tick_rate: f64,
         frame_rate: f64,
+        #[cfg(test)] debug_tx: UnboundedSender<bool>,
     ) -> Result<Self> {
         let (component, action) = Home::new(config.clone());
         let _ = action_tx.send(action);
@@ -71,6 +74,8 @@ impl App {
             query_tx,
             player_tx,
             mode: Mode::Normal,
+            #[cfg(test)]
+            debug_tx,
         })
     }
 
@@ -170,6 +175,7 @@ impl App {
                 #[cfg(test)]
                 Action::Snapshot(name) => {
                     insta::assert_snapshot!(name, self.tui.backend());
+                    self.debug_tx.send(true).unwrap();
                 }
                 Action::Multiple(actions) => {
                     for a in actions {

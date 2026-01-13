@@ -133,6 +133,7 @@ pub fn start_workers(
     playerstatus: Arc<RwLock<PlayerStatus>>,
     tick_rate: f64,
     frame_rate: f64,
+    #[cfg(test)] debug_tx: UnboundedSender<bool>,
 ) -> Result<(App, JoinSet<Result<()>>)> {
     let mut set = JoinSet::new();
     let mut pw = PlayerWorker::new(playerstatus, action_tx.clone(), config.clone());
@@ -140,6 +141,13 @@ pub fn start_workers(
     let player_tx = pw.get_tx();
     let query_tx = qw.get_tx();
 
+    #[cfg(test)]
+    let app = App::new(
+        config, action_tx, action_rx, mpris_tx, query_tx, player_tx, tick_rate, frame_rate,
+        debug_tx,
+    )?;
+
+    #[cfg(not(test))]
     let app = App::new(
         config, action_tx, action_rx, mpris_tx, query_tx, player_tx, tick_rate, frame_rate,
     )?;
@@ -182,18 +190,24 @@ async fn main() -> Result<()> {
     let config = Config::new(PathConfig::new(data_str, config_str))?;
 
     let playerstatus = Arc::from(RwLock::from(PlayerStatus::default()));
-    let (action_tx, action_rx) = unbounded_channel();
-    let (mpris_tx, mpris_rx) = unbounded_channel();
+    let (action_tx, action_rx) = unbounded_channel::<Action>();
+    let (mpris_tx, mpris_rx) = unbounded_channel::<FromPlayerWorker>();
 
-    let (app, set) = start_workers(
-        action_tx.clone(),
-        action_rx,
-        mpris_tx,
-        config,
-        playerstatus.clone(),
-        args.tick_rate,
-        args.frame_rate,
-    )?;
+    #[cfg(test)]
+    panic!("Main invoked in test mode.");
 
-    start_with_mpris(app, set, action_tx, mpris_rx, playerstatus).await
+    #[cfg(not(test))]
+    {
+        let (app, set) = start_workers(
+            action_tx.clone(),
+            action_rx,
+            mpris_tx,
+            config,
+            playerstatus.clone(),
+            args.tick_rate,
+            args.frame_rate,
+        )?;
+
+        start_with_mpris(app, set, action_tx, mpris_rx, playerstatus).await
+    }
 }

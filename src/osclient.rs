@@ -74,6 +74,29 @@ impl OSClient {
         self.query_auth_image(Method::GET, "getCoverArt", Some(vec![("id", &id)]))
             .await
     }
+    pub async fn update_playlist(
+        &self,
+        id: PlaylistID,
+        name: Option<String>,
+        comment: Option<String>,
+        public: Option<bool>,
+        song_id_to_add: Option<Vec<MediaID>>,
+        song_index_to_remove: Option<Vec<usize>>,
+    ) -> Result<Empty, ExternalError> {
+        let mut args: Vec<(&str, &str)> = vec![("id", &id)];
+        if let Some(n) = &name {
+            args.push(("name", n))
+        };
+        if let Some(n) = &comment {
+            args.push(("comment", n))
+        };
+        if let Some(n) = public {
+            args.push(("name", if n { "true" } else { "false" }))
+        };
+
+        self.query_auth_text::<Empty>(Method::GET, "updatePlaylist", Some(args))
+            .await
+    }
     pub fn stream_link(&self, id: MediaID) -> Url {
         self.get_path("stream", Some(vec![("id", &id)]))
     }

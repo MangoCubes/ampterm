@@ -5,7 +5,10 @@ use crate::{
         response::getplaylist::Media,
         types::{CoverID, MediaID},
     },
-    queryworker::query::{getplaylist::GetPlaylistParams, setcredential::Credential},
+    queryworker::query::{
+        getplaylist::GetPlaylistParams, setcredential::Credential,
+        updateplaylist::UpdatePlaylistParams,
+    },
 };
 
 /// [`HighLevelQuery`] are sort of a wrapper of normal HTTP queries. These correspond more closely
@@ -37,13 +40,16 @@ pub enum HighLevelQuery {
     Tick,
     /// Sets the credential for this client, and sends a ping to ensure it is valid
     Login(Credential),
+    UpdatePlaylist(UpdatePlaylistParams),
 }
 
 impl HighLevelQuery {
     pub fn get_dest(&self) -> Vec<CompID> {
         match self {
             HighLevelQuery::PlayMusicFromURL(_) => vec![CompID::NowPlaying],
-            HighLevelQuery::SelectPlaylist(_) => vec![CompID::PlaylistQueue],
+            HighLevelQuery::SelectPlaylist(_) | HighLevelQuery::UpdatePlaylist(_) => {
+                vec![CompID::PlaylistQueue]
+            }
             HighLevelQuery::AddPlaylistToQueue(_) | HighLevelQuery::ListPlaylists => {
                 vec![CompID::PlaylistList]
             }
@@ -72,7 +78,8 @@ impl ToString for HighLevelQuery {
             HighLevelQuery::GetLyrics(_) => "Fetching lyrics",
             HighLevelQuery::GetCover(_) => "Fetching cover image",
             HighLevelQuery::Tick => "Tick",
-            HighLevelQuery::Login(credential) => "Set login credentials and check validitiy",
+            HighLevelQuery::Login(_) => "Set login credentials and check validitiy",
+            HighLevelQuery::UpdatePlaylist(_) => "Update playlist",
         }
         .to_string()
     }

@@ -1,5 +1,6 @@
 pub mod getplaylist;
 pub mod setcredential;
+pub mod updateplaylist;
 
 use image::DynamicImage;
 

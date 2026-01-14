@@ -5,7 +5,7 @@ use std::io::Cursor;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
-use crate::action::action::Action;
+use crate::action::action::{Action, TargetedAction};
 use crate::compid::CompID;
 use crate::config::Config;
 use crate::lyricsclient::lrclib::LrcLib;
@@ -326,6 +326,27 @@ impl QueryWorker {
                     }
                 }
                 HighLevelQuery::Tick => self.on_tick(),
+                HighLevelQuery::UpdatePlaylist(update_playlist_params) => {
+                    let (tx, c) = self.prepare_async();
+                    tokio::spawn(async move {
+                        if let Err(e) = c
+                            .update_playlist(
+                                update_playlist_params.playlist_id,
+                                update_playlist_params.name,
+                                update_playlist_params.comment,
+                                update_playlist_params.public,
+                                update_playlist_params.song_id_to_add,
+                                update_playlist_params.song_index_to_remove,
+                            )
+                            .await
+                        {
+                            let _ = tx.send(Action::Targeted(TargetedAction::Err(format!(
+                                "Failed to modify the playlist: {}",
+                                e.to_string()
+                            ))));
+                        };
+                    });
+                }
             };
             if self.should_quit {
                 break;

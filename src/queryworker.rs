@@ -26,6 +26,12 @@ use color_eyre::Result;
 use image::{DynamicImage, ImageReader};
 use query::ToQueryWorker;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
+use tokio::sync::Mutex;
+
+#[derive(Default)]
+struct Cache {
+    pub playlists: Option<Vec<SimplePlaylist>>,
+}
 
 struct AwaitingQueries {
     play_from_url: Option<(Media, u16)>,
@@ -60,6 +66,8 @@ pub struct QueryWorker {
     action_tx: UnboundedSender<Action>,
     should_quit: bool,
     awaiting: AwaitingQueries,
+
+    cache: Arc<Mutex<Cache>>,
 }
 
 static COUNTER: AtomicUsize = AtomicUsize::new(1);
@@ -103,14 +111,42 @@ impl QueryWorker {
         }
     }
 
-    pub async fn get_playlists(c: Arc<OSClient>) -> Result<Vec<SimplePlaylist>, String> {
-        match c.get_playlists().await {
-            Ok(r) => match r {
-                GetPlaylists::Ok { playlists } => Ok(playlists.playlist),
-                GetPlaylists::Failed { error } => Err(error.to_string()),
-            },
-            Err(e) => Err(e.to_string()),
+    pub fn get_playlists(&self, event: ToQueryWorker, force_query: bool) {
+        if !force_query {
+            if let Ok(lock) = self.cache.try_lock() {
+                if let Some(playlist) = &lock.playlists {
+                    let _ = self.action_tx.send(Action::FromQuery {
+                        dest: event.dest,
+                        ticket: event.ticket,
+                        res: QueryStatus::Finished(ResponseType::GetPlaylists(
+                            Ok(playlist.clone()),
+                        )),
+                    });
+                    return;
+                }
+            }
         }
+        let (tx, c) = self.prepare_async();
+        let cache = self.cache.clone();
+        tokio::spawn(async move {
+            let res = match c.get_playlists().await {
+                Ok(r) => match r {
+                    GetPlaylists::Ok { playlists } => {
+                        if let Ok(mut lock) = cache.try_lock() {
+                            lock.playlists = Some(playlists.playlist.clone());
+                        }
+                        Ok(playlists.playlist)
+                    }
+                    GetPlaylists::Failed { error } => Err(error.to_string()),
+                },
+                Err(e) => Err(e.to_string()),
+            };
+            let _ = tx.send(Action::FromQuery {
+                dest: event.dest,
+                ticket: event.ticket,
+                res: QueryStatus::Finished(ResponseType::GetPlaylists(res)),
+            });
+        });
     }
 
     fn prepare_async(&self) -> (UnboundedSender<Action>, Arc<OSClient>) {
@@ -146,17 +182,8 @@ impl QueryWorker {
                         })
                     });
                 }
-                HighLevelQuery::ListPlaylists => {
-                    let (tx, c) = self.prepare_async();
-                    tokio::spawn(async move {
-                        let res = QueryWorker::get_playlists(c).await;
-                        let _ = tx.send(Action::FromQuery {
-                            dest: event.dest,
-                            ticket: event.ticket,
-                            res: QueryStatus::Finished(ResponseType::GetPlaylists(res)),
-                        });
-                    });
-                }
+                HighLevelQuery::ListPlaylists => self.get_playlists(event, true),
+                HighLevelQuery::ListPlaylistsPopup(force) => self.get_playlists(event, force),
                 HighLevelQuery::Login(creds) => {
                     let client = match creds {
                         Credential::Password {
@@ -431,6 +458,8 @@ impl QueryWorker {
             action_tx: sender,
             should_quit: false,
             awaiting,
+
+            cache: Arc::new(Mutex::new(Cache::default())),
         }
     }
     pub fn get_tx(&self) -> UnboundedSender<ToQueryWorker> {

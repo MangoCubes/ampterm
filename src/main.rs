@@ -3,9 +3,7 @@ use std::sync::Arc;
 use clap::Parser;
 use cli::Cli;
 use color_eyre::{eyre::eyre, Result};
-use mpris_server::Server;
 use tokio::{
-    select,
     sync::{
         mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
         RwLock,
@@ -21,7 +19,6 @@ use crate::{
         pathconfig::{PathConfig, PathType},
         Config,
     },
-    mpris::AmptermMpris,
     playerworker::{player::FromPlayerWorker, playerstatus::PlayerStatus, PlayerWorker},
     queryworker::QueryWorker,
 };
@@ -67,60 +64,6 @@ pub fn log_alsa_error() {
             let handler: alsa_sys::snd_lib_error_handler_t =
                 Some(std::mem::transmute(error_handler as *const ()));
             alsa_sys::snd_lib_error_set_handler(handler);
-        }
-    }
-}
-
-async fn start_mpris(
-    action_tx: UnboundedSender<Action>,
-    mpris_rx: UnboundedReceiver<FromPlayerWorker>,
-    playerstatus: Arc<RwLock<PlayerStatus>>,
-) -> std::result::Result<(), tokio::task::JoinError> {
-    let local = tokio::task::LocalSet::new();
-    local
-        .run_until(async {
-            tokio::task::spawn_local(async move {
-                let player = AmptermMpris::new(action_tx, playerstatus);
-                let server = Server::new("ch.skew.ampterm", player)
-                    .await
-                    .expect("Failed to start MPRIS server!");
-                server.imp().run(mpris_rx, &server).await;
-            })
-            .await
-        })
-        .await
-}
-
-async fn start_with_mpris(
-    mut app: App,
-    mut set: JoinSet<Result<()>>,
-    action_tx: UnboundedSender<Action>,
-    mpris_rx: UnboundedReceiver<FromPlayerWorker>,
-    playerstatus: Arc<RwLock<PlayerStatus>>,
-) -> Result<()> {
-    let mpris = start_mpris(action_tx, mpris_rx, playerstatus);
-
-    select! {
-        _ = mpris => {
-            panic!("MPRIS server has terminated before the player!");
-        }
-        res = app.run() => {
-            match res {
-                Ok(()) => Ok(()),
-                Err(e) => panic!("UI panicked! Error: {}", e),
-            }
-        }
-        res = set.join_next() => {
-            match res {
-                Some(report) => match report {
-                    Ok(report) => match report {
-                        Ok(_) => Ok(()),
-                        Err(e) => panic!("A thread crashed: {}", e),
-                    },
-                    Err(_) => panic!("Failed to wait for the thread to run."),
-                },
-                None => unreachable!("No tasks completed??"),
-            }
         }
     }
 }
@@ -187,27 +130,67 @@ async fn main() -> Result<()> {
         PathType::Default
     };
 
-    let config = Config::new(PathConfig::new(data_str, config_str))?;
-
-    let playerstatus = Arc::from(RwLock::from(PlayerStatus::default()));
-    let (action_tx, action_rx) = unbounded_channel::<Action>();
-    let (mpris_tx, mpris_rx) = unbounded_channel::<FromPlayerWorker>();
-
-    #[cfg(test)]
-    panic!("Main invoked in test mode.");
-
-    #[cfg(not(test))]
+    #[allow(unused_variables)]
     {
-        let (app, set) = start_workers(
-            action_tx.clone(),
-            action_rx,
-            mpris_tx,
-            config,
-            playerstatus.clone(),
-            args.tick_rate,
-            args.frame_rate,
-        )?;
+        let config = Config::new(PathConfig::new(data_str, config_str))?;
 
-        start_with_mpris(app, set, action_tx, mpris_rx, playerstatus).await
+        let playerstatus = Arc::from(RwLock::from(PlayerStatus::default()));
+        let (action_tx, action_rx) = unbounded_channel::<Action>();
+        let (mpris_tx, mpris_rx) = unbounded_channel::<FromPlayerWorker>();
+        #[cfg(test)]
+        panic!("Main invoked in test mode.");
+
+        #[cfg(not(test))]
+        {
+            use crate::mpris::AmptermMpris;
+            use mpris_server::Server;
+            use tokio::select;
+
+            let (mut app, mut set) = start_workers(
+                action_tx.clone(),
+                action_rx,
+                mpris_tx,
+                config,
+                playerstatus.clone(),
+                args.tick_rate,
+                args.frame_rate,
+            )?;
+
+            let local = tokio::task::LocalSet::new();
+            let mpris = local.run_until(async {
+                tokio::task::spawn_local(async move {
+                    let player = AmptermMpris::new(action_tx, playerstatus);
+                    let server = Server::new("ch.skew.ampterm", player)
+                        .await
+                        .expect("Failed to start MPRIS server!");
+                    server.imp().run(mpris_rx, &server).await;
+                })
+                .await
+            });
+
+            select! {
+                _ = mpris => {
+                    panic!("MPRIS server has terminated before the player!");
+                }
+                res = app.run() => {
+                    match res {
+                        Ok(()) => Ok(()),
+                        Err(e) => panic!("UI panicked! Error: {}", e),
+                    }
+                }
+                res = set.join_next() => {
+                    match res {
+                        Some(report) => match report {
+                            Ok(report) => match report {
+                                Ok(_) => Ok(()),
+                                Err(e) => panic!("A thread crashed: {}", e),
+                            },
+                            Err(_) => panic!("Failed to wait for the thread to run."),
+                        },
+                        None => unreachable!("No tasks completed??"),
+                    }
+                }
+            }
+        }
     }
 }

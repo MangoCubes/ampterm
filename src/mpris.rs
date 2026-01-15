@@ -89,6 +89,7 @@ impl AmptermMpris {
         let _ = self.action_tx.send(Action::Targeted(ta));
     }
 
+    #[allow(dead_code)]
     pub fn new(
         action_tx: UnboundedSender<Action>,
         playerstatus: Arc<RwLock<PlayerStatus>>,
@@ -98,6 +99,7 @@ impl AmptermMpris {
             playerstatus,
         }
     }
+    #[allow(dead_code)]
     pub async fn run(
         &self,
         mut mpris_rx: UnboundedReceiver<FromPlayerWorker>,

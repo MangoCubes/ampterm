@@ -160,9 +160,15 @@ async fn main() -> Result<()> {
             let mpris = local.run_until(async {
                 tokio::task::spawn_local(async move {
                     let player = AmptermMpris::new(action_tx, playerstatus);
-                    let server = Server::new("ch.skew.ampterm", player)
-                        .await
-                        .expect("Failed to start MPRIS server!");
+                    let server = Server::new(
+                        #[cfg(debug_assertions)]
+                        "ch.skew.ampterm-debug",
+                        #[cfg(not(debug_assertions))]
+                        "ch.skew.ampterm",
+                        player,
+                    )
+                    .await
+                    .expect("Failed to start MPRIS server!");
                     server.imp().run(mpris_rx, &server).await;
                 })
                 .await

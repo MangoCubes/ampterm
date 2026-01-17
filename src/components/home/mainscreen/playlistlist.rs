@@ -1,12 +1,11 @@
-mod error;
 mod loaded;
-mod loading;
 
 use crate::{
-    action::action::Action,
+    action::{action::Action, localaction::PlaylistListAction},
     compid::CompID,
     components::{
-        home::mainscreen::playlistlist::{error::Error, loaded::Loaded, loading::Loading},
+        home::mainscreen::playlistlist::loaded::Loaded,
+        lib::centered::Centered,
         traits::{
             focusable::Focusable,
             handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult, PassKeySeq},
@@ -27,9 +26,9 @@ use ratatui::{
 };
 
 enum Comp {
-    Error(Error),
+    Error(Centered),
     Loaded(Loaded),
-    Loading(Loading),
+    Loading(Centered),
 }
 
 pub struct PlaylistList {
@@ -41,7 +40,7 @@ pub struct PlaylistList {
 impl PlaylistList {
     pub fn new(config: Config, enabled: bool) -> Self {
         Self {
-            comp: Comp::Loading(Loading::new()),
+            comp: Comp::Loading(Centered::new(vec!["Loading...".to_string()])),
             enabled,
             config,
         }
@@ -86,7 +85,17 @@ impl HandleQuery for PlaylistList {
                         Comp::Loaded(Loaded::new(self.config.clone(), simple_playlists.clone()));
                 }
                 Err(error) => {
-                    self.comp = Comp::Error(Error::new(error.clone()));
+                    let mut msg = vec!["Error!".to_string(), error];
+                    if let Some(keyseq) = self
+                        .config
+                        .local
+                        .playlistlist
+                        .find_action_str(PlaylistListAction::ViewSelected)
+                    {
+                        msg.push(format!("Reload with {}", keyseq));
+                    }
+
+                    self.comp = Comp::Error(Centered::new(msg));
                 }
             }
             None

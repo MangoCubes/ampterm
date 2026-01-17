@@ -48,6 +48,7 @@ impl SelectPlaylistPopup {
     pub fn new(
         items: Vec<MediaID>,
         binds: KeyBindings<SelectPlaylistPopupAction>,
+        title: String,
     ) -> (Self, Action) {
         let list: Vec<String> = binds
             .0
@@ -66,10 +67,7 @@ impl SelectPlaylistPopup {
                 binds,
                 block: {
                     let style = Style::new().white();
-                    let title = Span::styled(
-                        "Select A Playlist",
-                        Style::default().add_modifier(Modifier::BOLD),
-                    );
+                    let title = Span::styled(title, Style::default().add_modifier(Modifier::BOLD));
                     Block::bordered().title(title).border_style(style)
                 },
                 state: None,

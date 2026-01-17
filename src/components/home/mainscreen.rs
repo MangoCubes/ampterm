@@ -347,8 +347,12 @@ impl HandleAction for MainScreen {
         self.key_stack.drain(..);
         match action {
             TargetedAction::PrepareAddToPlaylist(list) => {
-                let (popup, action) =
-                    SelectPlaylistPopup::new(list, self.config.local.select_playlist_popup.clone());
+                let len = list.len();
+                let (popup, action) = SelectPlaylistPopup::new(
+                    list,
+                    self.config.local.select_playlist_popup.clone(),
+                    format!("Add {} items to a playlist", len),
+                );
                 self.popup = Popup::SelectPlaylist(popup);
                 Some(action)
             }

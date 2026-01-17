@@ -29,6 +29,8 @@ pub enum HighLevelQuery {
     AddPlaylistToQueue(GetPlaylistParams),
     /// Fetches the list of playlists for the sake of displaying them
     ListPlaylists,
+    /// Fetches the list of playlists for the playlist selection popup
+    ListPlaylistsPopup(bool),
     /// Stars/unstars a music
     SetStar {
         media: MediaID,
@@ -60,6 +62,7 @@ impl HighLevelQuery {
             HighLevelQuery::GetLyrics(_) => vec![CompID::Lyrics],
             HighLevelQuery::GetCover(_) => vec![CompID::ImageComp],
             HighLevelQuery::Tick => vec![],
+            HighLevelQuery::ListPlaylistsPopup(_) => vec![CompID::MainScreen],
         }
     }
     pub fn show_task(&self) -> bool {
@@ -80,6 +83,7 @@ impl ToString for HighLevelQuery {
             HighLevelQuery::Tick => "Tick",
             HighLevelQuery::Login(_) => "Set login credentials and check validitiy",
             HighLevelQuery::UpdatePlaylist(_) => "Update playlist",
+            HighLevelQuery::ListPlaylistsPopup(_) => "Fetching playlists for the popup",
         }
         .to_string()
     }

@@ -4,7 +4,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     compid::CompID,
-    osclient::response::{getplaylist::Media, getplaylists::SimplePlaylist},
+    osclient::{
+        response::{getplaylist::Media, getplaylists::SimplePlaylist},
+        types::MediaID,
+    },
     playerworker::player::{FromPlayerWorker, QueueLocation, ToPlayerWorker},
     queryworker::query::{QueryStatus, ToQueryWorker},
 };
@@ -63,7 +66,6 @@ pub enum TargetedAction {
     PlayOrPause,
     Skip,
     Previous,
-    Queue(QueueAction),
     GoToStart,
     ChangeVolume(f32),
     ChangeSpeed(f32),
@@ -99,12 +101,17 @@ pub enum TargetedAction {
     ClearScreen,
     Quit,
 
+    /// Anything below should not be used directly by the user, as it can break the system
+    Queue(QueueAction),
+
     Debug(String),
     Info(String),
     Err(String),
 
     ViewPlaylistInfo(SimplePlaylist),
     ViewMediaInfo(Media),
+
+    PrepareAddToPlaylist(Vec<MediaID>),
 }
 
 impl ToString for TargetedAction {
@@ -167,6 +174,10 @@ impl ToString for TargetedAction {
             TargetedAction::Shuffle => "Shuffle music".to_string(),
             TargetedAction::ViewPlaylistInfo(_) => "View playlist's information".to_string(),
             TargetedAction::ViewMediaInfo(_) => "View media's information".to_string(),
+            TargetedAction::PrepareAddToPlaylist(_) => {
+                "Request user to select the playlist in which the selected items will go"
+                    .to_string()
+            }
         }
     }
 }

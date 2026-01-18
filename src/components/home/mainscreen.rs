@@ -31,7 +31,10 @@ use crate::{
     },
     config::{keyparser::KeyParser, Config},
     playerworker::player::FromPlayerWorker,
-    queryworker::query::{QueryStatus, ResponseType},
+    queryworker::{
+        highlevelquery::HighLevelQuery,
+        query::{QueryStatus, ResponseType, ToQueryWorker},
+    },
 };
 use crossterm::event::KeyEvent;
 use nowplaying::NowPlaying;
@@ -311,20 +314,28 @@ impl HandleQuery for MainScreen {
             CompID::PlayQueue => self.playqueue.handle_query(dest, ticket, res),
             CompID::MainScreen => {
                 if let QueryStatus::Finished(body) = res {
-                    if let ResponseType::GetPlaylists(pl) = body {
-                        match pl {
-                            Ok(p) => {
-                                // User may close the popup before the request is finished
-                                if let Popup::SelectPlaylist(popup) = &mut self.popup {
-                                    popup.update_playlist(p);
+                    match body {
+                        ResponseType::UpdatePlaylist(Ok(())) => {
+                            return Some(Action::ToQuery(ToQueryWorker::new(
+                                HighLevelQuery::ListPlaylists,
+                            )))
+                        }
+                        ResponseType::GetPlaylists(pl) => {
+                            match pl {
+                                Ok(p) => {
+                                    // User may close the popup before the request is finished
+                                    if let Popup::SelectPlaylist(popup) = &mut self.popup {
+                                        popup.update_playlist(p);
+                                    }
                                 }
-                            }
-                            Err(err) => {
-                                self.message = (true, err);
-                                self.popup = Popup::None;
-                            }
-                        };
-                    };
+                                Err(err) => {
+                                    self.message = (true, err);
+                                    self.popup = Popup::None;
+                                }
+                            };
+                        }
+                        _ => {}
+                    }
                 };
                 None
             }

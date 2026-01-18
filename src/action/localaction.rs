@@ -116,8 +116,10 @@ pub enum PlaylistListAction {
     RandomAdd(QueueLocation),
     /// Open the seleced playlist in the playlist queue view
     ViewSelected,
-
+    /// View details of the current playlist
     ViewInfo,
+    /// Refresh the playlist list
+    Refresh,
 }
 
 impl ToString for PlaylistListAction {
@@ -135,6 +137,7 @@ impl ToString for PlaylistListAction {
                 QueueLocation::Last => "Shuffle the playlist and append it to the queue",
             },
             PlaylistListAction::ViewInfo => "View details of the current playlist",
+            PlaylistListAction::Refresh => "Refresh the playlist list",
         }
         .to_string()
     }

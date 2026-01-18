@@ -175,6 +175,9 @@ impl HandleKeySeq<PlaylistListAction> for Loaded {
                     KeySeqResult::NoActionNeeded
                 }
             }
+            PlaylistListAction::Refresh => KeySeqResult::ActionNeeded(Action::ToQuery(
+                ToQueryWorker::new(HighLevelQuery::ListPlaylists),
+            )),
         }
     }
 

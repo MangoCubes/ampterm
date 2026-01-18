@@ -129,7 +129,10 @@
 			"<r><a>": { "RandomAdd": "Next" },
 			"<r><Shift-a>": { "RandomAdd": "Last" },
 
-			"<Shift-i>": "ViewInfo"
+			"<Shift-i>": "ViewInfo",
+
+			"<Shift-r>": "Refresh"
+
 		},
 		"playlistqueue": {
 			"<Shift-r>": "Refresh",

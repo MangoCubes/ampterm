@@ -31,10 +31,7 @@ use crate::{
     },
     config::{keyparser::KeyParser, Config},
     playerworker::player::FromPlayerWorker,
-    queryworker::{
-        highlevelquery::HighLevelQuery,
-        query::{QueryStatus, ResponseType, ToQueryWorker},
-    },
+    queryworker::query::{QueryStatus, ResponseType},
 };
 use crossterm::event::KeyEvent;
 use nowplaying::NowPlaying;
@@ -167,6 +164,7 @@ impl MainScreen {
         self.popup = Popup::Help;
     }
     pub fn new(config: Config) -> (Self, Action) {
+        let (pl_list, action) = PlaylistList::new(config.clone(), true);
         (
             Self {
                 bpmtoy: if config.features.bpmtoy.enable.clone() {
@@ -175,7 +173,7 @@ impl MainScreen {
                     None
                 },
                 tasks: Tasks::new(config.behaviour.show_internal_tasks.clone()),
-                pl_list: PlaylistList::new(config.clone(), true),
+                pl_list,
                 pl_queue: PlaylistQueue::new(config.clone(), false),
                 playqueue: PlayQueue::new(false, config.clone()),
                 now_playing: NowPlaying::new(false, config.clone()),
@@ -197,10 +195,7 @@ impl MainScreen {
                 key_stack: vec![],
                 popup: Popup::None,
             },
-            Action::Multiple(vec![
-                Action::ToQuery(ToQueryWorker::new(HighLevelQuery::ListPlaylists)),
-                Action::ChangeMode(Mode::Normal),
-            ]),
+            Action::Multiple(vec![action, Action::ChangeMode(Mode::Normal)]),
         )
     }
     fn update_focus(&mut self) {

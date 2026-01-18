@@ -14,7 +14,10 @@ use crate::{
         },
     },
     config::Config,
-    queryworker::query::{QueryStatus, ResponseType},
+    queryworker::{
+        highlevelquery::HighLevelQuery,
+        query::{QueryStatus, ResponseType, ToQueryWorker},
+    },
 };
 use crossterm::event::KeyEvent;
 use ratatui::{
@@ -38,12 +41,16 @@ pub struct PlaylistList {
 }
 
 impl PlaylistList {
-    pub fn new(config: Config, enabled: bool) -> Self {
-        Self {
-            comp: Comp::Loading(Centered::new(vec!["Loading...".to_string()])),
-            enabled,
-            config,
-        }
+    pub fn new(config: Config, enabled: bool) -> (Self, Action) {
+        let query = ToQueryWorker::new(HighLevelQuery::ListPlaylists);
+        (
+            Self {
+                comp: Comp::Loading(Centered::new(vec!["Loading...".to_string()])),
+                enabled,
+                config,
+            },
+            Action::ToQuery(query),
+        )
     }
     fn gen_block(&self) -> Block<'static> {
         let style = if self.enabled {

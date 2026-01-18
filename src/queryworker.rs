@@ -356,7 +356,7 @@ impl QueryWorker {
                 HighLevelQuery::UpdatePlaylist(update_playlist_params) => {
                     let (tx, c) = self.prepare_async();
                     tokio::spawn(async move {
-                        if let Err(e) = c
+                        let res = c
                             .update_playlist(
                                 update_playlist_params.playlist_id,
                                 update_playlist_params.name,
@@ -365,13 +365,15 @@ impl QueryWorker {
                                 update_playlist_params.song_id_to_add,
                                 update_playlist_params.song_index_to_remove,
                             )
-                            .await
-                        {
-                            let _ = tx.send(Action::Targeted(TargetedAction::Err(format!(
-                                "Failed to modify the playlist: {}",
-                                e.to_string()
-                            ))));
-                        };
+                            .await;
+                        let _ = tx.send(Action::FromQuery {
+                            dest: event.dest,
+                            ticket: event.ticket,
+                            res: QueryStatus::Finished(ResponseType::UpdatePlaylist(match res {
+                                Ok(_) => Ok(()),
+                                Err(e) => Err(e.to_string()),
+                            })),
+                        });
                     });
                 }
             };

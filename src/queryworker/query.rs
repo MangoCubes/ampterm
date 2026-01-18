@@ -40,6 +40,7 @@ impl ToQueryWorker {
 pub enum ResponseType {
     // Responses from the queries
     Star(Result<(), String>),
+    UpdatePlaylist(Result<(), String>),
     GetPlaylists(Result<Vec<SimplePlaylist>, String>),
     GetPlaylist(GetPlaylistResponse),
     GetLyrics(Result<Option<GetLyricsResponse>, String>),

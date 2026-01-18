@@ -49,7 +49,7 @@ impl HighLevelQuery {
     pub fn get_dest(&self) -> Vec<CompID> {
         match self {
             HighLevelQuery::PlayMusicFromURL(_) => vec![CompID::NowPlaying],
-            HighLevelQuery::SelectPlaylist(_) | HighLevelQuery::UpdatePlaylist(_) => {
+            HighLevelQuery::SelectPlaylist(_) => {
                 vec![CompID::PlaylistQueue]
             }
             HighLevelQuery::AddPlaylistToQueue(_) | HighLevelQuery::ListPlaylists => {
@@ -63,6 +63,7 @@ impl HighLevelQuery {
             HighLevelQuery::GetCover(_) => vec![CompID::ImageComp],
             HighLevelQuery::Tick => vec![],
             HighLevelQuery::ListPlaylistsPopup(_) => vec![CompID::MainScreen],
+            HighLevelQuery::UpdatePlaylist(_) => vec![CompID::MainScreen],
         }
     }
     pub fn show_task(&self) -> bool {

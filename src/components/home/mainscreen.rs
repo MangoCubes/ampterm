@@ -324,13 +324,9 @@ impl HandleQuery for MainScreen {
                                 self.popup = Popup::None;
                             }
                         };
-                        None
-                    } else {
-                        unreachable!()
-                    }
-                } else {
-                    None
-                }
+                    };
+                };
+                None
             }
             _ => unreachable!(),
         }

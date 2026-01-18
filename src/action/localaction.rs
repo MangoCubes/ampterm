@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use strum::Display;
 
-use crate::playerworker::player::QueueLocation;
+use crate::{osclient::types::PlaylistID, playerworker::player::QueueLocation};
 
 /// Actions for all of the visual lists (lists where you can select multiple items). Not applicable
 /// for lists where you cannot select items.
@@ -63,6 +63,10 @@ pub enum PlayQueueAction {
     FocusPlaying,
     /// Randomise the order of everything that comes after item that is currently being played
     Randomise,
+    /// Display metadata of the highlighted song
+    ViewInfo,
+    /// Add selected items to a playlist
+    AddToPlaylist,
 }
 
 impl ToString for PlayQueueAction {
@@ -73,6 +77,8 @@ impl ToString for PlayQueueAction {
             PlayQueueAction::PlaySelected => "Jump to the cursor's position",
             PlayQueueAction::FocusPlaying => "Focus currently playing item",
             PlayQueueAction::Randomise => "Randomise queued items",
+            PlayQueueAction::ViewInfo => "Display metadata of the highlighted song",
+            PlayQueueAction::AddToPlaylist => "Add items to a playlist",
         }
         .to_string()
     }
@@ -110,8 +116,10 @@ pub enum PlaylistListAction {
     RandomAdd(QueueLocation),
     /// Open the seleced playlist in the playlist queue view
     ViewSelected,
-
+    /// View details of the current playlist
     ViewInfo,
+    /// Refresh the playlist list
+    Refresh,
 }
 
 impl ToString for PlaylistListAction {
@@ -129,6 +137,7 @@ impl ToString for PlaylistListAction {
                 QueueLocation::Last => "Shuffle the playlist and append it to the queue",
             },
             PlaylistListAction::ViewInfo => "View details of the current playlist",
+            PlaylistListAction::Refresh => "Refresh the playlist list",
         }
         .to_string()
     }
@@ -213,5 +222,32 @@ impl ToString for PopupAction {
             PopupAction::Close => "Close popup",
         }
         .to_string()
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub enum SelectPlaylistPopupAction {
+    Up,
+    Down,
+    Top,
+    Bottom,
+    Cancel,
+    Confirm,
+    SelectID(PlaylistID, String),
+}
+
+impl ToString for SelectPlaylistPopupAction {
+    fn to_string(&self) -> String {
+        match self {
+            SelectPlaylistPopupAction::Up => "Move up".to_string(),
+            SelectPlaylistPopupAction::Down => "Move down".to_string(),
+            SelectPlaylistPopupAction::Top => "Move to top".to_string(),
+            SelectPlaylistPopupAction::Bottom => "Move to bottom".to_string(),
+            SelectPlaylistPopupAction::Cancel => "Cancel action".to_string(),
+            SelectPlaylistPopupAction::Confirm => "Proceed with the selected playlist".to_string(),
+            SelectPlaylistPopupAction::SelectID(_, name) => {
+                format!("Select playlist {}", name.clone())
+            }
+        }
     }
 }

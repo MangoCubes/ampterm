@@ -1,5 +1,6 @@
 pub mod getplaylist;
 pub mod setcredential;
+pub mod updateplaylist;
 
 use image::DynamicImage;
 
@@ -39,12 +40,12 @@ impl ToQueryWorker {
 pub enum ResponseType {
     // Responses from the queries
     Star(Result<(), String>),
-    Ping(Result<(), String>),
+    UpdatePlaylist(Result<(), String>),
     GetPlaylists(Result<Vec<SimplePlaylist>, String>),
     GetPlaylist(GetPlaylistResponse),
-    SetCredential(Result<(), String>),
     GetLyrics(Result<Option<GetLyricsResponse>, String>),
     GetCover(Result<DynamicImage, String>),
+    Login(Result<(), String>),
 }
 
 #[derive(Debug, Clone)]

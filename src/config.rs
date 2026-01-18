@@ -134,6 +134,7 @@ impl Config {
         insert_keybinds!(playlistqueue);
         insert_keybinds!(help);
         insert_keybinds!(popup);
+        insert_keybinds!(select_playlist_popup);
 
         for (key, cmd) in default_config.local.playqueue.iter() {
             cfg.local

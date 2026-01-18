@@ -369,15 +369,19 @@ impl Renderable for PlayQueue {
     fn draw(&mut self, frame: &mut Frame, area: Rect) {
         let title = if let Some(pos) = self.table.get_current() {
             let len = self.list.0.len();
-            format!(
-                "Queue ({}/{})",
-                if pos == usize::MAX || pos >= len {
+            if len == 0 {
+                "Queue (0)".to_string()
+            } else {
+                format!(
+                    "Queue ({}/{})",
+                    if pos == usize::MAX || pos >= len {
+                        len
+                    } else {
+                        pos + 1
+                    },
                     len
-                } else {
-                    pos + 1
-                },
-                len
-            )
+                )
+            }
         } else {
             format!("Queue ({})", self.list.0.len())
         };
@@ -528,6 +532,46 @@ impl HandleKeySeq<PlayQueueAction> for PlayQueue {
             PlayQueueAction::Randomise => {
                 self.shuffle();
                 KeySeqResult::NoActionNeeded
+            }
+            PlayQueueAction::ViewInfo => match self.table.get_current() {
+                Some(idx) => KeySeqResult::ActionNeeded(Action::Targeted(
+                    TargetedAction::ViewMediaInfo(self.list.0[idx].clone()),
+                )),
+                None => KeySeqResult::NoActionNeeded,
+            },
+            PlayQueueAction::AddToPlaylist => {
+                let (vs, action) = self.table.get_selection_reset();
+
+                let selection = match vs {
+                    VisualSelection::Single(index) => Selection::Single(index),
+                    VisualSelection::Multiple { map, temp: _ } => Selection::Multiple(map),
+                    VisualSelection::None => {
+                        return match action {
+                            Some(a) => KeySeqResult::ActionNeeded(a),
+                            None => KeySeqResult::NoActionNeeded,
+                        }
+                    }
+                };
+
+                let ids = match selection {
+                    Selection::Single(i) => vec![self.list[i].id.clone()],
+                    Selection::Multiple(items) => self
+                        .list
+                        .iter()
+                        .zip(items)
+                        .filter(|(_, bool)| *bool)
+                        .map(|(m, _)| m.id.clone())
+                        .collect(),
+                };
+                let request_popup = Action::Targeted(TargetedAction::PrepareAddToPlaylist(ids));
+
+                let actions = if let Some(a) = action {
+                    Action::Multiple(vec![a, request_popup])
+                } else {
+                    request_popup
+                };
+
+                KeySeqResult::ActionNeeded(actions)
             }
         }
     }

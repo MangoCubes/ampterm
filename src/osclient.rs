@@ -16,6 +16,7 @@ use stream_download::http::ClientResponse;
 
 use crate::osclient::response::empty::AlwaysError;
 use crate::osclient::types::{MediaID, PlaylistID};
+use crate::trace_dbg;
 mod error;
 pub mod response;
 pub mod types;
@@ -72,6 +73,41 @@ impl OSClient {
         id: String,
     ) -> Result<Result<Bytes, AlwaysError>, ExternalError> {
         self.query_auth_image(Method::GET, "getCoverArt", Some(vec![("id", &id)]))
+            .await
+    }
+    pub async fn update_playlist(
+        &self,
+        id: PlaylistID,
+        name: Option<String>,
+        comment: Option<String>,
+        public: Option<bool>,
+        song_id_to_add: Option<Vec<MediaID>>,
+        song_index_to_remove: Option<Vec<usize>>,
+    ) -> Result<Empty, ExternalError> {
+        let mut args: Vec<(&str, &str)> = vec![("playlistId", &id)];
+        if let Some(n) = &name {
+            args.push(("name", n))
+        };
+        if let Some(n) = &comment {
+            args.push(("comment", n))
+        };
+        if let Some(n) = public {
+            args.push(("name", if n { "true" } else { "false" }))
+        };
+        if let Some(sids) = &song_id_to_add {
+            for id in sids {
+                args.push(("songIdToAdd", &id.0));
+            }
+        };
+        let arr = if let Some(sids) = song_index_to_remove {
+            sids.iter().map(usize::to_string).collect()
+        } else {
+            vec![]
+        };
+        for id in &arr {
+            args.push(("songIndexToRemove", id));
+        }
+        self.query_auth_text::<Empty>(Method::GET, "updatePlaylist", Some(args))
             .await
     }
     pub fn stream_link(&self, id: MediaID) -> Url {
@@ -232,7 +268,7 @@ impl OSClient {
         let handler = |e: reqwest::Error| ExternalError::req(e);
         let response = r.map_err(handler)?;
         match response.error_for_status() {
-            Ok(r) => Ok(r),
+            Ok(r) => trace_dbg!(Ok(r)),
             Err(status) => {
                 if let Some(code) = status.status() {
                     Err(ExternalError::res(code))

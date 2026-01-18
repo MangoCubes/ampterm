@@ -3,7 +3,7 @@ use color_eyre::Result;
 use crossterm::event::KeyEvent;
 
 use ratatui::prelude::Rect;
-use tokio::sync::mpsc::{self};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use tracing::debug;
 
 use crate::{
@@ -36,30 +36,31 @@ pub struct App {
     should_quit: bool,
     should_suspend: bool,
     key_stack: Vec<KeyEvent>,
-    action_tx: mpsc::UnboundedSender<Action>,
-    action_rx: mpsc::UnboundedReceiver<Action>,
-    query_tx: mpsc::UnboundedSender<ToQueryWorker>,
-    player_tx: mpsc::UnboundedSender<ToPlayerWorker>,
+    action_tx: UnboundedSender<Action>,
+    action_rx: UnboundedReceiver<Action>,
+    query_tx: UnboundedSender<ToQueryWorker>,
+    player_tx: UnboundedSender<ToPlayerWorker>,
     mode: Mode,
-    mpris_tx: mpsc::UnboundedSender<FromPlayerWorker>,
+    mpris_tx: UnboundedSender<FromPlayerWorker>,
     tui: Tui,
+    #[cfg(test)]
+    debug_tx: UnboundedSender<bool>,
 }
 
 impl App {
     pub fn new(
         config: Config,
-        action_tx: mpsc::UnboundedSender<Action>,
-        action_rx: mpsc::UnboundedReceiver<Action>,
-        mpris_tx: mpsc::UnboundedSender<FromPlayerWorker>,
-        query_tx: mpsc::UnboundedSender<ToQueryWorker>,
-        player_tx: mpsc::UnboundedSender<ToPlayerWorker>,
+        action_tx: UnboundedSender<Action>,
+        action_rx: UnboundedReceiver<Action>,
+        mpris_tx: UnboundedSender<FromPlayerWorker>,
+        query_tx: UnboundedSender<ToQueryWorker>,
+        player_tx: UnboundedSender<ToPlayerWorker>,
         tick_rate: f64,
         frame_rate: f64,
+        #[cfg(test)] debug_tx: UnboundedSender<bool>,
     ) -> Result<Self> {
-        let (component, actions) = Home::new(config.clone());
-        actions.into_iter().for_each(|a| {
-            let _ = action_tx.send(a);
-        });
+        let (component, action) = Home::new(config.clone());
+        let _ = action_tx.send(action);
         Ok(Self {
             tui: Tui::new()?.tick_rate(tick_rate).frame_rate(frame_rate),
             mpris_tx,
@@ -73,6 +74,8 @@ impl App {
             query_tx,
             player_tx,
             mode: Mode::Normal,
+            #[cfg(test)]
+            debug_tx,
         })
     }
 
@@ -127,7 +130,6 @@ impl App {
                 self.action_tx.send(action)?;
             }
         } else {
-            debug!("{key:?}");
             self.key_stack.push(key);
 
             let res = if let Some(r) = self.component.handle_key_seq(&self.key_stack) {
@@ -158,25 +160,23 @@ impl App {
         while let Ok(action) = self.action_rx.try_recv() {
             match action {
                 #[cfg(test)]
-                Action::TestKey(name, event) => {
+                Action::TestKey(event) => {
                     self.handle_key_event(event).unwrap();
                     self.render().unwrap();
-                    if let Some(n) = name {
-                        insta::assert_snapshot!(n, self.tui.backend());
-                    }
                 }
                 #[cfg(test)]
-                Action::TestKeys(name, events) => {
+                Action::TestKeys(events) => {
                     events
                         .into_iter()
                         .for_each(|k| self.handle_key_event(k).unwrap());
                     // Ensure the UI is rendered properly just before transmitting response
                     self.render().unwrap();
-                    insta::assert_snapshot!(name, self.tui.backend());
                 }
                 #[cfg(test)]
                 Action::Snapshot(name) => {
+                    self.render().unwrap();
                     insta::assert_snapshot!(name, self.tui.backend());
+                    self.debug_tx.send(true).unwrap();
                 }
                 Action::Multiple(actions) => {
                     for a in actions {

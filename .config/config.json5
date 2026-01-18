@@ -19,8 +19,8 @@
 		"<Shift-Left>": { "ChangePosition": -5.0 },
 		"<Shift-Right>": { "ChangePosition": 5.0 },
 
-		"<Ctrl-Up>": { "ChangeSpeed": 0.05 },
-		"<Ctrl-Down>": { "ChangeSpeed": -0.05 },
+		"<Ctrl-Up>": { "ChangeSpeed": 0.1 },
+		"<Ctrl-Down>": { "ChangeSpeed": -0.1 },
 		"<Ctrl-Space>": { "SetSpeed": 1.00 },
 
 		"<0>": "GoToStart",
@@ -103,6 +103,11 @@
 			"<z><z>": "FocusPlaying",
 
 			"<r>": "Randomise",
+
+			"<Shift-i>": "ViewInfo",
+
+			"<\">": "AddToPlaylist",
+
 		},
 		// Keybinds for the lyrics page (The popup you get you press the key bound to OpenLyrics in nowplaying)
 		"lyrics": {
@@ -124,7 +129,10 @@
 			"<r><a>": { "RandomAdd": "Next" },
 			"<r><Shift-a>": { "RandomAdd": "Last" },
 
-			"<Shift-i>": "ViewInfo"
+			"<Shift-i>": "ViewInfo",
+
+			"<Shift-r>": "Refresh"
+
 		},
 		"playlistqueue": {
 			"<Shift-r>": "Refresh",
@@ -149,6 +157,7 @@
 			"<Ctrl-l>": "ClearSearch",
 
 			"<Shift-i>": "ViewInfo",
+
 		},
 		"popup": {
 			"<Up>": "Up",
@@ -160,15 +169,27 @@
 			"<q>": "Close",
 			"<Esc>": "Close",
 			"<Shift-i>": "Close",
+		},
+		"select_playlist_popup": {
+			"<Up>": "Up",
+			"<Down>": "Down",
+
+			"<Shift-g>": "Bottom",
+			"<g><g>": "Top",
+
+			"<q>": "Cancel",
+			"<Esc>": "Cancel",
+
+			"<Enter>": "Confirm"
 		}
 	},
     // Use legacy authentication that sends the password instead of token and salt
     // This may be necessary if you are using servers like Ampache, which does not support token-based authentication yet
     "use_legacy_auth": false,
     "auth": {
-        "url": "echo URL",
-        "username": "echo USERNAME",
-        "password": "echo PASSWORD",
+        "url": "echo https://demo.navidrome.org/app",
+        "username": "echo demo",
+        "password": "echo demo",
     },
     "unsafe_auth": {
         "url": "",

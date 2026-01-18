@@ -6,6 +6,7 @@ mod playlistinfo;
 pub mod playlistlist;
 mod playlistqueue;
 mod playqueue;
+mod selectplaylistpopup;
 mod tasks;
 
 use crate::{
@@ -14,7 +15,7 @@ use crate::{
     components::{
         home::mainscreen::{
             bpmtoy::BPMToy, help::Help, mediainfo::MediaInfo, playlistinfo::PlaylistInfo,
-            tasks::Tasks,
+            selectplaylistpopup::SelectPlaylistPopup, tasks::Tasks,
         },
         traits::{
             focusable::Focusable,
@@ -32,7 +33,7 @@ use crate::{
     playerworker::player::FromPlayerWorker,
     queryworker::{
         highlevelquery::HighLevelQuery,
-        query::{QueryStatus, ToQueryWorker},
+        query::{QueryStatus, ResponseType, ToQueryWorker},
     },
 };
 use crossterm::event::KeyEvent;
@@ -68,6 +69,7 @@ enum Popup {
     Help,
     MediaInfo(MediaInfo),
     PlaylistInfo(PlaylistInfo),
+    SelectPlaylist(SelectPlaylistPopup),
 }
 
 pub struct MainScreen {
@@ -150,6 +152,7 @@ impl PassKeySeq for MainScreen {
             Popup::Help => self.help.handle_key_seq(keyseq),
             Popup::MediaInfo(comp) => comp.handle_key_seq(keyseq),
             Popup::PlaylistInfo(comp) => comp.handle_key_seq(keyseq),
+            Popup::SelectPlaylist(comp) => comp.handle_key_seq(keyseq),
         };
         if matches!(res, Some(_)) {
             self.key_stack.drain(..);
@@ -164,6 +167,7 @@ impl MainScreen {
         self.popup = Popup::Help;
     }
     pub fn new(config: Config) -> (Self, Action) {
+        let (pl_list, action) = PlaylistList::new(config.clone(), true);
         (
             Self {
                 bpmtoy: if config.features.bpmtoy.enable.clone() {
@@ -172,22 +176,29 @@ impl MainScreen {
                     None
                 },
                 tasks: Tasks::new(config.behaviour.show_internal_tasks.clone()),
-                pl_list: PlaylistList::new(config.clone(), true),
+                pl_list,
                 pl_queue: PlaylistQueue::new(config.clone(), false),
                 playqueue: PlayQueue::new(false, config.clone()),
                 now_playing: NowPlaying::new(false, config.clone()),
                 help: Help::new(config.clone()),
+                message: (false, {
+                    if let Some(s) = config.global.find_action_str(TargetedAction::OpenHelp) {
+                        format!("Welcome to Ampterm. Press {} at any point to see all of its keybindings.", s)
+                    } else if let Some(s) =
+                        config.global.find_action_str(TargetedAction::ToggleHelp)
+                    {
+                        format!("Welcome to Ampterm. Press {} at any point to see all of its keybindings.", s)
+                    } else {
+                        "Welcome to Ampterm.".to_string()
+                    }
+                }),
                 config,
                 state: CurrentlySelected::PlaylistList,
                 current_mode: Mode::Normal,
-                message: (false, "You are now logged in.".to_string()),
                 key_stack: vec![],
                 popup: Popup::None,
             },
-            Action::Multiple(vec![
-                Action::ToQuery(ToQueryWorker::new(HighLevelQuery::ListPlaylists)),
-                Action::ChangeMode(Mode::Normal),
-            ]),
+            Action::Multiple(vec![action, Action::ChangeMode(Mode::Normal)]),
         )
     }
     fn update_focus(&mut self) {
@@ -243,6 +254,7 @@ impl Renderable for MainScreen {
             Popup::Help => self.help.draw(frame, area),
             Popup::PlaylistInfo(comp) => comp.draw(frame, area),
             Popup::MediaInfo(comp) => comp.draw(frame, area),
+            Popup::SelectPlaylist(comp) => comp.draw(frame, area),
         }
 
         frame.render_widget(
@@ -300,6 +312,33 @@ impl HandleQuery for MainScreen {
                 self.now_playing.handle_query(dest, ticket, res)
             }
             CompID::PlayQueue => self.playqueue.handle_query(dest, ticket, res),
+            CompID::MainScreen => {
+                if let QueryStatus::Finished(body) = res {
+                    match body {
+                        ResponseType::UpdatePlaylist(Ok(())) => {
+                            return Some(Action::ToQuery(ToQueryWorker::new(
+                                HighLevelQuery::ListPlaylists,
+                            )))
+                        }
+                        ResponseType::GetPlaylists(pl) => {
+                            match pl {
+                                Ok(p) => {
+                                    // User may close the popup before the request is finished
+                                    if let Popup::SelectPlaylist(popup) = &mut self.popup {
+                                        popup.update_playlist(p);
+                                    }
+                                }
+                                Err(err) => {
+                                    self.message = (true, err);
+                                    self.popup = Popup::None;
+                                }
+                            };
+                        }
+                        _ => {}
+                    }
+                };
+                None
+            }
             _ => unreachable!(),
         }
     }
@@ -309,6 +348,16 @@ impl HandleAction for MainScreen {
     fn handle_action(&mut self, action: TargetedAction) -> Option<Action> {
         self.key_stack.drain(..);
         match action {
+            TargetedAction::PrepareAddToPlaylist(list) => {
+                let len = list.len();
+                let (popup, action) = SelectPlaylistPopup::new(
+                    list,
+                    self.config.local.select_playlist_popup.clone(),
+                    format!("Add {} items to a playlist", len),
+                );
+                self.popup = Popup::SelectPlaylist(popup);
+                Some(action)
+            }
             TargetedAction::ViewPlaylistInfo(playlist) => {
                 self.popup = Popup::PlaylistInfo(PlaylistInfo::new(
                     playlist,

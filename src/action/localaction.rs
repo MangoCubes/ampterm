@@ -233,7 +233,7 @@ pub enum SelectPlaylistPopupAction {
     Bottom,
     Cancel,
     Confirm,
-    SelectID(PlaylistID, String),
+    SelectID { id: PlaylistID, name: String },
 }
 
 impl ToString for SelectPlaylistPopupAction {
@@ -245,7 +245,7 @@ impl ToString for SelectPlaylistPopupAction {
             SelectPlaylistPopupAction::Bottom => "Move to bottom".to_string(),
             SelectPlaylistPopupAction::Cancel => "Cancel action".to_string(),
             SelectPlaylistPopupAction::Confirm => "Proceed with the selected playlist".to_string(),
-            SelectPlaylistPopupAction::SelectID(_, name) => {
+            SelectPlaylistPopupAction::SelectID { id: _, name } => {
                 format!("Select playlist {}", name.clone())
             }
         }

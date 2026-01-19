@@ -54,7 +54,7 @@ impl SelectPlaylistPopup {
             .0
             .iter()
             .filter_map(|(key, action)| {
-                if let SelectPlaylistPopupAction::SelectID(_, name) = action {
+                if let SelectPlaylistPopupAction::SelectID { id: _, name } = action {
                     Some(format!("{}: {}", KeyParser::keyseq_to_string(key), name))
                 } else {
                     None
@@ -173,12 +173,12 @@ impl HandleKeySeq<SelectPlaylistPopupAction> for SelectPlaylistPopup {
                     ))),
                 ]));
             }
-            SelectPlaylistPopupAction::SelectID(playlist_id, _) => {
+            SelectPlaylistPopupAction::SelectID { id, name: _ } => {
                 return KeySeqResult::ActionNeeded(Action::Multiple(vec![
                     Action::Targeted(TargetedAction::ClosePopup),
                     Action::ToQuery(ToQueryWorker::new(HighLevelQuery::UpdatePlaylist(
                         UpdatePlaylistParams {
-                            playlist_id,
+                            playlist_id: id,
                             name: None,
                             comment: None,
                             public: None,

@@ -5,7 +5,7 @@ use std::io::Cursor;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
-use crate::action::action::{Action, TargetedAction};
+use crate::action::action::Action;
 use crate::compid::CompID;
 use crate::config::Config;
 use crate::lyricsclient::lrclib::LrcLib;

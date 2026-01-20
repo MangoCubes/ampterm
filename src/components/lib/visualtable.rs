@@ -459,12 +459,28 @@ impl VisualTable {
                 return true;
             }
         }
+        for i in (idx.0 + 1..self.state.len()).rev() {
+            if self.state[i].visible && self.state[i].highlight {
+                let idx = FilterAppliedIndex(i).to_user(&self.state);
+                self.tablestate.select(Some(idx));
+                self.table = self.regen_table();
+                return true;
+            }
+        }
         false
     }
 
     fn jump_next(&mut self) -> bool {
         let idx = FilterAppliedIndex::from(self.get_current().unwrap_or(0), &self.state);
         for i in (idx.0 + 1)..self.state.len() {
+            if self.state[i].visible && self.state[i].highlight {
+                let idx = FilterAppliedIndex(i).to_user(&self.state);
+                self.tablestate.select(Some(idx));
+                self.table = self.regen_table();
+                return true;
+            }
+        }
+        for i in 0..idx.0 {
             if self.state[i].visible && self.state[i].highlight {
                 let idx = FilterAppliedIndex(i).to_user(&self.state);
                 self.tablestate.select(Some(idx));

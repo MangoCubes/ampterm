@@ -43,7 +43,7 @@ use ratatui::{
 enum State {
     Nothing,
     Filtering(Filter),
-    Searching(Search),
+    Searching(Search, usize),
 }
 
 pub struct Loaded {
@@ -179,6 +179,8 @@ impl Loaded {
         self.table.set_rows(rows);
         None
     }
+
+    /// Executed when the user types something into the search bar
     fn apply_search(&mut self, search: String) -> Option<Action> {
         if search.len() == 0 {
             self.search = Some((0, search));
@@ -198,17 +200,27 @@ impl Loaded {
                     a
                 })
                 .collect();
+            if let Some(idx) = highlight.iter().position(|x| *x) {
+                self.table.set_position(idx);
+            };
             self.search = Some((count, search));
             self.table.set_highlight(&highlight);
             None
         }
     }
+
+    /// Executed when the user confirms the search by pressing enter
     fn confirm_search(&mut self, search: String) -> Action {
         self.apply_search(search);
         self.state = State::Nothing;
         Action::ChangeMode(Mode::Normal)
     }
+
+    /// Executed whent the search is cancelled or removed
     fn clear_search(&mut self) -> Action {
+        if let State::Searching(_, idx) = self.state {
+            self.table.set_position(idx);
+        };
         self.state = State::Nothing;
         self.search = None;
         self.table.reset_highlight();
@@ -291,7 +303,7 @@ impl Renderable for Loaded {
                 filter.draw(frame, areas[1]);
                 inner
             }
-            State::Searching(search) => {
+            State::Searching(search, _) => {
                 let layout =
                     Layout::default().constraints([Constraint::Min(1), Constraint::Length(3)]);
                 let areas = layout.split(area);
@@ -388,12 +400,14 @@ impl HandleKeySeq<PlaylistQueueAction> for Loaded {
             }
             PlaylistQueueAction::ClearFilter => KeySeqResult::ActionNeeded(self.reset_filter()),
             PlaylistQueueAction::Search => {
-                self.state =
-                    State::Searching(Search::new(if let Some((_, search)) = &self.search {
+                self.state = State::Searching(
+                    Search::new(if let Some((_, search)) = &self.search {
                         search.clone()
                     } else {
                         "".to_string()
-                    }));
+                    }),
+                    self.table.get_current().unwrap_or(0),
+                );
                 KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Insert))
             }
             PlaylistQueueAction::ClearSearch => KeySeqResult::ActionNeeded(self.clear_search()),
@@ -433,10 +447,15 @@ impl HandleRaw for Loaded {
                     FilterResult::Exit => Some(self.exit_filter())
                 }
             },
-            State::Searching(s ) => {
+            State::Searching(s , idx) => {
                 match s.handle_raw(key) {
                     SearchResult::ApplySearch(s) => self.apply_search(s),
-                    SearchResult::ConfirmSearch(s) => Some(self.confirm_search(s)),
+                    SearchResult::ConfirmSearch(s, b) => {
+                        if !b {
+                            self.table.set_position(*idx);
+                        }
+                        Some(self.confirm_search(s))
+                    }
                     SearchResult::CancelSearch => Some(self.clear_search()),
                 }
             },

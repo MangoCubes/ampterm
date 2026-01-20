@@ -542,6 +542,10 @@ impl VisualTable {
         self.table = self.regen_table();
     }
 
+    pub fn set_position(&mut self, pos: usize) {
+        self.tablestate.select(Some(pos));
+    }
+
     /// Disable visual mode for the current table
     /// The current temporary selection is added to the overall selection
     pub fn disable_visual_save(&mut self) {

@@ -18,7 +18,8 @@ pub enum SearchResult {
     /// Search results so that results that matches this string appear
     ApplySearch(String),
     /// Same as ApplySearch, except it closes the input field whilst keeping the filter
-    ConfirmSearch(String),
+    /// The boolean is true if the filter is set, and not reverted
+    ConfirmSearch(String, bool),
     /// Closes the prompt
     CancelSearch,
 }
@@ -26,8 +27,8 @@ pub enum SearchResult {
 impl Search {
     pub fn handle_raw(&mut self, key: KeyEvent) -> SearchResult {
         match key.code {
-            KeyCode::Esc => SearchResult::ConfirmSearch(self.original.clone()),
-            KeyCode::Enter => SearchResult::ConfirmSearch(self.input.lines()[0].clone()),
+            KeyCode::Esc => SearchResult::ConfirmSearch(self.original.clone(), false),
+            KeyCode::Enter => SearchResult::ConfirmSearch(self.input.lines()[0].clone(), true),
             KeyCode::Backspace => {
                 let search = &self.input.lines()[0];
                 if search.len() == 0 {

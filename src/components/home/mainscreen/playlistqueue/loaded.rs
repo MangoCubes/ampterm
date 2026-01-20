@@ -13,7 +13,10 @@ use crate::{
             },
             PlaylistQueue,
         },
-        lib::visualtable::{VisualSelection, VisualTable},
+        lib::{
+            scrollbar::ScrollBar,
+            visualtable::{VisualSelection, VisualTable},
+        },
         traits::{
             focusable::Focusable,
             handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult},
@@ -55,6 +58,7 @@ pub struct Loaded {
     state: State,
     filter: Option<(usize, String)>,
     search: Option<(usize, String)>,
+    bar: ScrollBar,
 }
 
 impl Loaded {
@@ -137,7 +141,7 @@ impl Loaded {
                 Constraint::Ratio(1, 3),
                 Constraint::Ratio(2, 3),
                 Constraint::Length(5),
-                Constraint::Length(1),
+                Constraint::Length(2),
             ]
             .to_vec(),
             table_proc,
@@ -146,6 +150,7 @@ impl Loaded {
         tablestate.select(Some(0));
 
         Self {
+            bar: ScrollBar::new(list.entry.len() as u32, 0),
             keymap: config.local.playlistqueue,
             name,
             enabled,
@@ -314,7 +319,10 @@ impl Renderable for Loaded {
                 inner
             }
         };
-        self.table.draw(frame, inner);
+        let [list, bar] =
+            Layout::horizontal([Constraint::Fill(1), Constraint::Length(1)]).areas(inner);
+        self.table.draw(frame, list);
+        self.bar.draw(frame, bar);
     }
 }
 
@@ -326,7 +334,10 @@ impl HandleKeySeq<PlaylistQueueAction> for Loaded {
         "PlaylistQueue"
     }
     fn pass_to_lower_comp(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
-        self.table.handle_key_seq(keyseq)
+        let res = self.table.handle_key_seq(keyseq);
+        self.bar
+            .update_pos(self.table.get_current().unwrap_or(0) as u32);
+        res
     }
 
     fn handle_local_action(&mut self, action: PlaylistQueueAction) -> KeySeqResult {

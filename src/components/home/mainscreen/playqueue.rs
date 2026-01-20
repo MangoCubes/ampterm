@@ -93,7 +93,12 @@ impl PlayQueue {
             table: VisualTable::new(
                 config,
                 Self::gen_rows_from(&empty, &CurrentItem::InQueue(0)),
-                [Constraint::Max(1), Constraint::Min(0), Constraint::Max(1)].to_vec(),
+                [
+                    Constraint::Max(1),
+                    Constraint::Min(0),
+                    Constraint::Length(2),
+                ]
+                .to_vec(),
                 table_proc,
             ),
             list: ModifiableList::new(empty),

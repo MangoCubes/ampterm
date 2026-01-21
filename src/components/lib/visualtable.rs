@@ -129,10 +129,12 @@ pub struct VisualTable {
     rows: ModifiableList<Row<'static>>,
     binds: KeyBindings<ListAction>,
     visual_binds: KeyBindings<ListAction>,
+    last_recorded_height: usize,
 }
 
 impl Renderable for VisualTable {
     fn draw(&mut self, frame: &mut Frame, area: Rect) {
+        self.last_recorded_height = area.height as usize;
         frame.render_stateful_widget(&self.table, area, &mut self.tablestate);
     }
 }
@@ -193,6 +195,14 @@ impl HandleKeySeq<ListAction> for VisualTable {
                 self.jump_prev();
                 KeySeqResult::NoActionNeeded
             }
+            ListAction::PageDown => {
+                self.select_next_multiple(self.last_recorded_height);
+                KeySeqResult::NoActionNeeded
+            }
+            ListAction::PageUp => {
+                self.select_prev_multiple(self.last_recorded_height);
+                KeySeqResult::NoActionNeeded
+            }
         }
     }
 
@@ -206,6 +216,21 @@ impl HandleKeySeq<ListAction> for VisualTable {
 }
 
 impl VisualTable {
+    fn select_prev_multiple(&mut self, move_by: usize) {
+        let current = self.get_current().unwrap_or(0);
+        let new_idx = if current >= move_by {
+            current - move_by
+        } else {
+            0
+        };
+        self.set_position(new_idx);
+        self.table = self.regen_table();
+    }
+    fn select_next_multiple(&mut self, move_by: usize) {
+        let new_idx = self.get_current().unwrap_or(0) + move_by;
+        self.set_position(new_idx);
+        self.table = self.regen_table();
+    }
     /// Set all the rows with a new set of rows
     pub fn set_rows(&mut self, rows: Vec<Row<'static>>) {
         self.rows = ModifiableList::new(rows);
@@ -408,6 +433,8 @@ impl VisualTable {
             tablestate: TableState::new().with_selected(Some(0)),
             binds: config.local.list,
             visual_binds: config.local.list_visual,
+            // Just a reasonably big number
+            last_recorded_height: 10,
         }
     }
     /// Enters visual mode

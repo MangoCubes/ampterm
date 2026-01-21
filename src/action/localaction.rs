@@ -30,6 +30,9 @@ pub enum ListAction {
 
     SearchNext,
     SearchPrev,
+
+    PageDown,
+    PageUp,
 }
 
 impl ToString for ListAction {
@@ -46,6 +49,8 @@ impl ToString for ListAction {
             ListAction::ResetSelection => "Reset selection",
             ListAction::SelectMode => "Enter selection mode",
             ListAction::DeselectMode => "Enter deselection mode",
+            ListAction::PageDown => "Move a full page down",
+            ListAction::PageUp => "Move a full page up",
         }
         .to_string()
     }

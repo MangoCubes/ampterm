@@ -1,7 +1,7 @@
 use crossterm::event::KeyEvent;
 use rand::{rng, seq::SliceRandom};
 use ratatui::{
-    layout::{Constraint, Rect},
+    layout::{Constraint, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
     text::Span,
     widgets::{Block, Row, Table},
@@ -15,7 +15,10 @@ use crate::{
     },
     compid::CompID,
     components::{
-        lib::visualtable::{VisualSelection, VisualTable},
+        lib::{
+            scrollbar::ScrollBar,
+            visualtable::{VisualSelection, VisualTable},
+        },
         traits::{
             focusable::Focusable,
             handleaction::HandleAction,
@@ -68,6 +71,7 @@ pub struct PlayQueue {
     table: VisualTable,
     enabled: bool,
     config: Config,
+    bar: ScrollBar,
 }
 
 /// There are 4 unique states each item in the list can have:
@@ -103,6 +107,7 @@ impl PlayQueue {
             ),
             list: ModifiableList::new(empty),
             now_playing: CurrentItem::InQueue(0),
+            bar: ScrollBar::new(0, 0),
         }
     }
     pub fn set_star(&mut self, media: &MediaID, star: bool) {
@@ -305,6 +310,7 @@ impl PlayQueue {
         };
         let len = items.len();
         self.list.add_rows_at(items, idx);
+        self.bar.update_max(self.list.len() as u32);
 
         let rows = Self::gen_rows_from(&self.list.0, &self.now_playing);
         self.table.add_rows_at(rows, idx, len);
@@ -393,7 +399,10 @@ impl Renderable for PlayQueue {
         let border = self.gen_block(title);
         let inner = border.inner(area);
         frame.render_widget(border, area);
-        self.table.draw(frame, inner)
+        let [list, bar] =
+            Layout::horizontal([Constraint::Fill(1), Constraint::Length(1)]).areas(inner);
+        self.table.draw(frame, list);
+        self.bar.draw(frame, bar);
     }
 }
 
@@ -439,7 +448,10 @@ impl HandleKeySeq<PlayQueueAction> for PlayQueue {
         "PlayQueue"
     }
     fn pass_to_lower_comp(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
-        self.table.handle_key_seq(keyseq)
+        let res = self.table.handle_key_seq(keyseq);
+        self.bar
+            .update_pos(self.table.get_current().unwrap_or(0) as u32);
+        res
     }
 
     fn handle_local_action(&mut self, action: PlayQueueAction) -> KeySeqResult {
@@ -480,6 +492,7 @@ impl HandleKeySeq<PlayQueueAction> for PlayQueue {
                 }
 
                 self.list.delete(&selection);
+                self.bar.update_max(self.list.len() as u32);
                 self.regen_rows();
 
                 match action {

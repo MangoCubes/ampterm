@@ -223,12 +223,23 @@ impl VisualTable {
         } else {
             0
         };
+        *self.tablestate.offset_mut() = new_idx;
         self.set_position(new_idx);
         self.table = self.regen_table();
     }
     fn select_next_multiple(&mut self, move_by: usize) {
         let new_idx = self.get_current().unwrap_or(0) + move_by;
         self.set_position(new_idx);
+        let len = self.state.len();
+        *self.tablestate.offset_mut() = if len < new_idx + move_by {
+            if len > move_by {
+                len - move_by
+            } else {
+                0
+            }
+        } else {
+            new_idx + move_by
+        };
         self.table = self.regen_table();
     }
     /// Set all the rows with a new set of rows

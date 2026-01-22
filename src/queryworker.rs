@@ -8,6 +8,7 @@ use std::sync::Arc;
 use crate::action::action::Action;
 use crate::compid::CompID;
 use crate::config::Config;
+use crate::lyricsclient::getlyrics::GetLyricsParams;
 use crate::lyricsclient::lrclib::LrcLib;
 use crate::lyricsclient::LyricsClient;
 use crate::osclient::response::empty::Empty;
@@ -36,9 +37,24 @@ struct Cache {
 struct AwaitingQueries {
     play_from_url: Option<(Media, u16)>,
     get_cover: Option<(Vec<CompID>, usize, CoverID, u16)>,
+    get_lyrics: Option<(Vec<CompID>, usize, GetLyricsParams, u16)>,
 }
 
 impl AwaitingQueries {
+    pub fn register_get_lyrics(
+        &mut self,
+        compid: Vec<CompID>,
+        ticket: usize,
+        params: GetLyricsParams,
+    ) -> Option<usize> {
+        let ret = if let Some((_, ticket, _, _)) = self.get_lyrics {
+            Some(ticket)
+        } else {
+            None
+        };
+        self.get_lyrics = Some((compid, ticket, params, 2));
+        ret
+    }
     pub fn register_play_from_url(&mut self, media: Media) {
         self.play_from_url = Some((media, 2));
     }
@@ -80,6 +96,28 @@ impl QueryWorker {
     }
 
     pub fn on_tick(&mut self) {
+        macro_rules! process_awaiting {
+            ($self:ident, $item:ident, $func:ident) => {
+                let item = if let Some((compid, ticket, id, remaining)) = &mut $self.awaiting.$item
+                {
+                    if *remaining == 0 {
+                        Some((compid.clone(), *ticket, id.clone()))
+                    } else {
+                        *remaining -= 1;
+                        None
+                    }
+                } else {
+                    None
+                };
+                if let Some((compid, ticket, id)) = item {
+                    $self.awaiting.$item = None;
+                    $self.$func(compid, ticket, id);
+                }
+            };
+        }
+        process_awaiting!(self, get_cover, get_cover);
+        process_awaiting!(self, get_lyrics, get_lyrics);
+
         let play = if let Some((m, remaining)) = &mut self.awaiting.play_from_url {
             if *remaining == 0 {
                 Some(m.clone())
@@ -93,21 +131,6 @@ impl QueryWorker {
         if let Some(m) = play {
             self.awaiting.play_from_url = None;
             self.play_from_url(m);
-        }
-
-        let cover = if let Some((compid, ticket, id, remaining)) = &mut self.awaiting.get_cover {
-            if *remaining == 0 {
-                Some((compid.clone(), *ticket, id.clone()))
-            } else {
-                *remaining -= 1;
-                None
-            }
-        } else {
-            None
-        };
-        if let Some((compid, ticket, id)) = cover {
-            self.awaiting.get_cover = None;
-            self.get_cover(compid, ticket, id);
         }
     }
 
@@ -325,20 +348,16 @@ impl QueryWorker {
                     self.awaiting.register_play_from_url(media);
                 }
                 HighLevelQuery::GetLyrics(params) => {
-                    let c = self.lyrics.clone();
-                    let tx = self.action_tx.clone();
-                    tokio::spawn(async move {
-                        let _ = tx.send(Action::FromQuery {
+                    if let Some(prev) =
+                        self.awaiting
+                            .register_get_lyrics(event.dest.clone(), event.ticket, params)
+                    {
+                        let _ = self.action_tx.send(Action::FromQuery {
                             dest: event.dest,
-                            ticket: event.ticket,
-                            res: QueryStatus::Finished(ResponseType::GetLyrics(
-                                match c.search(params).await {
-                                    Ok(success) => Ok(success),
-                                    Err(failed) => Err(failed.to_string()),
-                                },
-                            )),
+                            ticket: prev,
+                            res: QueryStatus::Aborted(true),
                         });
-                    });
+                    };
                 }
                 HighLevelQuery::GetCover(cover_id) => {
                     if let Some(prev) =
@@ -382,6 +401,21 @@ impl QueryWorker {
             }
         }
         Ok(())
+    }
+
+    fn get_lyrics(&mut self, dest: Vec<CompID>, ticket: usize, params: GetLyricsParams) {
+        let c = self.lyrics.clone();
+        let tx = self.action_tx.clone();
+        tokio::spawn(async move {
+            let _ = tx.send(Action::FromQuery {
+                dest: dest,
+                ticket: ticket,
+                res: QueryStatus::Finished(ResponseType::GetLyrics(match c.search(params).await {
+                    Ok(success) => Ok(success),
+                    Err(failed) => Err(failed.to_string()),
+                })),
+            });
+        });
     }
 
     fn get_cover(&mut self, dest: Vec<CompID>, ticket: usize, cover_id: CoverID) {
@@ -451,6 +485,7 @@ impl QueryWorker {
         let awaiting = AwaitingQueries {
             play_from_url: None,
             get_cover: None,
+            get_lyrics: None,
         };
         Self {
             lyrics: Arc::new(LrcLib::new(config.clone())),

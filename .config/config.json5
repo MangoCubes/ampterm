@@ -160,7 +160,7 @@
 			"<Ctrl-l>": "ClearSearch",
 
 			"<Shift-i>": "ViewInfo",
-
+			"<\">": "AddToPlaylist",
 		},
 		"popup": {
 			"<Up>": "Up",

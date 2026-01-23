@@ -126,21 +126,6 @@ impl HandlePlayer for NowPlaying {
                     None
                 }
             }
-            FromPlayerWorker::NowPlaying(media) => match media {
-                Some(n) => {
-                    if let Comp::Playing(comp) = &mut self.comp {
-                        Some(comp.change_music(n))
-                    } else {
-                        let (comp, action) = Playing::new(self.playing, n, self.config.clone());
-                        self.comp = Comp::Playing(comp);
-                        action
-                    }
-                }
-                None => {
-                    self.comp = Comp::Stopped(Stopped::new());
-                    None
-                }
-            },
             FromPlayerWorker::Volume(v) => {
                 self.volume.set_volume(v);
                 None
@@ -154,6 +139,7 @@ impl HandlePlayer for NowPlaying {
                 }
             }
             FromPlayerWorker::Finished => None,
+            FromPlayerWorker::NowPlaying(_) => None,
         }
     }
 }

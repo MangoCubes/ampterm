@@ -251,6 +251,7 @@ impl Loaded {
         self.state = State::Nothing;
         self.table.set_visibility(&visibility);
         self.table.bump_cursor_pos();
+        self.bar.update_max(count as u32);
         Action::ChangeMode(Mode::Normal)
     }
     fn reset_filter(&mut self) -> Action {
@@ -258,6 +259,7 @@ impl Loaded {
         self.filter = None;
         self.table.reset_visibility();
         self.table.bump_cursor_pos();
+        self.bar.update_max(self.playlist.entry.len() as u32);
         Action::ChangeMode(Mode::Normal)
     }
     fn exit_filter(&mut self) -> Action {

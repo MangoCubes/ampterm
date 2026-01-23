@@ -26,10 +26,7 @@ use crate::{
     config::Config,
     mpris::MprisSignal,
     playerworker::player::{FromPlayerWorker, ToPlayerWorker},
-    queryworker::{
-        highlevelquery::HighLevelQuery,
-        query::{QueryStatus, ToQueryWorker},
-    },
+    queryworker::query::{QueryStatus, ToQueryWorker},
     tui::{Event, Tui},
 };
 
@@ -279,22 +276,21 @@ impl App {
                 }
                 Action::ToPlayer(to_player_worker) => {
                     if let ToPlayerWorker::PlayMedia { media } = &to_player_worker {
-                        self.mpris_tx
-                            .send(MprisSignal::NowPlaying(Some(media.clone())))?
+                        let _ = self
+                            .mpris_tx
+                            .send(MprisSignal::NowPlaying(Some(media.clone())));
                     };
                     self.player_tx.send(to_player_worker)?
                 }
                 Action::FromPlayer(pw) => {
-                    match &pw {
+                    let _ = match &pw {
                         FromPlayerWorker::Playing(b) => {
-                            self.mpris_tx.send(MprisSignal::Playing(*b))?
+                            self.mpris_tx.send(MprisSignal::Playing(*b))
                         }
-                        FromPlayerWorker::Volume(v) => {
-                            self.mpris_tx.send(MprisSignal::Volume(*v))?
-                        }
-                        FromPlayerWorker::Speed(s) => self.mpris_tx.send(MprisSignal::Speed(*s))?,
-                        _ => {}
-                    }
+                        FromPlayerWorker::Volume(v) => self.mpris_tx.send(MprisSignal::Volume(*v)),
+                        FromPlayerWorker::Speed(s) => self.mpris_tx.send(MprisSignal::Speed(*s)),
+                        _ => Ok(()),
+                    };
                     if let Some(more) = self.component.handle_player(pw) {
                         self.action_tx.send(more)?
                     }

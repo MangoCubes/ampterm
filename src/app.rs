@@ -249,7 +249,17 @@ impl App {
                             self.action_tx.send(more)?
                         }
                     }
-                    self.delayer.queue_query(query, delay);
+                    if let Some(aborted) = self.delayer.queue_query(query, delay) {
+                        for d in &aborted.dest {
+                            if let Some(more) = self.component.handle_query(
+                                d.clone(),
+                                aborted.ticket,
+                                QueryStatus::Aborted(true),
+                            ) {
+                                self.action_tx.send(more)?
+                            }
+                        }
+                    }
                 }
                 Action::ToQuery(query) => {
                     for d in &query.dest {

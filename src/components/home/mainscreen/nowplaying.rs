@@ -91,8 +91,10 @@ impl HandleQuery for NowPlaying {
         if let Comp::Playing(p) = &mut self.comp {
             if let QueryStatus::Requested(HighLevelQuery::PlayMusicFromURL(m)) = res {
                 Some(p.change_music(m))
-            } else {
+            } else if let QueryStatus::Finished(_) = &res {
                 p.handle_query(dest, ticket, res)
+            } else {
+                None
             }
         } else {
             if let QueryStatus::Requested(HighLevelQuery::PlayMusicFromURL(m)) = res {

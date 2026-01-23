@@ -159,7 +159,7 @@ impl HandleQuery for Playing {
                     None
                 }
             }
-            _ => unreachable!(),
+            _ => unreachable!("{:?}", dest),
         }
     }
 }

@@ -48,7 +48,7 @@ impl Playing {
             if let Some(id) = music.cover_art.clone() {
                 let q = ImageComp::make_query(CoverID(id));
                 cover.wait_for(q.ticket);
-                actions.push(Action::ToQuery(q));
+                actions.push(Action::ToQueryDelayed((q, 2)));
             } else {
                 cover.unset_image();
             }
@@ -57,7 +57,7 @@ impl Playing {
             let title = music.title.clone();
             let q = Lyrics::make_query(music);
             lyrics.wait_for(q.ticket, title);
-            actions.push(Action::ToQuery(q));
+            actions.push(Action::ToQueryDelayed((q, 2)));
         }
 
         Action::Multiple(actions)

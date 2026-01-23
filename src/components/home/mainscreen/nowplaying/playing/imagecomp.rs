@@ -42,7 +42,7 @@ impl ImageComp {
                         Centered::new(vec!["Loading cover...".to_string()]),
                     ),
                 },
-                Some(Action::ToQuery(query)),
+                Some(Action::ToQueryDelayed((query, 2))),
             )
         } else {
             (

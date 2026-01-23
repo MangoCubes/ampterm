@@ -188,13 +188,12 @@
 			// Put the ID in the `id` section to quickly select a playlist
 			// `name` part is not used to specify a playlist; It can be filled with anything, and can be different from the actual name.
 			// As long as the ID is correct, name can be anything.
-			"<t>": {
-				"SelectID": {
-					"id": "800000018",
-					"name": "Test"
-				}
-			}
-
+			// "<t>": {
+			// 	"SelectID": {
+			// 		"id": "800000018",
+			// 		"name": "Test"
+			// 	}
+			// }
 		}
 	},
     // Use legacy authentication that sends the password instead of token and salt

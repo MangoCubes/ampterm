@@ -189,6 +189,7 @@ pub enum Action {
     Resize(u16, u16),
     ChangeMode(Mode),
     ToQuery(ToQueryWorker),
+    ToQueryDelayed((ToQueryWorker, usize)),
     ToPlayer(ToPlayerWorker),
     FromPlayer(FromPlayerWorker),
     FromQuery {

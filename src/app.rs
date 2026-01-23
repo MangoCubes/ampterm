@@ -1,3 +1,4 @@
+mod delayer;
 use color_eyre::Result;
 
 use crossterm::event::KeyEvent;
@@ -8,6 +9,7 @@ use tracing::debug;
 
 use crate::{
     action::action::{Action, Mode, TargetedAction},
+    app::delayer::Delayer,
     components::{
         home::Home,
         traits::{
@@ -23,10 +25,7 @@ use crate::{
     },
     config::Config,
     playerworker::player::{FromPlayerWorker, ToPlayerWorker},
-    queryworker::{
-        highlevelquery::HighLevelQuery,
-        query::{QueryStatus, ToQueryWorker},
-    },
+    queryworker::query::{QueryStatus, ToQueryWorker},
     tui::{Event, Tui},
 };
 
@@ -43,6 +42,7 @@ pub struct App {
     mode: Mode,
     mpris_tx: UnboundedSender<FromPlayerWorker>,
     tui: Tui,
+    delayer: Delayer,
     #[cfg(test)]
     debug_tx: UnboundedSender<bool>,
 }
@@ -74,6 +74,7 @@ impl App {
             query_tx,
             player_tx,
             mode: Mode::Normal,
+            delayer: Delayer::new(),
             #[cfg(test)]
             debug_tx,
         })
@@ -110,11 +111,9 @@ impl App {
             Event::Quit => action_tx.send(Action::Targeted(TargetedAction::Quit))?,
             Event::Tick => {
                 self.component.on_tick();
-                let _ = self.query_tx.send(ToQueryWorker {
-                    dest: vec![],
-                    query: HighLevelQuery::Tick,
-                    ticket: 0,
-                });
+                while let Some(q) = self.delayer.on_tick() {
+                    self.query_tx.send(q)?;
+                }
             }
             Event::Render => self.render()?,
             Event::Resize(x, y) => action_tx.send(Action::Resize(x, y))?,
@@ -239,17 +238,30 @@ impl App {
                     self.mode = mode;
                     self.component.handle_mode(mode);
                 }
-                Action::ToQuery(t) => {
-                    for d in &t.dest {
+
+                Action::ToQueryDelayed((query, delay)) => {
+                    for d in &query.dest {
                         if let Some(more) = self.component.handle_query(
                             d.clone(),
-                            t.ticket,
-                            QueryStatus::Requested(t.query.clone()),
+                            query.ticket,
+                            QueryStatus::Requested(query.query.clone()),
                         ) {
                             self.action_tx.send(more)?
                         }
                     }
-                    self.query_tx.send(t)?
+                    self.delayer.queue_query(query, delay);
+                }
+                Action::ToQuery(query) => {
+                    for d in &query.dest {
+                        if let Some(more) = self.component.handle_query(
+                            d.clone(),
+                            query.ticket,
+                            QueryStatus::Requested(query.query.clone()),
+                        ) {
+                            self.action_tx.send(more)?
+                        }
+                    }
+                    self.query_tx.send(query)?
                 }
                 Action::ToPlayer(to_player_worker) => self.player_tx.send(to_player_worker)?,
                 Action::FromPlayer(pw) => {

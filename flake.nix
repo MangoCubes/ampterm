@@ -47,6 +47,7 @@
             [
               lldb
               jq
+              perf # For permformance checking
               rustup
               # This is necessary for opening bash from Neovim
               bashInteractive

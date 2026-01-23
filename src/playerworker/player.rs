@@ -65,6 +65,7 @@ pub enum FromPlayerWorker {
     Playing(bool),
     Jump(Duration),
     Position(Duration),
+    /// Fired when the fetching music file starts
     NowPlaying(Option<Media>),
     Volume(f32),
     Speed(f32),

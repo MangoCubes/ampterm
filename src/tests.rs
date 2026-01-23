@@ -204,7 +204,7 @@ async fn test_main() {
                         Ok(()) => None,
                         Err(e) => Some(format!("A worker crashed: {}", e)),
                     },
-                    Err(_) => Some("Failed to wait for the thread to run.".to_string()),
+                    Err(e) => Some(format!("Failed to wait for the thread to run: {}", e)),
                 },
                 None => unreachable!("No tasks completed??"),
             }

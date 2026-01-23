@@ -13,7 +13,10 @@ use crate::{
             },
             PlaylistQueue,
         },
-        lib::visualtable::{VisualSelection, VisualTable},
+        lib::{
+            scrollbar::ScrollBar,
+            visualtable::{VisualSelection, VisualTable},
+        },
         traits::{
             focusable::Focusable,
             handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult},
@@ -22,6 +25,7 @@ use crate::{
         },
     },
     config::{keybindings::KeyBindings, Config},
+    helper::selection::Selection,
     osclient::{
         response::getplaylist::{FullPlaylist, Media},
         types::MediaID,
@@ -43,7 +47,7 @@ use ratatui::{
 enum State {
     Nothing,
     Filtering(Filter),
-    Searching(Search),
+    Searching(Search, usize),
 }
 
 pub struct Loaded {
@@ -55,6 +59,7 @@ pub struct Loaded {
     state: State,
     filter: Option<(usize, String)>,
     search: Option<(usize, String)>,
+    bar: ScrollBar,
 }
 
 impl Loaded {
@@ -137,7 +142,7 @@ impl Loaded {
                 Constraint::Ratio(1, 3),
                 Constraint::Ratio(2, 3),
                 Constraint::Length(5),
-                Constraint::Length(1),
+                Constraint::Length(2),
             ]
             .to_vec(),
             table_proc,
@@ -146,6 +151,7 @@ impl Loaded {
         tablestate.select(Some(0));
 
         Self {
+            bar: ScrollBar::new(list.entry.len() as u32, 0),
             keymap: config.local.playlistqueue,
             name,
             enabled,
@@ -179,6 +185,8 @@ impl Loaded {
         self.table.set_rows(rows);
         None
     }
+
+    /// Executed when the user types something into the search bar
     fn apply_search(&mut self, search: String) -> Option<Action> {
         if search.len() == 0 {
             self.search = Some((0, search));
@@ -198,17 +206,27 @@ impl Loaded {
                     a
                 })
                 .collect();
+            if let Some(idx) = highlight.iter().position(|x| *x) {
+                self.table.set_position(idx);
+            };
             self.search = Some((count, search));
             self.table.set_highlight(&highlight);
             None
         }
     }
+
+    /// Executed when the user confirms the search by pressing enter
     fn confirm_search(&mut self, search: String) -> Action {
         self.apply_search(search);
         self.state = State::Nothing;
         Action::ChangeMode(Mode::Normal)
     }
+
+    /// Executed whent the search is cancelled or removed
     fn clear_search(&mut self) -> Action {
+        if let State::Searching(_, idx) = self.state {
+            self.table.set_position(idx);
+        };
         self.state = State::Nothing;
         self.search = None;
         self.table.reset_highlight();
@@ -233,6 +251,7 @@ impl Loaded {
         self.state = State::Nothing;
         self.table.set_visibility(&visibility);
         self.table.bump_cursor_pos();
+        self.bar.update_max(count as u32);
         Action::ChangeMode(Mode::Normal)
     }
     fn reset_filter(&mut self) -> Action {
@@ -240,6 +259,7 @@ impl Loaded {
         self.filter = None;
         self.table.reset_visibility();
         self.table.bump_cursor_pos();
+        self.bar.update_max(self.playlist.entry.len() as u32);
         Action::ChangeMode(Mode::Normal)
     }
     fn exit_filter(&mut self) -> Action {
@@ -291,7 +311,7 @@ impl Renderable for Loaded {
                 filter.draw(frame, areas[1]);
                 inner
             }
-            State::Searching(search) => {
+            State::Searching(search, _) => {
                 let layout =
                     Layout::default().constraints([Constraint::Min(1), Constraint::Length(3)]);
                 let areas = layout.split(area);
@@ -302,7 +322,10 @@ impl Renderable for Loaded {
                 inner
             }
         };
-        self.table.draw(frame, inner);
+        let [list, bar] =
+            Layout::horizontal([Constraint::Fill(1), Constraint::Length(1)]).areas(inner);
+        self.table.draw(frame, list);
+        self.bar.draw(frame, bar);
     }
 }
 
@@ -314,7 +337,10 @@ impl HandleKeySeq<PlaylistQueueAction> for Loaded {
         "PlaylistQueue"
     }
     fn pass_to_lower_comp(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
-        self.table.handle_key_seq(keyseq)
+        let res = self.table.handle_key_seq(keyseq);
+        self.bar
+            .update_pos(self.table.get_current().unwrap_or(0) as u32);
+        res
     }
 
     fn handle_local_action(&mut self, action: PlaylistQueueAction) -> KeySeqResult {
@@ -388,15 +414,52 @@ impl HandleKeySeq<PlaylistQueueAction> for Loaded {
             }
             PlaylistQueueAction::ClearFilter => KeySeqResult::ActionNeeded(self.reset_filter()),
             PlaylistQueueAction::Search => {
-                self.state =
-                    State::Searching(Search::new(if let Some((_, search)) = &self.search {
+                self.state = State::Searching(
+                    Search::new(if let Some((_, search)) = &self.search {
                         search.clone()
                     } else {
                         "".to_string()
-                    }));
+                    }),
+                    self.table.get_current().unwrap_or(0),
+                );
                 KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Insert))
             }
             PlaylistQueueAction::ClearSearch => KeySeqResult::ActionNeeded(self.clear_search()),
+            PlaylistQueueAction::AddToPlaylist => {
+                let (vs, action) = self.table.get_selection_reset();
+
+                let selection = match vs {
+                    VisualSelection::Single(index) => Selection::Single(index),
+                    VisualSelection::Multiple { map, temp: _ } => Selection::Multiple(map),
+                    VisualSelection::None => {
+                        return match action {
+                            Some(a) => KeySeqResult::ActionNeeded(a),
+                            None => KeySeqResult::NoActionNeeded,
+                        }
+                    }
+                };
+
+                let ids = match selection {
+                    Selection::Single(i) => vec![self.playlist.entry[i].id.clone()],
+                    Selection::Multiple(items) => self
+                        .playlist
+                        .entry
+                        .iter()
+                        .zip(items)
+                        .filter(|(_, bool)| *bool)
+                        .map(|(m, _)| m.id.clone())
+                        .collect(),
+                };
+                let request_popup = Action::Targeted(TargetedAction::PrepareAddToPlaylist(ids));
+
+                let actions = if let Some(a) = action {
+                    Action::Multiple(vec![a, request_popup])
+                } else {
+                    request_popup
+                };
+
+                KeySeqResult::ActionNeeded(actions)
+            }
         }
     }
 
@@ -417,6 +480,7 @@ impl Focusable for Loaded {
         };
     }
 }
+
 impl HandleRaw for Loaded {
     fn handle_raw(&mut self, key: KeyEvent) -> Option<Action> {
         match &mut self.state {
@@ -433,10 +497,15 @@ impl HandleRaw for Loaded {
                     FilterResult::Exit => Some(self.exit_filter())
                 }
             },
-            State::Searching(s ) => {
+            State::Searching(s , idx) => {
                 match s.handle_raw(key) {
                     SearchResult::ApplySearch(s) => self.apply_search(s),
-                    SearchResult::ConfirmSearch(s) => Some(self.confirm_search(s)),
+                    SearchResult::ConfirmSearch(s, b) => {
+                        if !b {
+                            self.table.set_position(*idx);
+                        }
+                        Some(self.confirm_search(s))
+                    }
                     SearchResult::CancelSearch => Some(self.clear_search()),
                 }
             },

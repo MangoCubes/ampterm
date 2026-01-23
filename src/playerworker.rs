@@ -226,8 +226,9 @@ impl PlayerWorker {
                 ToPlayerWorker::Resume => self.continue_stream().await,
                 ToPlayerWorker::Kill => self.should_quit = true,
                 ToPlayerWorker::PlayMedia { media } => {
-                    let _ = self.action_tx.send(Action::ToQuery(ToQueryWorker::new(
-                        HighLevelQuery::PlayMusicFromURL(media.clone()),
+                    let _ = self.action_tx.send(Action::ToQueryDelayed((
+                        ToQueryWorker::new(HighLevelQuery::PlayMusicFromURL(media.clone())),
+                        2,
                     )));
                 }
                 ToPlayerWorker::PlayURL { music, url } => {

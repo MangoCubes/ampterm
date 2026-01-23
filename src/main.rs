@@ -19,7 +19,8 @@ use crate::{
         pathconfig::{PathConfig, PathType},
         Config,
     },
-    playerworker::{player::FromPlayerWorker, playerstatus::PlayerStatus, PlayerWorker},
+    mpris::MprisSignal,
+    playerworker::{playerstatus::PlayerStatus, PlayerWorker},
     queryworker::QueryWorker,
 };
 
@@ -71,7 +72,7 @@ pub fn log_alsa_error() {
 pub fn start_workers(
     action_tx: UnboundedSender<Action>,
     action_rx: UnboundedReceiver<Action>,
-    mpris_tx: UnboundedSender<FromPlayerWorker>,
+    mpris_tx: UnboundedSender<MprisSignal>,
     config: Config,
     playerstatus: Arc<RwLock<PlayerStatus>>,
     tick_rate: f64,
@@ -136,7 +137,7 @@ async fn main() -> Result<()> {
 
         let playerstatus = Arc::from(RwLock::from(PlayerStatus::default()));
         let (action_tx, action_rx) = unbounded_channel::<Action>();
-        let (mpris_tx, mpris_rx) = unbounded_channel::<FromPlayerWorker>();
+        let (mpris_tx, mpris_rx) = unbounded_channel::<MprisSignal>();
         #[cfg(test)]
         panic!("Main invoked in test mode.");
 

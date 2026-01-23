@@ -70,6 +70,9 @@
 
 			"<n>": "SearchNext",
 			"<Shift-n>": "SearchPrev",
+
+			"<PageUp>": "PageUp",
+			"<PageDown>": "PageDown",
 		},
 		// Keybinds for visual mode of the list
 		"list_visual": {
@@ -157,7 +160,7 @@
 			"<Ctrl-l>": "ClearSearch",
 
 			"<Shift-i>": "ViewInfo",
-
+			"<\">": "AddToPlaylist",
 		},
 		"popup": {
 			"<Up>": "Up",

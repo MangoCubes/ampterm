@@ -7,7 +7,7 @@ use crate::{
     },
     compid::CompID,
     components::{
-        lib::visualtable::VisualTable,
+        lib::{scrollbar::ScrollBar, visualtable::VisualTable},
         traits::{
             handlekeyseq::{HandleKeySeq, KeySeqResult},
             handlequery::HandleQuery,
@@ -27,7 +27,7 @@ use crate::{
 };
 use crossterm::event::KeyEvent;
 use ratatui::{
-    layout::{Constraint, Rect},
+    layout::{Constraint, Layout, Rect},
     style::{Style, Stylize},
     widgets::{Row, Table, TableState},
     Frame,
@@ -40,6 +40,7 @@ pub struct Loaded {
     keymap: KeyBindings<PlaylistListAction>,
     list: Vec<SimplePlaylist>,
     callback: HashMap<usize, (PlaylistID, QueueLocation, bool)>,
+    bar: ScrollBar,
 }
 
 impl Loaded {
@@ -85,6 +86,7 @@ impl Loaded {
             [Constraint::Fill(1), Constraint::Max(6)].to_vec(),
             table_proc,
         );
+        let len = list.len();
         let mut tablestate = TableState::default();
         tablestate.select(Some(0));
         Self {
@@ -93,6 +95,7 @@ impl Loaded {
             callback: HashMap::new(),
             autofocus: config.behaviour.auto_focus,
             keymap: config.local.playlistlist.clone(),
+            bar: ScrollBar::new(len as u32, 0),
         }
     }
     pub fn add_to_queue(&mut self, ql: QueueLocation, randomise: bool) -> Option<Action> {
@@ -113,7 +116,10 @@ impl Loaded {
 
 impl Renderable for Loaded {
     fn draw(&mut self, frame: &mut Frame, area: Rect) {
-        self.table.draw(frame, area);
+        let [list, bar] =
+            Layout::horizontal([Constraint::Fill(1), Constraint::Length(1)]).areas(area);
+        self.table.draw(frame, list);
+        self.bar.draw(frame, bar);
     }
 }
 
@@ -150,7 +156,10 @@ impl HandleKeySeq<PlaylistListAction> for Loaded {
         "PlaylistList"
     }
     fn pass_to_lower_comp(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
-        self.table.handle_key_seq(keyseq)
+        let res = self.table.handle_key_seq(keyseq);
+        self.bar
+            .update_pos(self.table.get_current().unwrap_or(0) as u32);
+        res
     }
     fn handle_local_action(&mut self, action: PlaylistListAction) -> KeySeqResult {
         match action {

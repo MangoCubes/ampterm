@@ -52,7 +52,8 @@ pub enum ResponseType {
 pub enum QueryStatus {
     /// Query has been received by the QueryWorker
     Requested(HighLevelQuery),
-    /// Query has been aborted
+    /// Query has been aborted. If boolean is true, then the request has been aborted because the
+    /// new request overwrote the existing one.
     Aborted(bool),
     /// Query has been finished with external resources
     Finished(ResponseType),

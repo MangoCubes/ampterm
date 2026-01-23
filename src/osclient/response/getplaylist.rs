@@ -129,9 +129,9 @@ impl Media {
     #[inline(always)]
     pub fn get_fav_marker(&self) -> String {
         if let Some(_) = self.starred {
-            "★".to_string()
+            "★ ".to_string()
         } else {
-            " ".to_string()
+            "  ".to_string()
         }
     }
 }

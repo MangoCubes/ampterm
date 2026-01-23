@@ -60,7 +60,7 @@ impl Lyrics {
                 ),
                 config,
             },
-            Action::ToQuery(query),
+            Action::ToQueryDelayed((query, 2)),
         )
     }
 

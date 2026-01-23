@@ -1,3 +1,4 @@
+mod delayer;
 use color_eyre::Result;
 
 use crossterm::event::KeyEvent;
@@ -8,6 +9,7 @@ use tracing::debug;
 
 use crate::{
     action::action::{Action, Mode, TargetedAction},
+    app::delayer::Delayer,
     components::{
         home::Home,
         traits::{
@@ -22,11 +24,9 @@ use crate::{
         },
     },
     config::Config,
+    mpris::MprisSignal,
     playerworker::player::{FromPlayerWorker, ToPlayerWorker},
-    queryworker::{
-        highlevelquery::HighLevelQuery,
-        query::{QueryStatus, ToQueryWorker},
-    },
+    queryworker::query::{QueryStatus, ToQueryWorker},
     tui::{Event, Tui},
 };
 
@@ -41,8 +41,9 @@ pub struct App {
     query_tx: UnboundedSender<ToQueryWorker>,
     player_tx: UnboundedSender<ToPlayerWorker>,
     mode: Mode,
-    mpris_tx: UnboundedSender<FromPlayerWorker>,
+    mpris_tx: UnboundedSender<MprisSignal>,
     tui: Tui,
+    delayer: Delayer,
     #[cfg(test)]
     debug_tx: UnboundedSender<bool>,
 }
@@ -52,7 +53,7 @@ impl App {
         config: Config,
         action_tx: UnboundedSender<Action>,
         action_rx: UnboundedReceiver<Action>,
-        mpris_tx: UnboundedSender<FromPlayerWorker>,
+        mpris_tx: UnboundedSender<MprisSignal>,
         query_tx: UnboundedSender<ToQueryWorker>,
         player_tx: UnboundedSender<ToPlayerWorker>,
         tick_rate: f64,
@@ -74,6 +75,7 @@ impl App {
             query_tx,
             player_tx,
             mode: Mode::Normal,
+            delayer: Delayer::new(),
             #[cfg(test)]
             debug_tx,
         })
@@ -110,11 +112,9 @@ impl App {
             Event::Quit => action_tx.send(Action::Targeted(TargetedAction::Quit))?,
             Event::Tick => {
                 self.component.on_tick();
-                let _ = self.query_tx.send(ToQueryWorker {
-                    dest: vec![],
-                    query: HighLevelQuery::Tick,
-                    ticket: 0,
-                });
+                while let Some(q) = self.delayer.on_tick() {
+                    self.query_tx.send(q)?;
+                }
             }
             Event::Render => self.render()?,
             Event::Resize(x, y) => action_tx.send(Action::Resize(x, y))?,
@@ -239,21 +239,58 @@ impl App {
                     self.mode = mode;
                     self.component.handle_mode(mode);
                 }
-                Action::ToQuery(t) => {
-                    for d in &t.dest {
+
+                Action::ToQueryDelayed((query, delay)) => {
+                    for d in &query.dest {
                         if let Some(more) = self.component.handle_query(
                             d.clone(),
-                            t.ticket,
-                            QueryStatus::Requested(t.query.clone()),
+                            query.ticket,
+                            QueryStatus::Requested(query.query.clone()),
                         ) {
                             self.action_tx.send(more)?
                         }
                     }
-                    self.query_tx.send(t)?
+                    if let Some(aborted) = self.delayer.queue_query(query, delay) {
+                        for d in &aborted.dest {
+                            if let Some(more) = self.component.handle_query(
+                                d.clone(),
+                                aborted.ticket,
+                                QueryStatus::Aborted(true),
+                            ) {
+                                self.action_tx.send(more)?
+                            }
+                        }
+                    }
                 }
-                Action::ToPlayer(to_player_worker) => self.player_tx.send(to_player_worker)?,
+                Action::ToQuery(query) => {
+                    for d in &query.dest {
+                        if let Some(more) = self.component.handle_query(
+                            d.clone(),
+                            query.ticket,
+                            QueryStatus::Requested(query.query.clone()),
+                        ) {
+                            self.action_tx.send(more)?
+                        }
+                    }
+                    self.query_tx.send(query)?
+                }
+                Action::ToPlayer(to_player_worker) => {
+                    if let ToPlayerWorker::PlayMedia { media } = &to_player_worker {
+                        let _ = self
+                            .mpris_tx
+                            .send(MprisSignal::NowPlaying(Some(media.clone())));
+                    };
+                    self.player_tx.send(to_player_worker)?
+                }
                 Action::FromPlayer(pw) => {
-                    let _ = self.mpris_tx.send(pw.clone());
+                    let _ = match &pw {
+                        FromPlayerWorker::Playing(b) => {
+                            self.mpris_tx.send(MprisSignal::Playing(*b))
+                        }
+                        FromPlayerWorker::Volume(v) => self.mpris_tx.send(MprisSignal::Volume(*v)),
+                        FromPlayerWorker::Speed(s) => self.mpris_tx.send(MprisSignal::Speed(*s)),
+                        _ => Ok(()),
+                    };
                     if let Some(more) = self.component.handle_player(pw) {
                         self.action_tx.send(more)?
                     }

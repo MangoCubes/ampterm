@@ -24,8 +24,12 @@ use crate::{
         },
     },
     config::Config,
+    mpris::MprisSignal,
     playerworker::player::{FromPlayerWorker, ToPlayerWorker},
-    queryworker::query::{QueryStatus, ToQueryWorker},
+    queryworker::{
+        highlevelquery::HighLevelQuery,
+        query::{QueryStatus, ToQueryWorker},
+    },
     tui::{Event, Tui},
 };
 
@@ -40,7 +44,7 @@ pub struct App {
     query_tx: UnboundedSender<ToQueryWorker>,
     player_tx: UnboundedSender<ToPlayerWorker>,
     mode: Mode,
-    mpris_tx: UnboundedSender<FromPlayerWorker>,
+    mpris_tx: UnboundedSender<MprisSignal>,
     tui: Tui,
     delayer: Delayer,
     #[cfg(test)]
@@ -52,7 +56,7 @@ impl App {
         config: Config,
         action_tx: UnboundedSender<Action>,
         action_rx: UnboundedReceiver<Action>,
-        mpris_tx: UnboundedSender<FromPlayerWorker>,
+        mpris_tx: UnboundedSender<MprisSignal>,
         query_tx: UnboundedSender<ToQueryWorker>,
         player_tx: UnboundedSender<ToPlayerWorker>,
         tick_rate: f64,
@@ -273,9 +277,24 @@ impl App {
                     }
                     self.query_tx.send(query)?
                 }
-                Action::ToPlayer(to_player_worker) => self.player_tx.send(to_player_worker)?,
+                Action::ToPlayer(to_player_worker) => {
+                    if let ToPlayerWorker::PlayMedia { media } = &to_player_worker {
+                        self.mpris_tx
+                            .send(MprisSignal::NowPlaying(Some(media.clone())))?
+                    };
+                    self.player_tx.send(to_player_worker)?
+                }
                 Action::FromPlayer(pw) => {
-                    let _ = self.mpris_tx.send(pw.clone());
+                    match &pw {
+                        FromPlayerWorker::Playing(b) => {
+                            self.mpris_tx.send(MprisSignal::Playing(*b))?
+                        }
+                        FromPlayerWorker::Volume(v) => {
+                            self.mpris_tx.send(MprisSignal::Volume(*v))?
+                        }
+                        FromPlayerWorker::Speed(s) => self.mpris_tx.send(MprisSignal::Speed(*s))?,
+                        _ => {}
+                    }
                     if let Some(more) = self.component.handle_player(pw) {
                         self.action_tx.send(more)?
                     }

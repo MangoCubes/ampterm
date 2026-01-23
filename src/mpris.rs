@@ -13,12 +13,19 @@ use tokio::sync::{
 use crate::{
     action::action::{Action, TargetedAction},
     osclient::response::getplaylist::Media,
-    playerworker::{player::FromPlayerWorker, playerstatus::PlayerStatus},
+    playerworker::playerstatus::PlayerStatus,
 };
 
 pub struct AmptermMpris {
     action_tx: UnboundedSender<Action>,
     playerstatus: Arc<RwLock<PlayerStatus>>,
+}
+
+pub enum MprisSignal {
+    NowPlaying(Option<Media>),
+    Playing(bool),
+    Volume(f32),
+    Speed(f32),
 }
 
 impl RootInterface for AmptermMpris {
@@ -102,13 +109,13 @@ impl AmptermMpris {
     #[allow(dead_code)]
     pub async fn run(
         &self,
-        mut mpris_rx: UnboundedReceiver<FromPlayerWorker>,
+        mut mpris_rx: UnboundedReceiver<MprisSignal>,
         server: &Server<AmptermMpris>,
     ) {
         loop {
             while let Some(ev) = mpris_rx.recv().await {
                 match ev {
-                    FromPlayerWorker::Playing(b) => {
+                    MprisSignal::Playing(b) => {
                         let _ = server
                             .properties_changed([Property::PlaybackStatus(if b {
                                 PlaybackStatus::Playing
@@ -117,22 +124,21 @@ impl AmptermMpris {
                             })])
                             .await;
                     }
-                    FromPlayerWorker::NowPlaying(media) => {
+                    MprisSignal::NowPlaying(media) => {
                         let _ = server
                             .properties_changed([Property::Metadata(
                                 Self::get_media_metadata(&media).await,
                             )])
                             .await;
                     }
-                    FromPlayerWorker::Volume(v) => {
+                    MprisSignal::Volume(v) => {
                         let _ = server
                             .properties_changed([Property::Volume(v.into())])
                             .await;
                     }
-                    FromPlayerWorker::Speed(s) => {
+                    MprisSignal::Speed(s) => {
                         let _ = server.properties_changed([Property::Rate(s.into())]).await;
                     }
-                    _ => {}
                 }
             }
         }

@@ -112,6 +112,8 @@ pub enum TargetedAction {
     ViewMediaInfo(Media),
 
     PrepareAddToPlaylist(Vec<MediaID>),
+
+    AddCurrentItemToPlaylist,
 }
 
 impl ToString for TargetedAction {
@@ -177,6 +179,9 @@ impl ToString for TargetedAction {
             TargetedAction::PrepareAddToPlaylist(_) => {
                 "Request user to select the playlist in which the selected items will go"
                     .to_string()
+            }
+            TargetedAction::AddCurrentItemToPlaylist => {
+                "Add the current item to a playlist".to_string()
             }
         }
     }

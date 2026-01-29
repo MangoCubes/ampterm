@@ -36,6 +36,8 @@
 		"<Shift-t>": "ToggleTasks",
 
 		"<?>": "ToggleHelp",
+
+		"<'>": "AddCurrentItemToPlaylist",
 	},
 	"local": {
 		// Keybinds for the help page that appears when you press ? (Or any key that is bound to ToggleHelp)

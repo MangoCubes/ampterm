@@ -27,6 +27,7 @@ use crate::{
         },
     },
     config::Config,
+    osclient::response::getplaylist::Media,
     playerworker::player::FromPlayerWorker,
     queryworker::{highlevelquery::HighLevelQuery, query::QueryStatus},
 };
@@ -61,6 +62,12 @@ impl PassKeySeq for NowPlaying {
 }
 
 impl NowPlaying {
+    pub fn get_now_playing(&self) -> Option<Media> {
+        match &self.comp {
+            Comp::Playing(playing) => Some(playing.get_now_playing()),
+            Comp::Stopped(_) => None,
+        }
+    }
     pub fn new(enabled: bool, config: Config) -> Self {
         Self {
             playing: true,

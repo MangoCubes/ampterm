@@ -100,6 +100,10 @@ impl Playing {
             Some(Action::Multiple(actions)),
         )
     }
+
+    pub fn get_now_playing(&self) -> Media {
+        self.music.clone()
+    }
 }
 
 impl HandlePlayer for Playing {

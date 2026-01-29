@@ -348,6 +348,19 @@ impl HandleAction for MainScreen {
     fn handle_action(&mut self, action: TargetedAction) -> Option<Action> {
         self.key_stack.drain(..);
         match action {
+            TargetedAction::AddCurrentItemToPlaylist => {
+                if let Some(media) = self.now_playing.get_now_playing() {
+                    let (popup, action) = SelectPlaylistPopup::new(
+                        vec![media.id],
+                        self.config.local.select_playlist_popup.clone(),
+                        format!("Add {} to a playlist", media.title),
+                    );
+                    self.popup = Popup::SelectPlaylist(popup);
+                    Some(action)
+                } else {
+                    None
+                }
+            }
             TargetedAction::PrepareAddToPlaylist(list) => {
                 let len = list.len();
                 let (popup, action) = SelectPlaylistPopup::new(

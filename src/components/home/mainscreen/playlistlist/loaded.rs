@@ -66,11 +66,15 @@ impl Loaded {
     }
 
     /// This needs to be a function not tied to &self because it needs to be used by [`Self::new`]
-    pub fn gen_rows(items: &Vec<SimplePlaylist>) -> Vec<Row<'static>> {
+    fn gen_rows(items: &Vec<SimplePlaylist>) -> Vec<Row<'static>> {
         items
             .iter()
             .map(|item| Row::new(vec![item.name.clone(), item.song_count.to_string()]))
             .collect()
+    }
+
+    pub fn set_rows(&mut self, items: &Vec<SimplePlaylist>) {
+        self.table.set_rows(Self::gen_rows(items));
     }
 
     pub fn new(config: Config, list: Vec<SimplePlaylist>) -> Self {

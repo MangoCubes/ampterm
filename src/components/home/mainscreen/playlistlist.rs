@@ -88,8 +88,14 @@ impl HandleQuery for PlaylistList {
         if let QueryStatus::Finished(ResponseType::GetPlaylists(res)) = res {
             match res {
                 Ok(simple_playlists) => {
-                    self.comp =
-                        Comp::Loaded(Loaded::new(self.config.clone(), simple_playlists.clone()));
+                    if let Comp::Loaded(c) = &mut self.comp {
+                        c.set_rows(&simple_playlists);
+                    } else {
+                        self.comp = Comp::Loaded(Loaded::new(
+                            self.config.clone(),
+                            simple_playlists.clone(),
+                        ));
+                    }
                 }
                 Err(error) => {
                     let mut msg = vec!["Error!".to_string(), error];

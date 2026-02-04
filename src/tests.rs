@@ -122,7 +122,7 @@ impl TestModule {
         self.send_key(KeyCode::Up, KeyModifiers::CONTROL).await;
         self.send_key(KeyCode::Down, KeyModifiers::CONTROL).await;
         self.send_key(KeyCode::Char('t'), KeyModifiers::SHIFT).await;
-        self.send_key(KeyCode::Char('t'), KeyModifiers::SHIFT).await;
+        self.send_key(KeyCode::Char('q'), KeyModifiers::NONE).await;
         self.send_key(KeyCode::Char('t'), KeyModifiers::SHIFT).await;
         self.send_key(KeyCode::Char('?'), KeyModifiers::NONE).await;
         self.send_key(KeyCode::Left, KeyModifiers::NONE).await;

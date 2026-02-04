@@ -87,8 +87,6 @@ pub enum TargetedAction {
     FocusPlaylistQueue,
     FocusPlayQueue,
     OpenTasks,
-    CloseTasks,
-    ToggleTasks,
 
     EndKeySeq,
 
@@ -143,8 +141,6 @@ impl ToString for TargetedAction {
             TargetedAction::FocusPlaylistQueue => "Focus playlist queue".to_string(),
             TargetedAction::FocusPlayQueue => "Focus play queue".to_string(),
             TargetedAction::OpenTasks => "Open tasks view".to_string(),
-            TargetedAction::CloseTasks => "Close tasks view".to_string(),
-            TargetedAction::ToggleTasks => "Toggle tasks view".to_string(),
             TargetedAction::EndKeySeq => "Reset key sequence".to_string(),
             TargetedAction::OpenHelp => "Open help menu".to_string(),
             TargetedAction::ClosePopup => "Close help menu".to_string(),

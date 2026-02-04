@@ -33,7 +33,7 @@
 		"<Ctrl-w><q>": "Quit",
 
 		"<t>": "TapToBPM",
-		"<Shift-t>": "ToggleTasks",
+		"<Shift-t>": "OpenTasks",
 
 		"<?>": "ToggleHelp",
 

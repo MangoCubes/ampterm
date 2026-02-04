@@ -9,7 +9,18 @@ use ratatui::{
     Frame,
 };
 
-use crate::{components::traits::renderable::Renderable, queryworker::query::QueryStatus};
+use crate::{
+    action::{
+        action::{Action, TargetedAction},
+        localaction::PopupAction,
+    },
+    components::traits::{
+        handlekeyseq::{HandleKeySeq, KeySeqResult},
+        renderable::Renderable,
+    },
+    config::keybindings::KeyBindings,
+    queryworker::query::QueryStatus,
+};
 
 #[derive(Clone)]
 enum Status {
@@ -32,11 +43,13 @@ pub struct Tasks {
     table: Table<'static>,
     tasks: HashMap<usize, (String, Status)>,
     show_internal: bool,
+    binds: KeyBindings<PopupAction>,
 }
 
 impl Tasks {
-    pub fn new(show_internal: bool) -> Self {
+    pub fn new(binds: KeyBindings<PopupAction>, show_internal: bool) -> Self {
         Self {
+            binds,
             border: Self::gen_block(),
             table: Table::new(
                 [Row::new(vec!["ID", "Task", "Status"])],
@@ -104,5 +117,24 @@ impl Renderable for Tasks {
         frame.render_widget(Clear, area);
         frame.render_widget(&self.border, area);
         frame.render_widget(&self.table, self.border.inner(area));
+    }
+}
+
+impl HandleKeySeq<PopupAction> for Tasks {
+    fn get_name(&self) -> &str {
+        "Tasks"
+    }
+
+    fn handle_local_action(&mut self, action: PopupAction) -> KeySeqResult {
+        match action {
+            PopupAction::Close => {
+                KeySeqResult::ActionNeeded(Action::Targeted(TargetedAction::ClosePopup))
+            }
+            _ => KeySeqResult::NoActionNeeded,
+        }
+    }
+
+    fn get_keybinds(&self) -> &KeyBindings<PopupAction> {
+        &self.binds
     }
 }

@@ -148,7 +148,7 @@ impl PassKeySeq for MainScreen {
                 CurrentlySelected::PlayQueue => self.playqueue.handle_key_seq(keyseq),
                 CurrentlySelected::NowPlaying(_) => self.now_playing.handle_key_seq(keyseq),
             },
-            Popup::Tasks => None,
+            Popup::Tasks => self.tasks.handle_key_seq(keyseq),
             Popup::Help => self.help.handle_key_seq(keyseq),
             Popup::MediaInfo(comp) => comp.handle_key_seq(keyseq),
             Popup::PlaylistInfo(comp) => comp.handle_key_seq(keyseq),
@@ -175,7 +175,10 @@ impl MainScreen {
                 } else {
                     None
                 },
-                tasks: Tasks::new(config.behaviour.show_internal_tasks.clone()),
+                tasks: Tasks::new(
+                    config.local.popup.clone(),
+                    config.behaviour.show_internal_tasks.clone(),
+                ),
                 pl_list,
                 pl_queue: PlaylistQueue::new(config.clone(), false),
                 playqueue: PlayQueue::new(false, config.clone()),
@@ -479,17 +482,6 @@ impl HandleAction for MainScreen {
             }
             TargetedAction::OpenTasks => {
                 self.popup = Popup::Tasks;
-                None
-            }
-            TargetedAction::CloseTasks => {
-                self.popup = Popup::None;
-                None
-            }
-            TargetedAction::ToggleTasks => {
-                match self.popup {
-                    Popup::Tasks => self.popup = Popup::None,
-                    _ => self.popup = Popup::Tasks,
-                };
                 None
             }
             TargetedAction::Info(msg) => {

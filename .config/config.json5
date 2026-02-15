@@ -1,5 +1,5 @@
 {
-	// These keybinds are available regardless of the focused component.
+	// These keybinds are available regardless of the focused component, assuming the action is valid.
 	"global": {
 		"<Ctrl-w><Left>": "WindowLeft",
 		"<Ctrl-w><Right>": "WindowRight",
@@ -38,6 +38,12 @@
 		"<?>": "ToggleHelp",
 
 		"<'>": "AddCurrentItemToPlaylist",
+
+		"<f>": "Filter",
+		"<Ctrl-f>": "ClearFilter",
+
+		"</>": "Search",
+		"<Ctrl-l>": "ClearSearch",
 	},
 	"local": {
 		// Keybinds for the help page that appears when you press ? (Or any key that is bound to ToggleHelp)
@@ -154,12 +160,6 @@
 			"<r><Shift-i>": { "RandomAdd": "Front" },
 			"<r><a>": { "RandomAdd": "Next" },
 			"<r><Shift-a>": { "RandomAdd": "Last" },
-
-			"<f>": "Filter",
-			"<Ctrl-f>": "ClearFilter",
-
-			"</>": "Search",
-			"<Ctrl-l>": "ClearSearch",
 
 			"<Shift-i>": "ViewInfo",
 			"<\">": "AddToPlaylist",

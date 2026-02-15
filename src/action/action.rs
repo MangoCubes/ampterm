@@ -99,7 +99,26 @@ pub enum TargetedAction {
     ClearScreen,
     Quit,
 
+    /// Go into filter mode. Everything that does not match the condition is not displayed.
+    OpenFilter,
+    /// Remove filter
+    ClearFilter,
+    /// Applies the filter with the given string. Anything that does not contain this string is not
+    /// displayed.
+    ApplyFilter(String),
+    /// Close filter dialog without doing anything
+    CloseFilter,
+
+    /// Search for a keyword. Unlike filter, this is applied immediately and does not hide
+    /// non-matching elements. User can jump between matched items with SearchNext and SearchPrev.
+    OpenSearch,
+    /// Reset search
+    ClearSearch,
+    ApplySearch(String),
+
+    ///
     /// Anything below should not be used directly by the user, as it can break the system
+    ///
     Queue(QueueAction),
 
     Debug(String),
@@ -179,6 +198,15 @@ impl ToString for TargetedAction {
             TargetedAction::AddCurrentItemToPlaylist => {
                 "Add the current item to a playlist".to_string()
             }
+            TargetedAction::OpenFilter => {
+                "Filter items (hides items that do not match)".to_string()
+            }
+            TargetedAction::ClearFilter => "Remove filter".to_string(),
+            TargetedAction::OpenSearch => "Search for a specific keyword".to_string(),
+            TargetedAction::ClearSearch => "Clear the current search".to_string(),
+            TargetedAction::ApplyFilter(f) => format!("Filter content by keyword '{}'", f),
+            TargetedAction::ApplySearch(s) => format!("Search content by keyword '{}'", s),
+            TargetedAction::CloseFilter => "Close filter dialog".to_string(),
         }
     }
 }

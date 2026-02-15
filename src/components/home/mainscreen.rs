@@ -1,4 +1,5 @@
 mod bpmtoy;
+mod filter;
 mod help;
 mod mediainfo;
 mod nowplaying;
@@ -6,6 +7,7 @@ mod playlistinfo;
 pub mod playlistlist;
 mod playlistqueue;
 mod playqueue;
+mod search;
 mod selectplaylistpopup;
 mod tasks;
 
@@ -14,8 +16,9 @@ use crate::{
     compid::CompID,
     components::{
         home::mainscreen::{
-            bpmtoy::BPMToy, help::Help, mediainfo::MediaInfo, playlistinfo::PlaylistInfo,
-            selectplaylistpopup::SelectPlaylistPopup, tasks::Tasks,
+            bpmtoy::BPMToy, filter::Filter, help::Help, mediainfo::MediaInfo,
+            playlistinfo::PlaylistInfo, search::Search, selectplaylistpopup::SelectPlaylistPopup,
+            tasks::Tasks,
         },
         traits::{
             focusable::Focusable,
@@ -70,6 +73,8 @@ enum Popup {
     MediaInfo(MediaInfo),
     PlaylistInfo(PlaylistInfo),
     SelectPlaylist(SelectPlaylistPopup),
+    Filtering(Filter),
+    Searching(Search, usize),
 }
 
 pub struct MainScreen {
@@ -79,6 +84,8 @@ pub struct MainScreen {
     now_playing: NowPlaying,
     tasks: Tasks,
     popup: Popup,
+    filter: Option<String>,
+    search: Option<String>,
     bpmtoy: Option<BPMToy>,
     playqueue: PlayQueue,
     message: (bool, String),
@@ -170,6 +177,8 @@ impl MainScreen {
         let (pl_list, action) = PlaylistList::new(config.clone(), true);
         (
             Self {
+                filter: None,
+                search: None,
                 bpmtoy: if config.features.bpmtoy.enable.clone() {
                     Some(BPMToy::new(config.clone()))
                 } else {
@@ -491,6 +500,18 @@ impl HandleAction for MainScreen {
             TargetedAction::Err(msg) => {
                 self.message = (true, msg);
                 None
+            }
+            TargetedAction::OpenSearch => {
+                if matches!(self.popup, Popup::None) {
+                    None
+                } else {
+                    match &self.state {
+                        CurrentlySelected::PlaylistList => None,
+                        CurrentlySelected::PlaylistQueue => None,
+                        CurrentlySelected::PlayQueue => self.playqueue.handle_action(action),
+                        CurrentlySelected::NowPlaying(_) => None,
+                    }
+                }
             }
             _ => None,
         }

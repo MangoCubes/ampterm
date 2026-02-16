@@ -104,7 +104,7 @@ pub enum TargetedAction {
     /// Remove filter
     ClearFilter,
     /// Applies the filter with the given string. Anything that does not contain this string is not
-    /// displayed.
+    /// displayed. Applying empty filter is equivalent to clearing the filter.
     ApplyFilter(String),
     /// Close filter dialog without doing anything
     CloseFilter,
@@ -114,6 +114,8 @@ pub enum TargetedAction {
     OpenSearch,
     /// Reset search
     ClearSearch,
+    /// Applies search with the given string. Anything that contains this string is highlighted.
+    /// Applying empty search is equivalent to clearing the search keywords
     ApplySearch(String),
 
     ///

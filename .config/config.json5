@@ -39,10 +39,10 @@
 
 		"<'>": "AddCurrentItemToPlaylist",
 
-		"<f>": "Filter",
+		"<f>": "OpenFilter",
 		"<Ctrl-f>": "ClearFilter",
 
-		"</>": "Search",
+		"</>": "OpenSearch",
 		"<Ctrl-l>": "ClearSearch",
 	},
 	"local": {

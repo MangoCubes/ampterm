@@ -74,7 +74,7 @@ enum Popup {
     PlaylistInfo(PlaylistInfo),
     SelectPlaylist(SelectPlaylistPopup),
     Filtering(Filter),
-    Searching(Search, usize),
+    Searching(Search),
 }
 
 pub struct MainScreen {
@@ -124,8 +124,9 @@ impl HandleMode for MainScreen {
 
 impl HandleRaw for MainScreen {
     fn handle_raw(&mut self, key: KeyEvent) -> Option<Action> {
-        match &mut self.state {
-            CurrentlySelected::PlaylistQueue => self.pl_queue.handle_raw(key),
+        match &mut self.popup {
+            Popup::Filtering(filter) => filter.handle_raw(key),
+            Popup::Searching(search) => search.handle_raw(key),
             _ => None,
         }
     }
@@ -160,6 +161,7 @@ impl PassKeySeq for MainScreen {
             Popup::MediaInfo(comp) => comp.handle_key_seq(keyseq),
             Popup::PlaylistInfo(comp) => comp.handle_key_seq(keyseq),
             Popup::SelectPlaylist(comp) => comp.handle_key_seq(keyseq),
+            Popup::Filtering(_) | Popup::Searching(_) => None,
         };
         if matches!(res, Some(_)) {
             self.key_stack.drain(..);
@@ -267,6 +269,8 @@ impl Renderable for MainScreen {
             Popup::PlaylistInfo(comp) => comp.draw(frame, area),
             Popup::MediaInfo(comp) => comp.draw(frame, area),
             Popup::SelectPlaylist(comp) => comp.draw(frame, area),
+            Popup::Filtering(comp) => comp.draw(frame, area),
+            Popup::Searching(comp) => comp.draw(frame, area),
         }
 
         frame.render_widget(

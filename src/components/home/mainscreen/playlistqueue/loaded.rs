@@ -1,18 +1,10 @@
-mod filter;
-mod search;
 use crate::{
     action::{
         action::{Action, Mode, QueueAction, TargetedAction},
         localaction::PlaylistQueueAction,
     },
     components::{
-        home::mainscreen::playlistqueue::{
-            loaded::{
-                filter::{Filter, FilterResult},
-                search::{Search, SearchResult},
-            },
-            PlaylistQueue,
-        },
+        home::mainscreen::playlistqueue::PlaylistQueue,
         lib::{
             scrollbar::ScrollBar,
             visualtable::{VisualSelection, VisualTable},
@@ -44,19 +36,12 @@ use ratatui::{
     Frame,
 };
 
-enum State {
-    Nothing,
-    Filtering(Filter),
-    Searching(Search, usize),
-}
-
 pub struct Loaded {
     name: String,
     playlist: FullPlaylist,
     enabled: bool,
     table: VisualTable,
     keymap: KeyBindings<PlaylistQueueAction>,
-    state: State,
     filter: Option<(usize, String)>,
     search: Option<(usize, String)>,
     bar: ScrollBar,
@@ -157,7 +142,6 @@ impl Loaded {
             enabled,
             playlist: list,
             table,
-            state: State::Nothing,
             filter: None,
             search: None,
         }
@@ -214,59 +198,6 @@ impl Loaded {
             None
         }
     }
-
-    /// Executed when the user confirms the search by pressing enter
-    fn confirm_search(&mut self, search: String) -> Action {
-        self.apply_search(search);
-        self.state = State::Nothing;
-        Action::ChangeMode(Mode::Normal)
-    }
-
-    /// Executed whent the search is cancelled or removed
-    fn clear_search(&mut self) -> Action {
-        if let State::Searching(_, idx) = self.state {
-            self.table.set_position(idx);
-        };
-        self.state = State::Nothing;
-        self.search = None;
-        self.table.reset_highlight();
-        self.table.bump_cursor_pos();
-        Action::ChangeMode(Mode::Normal)
-    }
-    fn set_filter(&mut self, filter: String) -> Action {
-        let mut count = 0;
-        let visibility: Vec<bool> = self
-            .playlist
-            .entry
-            .iter()
-            .map(|i| {
-                let a = i.title.to_lowercase().contains(&filter.to_lowercase());
-                if a {
-                    count += 1;
-                }
-                a
-            })
-            .collect();
-        self.filter = Some((count, filter));
-        self.state = State::Nothing;
-        self.table.set_visibility(&visibility);
-        self.table.bump_cursor_pos();
-        self.bar.update_max(count as u32);
-        Action::ChangeMode(Mode::Normal)
-    }
-    fn reset_filter(&mut self) -> Action {
-        self.state = State::Nothing;
-        self.filter = None;
-        self.table.reset_visibility();
-        self.table.bump_cursor_pos();
-        self.bar.update_max(self.playlist.entry.len() as u32);
-        Action::ChangeMode(Mode::Normal)
-    }
-    fn exit_filter(&mut self) -> Action {
-        self.state = State::Nothing;
-        self.table.bump_cursor_pos();
-        Action::ChangeMode(Mode::Normal)
-    }
 }
 
 impl Renderable for Loaded {
@@ -295,33 +226,8 @@ impl Renderable for Loaded {
             format!("{} ({}){}", self.name, len, extra)
         };
         let border = PlaylistQueue::gen_block(self.enabled, title);
-        let inner = match &mut self.state {
-            State::Nothing => {
-                let inner = border.inner(area);
-                frame.render_widget(border, area);
-                inner
-            }
-            State::Filtering(filter) => {
-                let layout =
-                    Layout::default().constraints([Constraint::Min(1), Constraint::Length(3)]);
-                let areas = layout.split(area);
-                let inner = border.inner(areas[0]);
-                frame.render_widget(border, areas[0]);
-                frame.render_widget(Clear, areas[1]);
-                filter.draw(frame, areas[1]);
-                inner
-            }
-            State::Searching(search, _) => {
-                let layout =
-                    Layout::default().constraints([Constraint::Min(1), Constraint::Length(3)]);
-                let areas = layout.split(area);
-                let inner = border.inner(areas[0]);
-                frame.render_widget(border, areas[0]);
-                frame.render_widget(Clear, areas[1]);
-                search.draw(frame, areas[1]);
-                inner
-            }
-        };
+        let inner = border.inner(area);
+        frame.render_widget(border, area);
         let [list, bar] =
             Layout::horizontal([Constraint::Fill(1), Constraint::Length(1)]).areas(inner);
         self.table.draw(frame, list);

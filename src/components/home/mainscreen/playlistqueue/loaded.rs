@@ -13,7 +13,6 @@ use crate::{
             focusable::Focusable,
             handlefilter::HandleFilter,
             handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult},
-            handleraw::HandleRaw,
             handlesearch::HandleSearch,
             renderable::Renderable,
         },
@@ -147,6 +146,7 @@ impl Loaded {
             table,
             filter: None,
             search: None,
+            orig_location: 0,
         }
     }
 
@@ -172,9 +172,6 @@ impl Loaded {
         self.table.set_rows(rows);
         None
     }
-
-    /// Executed when the user types something into the search bar
-    fn apply_search(&mut self, search: String) -> Option<Action> {}
 }
 
 impl Renderable for Loaded {
@@ -438,38 +435,5 @@ impl HandleFilter for Loaded {
     fn exit_filter(&mut self) -> Action {
         self.table.bump_cursor_pos();
         Action::ChangeMode(Mode::Normal)
-    }
-}
-
-impl HandleRaw for Loaded {
-    fn handle_raw(&mut self, key: KeyEvent) -> Option<Action> {
-        match &mut self.state {
-            State::Nothing => unreachable!("Playlist queue should never enter insert mode without filtering or searching active."),
-            State::Filtering(f) => {
-                match f.handle_raw(key) {
-                    FilterResult::NoChange => None,
-                    FilterResult::ApplyFilter(filter) => {
-                        Some(self.set_filter(filter))
-                    },
-                    FilterResult::ClearFilter => {
-                        Some(self.reset_filter())
-                    }
-                    FilterResult::Exit => Some(self.exit_filter())
-                }
-            },
-            State::Searching(s , idx) => {
-                match s.handle_raw(key) {
-                    SearchResult::ApplySearch(s) => self.apply_search(s),
-                    SearchResult::ConfirmSearch(s, b) => {
-                        if !b {
-                            self.bar.update_pos(*idx as u32);
-                            self.table.set_position(*idx);
-                        }
-                        Some(self.confirm_search(s))
-                    }
-                    SearchResult::CancelSearch => Some(self.clear_search()),
-                }
-            },
-        }
     }
 }

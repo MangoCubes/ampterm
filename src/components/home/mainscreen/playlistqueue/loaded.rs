@@ -11,8 +11,10 @@ use crate::{
         },
         traits::{
             focusable::Focusable,
+            handlefilter::HandleFilter,
             handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult},
             handleraw::HandleRaw,
+            handlesearch::HandleSearch,
             renderable::Renderable,
         },
     },
@@ -32,7 +34,7 @@ use crossterm::event::KeyEvent;
 use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Style, Stylize},
-    widgets::{Clear, Row, Table, TableState},
+    widgets::{Row, Table, TableState},
     Frame,
 };
 
@@ -45,6 +47,7 @@ pub struct Loaded {
     filter: Option<(usize, String)>,
     search: Option<(usize, String)>,
     bar: ScrollBar,
+    orig_location: usize,
 }
 
 impl Loaded {
@@ -171,33 +174,7 @@ impl Loaded {
     }
 
     /// Executed when the user types something into the search bar
-    fn apply_search(&mut self, search: String) -> Option<Action> {
-        if search.len() == 0 {
-            self.search = Some((0, search));
-            self.table.reset_highlight();
-            None
-        } else {
-            let mut count = 0;
-            let highlight: Vec<bool> = self
-                .playlist
-                .entry
-                .iter()
-                .map(|i| {
-                    let a = i.title.to_lowercase().contains(&search.to_lowercase());
-                    if a {
-                        count += 1;
-                    }
-                    a
-                })
-                .collect();
-            if let Some(idx) = highlight.iter().position(|x| *x) {
-                self.table.set_position(idx);
-            };
-            self.search = Some((count, search));
-            self.table.set_highlight(&highlight);
-            None
-        }
-    }
+    fn apply_search(&mut self, search: String) -> Option<Action> {}
 }
 
 impl Renderable for Loaded {
@@ -314,23 +291,6 @@ impl HandleKeySeq<PlaylistQueueAction> for Loaded {
                 Some(a) => KeySeqResult::ActionNeeded(a),
                 None => KeySeqResult::NoActionNeeded,
             },
-            PlaylistQueueAction::Filter => {
-                self.state = State::Filtering(Filter::new());
-                KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Insert))
-            }
-            PlaylistQueueAction::ClearFilter => KeySeqResult::ActionNeeded(self.reset_filter()),
-            PlaylistQueueAction::Search => {
-                self.state = State::Searching(
-                    Search::new(if let Some((_, search)) = &self.search {
-                        search.clone()
-                    } else {
-                        "".to_string()
-                    }),
-                    self.table.get_current().unwrap_or(0),
-                );
-                KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Insert))
-            }
-            PlaylistQueueAction::ClearSearch => KeySeqResult::ActionNeeded(self.clear_search()),
             PlaylistQueueAction::AddToPlaylist => {
                 let (vs, action) = self.table.get_selection_reset();
 
@@ -387,6 +347,100 @@ impl Focusable for Loaded {
     }
 }
 
+impl HandleSearch for Loaded {
+    fn init_search(&mut self) {
+        self.orig_location = self.table.get_current().unwrap_or(0);
+    }
+
+    // PlaylistQueueAction::Filter => {
+    //     self.state = State::Filtering(Filter::new());
+    //     KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Insert))
+    // }
+    // PlaylistQueueAction::ClearFilter => KeySeqResult::ActionNeeded(self.reset_filter()),
+    // PlaylistQueueAction::Search => {
+    //     self.state = State::Searching(
+    //         Search::new(if let Some((_, search)) = &self.search {
+    //             search.clone()
+    //         } else {
+    //             "".to_string()
+    //         }),
+    //         self.table.get_current().unwrap_or(0),
+    //     );
+    //     KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Insert))
+    // }
+    // PlaylistQueueAction::ClearSearch => KeySeqResult::ActionNeeded(self.clear_search()),
+    fn test_search(&mut self, search: String) {
+        if search.len() == 0 {
+            self.search = Some((0, search));
+            self.table.set_position(self.orig_location);
+            self.table.reset_highlight();
+        } else {
+            let mut count = 0;
+            let highlight: Vec<bool> = self
+                .playlist
+                .entry
+                .iter()
+                .map(|i| {
+                    let a = i.title.to_lowercase().contains(&search.to_lowercase());
+                    if a {
+                        count += 1;
+                    }
+                    a
+                })
+                .collect();
+            if let Some(idx) = highlight.iter().position(|x| *x) {
+                self.table.set_position(idx);
+            };
+            self.search = Some((count, search));
+            self.table.set_highlight(&highlight);
+        }
+    }
+
+    fn clear_search(&mut self) -> Action {
+        self.table.set_position(self.orig_location);
+        self.search = None;
+        self.table.reset_highlight();
+        self.table.bump_cursor_pos();
+        Action::ChangeMode(Mode::Normal)
+    }
+}
+
+impl HandleFilter for Loaded {
+    fn set_filter(&mut self, filter: String) -> Action {
+        let mut count = 0;
+        let visibility: Vec<bool> = self
+            .playlist
+            .entry
+            .iter()
+            .map(|i| {
+                let a = i.title.to_lowercase().contains(&filter.to_lowercase());
+                if a {
+                    count += 1;
+                }
+                a
+            })
+            .collect();
+        self.filter = Some((count, filter));
+        self.table.set_visibility(&visibility);
+        self.table.bump_cursor_pos();
+        self.bar.update_max(count as u32);
+        Action::ChangeMode(Mode::Normal)
+    }
+
+    fn reset_filter(&mut self) -> Action {
+        self.filter = None;
+        self.table.reset_visibility();
+        self.table.bump_cursor_pos();
+        self.bar.update_max(self.playlist.entry.len() as u32);
+        Action::ChangeMode(Mode::Normal)
+    }
+
+    fn exit_filter(&mut self) -> Action {
+        self.table.bump_cursor_pos();
+        Action::ChangeMode(Mode::Normal)
+    }
+}
+
 impl HandleRaw for Loaded {
     fn handle_raw(&mut self, key: KeyEvent) -> Option<Action> {
         match &mut self.state {
@@ -408,6 +462,7 @@ impl HandleRaw for Loaded {
                     SearchResult::ApplySearch(s) => self.apply_search(s),
                     SearchResult::ConfirmSearch(s, b) => {
                         if !b {
+                            self.bar.update_pos(*idx as u32);
                             self.table.set_position(*idx);
                         }
                         Some(self.confirm_search(s))

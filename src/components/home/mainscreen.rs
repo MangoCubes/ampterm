@@ -84,7 +84,6 @@ pub struct MainScreen {
     now_playing: NowPlaying,
     tasks: Tasks,
     popup: Popup,
-    filter: Option<String>,
     search: Option<String>,
     bpmtoy: Option<BPMToy>,
     playqueue: PlayQueue,
@@ -179,7 +178,6 @@ impl MainScreen {
         let (pl_list, action) = PlaylistList::new(config.clone(), true);
         (
             Self {
-                filter: None,
                 search: None,
                 bpmtoy: if config.features.bpmtoy.enable.clone() {
                     Some(BPMToy::new(config.clone()))
@@ -505,7 +503,14 @@ impl HandleAction for MainScreen {
                 self.message = (true, msg);
                 None
             }
-            TargetedAction::OpenSearch => {
+            TargetedAction::OpenFilter => {
+                self.popup = Popup::Filtering(Filter::new());
+                Some(Action::ChangeMode(Mode::Insert))
+            }
+            TargetedAction::ApplyFilter(_)
+            | TargetedAction::ClearFilter
+            | TargetedAction::ApplySearch(_)
+            | TargetedAction::ClearSearch => {
                 if matches!(self.popup, Popup::None) {
                     None
                 } else {
@@ -516,6 +521,10 @@ impl HandleAction for MainScreen {
                         CurrentlySelected::NowPlaying(_) => None,
                     }
                 }
+            }
+            TargetedAction::OpenSearch => {
+                self.popup = Popup::Searching(Search::new(self.search.clone()));
+                Some(Action::ChangeMode(Mode::Insert))
             }
             _ => None,
         }

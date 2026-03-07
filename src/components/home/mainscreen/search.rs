@@ -1,8 +1,8 @@
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
-    layout::Rect,
+    layout::{Constraint, Flex, Layout, Rect},
     style::Style,
-    widgets::{Block, Borders},
+    widgets::{Block, Borders, Clear},
     Frame,
 };
 use tui_textarea::TextArea;
@@ -18,7 +18,7 @@ pub struct Search {
 }
 
 impl Search {
-    pub fn new(original: String) -> Self {
+    pub fn new(original: Option<String>) -> Self {
         let mut input = TextArea::default();
         input.set_block(
             Block::default()
@@ -26,12 +26,20 @@ impl Search {
                 .style(Style::default())
                 .title("Search"),
         );
-        Self { input, original }
+        Self {
+            input,
+            original: original.unwrap_or("".to_string()),
+        }
     }
 }
 
 impl Renderable for Search {
     fn draw(&mut self, frame: &mut Frame, area: Rect) {
+        let vertical = Layout::vertical([Constraint::Length(3)]).flex(Flex::Center);
+        let horizontal = Layout::horizontal([Constraint::Percentage(60)]).flex(Flex::Center);
+        let [area] = vertical.areas(area);
+        let [area] = horizontal.areas(area);
+        frame.render_widget(Clear, area);
         frame.render_widget(&self.input, area);
     }
 }

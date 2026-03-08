@@ -49,20 +49,24 @@ impl HandleRaw for Search {
         match key.code {
             KeyCode::Esc => Some(Action::Targeted(TargetedAction::ApplySearch(
                 self.original.clone(),
+                true,
             ))),
             KeyCode::Enter => Some(Action::Targeted(TargetedAction::ApplySearch(
                 self.input.lines()[0].clone(),
+                true,
             ))),
             KeyCode::Backspace => {
                 let search = &self.input.lines()[0];
                 if search.len() == 0 {
                     Some(Action::Targeted(TargetedAction::ApplySearch(
                         self.original.clone(),
+                        true,
                     )))
                 } else {
                     self.input.input(key);
                     Some(Action::Targeted(TargetedAction::ApplySearch(
                         self.input.lines()[0].clone(),
+                        false,
                     )))
                 }
             }
@@ -70,6 +74,7 @@ impl HandleRaw for Search {
                 self.input.input(key);
                 Some(Action::Targeted(TargetedAction::ApplySearch(
                     self.input.lines()[0].clone(),
+                    false,
                 )))
             }
         }

@@ -105,6 +105,8 @@ pub enum TargetedAction {
     ClearFilter,
     /// Applies the filter with the given string. Anything that does not contain this string is not
     /// displayed. Applying empty filter is equivalent to clearing the filter.
+    /// Unlike ApplySearch, this does not have a boolean as applying filter always implies applying
+    /// closing the filter popup.
     ApplyFilter(String),
     /// Close filter dialog without doing anything
     CloseFilter,
@@ -116,7 +118,9 @@ pub enum TargetedAction {
     ClearSearch,
     /// Applies search with the given string. Anything that contains this string is highlighted.
     /// Applying empty search is equivalent to clearing the search keywords
-    ApplySearch(String),
+    /// If second parameter is true, it implies the search is applied and the popup should be
+    /// closed.
+    ApplySearch(String, bool),
 
     ///
     /// Anything below should not be used directly by the user, as it can break the system
@@ -207,7 +211,7 @@ impl ToString for TargetedAction {
             TargetedAction::OpenSearch => "Search for a specific keyword".to_string(),
             TargetedAction::ClearSearch => "Clear the current search".to_string(),
             TargetedAction::ApplyFilter(f) => format!("Filter content by keyword '{}'", f),
-            TargetedAction::ApplySearch(s) => format!("Search content by keyword '{}'", s),
+            TargetedAction::ApplySearch(s, _) => format!("Search content by keyword '{}'", s),
             TargetedAction::CloseFilter => "Close filter dialog".to_string(),
         }
     }

@@ -345,8 +345,9 @@ impl Focusable for Loaded {
 }
 
 impl HandleSearch for Loaded {
-    fn init_search(&mut self) {
+    fn init_search(&mut self) -> bool {
         self.orig_location = self.table.get_current().unwrap_or(0);
+        true
     }
 
     // PlaylistQueueAction::Filter => {
@@ -393,12 +394,11 @@ impl HandleSearch for Loaded {
         }
     }
 
-    fn clear_search(&mut self) -> Action {
+    fn revert_search(&mut self) {
         self.table.set_position(self.orig_location);
         self.search = None;
         self.table.reset_highlight();
         self.table.bump_cursor_pos();
-        Action::ChangeMode(Mode::Normal)
     }
 }
 

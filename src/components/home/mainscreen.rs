@@ -28,6 +28,7 @@ use crate::{
             handleplayer::HandlePlayer,
             handlequery::HandleQuery,
             handleraw::HandleRaw,
+            handlesearch::HandleSearch,
             ontick::OnTick,
             renderable::Renderable,
         },
@@ -507,24 +508,39 @@ impl HandleAction for MainScreen {
                 self.popup = Popup::Filtering(Filter::new());
                 Some(Action::ChangeMode(Mode::Insert))
             }
-            TargetedAction::ApplyFilter(_)
-            | TargetedAction::ClearFilter
-            | TargetedAction::ApplySearch(_)
-            | TargetedAction::ClearSearch => {
-                if matches!(self.popup, Popup::None) {
-                    None
+            // TargetedAction::ApplyFilter(_)
+            // | TargetedAction::ClearFilter
+            TargetedAction::ApplySearch(search, confirm) => {
+                match &self.state {
+                    CurrentlySelected::PlaylistQueue => self.pl_queue.test_search(search),
+                    _ => {}
+                };
+                if confirm {
+                    self.popup = Popup::None;
+                    Some(Action::ChangeMode(Mode::Normal))
                 } else {
-                    match &self.state {
-                        CurrentlySelected::PlaylistList => None,
-                        CurrentlySelected::PlaylistQueue => None,
-                        CurrentlySelected::PlayQueue => self.playqueue.handle_action(action),
-                        CurrentlySelected::NowPlaying(_) => None,
-                    }
+                    None
                 }
             }
+            TargetedAction::ClearSearch => {
+                self.popup = Popup::None;
+                match &self.state {
+                    CurrentlySelected::PlaylistQueue => self.pl_queue.test_search("".to_string()),
+                    _ => {}
+                };
+                Some(Action::ChangeMode(Mode::Normal))
+            }
             TargetedAction::OpenSearch => {
-                self.popup = Popup::Searching(Search::new(self.search.clone()));
-                Some(Action::ChangeMode(Mode::Insert))
+                let applicable = match &self.state {
+                    CurrentlySelected::PlaylistQueue => self.pl_queue.init_search(),
+                    _ => false,
+                };
+                if applicable {
+                    self.popup = Popup::Searching(Search::new(self.search.clone()));
+                    Some(Action::ChangeMode(Mode::Insert))
+                } else {
+                    None
+                }
             }
             _ => None,
         }

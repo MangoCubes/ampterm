@@ -56,6 +56,17 @@ impl ToString for QueueAction {
     }
 }
 
+#[derive(PartialEq, Eq, Clone, Serialize, Deserialize, Debug)]
+pub enum SearchType {
+    /// User is currently typing.
+    Normal,
+    /// User has cancelled search. The cursor's position should revert.
+    Revert,
+    /// User has confirmed search. The cursor should maintain its position, but also save the
+    /// current position.
+    Confirm,
+}
+
 /// These actions are associated with a specific component in the program, and are usually
 /// available regardles of the currently focused component.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -118,9 +129,7 @@ pub enum TargetedAction {
     ClearSearch,
     /// Applies search with the given string. Anything that contains this string is highlighted.
     /// Applying empty search is equivalent to clearing the search keywords
-    /// If second parameter is true, it implies the search is applied and the popup should be
-    /// closed.
-    ApplySearch(String, bool),
+    ApplySearch(String, SearchType),
 
     ///
     /// Anything below should not be used directly by the user, as it can break the system

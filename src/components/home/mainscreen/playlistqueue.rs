@@ -5,7 +5,7 @@ mod loading;
 mod notselected;
 
 use crate::{
-    action::action::Action,
+    action::action::{Action, SearchType},
     compid::CompID,
     components::{
         home::mainscreen::playlistqueue::{empty::Empty, loading::Loading},
@@ -13,7 +13,7 @@ use crate::{
             focusable::Focusable,
             handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult, PassKeySeq},
             handlequery::HandleQuery,
-            handlesearch::{HandleSearch, SearchType},
+            handlesearch::HandleSearch,
             renderable::Renderable,
         },
     },

@@ -12,7 +12,7 @@ mod selectplaylistpopup;
 mod tasks;
 
 use crate::{
-    action::action::{Action, Mode, TargetedAction},
+    action::action::{Action, Mode, SearchType, TargetedAction},
     compid::CompID,
     components::{
         home::mainscreen::{
@@ -28,7 +28,7 @@ use crate::{
             handleplayer::HandlePlayer,
             handlequery::HandleQuery,
             handleraw::HandleRaw,
-            handlesearch::{HandleSearch, SearchType},
+            handlesearch::HandleSearch,
             ontick::OnTick,
             renderable::Renderable,
         },
@@ -510,24 +510,19 @@ impl HandleAction for MainScreen {
             }
             // TargetedAction::ApplyFilter(_)
             // | TargetedAction::ClearFilter
-            TargetedAction::ApplySearch(search, confirm) => {
+            TargetedAction::ApplySearch(search, stype) => {
                 match &self.state {
-                    CurrentlySelected::PlaylistQueue => self.pl_queue.test_search(
-                        search.clone(),
-                        if confirm {
-                            SearchType::Confirm
-                        } else {
-                            SearchType::Normal
-                        },
-                    ),
+                    CurrentlySelected::PlaylistQueue => {
+                        self.pl_queue.test_search(search.clone(), stype.clone())
+                    }
                     _ => {}
                 };
-                if confirm {
+                if stype == SearchType::Normal {
+                    None
+                } else {
                     self.popup = Popup::None;
                     self.search = Some(search);
                     Some(Action::ChangeMode(Mode::Normal))
-                } else {
-                    None
                 }
             }
             TargetedAction::ClearSearch => {

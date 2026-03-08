@@ -1,4 +1,4 @@
-use crate::components::traits::renderable::Renderable;
+use crate::{action::action::SearchType, components::traits::renderable::Renderable};
 
 /// When user starts searching, the program needs to store the current location of the cursor so
 /// that when the user cancels search, it jumps back to where they were prior to search
@@ -13,17 +13,6 @@ use crate::components::traits::renderable::Renderable;
 /// When user presses escape, the search should revert to the previous one (or none if there wasn't
 /// any), and move the cursor back to where it was before the search
 /// This is fulfiled with combination of [`HandleSearch::test_search`].
-
-#[derive(PartialEq, Eq)]
-pub enum SearchType {
-    /// User is currently typing.
-    Normal,
-    /// User has cancelled search. The cursor's position should revert.
-    Revert,
-    /// User has confirmed search. The cursor should maintain its position, but also save the
-    /// current position.
-    Confirm,
-}
 
 /// Any component that implements this trait implies that the component can use the given search
 /// conditions to highlight items that matches the given condition

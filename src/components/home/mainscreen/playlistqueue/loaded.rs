@@ -1,6 +1,6 @@
 use crate::{
     action::{
-        action::{Action, Mode, QueueAction, TargetedAction},
+        action::{Action, Mode, QueueAction, SearchType, TargetedAction},
         localaction::PlaylistQueueAction,
     },
     components::{
@@ -13,7 +13,7 @@ use crate::{
             focusable::Focusable,
             handlefilter::HandleFilter,
             handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult},
-            handlesearch::{HandleSearch, SearchType},
+            handlesearch::HandleSearch,
             renderable::Renderable,
         },
     },
@@ -373,12 +373,28 @@ impl HandleSearch for Loaded {
             if stype == SearchType::Revert {
                 self.table.set_position(self.orig_location);
             } else {
-                if let Some(idx) = highlight.iter().position(|x| *x) {
+                let last = highlight.iter().rposition(|x| *x);
+                if let Some(i) = last {
+                    let pos = self.table.get_current().unwrap_or(0);
+                    let idx = if i < pos {
+                        // Last item is before the current position
+                        i
+                    } else {
+                        let mut idx = 0;
+                        for j in pos..highlight.len() {
+                            if highlight[j] {
+                                idx = j;
+                                break;
+                            }
+                        }
+                        idx
+                    };
                     if stype == SearchType::Confirm {
                         self.orig_location = idx;
                     }
                     self.table.set_position(idx);
-                };
+                }
+                // No item found
             };
             self.search = Some((count, search));
             self.table.set_highlight(&highlight);

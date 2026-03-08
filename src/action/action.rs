@@ -128,8 +128,7 @@ pub enum TargetedAction {
     /// Reset search
     ClearSearch,
     /// Applies search with the given string. Anything that contains this string is highlighted.
-    /// Applying empty search is equivalent to clearing the search keywords
-    ApplySearch(String, SearchType),
+    ApplySearch(String),
 
     ///
     /// Anything below should not be used directly by the user, as it can break the system
@@ -139,6 +138,10 @@ pub enum TargetedAction {
     Debug(String),
     Info(String),
     Err(String),
+
+    /// Applies search with the given string. Anything that contains this string is highlighted.
+    /// Applying empty search is equivalent to clearing the search keywords
+    SearchUpdate(String, SearchType),
 
     ViewPlaylistInfo(SimplePlaylist),
     ViewMediaInfo(Media),
@@ -220,8 +223,9 @@ impl ToString for TargetedAction {
             TargetedAction::OpenSearch => "Search for a specific keyword".to_string(),
             TargetedAction::ClearSearch => "Clear the current search".to_string(),
             TargetedAction::ApplyFilter(f) => format!("Filter content by keyword '{}'", f),
-            TargetedAction::ApplySearch(s, _) => format!("Search content by keyword '{}'", s),
+            TargetedAction::SearchUpdate(s, _) => format!("Search content by keyword '{}'", s),
             TargetedAction::CloseFilter => "Close filter dialog".to_string(),
+            TargetedAction::ApplySearch(s) => format!("Search content by keyword '{}'", s),
         }
     }
 }

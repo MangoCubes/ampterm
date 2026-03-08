@@ -47,24 +47,24 @@ impl Renderable for Search {
 impl HandleRaw for Search {
     fn handle_raw(&mut self, key: KeyEvent) -> Option<Action> {
         match key.code {
-            KeyCode::Esc => Some(Action::Targeted(TargetedAction::ApplySearch(
+            KeyCode::Esc => Some(Action::Targeted(TargetedAction::SearchUpdate(
                 self.original.clone(),
                 SearchType::Revert,
             ))),
-            KeyCode::Enter => Some(Action::Targeted(TargetedAction::ApplySearch(
+            KeyCode::Enter => Some(Action::Targeted(TargetedAction::SearchUpdate(
                 self.input.lines()[0].clone(),
                 SearchType::Confirm,
             ))),
             KeyCode::Backspace => {
                 let search = &self.input.lines()[0];
                 if search.len() == 0 {
-                    Some(Action::Targeted(TargetedAction::ApplySearch(
+                    Some(Action::Targeted(TargetedAction::SearchUpdate(
                         self.original.clone(),
                         SearchType::Revert,
                     )))
                 } else {
                     self.input.input(key);
-                    Some(Action::Targeted(TargetedAction::ApplySearch(
+                    Some(Action::Targeted(TargetedAction::SearchUpdate(
                         self.input.lines()[0].clone(),
                         SearchType::Normal,
                     )))
@@ -72,7 +72,7 @@ impl HandleRaw for Search {
             }
             _ => {
                 self.input.input(key);
-                Some(Action::Targeted(TargetedAction::ApplySearch(
+                Some(Action::Targeted(TargetedAction::SearchUpdate(
                     self.input.lines()[0].clone(),
                     SearchType::Normal,
                 )))

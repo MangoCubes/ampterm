@@ -510,7 +510,10 @@ impl HandleAction for MainScreen {
             }
             // TargetedAction::ApplyFilter(_)
             // | TargetedAction::ClearFilter
-            TargetedAction::ApplySearch(search, stype) => {
+            TargetedAction::ApplySearch(search) => Some(Action::Targeted(
+                TargetedAction::SearchUpdate(search, SearchType::Confirm),
+            )),
+            TargetedAction::SearchUpdate(search, stype) => {
                 match &self.state {
                     CurrentlySelected::PlaylistQueue => {
                         self.pl_queue.test_search(search.clone(), stype.clone())

@@ -512,11 +512,14 @@ impl HandleAction for MainScreen {
             // | TargetedAction::ClearFilter
             TargetedAction::ApplySearch(search, confirm) => {
                 match &self.state {
-                    CurrentlySelected::PlaylistQueue => self.pl_queue.test_search(search),
+                    CurrentlySelected::PlaylistQueue => {
+                        self.pl_queue.test_search(search.clone(), false)
+                    }
                     _ => {}
                 };
                 if confirm {
                     self.popup = Popup::None;
+                    self.search = Some(search);
                     Some(Action::ChangeMode(Mode::Normal))
                 } else {
                     None
@@ -525,7 +528,9 @@ impl HandleAction for MainScreen {
             TargetedAction::ClearSearch => {
                 self.popup = Popup::None;
                 match &self.state {
-                    CurrentlySelected::PlaylistQueue => self.pl_queue.test_search("".to_string()),
+                    CurrentlySelected::PlaylistQueue => {
+                        self.pl_queue.test_search("".to_string(), true)
+                    }
                     _ => {}
                 };
                 Some(Action::ChangeMode(Mode::Normal))

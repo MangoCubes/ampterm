@@ -163,15 +163,9 @@ impl HandleSearch for PlaylistQueue {
         }
     }
 
-    fn test_search(&mut self, search: String) {
+    fn test_search(&mut self, search: String, revert: bool) {
         if let Comp::Loaded(loaded) = &mut self.comp {
-            loaded.test_search(search)
-        };
-    }
-
-    fn revert_search(&mut self) {
-        if let Comp::Loaded(loaded) = &mut self.comp {
-            loaded.revert_search()
+            loaded.test_search(search, revert)
         };
     }
 }

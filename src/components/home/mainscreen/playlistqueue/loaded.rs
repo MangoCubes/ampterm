@@ -349,29 +349,13 @@ impl HandleSearch for Loaded {
         self.orig_location = self.table.get_current().unwrap_or(0);
         true
     }
-
-    // PlaylistQueueAction::Filter => {
-    //     self.state = State::Filtering(Filter::new());
-    //     KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Insert))
-    // }
-    // PlaylistQueueAction::ClearFilter => KeySeqResult::ActionNeeded(self.reset_filter()),
-    // PlaylistQueueAction::Search => {
-    //     self.state = State::Searching(
-    //         Search::new(if let Some((_, search)) = &self.search {
-    //             search.clone()
-    //         } else {
-    //             "".to_string()
-    //         }),
-    //         self.table.get_current().unwrap_or(0),
-    //     );
-    //     KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Insert))
-    // }
-    // PlaylistQueueAction::ClearSearch => KeySeqResult::ActionNeeded(self.clear_search()),
-    fn test_search(&mut self, search: String) {
+    fn test_search(&mut self, search: String, revert: bool) {
         if search.len() == 0 {
             self.search = Some((0, search));
-            self.table.set_position(self.orig_location);
             self.table.reset_highlight();
+            if revert {
+                self.table.set_position(self.orig_location);
+            }
         } else {
             let mut count = 0;
             let highlight: Vec<bool> = self
@@ -386,19 +370,14 @@ impl HandleSearch for Loaded {
                     a
                 })
                 .collect();
-            if let Some(idx) = highlight.iter().position(|x| *x) {
+            if revert {
+                self.table.set_position(self.orig_location);
+            } else if let Some(idx) = highlight.iter().position(|x| *x) {
                 self.table.set_position(idx);
             };
             self.search = Some((count, search));
             self.table.set_highlight(&highlight);
         }
-    }
-
-    fn revert_search(&mut self) {
-        self.table.set_position(self.orig_location);
-        self.search = None;
-        self.table.reset_highlight();
-        self.table.bump_cursor_pos();
     }
 }
 

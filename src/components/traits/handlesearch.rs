@@ -14,6 +14,17 @@ use crate::components::traits::renderable::Renderable;
 /// any), and move the cursor back to where it was before the search
 /// This is fulfiled with combination of [`HandleSearch::test_search`].
 
+#[derive(PartialEq, Eq)]
+pub enum SearchType {
+    /// User is currently typing.
+    Normal,
+    /// User has cancelled search. The cursor's position should revert.
+    Revert,
+    /// User has confirmed search. The cursor should maintain its position, but also save the
+    /// current position.
+    Confirm,
+}
+
 /// Any component that implements this trait implies that the component can use the given search
 /// conditions to highlight items that matches the given condition
 pub trait HandleSearch: Renderable {
@@ -26,5 +37,5 @@ pub trait HandleSearch: Renderable {
     /// highlighted
     /// If revert is true, then this indicates that the search is a revert, and cursor position
     /// should be reverted.
-    fn test_search(&mut self, search: String, revert: bool);
+    fn test_search(&mut self, search: String, stype: SearchType);
 }

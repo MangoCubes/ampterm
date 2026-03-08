@@ -13,7 +13,7 @@ use crate::{
             focusable::Focusable,
             handlefilter::HandleFilter,
             handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult},
-            handlesearch::HandleSearch,
+            handlesearch::{HandleSearch, SearchType},
             renderable::Renderable,
         },
     },
@@ -349,11 +349,11 @@ impl HandleSearch for Loaded {
         self.orig_location = self.table.get_current().unwrap_or(0);
         true
     }
-    fn test_search(&mut self, search: String, revert: bool) {
+    fn test_search(&mut self, search: String, stype: SearchType) {
         if search.len() == 0 {
             self.search = Some((0, search));
             self.table.reset_highlight();
-            if revert {
+            if stype == SearchType::Revert {
                 self.table.set_position(self.orig_location);
             }
         } else {
@@ -370,10 +370,15 @@ impl HandleSearch for Loaded {
                     a
                 })
                 .collect();
-            if revert {
+            if stype == SearchType::Revert {
                 self.table.set_position(self.orig_location);
-            } else if let Some(idx) = highlight.iter().position(|x| *x) {
-                self.table.set_position(idx);
+            } else {
+                if let Some(idx) = highlight.iter().position(|x| *x) {
+                    if stype == SearchType::Confirm {
+                        self.orig_location = idx;
+                    }
+                    self.table.set_position(idx);
+                };
             };
             self.search = Some((count, search));
             self.table.set_highlight(&highlight);

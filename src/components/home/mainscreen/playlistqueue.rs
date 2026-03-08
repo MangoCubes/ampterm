@@ -13,7 +13,7 @@ use crate::{
             focusable::Focusable,
             handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult, PassKeySeq},
             handlequery::HandleQuery,
-            handlesearch::HandleSearch,
+            handlesearch::{HandleSearch, SearchType},
             renderable::Renderable,
         },
     },
@@ -163,9 +163,9 @@ impl HandleSearch for PlaylistQueue {
         }
     }
 
-    fn test_search(&mut self, search: String, revert: bool) {
+    fn test_search(&mut self, search: String, stype: SearchType) {
         if let Comp::Loaded(loaded) = &mut self.comp {
-            loaded.test_search(search, revert)
+            loaded.test_search(search, stype)
         };
     }
 }

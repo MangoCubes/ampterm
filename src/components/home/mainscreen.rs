@@ -28,7 +28,7 @@ use crate::{
             handleplayer::HandlePlayer,
             handlequery::HandleQuery,
             handleraw::HandleRaw,
-            handlesearch::HandleSearch,
+            handlesearch::{HandleSearch, SearchType},
             ontick::OnTick,
             renderable::Renderable,
         },
@@ -512,9 +512,14 @@ impl HandleAction for MainScreen {
             // | TargetedAction::ClearFilter
             TargetedAction::ApplySearch(search, confirm) => {
                 match &self.state {
-                    CurrentlySelected::PlaylistQueue => {
-                        self.pl_queue.test_search(search.clone(), false)
-                    }
+                    CurrentlySelected::PlaylistQueue => self.pl_queue.test_search(
+                        search.clone(),
+                        if confirm {
+                            SearchType::Confirm
+                        } else {
+                            SearchType::Normal
+                        },
+                    ),
                     _ => {}
                 };
                 if confirm {
@@ -528,9 +533,9 @@ impl HandleAction for MainScreen {
             TargetedAction::ClearSearch => {
                 self.popup = Popup::None;
                 match &self.state {
-                    CurrentlySelected::PlaylistQueue => {
-                        self.pl_queue.test_search("".to_string(), true)
-                    }
+                    CurrentlySelected::PlaylistQueue => self
+                        .pl_queue
+                        .test_search("".to_string(), SearchType::Revert),
                     _ => {}
                 };
                 Some(Action::ChangeMode(Mode::Normal))

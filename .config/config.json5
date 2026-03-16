@@ -206,6 +206,13 @@
         "username": "echo demo",
         "password": "echo demo",
     },
+	// A relatively secure setup using `secret-tool`
+    // "auth": {
+    //     "url": "secret-tool search Title Ampache 2>&1 | grep 'attribute.URL' | cut -d' ' -f3 | tr '\n' ' '",
+    //     "username": "secret-tool search Title Ampache 2>&1 | grep 'attribute.UserName' | cut -d' ' -f3 | tr '\n' ' '",
+    //     "password": "secret-tool lookup Title Ampache",
+    // },
+
     "unsafe_auth": {
         "url": "",
         "username": "",

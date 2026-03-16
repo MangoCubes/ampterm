@@ -5,15 +5,16 @@ mod loading;
 mod notselected;
 
 use crate::{
-    action::action::Action,
+    action::action::{Action, SearchType},
     compid::CompID,
     components::{
         home::mainscreen::playlistqueue::{empty::Empty, loading::Loading},
         traits::{
             focusable::Focusable,
+            handlefilter::HandleFilter,
             handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult, PassKeySeq},
             handlequery::HandleQuery,
-            handleraw::HandleRaw,
+            handlesearch::HandleSearch,
             renderable::Renderable,
         },
     },
@@ -47,16 +48,6 @@ pub struct PlaylistQueue {
     comp: Comp,
     enabled: bool,
     config: Config,
-}
-
-impl HandleRaw for PlaylistQueue {
-    fn handle_raw(&mut self, key: KeyEvent) -> Option<Action> {
-        if let Comp::Loaded(l) = &mut self.comp {
-            l.handle_raw(key)
-        } else {
-            None
-        }
-    }
 }
 
 impl PlaylistQueue {
@@ -162,5 +153,32 @@ impl Focusable for PlaylistQueue {
                 Comp::Empty(empty) => empty.set_enabled(enable),
             }
         };
+    }
+}
+
+impl HandleSearch for PlaylistQueue {
+    fn init_search(&mut self) -> bool {
+        match &mut self.comp {
+            Comp::Loaded(loaded) => loaded.init_search(),
+            _ => false,
+        }
+    }
+
+    fn test_search(&mut self, search: String, stype: SearchType) {
+        if let Comp::Loaded(loaded) = &mut self.comp {
+            loaded.test_search(search, stype)
+        };
+    }
+}
+
+impl HandleFilter for PlaylistQueue {
+    fn set_filter(&mut self, filter: String) {
+        if let Comp::Loaded(loaded) = &mut self.comp {
+            loaded.set_filter(filter);
+        };
+    }
+
+    fn init_filter(&mut self) -> bool {
+        matches!(&mut self.comp, Comp::Loaded(_))
     }
 }

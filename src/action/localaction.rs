@@ -158,15 +158,6 @@ pub enum PlaylistQueueAction {
     ToggleStar,
     /// Shuffle the selected items, and add them to the queue
     RandomAdd(QueueLocation),
-    /// Go into filter mode. Everything that does not match the condition is not displayed.
-    Filter,
-    /// Remove filter
-    ClearFilter,
-    /// Search for a keyword. Unlike filter, this is applied immediately and does not hide
-    /// non-matching elements. User can jump between matched items with SearchNext and SearchPrev.
-    Search,
-    /// Reset search
-    ClearSearch,
     /// View information of the item under the cursor
     ViewInfo,
     /// Add selected items to a playlist
@@ -188,10 +179,6 @@ impl ToString for PlaylistQueueAction {
                 QueueLocation::Last => "Shuffle the selected items and append it to the queue",
             },
             PlaylistQueueAction::ToggleStar => "Star/unstar items",
-            PlaylistQueueAction::Filter => "Filter items (hides items that do not match)",
-            PlaylistQueueAction::ClearFilter => "Remove filter",
-            PlaylistQueueAction::Search => "Search for a specific keyword",
-            PlaylistQueueAction::ClearSearch => "Clear the current search",
             PlaylistQueueAction::ViewInfo => "View details of the current media",
             PlaylistQueueAction::AddToPlaylist => "Add selected items to a playlist",
         }

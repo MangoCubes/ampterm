@@ -56,6 +56,17 @@ impl ToString for QueueAction {
     }
 }
 
+#[derive(PartialEq, Eq, Clone, Serialize, Deserialize, Debug)]
+pub enum SearchType {
+    /// User is currently typing.
+    Normal,
+    /// User has cancelled search. The cursor's position should revert.
+    Revert,
+    /// User has confirmed search. The cursor should maintain its position, but also save the
+    /// current position.
+    Confirm,
+}
+
 /// These actions are associated with a specific component in the program, and are usually
 /// available regardles of the currently focused component.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -99,12 +110,38 @@ pub enum TargetedAction {
     ClearScreen,
     Quit,
 
+    /// Go into filter mode. Everything that does not match the condition is not displayed.
+    OpenFilter,
+    /// Remove filter
+    ClearFilter,
+    /// Applies the filter with the given string. Anything that does not contain this string is not
+    /// displayed. Applying empty filter is equivalent to clearing the filter.
+    /// Unlike ApplySearch, this does not have a boolean as applying filter always implies applying
+    /// closing the filter popup.
+    ApplyFilter(String),
+    /// Close filter dialog without doing anything
+    CloseFilter,
+
+    /// Search for a keyword. Unlike filter, this is applied immediately and does not hide
+    /// non-matching elements. User can jump between matched items with SearchNext and SearchPrev.
+    OpenSearch,
+    /// Reset search
+    ClearSearch,
+    /// Applies search with the given string. Anything that contains this string is highlighted.
+    ApplySearch(String),
+
+    ///
     /// Anything below should not be used directly by the user, as it can break the system
+    ///
     Queue(QueueAction),
 
     Debug(String),
     Info(String),
     Err(String),
+
+    /// Applies search with the given string. Anything that contains this string is highlighted.
+    /// Applying empty search is equivalent to clearing the search keywords
+    SearchUpdate(String, SearchType),
 
     ViewPlaylistInfo(SimplePlaylist),
     ViewMediaInfo(Media),
@@ -179,6 +216,16 @@ impl ToString for TargetedAction {
             TargetedAction::AddCurrentItemToPlaylist => {
                 "Add the current item to a playlist".to_string()
             }
+            TargetedAction::OpenFilter => {
+                "Filter items (hides items that do not match)".to_string()
+            }
+            TargetedAction::ClearFilter => "Remove filter".to_string(),
+            TargetedAction::OpenSearch => "Search for a specific keyword".to_string(),
+            TargetedAction::ClearSearch => "Clear the current search".to_string(),
+            TargetedAction::ApplyFilter(f) => format!("Filter content by keyword '{}'", f),
+            TargetedAction::SearchUpdate(s, _) => format!("Search content by keyword '{}'", s),
+            TargetedAction::CloseFilter => "Close filter dialog".to_string(),
+            TargetedAction::ApplySearch(s) => format!("Search content by keyword '{}'", s),
         }
     }
 }

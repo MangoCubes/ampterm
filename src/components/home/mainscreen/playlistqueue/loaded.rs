@@ -1,26 +1,19 @@
-mod filter;
-mod search;
 use crate::{
     action::{
-        action::{Action, Mode, QueueAction, TargetedAction},
+        action::{Action, QueueAction, SearchType, TargetedAction},
         localaction::PlaylistQueueAction,
     },
     components::{
-        home::mainscreen::playlistqueue::{
-            loaded::{
-                filter::{Filter, FilterResult},
-                search::{Search, SearchResult},
-            },
-            PlaylistQueue,
-        },
+        home::mainscreen::playlistqueue::PlaylistQueue,
         lib::{
             scrollbar::ScrollBar,
             visualtable::{VisualSelection, VisualTable},
         },
         traits::{
             focusable::Focusable,
+            handlefilter::HandleFilter,
             handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult},
-            handleraw::HandleRaw,
+            handlesearch::HandleSearch,
             renderable::Renderable,
         },
     },
@@ -40,15 +33,9 @@ use crossterm::event::KeyEvent;
 use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Style, Stylize},
-    widgets::{Clear, Row, Table, TableState},
+    widgets::{Row, Table, TableState},
     Frame,
 };
-
-enum State {
-    Nothing,
-    Filtering(Filter),
-    Searching(Search, usize),
-}
 
 pub struct Loaded {
     name: String,
@@ -56,10 +43,10 @@ pub struct Loaded {
     enabled: bool,
     table: VisualTable,
     keymap: KeyBindings<PlaylistQueueAction>,
-    state: State,
     filter: Option<(usize, String)>,
     search: Option<(usize, String)>,
     bar: ScrollBar,
+    orig_location: usize,
 }
 
 impl Loaded {
@@ -157,9 +144,9 @@ impl Loaded {
             enabled,
             playlist: list,
             table,
-            state: State::Nothing,
             filter: None,
             search: None,
+            orig_location: 0,
         }
     }
 
@@ -184,88 +171,6 @@ impl Loaded {
         let rows = Self::gen_rows(&self.playlist.entry);
         self.table.set_rows(rows);
         None
-    }
-
-    /// Executed when the user types something into the search bar
-    fn apply_search(&mut self, search: String) -> Option<Action> {
-        if search.len() == 0 {
-            self.search = Some((0, search));
-            self.table.reset_highlight();
-            None
-        } else {
-            let mut count = 0;
-            let highlight: Vec<bool> = self
-                .playlist
-                .entry
-                .iter()
-                .map(|i| {
-                    let a = i.title.to_lowercase().contains(&search.to_lowercase());
-                    if a {
-                        count += 1;
-                    }
-                    a
-                })
-                .collect();
-            if let Some(idx) = highlight.iter().position(|x| *x) {
-                self.table.set_position(idx);
-            };
-            self.search = Some((count, search));
-            self.table.set_highlight(&highlight);
-            None
-        }
-    }
-
-    /// Executed when the user confirms the search by pressing enter
-    fn confirm_search(&mut self, search: String) -> Action {
-        self.apply_search(search);
-        self.state = State::Nothing;
-        Action::ChangeMode(Mode::Normal)
-    }
-
-    /// Executed whent the search is cancelled or removed
-    fn clear_search(&mut self) -> Action {
-        if let State::Searching(_, idx) = self.state {
-            self.table.set_position(idx);
-        };
-        self.state = State::Nothing;
-        self.search = None;
-        self.table.reset_highlight();
-        self.table.bump_cursor_pos();
-        Action::ChangeMode(Mode::Normal)
-    }
-    fn set_filter(&mut self, filter: String) -> Action {
-        let mut count = 0;
-        let visibility: Vec<bool> = self
-            .playlist
-            .entry
-            .iter()
-            .map(|i| {
-                let a = i.title.to_lowercase().contains(&filter.to_lowercase());
-                if a {
-                    count += 1;
-                }
-                a
-            })
-            .collect();
-        self.filter = Some((count, filter));
-        self.state = State::Nothing;
-        self.table.set_visibility(&visibility);
-        self.table.bump_cursor_pos();
-        self.bar.update_max(count as u32);
-        Action::ChangeMode(Mode::Normal)
-    }
-    fn reset_filter(&mut self) -> Action {
-        self.state = State::Nothing;
-        self.filter = None;
-        self.table.reset_visibility();
-        self.table.bump_cursor_pos();
-        self.bar.update_max(self.playlist.entry.len() as u32);
-        Action::ChangeMode(Mode::Normal)
-    }
-    fn exit_filter(&mut self) -> Action {
-        self.state = State::Nothing;
-        self.table.bump_cursor_pos();
-        Action::ChangeMode(Mode::Normal)
     }
 }
 
@@ -295,33 +200,8 @@ impl Renderable for Loaded {
             format!("{} ({}){}", self.name, len, extra)
         };
         let border = PlaylistQueue::gen_block(self.enabled, title);
-        let inner = match &mut self.state {
-            State::Nothing => {
-                let inner = border.inner(area);
-                frame.render_widget(border, area);
-                inner
-            }
-            State::Filtering(filter) => {
-                let layout =
-                    Layout::default().constraints([Constraint::Min(1), Constraint::Length(3)]);
-                let areas = layout.split(area);
-                let inner = border.inner(areas[0]);
-                frame.render_widget(border, areas[0]);
-                frame.render_widget(Clear, areas[1]);
-                filter.draw(frame, areas[1]);
-                inner
-            }
-            State::Searching(search, _) => {
-                let layout =
-                    Layout::default().constraints([Constraint::Min(1), Constraint::Length(3)]);
-                let areas = layout.split(area);
-                let inner = border.inner(areas[0]);
-                frame.render_widget(border, areas[0]);
-                frame.render_widget(Clear, areas[1]);
-                search.draw(frame, areas[1]);
-                inner
-            }
-        };
+        let inner = border.inner(area);
+        frame.render_widget(border, area);
         let [list, bar] =
             Layout::horizontal([Constraint::Fill(1), Constraint::Length(1)]).areas(inner);
         self.table.draw(frame, list);
@@ -408,23 +288,6 @@ impl HandleKeySeq<PlaylistQueueAction> for Loaded {
                 Some(a) => KeySeqResult::ActionNeeded(a),
                 None => KeySeqResult::NoActionNeeded,
             },
-            PlaylistQueueAction::Filter => {
-                self.state = State::Filtering(Filter::new());
-                KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Insert))
-            }
-            PlaylistQueueAction::ClearFilter => KeySeqResult::ActionNeeded(self.reset_filter()),
-            PlaylistQueueAction::Search => {
-                self.state = State::Searching(
-                    Search::new(if let Some((_, search)) = &self.search {
-                        search.clone()
-                    } else {
-                        "".to_string()
-                    }),
-                    self.table.get_current().unwrap_or(0),
-                );
-                KeySeqResult::ActionNeeded(Action::ChangeMode(Mode::Insert))
-            }
-            PlaylistQueueAction::ClearSearch => KeySeqResult::ActionNeeded(self.clear_search()),
             PlaylistQueueAction::AddToPlaylist => {
                 let (vs, action) = self.table.get_selection_reset();
 
@@ -481,34 +344,89 @@ impl Focusable for Loaded {
     }
 }
 
-impl HandleRaw for Loaded {
-    fn handle_raw(&mut self, key: KeyEvent) -> Option<Action> {
-        match &mut self.state {
-            State::Nothing => unreachable!("Playlist queue should never enter insert mode without filtering or searching active."),
-            State::Filtering(f) => {
-                match f.handle_raw(key) {
-                    FilterResult::NoChange => None,
-                    FilterResult::ApplyFilter(filter) => {
-                        Some(self.set_filter(filter))
-                    },
-                    FilterResult::ClearFilter => {
-                        Some(self.reset_filter())
+impl HandleSearch for Loaded {
+    fn init_search(&mut self) -> bool {
+        self.orig_location = self.table.get_current().unwrap_or(0);
+        true
+    }
+    fn test_search(&mut self, search: String, stype: SearchType) {
+        if search.len() == 0 {
+            self.search = Some((0, search));
+            self.table.reset_highlight();
+            if stype == SearchType::Revert {
+                self.table.set_position(self.orig_location);
+            }
+        } else {
+            let mut count = 0;
+            let highlight: Vec<bool> = self
+                .playlist
+                .entry
+                .iter()
+                .map(|i| {
+                    let a = i.title.to_lowercase().contains(&search.to_lowercase());
+                    if a {
+                        count += 1;
                     }
-                    FilterResult::Exit => Some(self.exit_filter())
-                }
-            },
-            State::Searching(s , idx) => {
-                match s.handle_raw(key) {
-                    SearchResult::ApplySearch(s) => self.apply_search(s),
-                    SearchResult::ConfirmSearch(s, b) => {
-                        if !b {
-                            self.table.set_position(*idx);
+                    a
+                })
+                .collect();
+            if stype == SearchType::Revert {
+                self.table.set_position(self.orig_location);
+            } else {
+                let last = highlight.iter().rposition(|x| *x);
+                if let Some(i) = last {
+                    let pos = self.table.get_current().unwrap_or(0);
+                    let idx = if i < pos {
+                        // Last item is before the current position
+                        i
+                    } else {
+                        let mut idx = 0;
+                        for j in pos..highlight.len() {
+                            if highlight[j] {
+                                idx = j;
+                                break;
+                            }
                         }
-                        Some(self.confirm_search(s))
+                        idx
+                    };
+                    if stype == SearchType::Confirm {
+                        self.orig_location = idx;
                     }
-                    SearchResult::CancelSearch => Some(self.clear_search()),
+                    self.table.set_position(idx);
                 }
-            },
+                // No item found
+            };
+            self.search = Some((count, search));
+            self.table.set_highlight(&highlight);
+        }
+    }
+}
+
+impl HandleFilter for Loaded {
+    fn set_filter(&mut self, filter: String) {
+        if filter.len() == 0 {
+            self.filter = None;
+            self.table.reset_visibility();
+            self.table.bump_cursor_pos();
+            self.bar.update_max(self.playlist.entry.len() as u32);
+        } else {
+            let mut count = 0;
+            let visibility: Vec<bool> = self
+                .playlist
+                .entry
+                .iter()
+                .map(|i| {
+                    let a = i.title.to_lowercase().contains(&filter.to_lowercase());
+                    if a {
+                        count += 1;
+                    }
+                    a
+                })
+                .collect();
+            self.filter = Some((count, filter));
+            self.table.set_visibility(&visibility);
+            self.table.bump_cursor_pos();
+            self.bar.update_max(count as u32);
         }
     }
 }

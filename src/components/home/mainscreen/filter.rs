@@ -51,6 +51,15 @@ impl HandleRaw for Filter {
                     Some(Action::Targeted(TargetedAction::ApplyFilter(filter)))
                 }
             }
+            KeyCode::Backspace => {
+                let filter = &self.input.lines()[0];
+                if filter.len() == 0 {
+                    Some(Action::Targeted(TargetedAction::ClearFilter))
+                } else {
+                    self.input.input(key);
+                    None
+                }
+            }
             _ => {
                 self.input.input(key);
                 None

@@ -508,8 +508,15 @@ impl HandleAction for MainScreen {
                 self.popup = Popup::Filtering(Filter::new());
                 Some(Action::ChangeMode(Mode::Insert))
             }
+            TargetedAction::ClearFilter => {
+                self.popup = Popup::None;
+                match &self.state {
+                    CurrentlySelected::PlaylistQueue => todo!(),
+                    _ => {}
+                };
+                Some(Action::ChangeMode(Mode::Normal))
+            }
             // TargetedAction::ApplyFilter(_)
-            // | TargetedAction::ClearFilter
             TargetedAction::ApplySearch(search) => Some(Action::Targeted(
                 TargetedAction::SearchUpdate(search, SearchType::Confirm),
             )),

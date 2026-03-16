@@ -23,6 +23,7 @@ use crate::{
         traits::{
             focusable::Focusable,
             handleaction::HandleAction,
+            handlefilter::HandleFilter,
             handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult, PassKeySeq},
             handlemode::HandleMode,
             handleplayer::HandlePlayer,
@@ -505,18 +506,33 @@ impl HandleAction for MainScreen {
                 None
             }
             TargetedAction::OpenFilter => {
-                self.popup = Popup::Filtering(Filter::new());
-                Some(Action::ChangeMode(Mode::Insert))
+                let applicable = match &self.state {
+                    CurrentlySelected::PlaylistQueue => self.pl_queue.init_filter(),
+                    _ => false,
+                };
+                if applicable {
+                    self.popup = Popup::Filtering(Filter::new());
+                    Some(Action::ChangeMode(Mode::Insert))
+                } else {
+                    None
+                }
             }
             TargetedAction::ClearFilter => {
                 self.popup = Popup::None;
                 match &self.state {
-                    CurrentlySelected::PlaylistQueue => todo!(),
+                    CurrentlySelected::PlaylistQueue => self.pl_queue.set_filter("".to_string()),
                     _ => {}
                 };
                 Some(Action::ChangeMode(Mode::Normal))
             }
-            // TargetedAction::ApplyFilter(_)
+            TargetedAction::ApplyFilter(filter) => {
+                self.popup = Popup::None;
+                match &self.state {
+                    CurrentlySelected::PlaylistQueue => self.pl_queue.set_filter(filter),
+                    _ => {}
+                };
+                Some(Action::ChangeMode(Mode::Normal))
+            }
             TargetedAction::ApplySearch(search) => Some(Action::Targeted(
                 TargetedAction::SearchUpdate(search, SearchType::Confirm),
             )),

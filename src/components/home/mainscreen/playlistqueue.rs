@@ -11,6 +11,7 @@ use crate::{
         home::mainscreen::playlistqueue::{empty::Empty, loading::Loading},
         traits::{
             focusable::Focusable,
+            handlefilter::HandleFilter,
             handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult, PassKeySeq},
             handlequery::HandleQuery,
             handlesearch::HandleSearch,
@@ -167,5 +168,17 @@ impl HandleSearch for PlaylistQueue {
         if let Comp::Loaded(loaded) = &mut self.comp {
             loaded.test_search(search, stype)
         };
+    }
+}
+
+impl HandleFilter for PlaylistQueue {
+    fn set_filter(&mut self, filter: String) {
+        if let Comp::Loaded(loaded) = &mut self.comp {
+            loaded.set_filter(filter);
+        };
+    }
+
+    fn init_filter(&mut self) -> bool {
+        matches!(&mut self.comp, Comp::Loaded(_))
     }
 }

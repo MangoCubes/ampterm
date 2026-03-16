@@ -1,6 +1,6 @@
 use crate::{
     action::{
-        action::{Action, Mode, QueueAction, SearchType, TargetedAction},
+        action::{Action, QueueAction, SearchType, TargetedAction},
         localaction::PlaylistQueueAction,
     },
     components::{
@@ -403,37 +403,30 @@ impl HandleSearch for Loaded {
 }
 
 impl HandleFilter for Loaded {
-    fn set_filter(&mut self, filter: String) -> Action {
-        let mut count = 0;
-        let visibility: Vec<bool> = self
-            .playlist
-            .entry
-            .iter()
-            .map(|i| {
-                let a = i.title.to_lowercase().contains(&filter.to_lowercase());
-                if a {
-                    count += 1;
-                }
-                a
-            })
-            .collect();
-        self.filter = Some((count, filter));
-        self.table.set_visibility(&visibility);
-        self.table.bump_cursor_pos();
-        self.bar.update_max(count as u32);
-        Action::ChangeMode(Mode::Normal)
-    }
-
-    fn reset_filter(&mut self) -> Action {
-        self.filter = None;
-        self.table.reset_visibility();
-        self.table.bump_cursor_pos();
-        self.bar.update_max(self.playlist.entry.len() as u32);
-        Action::ChangeMode(Mode::Normal)
-    }
-
-    fn exit_filter(&mut self) -> Action {
-        self.table.bump_cursor_pos();
-        Action::ChangeMode(Mode::Normal)
+    fn set_filter(&mut self, filter: String) {
+        if filter.len() == 0 {
+            self.filter = None;
+            self.table.reset_visibility();
+            self.table.bump_cursor_pos();
+            self.bar.update_max(self.playlist.entry.len() as u32);
+        } else {
+            let mut count = 0;
+            let visibility: Vec<bool> = self
+                .playlist
+                .entry
+                .iter()
+                .map(|i| {
+                    let a = i.title.to_lowercase().contains(&filter.to_lowercase());
+                    if a {
+                        count += 1;
+                    }
+                    a
+                })
+                .collect();
+            self.filter = Some((count, filter));
+            self.table.set_visibility(&visibility);
+            self.table.bump_cursor_pos();
+            self.bar.update_max(count as u32);
+        }
     }
 }

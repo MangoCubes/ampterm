@@ -62,7 +62,7 @@ impl Playing {
 
         Action::Multiple(actions)
     }
-    pub fn new(playing: bool, music: Media, config: Config) -> (Self, Option<Action>) {
+    pub fn new(music: Media, config: Config) -> (Self, Option<Action>) {
         let mut actions = vec![];
         let cover = if config.features.cover_art.enable {
             if let Ok(picker) = trace_dbg!(Picker::from_query_stdio()) {
@@ -91,7 +91,7 @@ impl Playing {
         };
         (
             Self {
-                playing,
+                playing: true,
                 pos: Duration::from_secs(0),
                 music: music,
                 lyrics,

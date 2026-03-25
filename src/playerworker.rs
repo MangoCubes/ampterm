@@ -238,9 +238,12 @@ impl PlayerWorker {
                     };
                     let mut lock = self.playerstatus.write().await;
                     lock.now_playing = Some(music.clone());
+                    lock.playing = true;
                     let token = self.play_from_url(url);
                     self.send_player_msg(FromPlayerWorker::NowPlaying(Some(music)));
+                    self.send_player_msg(FromPlayerWorker::Playing(true));
                     self.timer.reset();
+                    self.sink.play();
                     self.state = WorkerState::Playing(token);
                 }
                 ToPlayerWorker::GoToStart => {

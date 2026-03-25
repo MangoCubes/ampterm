@@ -139,6 +139,10 @@ impl HandlePlayer for NowPlaying {
             }
             FromPlayerWorker::Finished => None,
             FromPlayerWorker::NowPlaying(_) => None,
+            FromPlayerWorker::Complete => {
+                self.comp = Comp::Stopped(Stopped::new());
+                None
+            }
         }
     }
 }

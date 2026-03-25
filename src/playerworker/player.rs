@@ -69,5 +69,8 @@ pub enum FromPlayerWorker {
     NowPlaying(Option<Media>),
     Volume(f32),
     Speed(f32),
+    /// Fired when the current music file has been finished
     Finished,
+    /// Fired when the entire queue has been exhausted
+    Complete,
 }

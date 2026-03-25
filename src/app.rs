@@ -284,6 +284,10 @@ impl App {
                 }
                 Action::FromPlayer(pw) => {
                     let _ = match &pw {
+                        FromPlayerWorker::Complete => {
+                            self.delayer.on_stop();
+                            Ok(())
+                        }
                         FromPlayerWorker::Playing(b) => {
                             self.mpris_tx.send(MprisSignal::Playing(*b))
                         }

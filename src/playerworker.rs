@@ -221,6 +221,7 @@ impl PlayerWorker {
                     self.send_player_msg(FromPlayerWorker::NowPlaying(None));
                     self.send_player_msg(FromPlayerWorker::Position(Duration::from_secs(0)));
                     self.send_player_msg(FromPlayerWorker::Playing(false));
+                    self.send_player_msg(FromPlayerWorker::Complete);
                 }
                 ToPlayerWorker::Pause => self.pause_stream().await,
                 ToPlayerWorker::Resume => self.continue_stream().await,

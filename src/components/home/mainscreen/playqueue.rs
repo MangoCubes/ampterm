@@ -315,10 +315,19 @@ impl PlayQueue {
         let rows = Self::gen_rows_from(&self.list.0, &self.now_playing);
         self.table.add_rows_at(rows, idx, len);
 
-        if max == 0 && len != 0 {
-            Some(self.skip_to(CurrentItem::InQueue(0)))
-        } else if matches!(at, QueueLocation::Front) {
-            Some(self.skip_to(self.now_playing.clone()))
+        if len != 0 {
+            if max == 0 {
+                // If the queue was empty and items were added to the queue, play them
+                Some(self.skip_to(CurrentItem::InQueue(0)))
+            } else if matches!(self.now_playing, CurrentItem::AfterLast) {
+                // If the new item was added after the last item, then play the new item
+                Some(self.skip_to(CurrentItem::InQueue(max)))
+            } else if matches!(at, QueueLocation::Front) {
+                // If the new item overwrote the current item, then play the new item
+                Some(self.skip_to(self.now_playing.clone()))
+            } else {
+                None
+            }
         } else {
             None
         }

@@ -43,7 +43,6 @@ pub struct NowPlaying {
     config: Config,
     speed: Speed,
     volume: Volume,
-    playing: bool,
 }
 
 impl PassKeySeq for NowPlaying {
@@ -70,7 +69,6 @@ impl NowPlaying {
     }
     pub fn new(enabled: bool, config: Config) -> Self {
         Self {
-            playing: true,
             volume: Volume::new(config.init_state.volume),
             config,
             enabled,
@@ -105,7 +103,7 @@ impl HandleQuery for NowPlaying {
             }
         } else {
             if let QueryStatus::Requested(HighLevelQuery::PlayMusicFromURL(m)) = res {
-                let (comp, action) = Playing::new(self.playing, m, self.config.clone());
+                let (comp, action) = Playing::new(m, self.config.clone());
                 self.comp = Comp::Playing(comp);
                 action
             } else {
@@ -118,15 +116,9 @@ impl HandleQuery for NowPlaying {
 impl HandlePlayer for NowPlaying {
     fn handle_player(&mut self, pw: FromPlayerWorker) -> Option<Action> {
         match pw {
-            FromPlayerWorker::Playing(p) => {
-                self.playing = p;
-                if let Comp::Playing(playing) = &mut self.comp {
-                    playing.handle_player(pw)
-                } else {
-                    None
-                }
-            }
-            FromPlayerWorker::Jump(_) | FromPlayerWorker::Position(_) => {
+            FromPlayerWorker::Playing(_)
+            | FromPlayerWorker::Jump(_)
+            | FromPlayerWorker::Position(_) => {
                 if let Comp::Playing(playing) = &mut self.comp {
                     playing.handle_player(pw)
                 } else {
@@ -147,6 +139,10 @@ impl HandlePlayer for NowPlaying {
             }
             FromPlayerWorker::Finished => None,
             FromPlayerWorker::NowPlaying(_) => None,
+            FromPlayerWorker::Complete => {
+                self.comp = Comp::Stopped(Stopped::new());
+                None
+            }
         }
     }
 }

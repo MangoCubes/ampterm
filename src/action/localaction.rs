@@ -115,6 +115,24 @@ impl ToString for LyricsAction {
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 pub enum LeftPanelAction {
+    /// Cycle to next left panel view
+    CycleViewPrev,
+    /// Cycle to previous left panel view
+    CycleViewNext,
+}
+
+impl ToString for LeftPanelAction {
+    fn to_string(&self) -> String {
+        match self {
+            LeftPanelAction::CycleViewPrev => "Cycle to next left-panel view",
+            LeftPanelAction::CycleViewNext => "Cycle to previous left-panel view",
+        }
+        .to_string()
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub enum PlaylistListAction {
     /// Add the entire playlist to the queue
     Add(QueueLocation),
     /// Shuffle the entire playlist, then add it to the queue
@@ -127,22 +145,22 @@ pub enum LeftPanelAction {
     Refresh,
 }
 
-impl ToString for LeftPanelAction {
+impl ToString for PlaylistListAction {
     fn to_string(&self) -> String {
         match self {
-            LeftPanelAction::Add(queue_location) => match queue_location {
+            PlaylistListAction::Add(queue_location) => match queue_location {
                 QueueLocation::Front => "Play the entire playlist immediately",
                 QueueLocation::Next => "Play the entire playlist next",
                 QueueLocation::Last => "Append the entire playlist to the end of the queue",
             },
-            LeftPanelAction::ViewSelected => "Open selected playlist",
-            LeftPanelAction::RandomAdd(queue_location) => match queue_location {
+            PlaylistListAction::ViewSelected => "Open selected playlist",
+            PlaylistListAction::RandomAdd(queue_location) => match queue_location {
                 QueueLocation::Front => "Shuffle the playlist and play it immediately",
                 QueueLocation::Next => "Shuffle the playlist and play it next",
                 QueueLocation::Last => "Shuffle the playlist and append it to the queue",
             },
-            LeftPanelAction::ViewInfo => "View details of the current playlist",
-            LeftPanelAction::Refresh => "Refresh the playlist list",
+            PlaylistListAction::ViewInfo => "View details of the current playlist",
+            PlaylistListAction::Refresh => "Refresh the playlist list",
         }
         .to_string()
     }

@@ -1,23 +1,19 @@
-mod loaded;
+mod playlistlist;
 
 use crate::{
-    action::{action::Action, localaction::LeftPanelAction},
+    action::action::Action,
     compid::CompID,
     components::{
-        home::mainscreen::leftpanel::loaded::Loaded,
-        lib::centered::Centered,
+        home::mainscreen::leftpanel::playlistlist::PlaylistList,
         traits::{
             focusable::Focusable,
-            handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult, PassKeySeq},
+            handlekeyseq::{ComponentKeyHelp, KeySeqResult, PassKeySeq},
             handlequery::HandleQuery,
             renderable::Renderable,
         },
     },
     config::Config,
-    queryworker::{
-        highlevelquery::HighLevelQuery,
-        query::{QueryStatus, ResponseType, ToQueryWorker},
-    },
+    queryworker::query::QueryStatus,
 };
 use crossterm::event::KeyEvent;
 use ratatui::{
@@ -29,27 +25,23 @@ use ratatui::{
 };
 
 enum Comp {
-    Error(Centered),
-    Loaded(Loaded),
-    Loading(Centered),
+    PlaylistList(PlaylistList),
 }
 
 pub struct LeftPanel {
     comp: Comp,
     enabled: bool,
-    config: Config,
 }
 
 impl LeftPanel {
     pub fn new(config: Config, enabled: bool) -> (Self, Action) {
-        let query = ToQueryWorker::new(HighLevelQuery::ListPlaylists);
+        let (comp, action) = PlaylistList::new(config, enabled);
         (
             Self {
-                comp: Comp::Loading(Centered::new(vec!["Loading...".to_string()])),
+                comp: Comp::PlaylistList(comp),
                 enabled,
-                config,
             },
-            Action::ToQuery(query),
+            action,
         )
     }
     fn gen_block(&self) -> Block<'static> {
@@ -58,8 +50,12 @@ impl LeftPanel {
         } else {
             Style::new().dark_gray()
         };
+        let title_text = match &self.comp {
+            Comp::PlaylistList(_) => "Playlist View".to_string(),
+        };
+
         let title = Span::styled(
-            "Playlist".to_string(),
+            title_text,
             if self.enabled {
                 Style::default().add_modifier(Modifier::BOLD)
             } else {
@@ -76,48 +72,15 @@ impl Renderable for LeftPanel {
         let inner = block.inner(area);
         frame.render_widget(block, area);
         match &mut self.comp {
-            Comp::Error(error) => error.draw(frame, inner),
-            Comp::Loaded(loaded) => loaded.draw(frame, inner),
-            Comp::Loading(loading) => loading.draw(frame, inner),
+            Comp::PlaylistList(pl) => pl.draw(frame, inner),
         }
     }
 }
 
 impl HandleQuery for LeftPanel {
     fn handle_query(&mut self, dest: CompID, ticket: usize, res: QueryStatus) -> Option<Action> {
-        if let QueryStatus::Finished(ResponseType::GetPlaylists(res)) = res {
-            match res {
-                Ok(simple_playlists) => {
-                    if let Comp::Loaded(c) = &mut self.comp {
-                        c.set_rows(&simple_playlists);
-                    } else {
-                        self.comp = Comp::Loaded(Loaded::new(
-                            self.config.clone(),
-                            simple_playlists.clone(),
-                        ));
-                    }
-                }
-                Err(error) => {
-                    let mut msg = vec!["Error!".to_string(), error];
-                    if let Some(keyseq) = self
-                        .config
-                        .local
-                        .leftpanel
-                        .find_action_str(LeftPanelAction::ViewSelected)
-                    {
-                        msg.push(format!("Reload with {}", keyseq));
-                    }
-
-                    self.comp = Comp::Error(Centered::new(msg));
-                }
-            }
-            None
-        } else {
-            if let Comp::Loaded(comp) = &mut self.comp {
-                comp.handle_query(dest, ticket, res)
-            } else {
-                None
-            }
+        match &mut self.comp {
+            Comp::PlaylistList(comp) => comp.handle_query(dest, ticket, res),
         }
     }
 }
@@ -125,14 +88,12 @@ impl HandleQuery for LeftPanel {
 impl PassKeySeq for LeftPanel {
     fn get_help(&self) -> Vec<ComponentKeyHelp> {
         match &self.comp {
-            Comp::Loaded(comp) => comp.get_help(),
-            _ => vec![],
+            Comp::PlaylistList(comp) => comp.get_help(),
         }
     }
     fn handle_key_seq(&mut self, keyseq: &Vec<KeyEvent>) -> Option<KeySeqResult> {
         match &mut self.comp {
-            Comp::Loaded(comp) => comp.handle_key_seq(keyseq),
-            _ => None,
+            Comp::PlaylistList(comp) => comp.handle_key_seq(keyseq),
         }
     }
 }

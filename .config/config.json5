@@ -128,7 +128,7 @@
 			"<Shift-g>": "Bottom",
 			"<g><g>": "Top",
 		},
-		"leftpanel": {
+		"playlistlist": {
 			"<Enter>": "ViewSelected",
 
 			"<i>": { "Add": "Front" },

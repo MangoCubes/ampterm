@@ -130,6 +130,7 @@ impl Config {
         insert_keybinds!(list_visual);
         insert_keybinds!(playqueue);
         insert_keybinds!(lyrics);
+        insert_keybinds!(playlistlist);
         insert_keybinds!(leftpanel);
         insert_keybinds!(playlistqueue);
         insert_keybinds!(help);

@@ -53,7 +53,10 @@ impl OnTick for BPMToy {
                 let elapsed = last_tap.elapsed();
                 if elapsed > Duration::from_secs(3) {
                     let bpm = 60.0 / (total_len / (interval_count as f64));
-                    self.state = State::Init(Centered::new(vec![format!("BPM: {:.2}", bpm)]));
+                    self.state = State::Init(Centered::new(vec![
+                        format!("BPM: {:.2}", bpm),
+                        format!("(Tap to measure again)"),
+                    ]));
                 }
             }
             _ => {}
@@ -128,7 +131,10 @@ impl BPMToy {
                         interval_count: interval_count + 1,
                         last_tap: Instant::now(),
                         total_len,
-                        comp: Centered::new(vec![format!("BPM: {:.2}", bpm)]),
+                        comp: Centered::new(vec![
+                            format!("BPM: {:.2}", bpm),
+                            format!("({} taps)", (*interval_count + 2)),
+                        ]),
                     }
                 }
             }

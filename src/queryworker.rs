@@ -14,11 +14,13 @@ use crate::lyricsclient::LyricsClient;
 use crate::osclient::response::empty::Empty;
 use crate::osclient::response::getplaylist::{GetPlaylist, IndeterminedPlaylist, Media};
 use crate::osclient::response::getplaylists::{GetPlaylists, SimplePlaylist};
+use crate::osclient::response::search3::Search3;
 use crate::osclient::types::CoverID;
 use crate::osclient::OSClient;
 use crate::playerworker::player::ToPlayerWorker;
 use crate::queryworker::highlevelquery::HighLevelQuery;
 use crate::queryworker::query::getplaylist::GetPlaylistResponse;
+use crate::queryworker::query::search3::SearchMode;
 use crate::queryworker::query::setcredential::Credential;
 use crate::queryworker::query::{QueryStatus, ResponseType};
 use crate::trace_dbg;
@@ -297,6 +299,28 @@ impl QueryWorker {
                             Ok(_) => Ok(()),
                             Err(e) => Err(e.to_string()),
                         })),
+                    });
+                });
+            }
+            HighLevelQuery::Search3(params) => {
+                let (tx, c) = self.prepare_async();
+                tokio::spawn(async move {
+                    let (ac, alc, sc) = match params.mode {
+                        SearchMode::Everything => (20, 20, 20),
+                        SearchMode::ByTitle => (0, 0, 20),
+                        SearchMode::ByArtist => (20, 0, 0),
+                        SearchMode::ByAlbum => (0, 20, 0),
+                    };
+                    let res = c.search3(&params.query, ac, alc, sc).await;
+                    let result = match res {
+                        Ok(Search3::Ok { search_result3 }) => Ok(search_result3),
+                        Ok(Search3::Failed { error }) => Err(error.to_string()),
+                        Err(e) => Err(e.to_string()),
+                    };
+                    let _ = tx.send(Action::FromQuery {
+                        dest: query.dest,
+                        ticket: query.ticket,
+                        res: QueryStatus::Finished(ResponseType::Search3(result)),
                     });
                 });
             }

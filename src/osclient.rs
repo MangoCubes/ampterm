@@ -7,6 +7,7 @@ use reqwest::{Method, Response};
 use response::empty::Empty;
 use response::getplaylist::GetPlaylist;
 use response::getplaylists::GetPlaylists;
+use response::search3::Search3;
 use response::wrapper::Wrapper;
 use serde::de::DeserializeOwned;
 use serde_json::from_str;
@@ -132,6 +133,28 @@ impl OSClient {
     pub async fn unstar(&self, id: MediaID) -> Result<Empty, ExternalError> {
         self.query_auth_text::<Empty>(Method::GET, "unstar", Some(vec![("id", &id)]))
             .await
+    }
+    pub async fn search3(
+        &self,
+        query: &str,
+        artist_count: u32,
+        album_count: u32,
+        song_count: u32,
+    ) -> Result<Search3, ExternalError> {
+        let ac = artist_count.to_string();
+        let alc = album_count.to_string();
+        let sc = song_count.to_string();
+        self.query_auth_text::<Search3>(
+            Method::GET,
+            "search3",
+            Some(vec![
+                ("query", query),
+                ("artistCount", &ac),
+                ("albumCount", &alc),
+                ("songCount", &sc),
+            ]),
+        )
+        .await
     }
     fn get_path(&self, path: &str, query: Option<Vec<(&str, &str)>>) -> Url {
         let (mut params, mut url): (Vec<(&str, String)>, Url) = match &self.auth {

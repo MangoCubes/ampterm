@@ -114,7 +114,7 @@ impl ToString for LyricsAction {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
-pub enum PlaylistListAction {
+pub enum LeftPanelAction {
     /// Add the entire playlist to the queue
     Add(QueueLocation),
     /// Shuffle the entire playlist, then add it to the queue
@@ -127,22 +127,22 @@ pub enum PlaylistListAction {
     Refresh,
 }
 
-impl ToString for PlaylistListAction {
+impl ToString for LeftPanelAction {
     fn to_string(&self) -> String {
         match self {
-            PlaylistListAction::Add(queue_location) => match queue_location {
+            LeftPanelAction::Add(queue_location) => match queue_location {
                 QueueLocation::Front => "Play the entire playlist immediately",
                 QueueLocation::Next => "Play the entire playlist next",
                 QueueLocation::Last => "Append the entire playlist to the end of the queue",
             },
-            PlaylistListAction::ViewSelected => "Open selected playlist",
-            PlaylistListAction::RandomAdd(queue_location) => match queue_location {
+            LeftPanelAction::ViewSelected => "Open selected playlist",
+            LeftPanelAction::RandomAdd(queue_location) => match queue_location {
                 QueueLocation::Front => "Shuffle the playlist and play it immediately",
                 QueueLocation::Next => "Shuffle the playlist and play it next",
                 QueueLocation::Last => "Shuffle the playlist and append it to the queue",
             },
-            PlaylistListAction::ViewInfo => "View details of the current playlist",
-            PlaylistListAction::Refresh => "Refresh the playlist list",
+            LeftPanelAction::ViewInfo => "View details of the current playlist",
+            LeftPanelAction::Refresh => "Refresh the playlist list",
         }
         .to_string()
     }
@@ -246,5 +246,42 @@ impl ToString for SelectPlaylistPopupAction {
                 format!("Select playlist {}", name.clone())
             }
         }
+    }
+}
+
+/// Actions for the Song Search left-panel view
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub enum SongSearchAction {
+    /// Move cursor up in the results list
+    Up,
+    /// Move cursor down in the results list
+    Down,
+    /// Jump to the first result
+    Top,
+    /// Jump to the last result
+    Bottom,
+    /// Queue the selected song immediately (play now)
+    QueueFront,
+    /// Queue the selected song as next
+    QueueNext,
+    /// Append the selected song to the end of the queue
+    QueueLast,
+    /// Enter search input mode
+    EnterSearch,
+}
+
+impl ToString for SongSearchAction {
+    fn to_string(&self) -> String {
+        match self {
+            SongSearchAction::Up => "Move up in results",
+            SongSearchAction::Down => "Move down in results",
+            SongSearchAction::Top => "Jump to first result",
+            SongSearchAction::Bottom => "Jump to last result",
+            SongSearchAction::QueueFront => "Play selected song immediately",
+            SongSearchAction::QueueNext => "Play selected song next",
+            SongSearchAction::QueueLast => "Append selected song to end of queue",
+            SongSearchAction::EnterSearch => "Enter search input mode",
+        }
+        .to_string()
     }
 }

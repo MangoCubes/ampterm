@@ -1,10 +1,10 @@
 mod bpmtoy;
 mod filter;
 mod help;
+pub mod leftpanel;
 mod mediainfo;
 mod nowplaying;
 mod playlistinfo;
-pub mod playlistlist;
 mod playlistqueue;
 mod playqueue;
 mod search;
@@ -42,8 +42,8 @@ use crate::{
     },
 };
 use crossterm::event::KeyEvent;
+use leftpanel::LeftPanel;
 use nowplaying::NowPlaying;
-use playlistlist::PlaylistList;
 use playlistqueue::PlaylistQueue;
 use playqueue::PlayQueue;
 use ratatui::{
@@ -81,7 +81,7 @@ enum Popup {
 
 pub struct MainScreen {
     state: CurrentlySelected,
-    pl_list: PlaylistList,
+    pl_list: LeftPanel,
     pl_queue: PlaylistQueue,
     now_playing: NowPlaying,
     tasks: Tasks,
@@ -177,7 +177,7 @@ impl MainScreen {
         self.popup = Popup::Help;
     }
     pub fn new(config: Config) -> (Self, Action) {
-        let (pl_list, action) = PlaylistList::new(config.clone(), true);
+        let (pl_list, action) = LeftPanel::new(config.clone(), true);
         (
             Self {
                 search: None,

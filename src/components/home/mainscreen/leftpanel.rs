@@ -1,10 +1,10 @@
 mod loaded;
 
 use crate::{
-    action::{action::Action, localaction::PlaylistListAction},
+    action::{action::Action, localaction::LeftPanelAction},
     compid::CompID,
     components::{
-        home::mainscreen::playlistlist::loaded::Loaded,
+        home::mainscreen::leftpanel::loaded::Loaded,
         lib::centered::Centered,
         traits::{
             focusable::Focusable,
@@ -34,13 +34,13 @@ enum Comp {
     Loading(Centered),
 }
 
-pub struct PlaylistList {
+pub struct LeftPanel {
     comp: Comp,
     enabled: bool,
     config: Config,
 }
 
-impl PlaylistList {
+impl LeftPanel {
     pub fn new(config: Config, enabled: bool) -> (Self, Action) {
         let query = ToQueryWorker::new(HighLevelQuery::ListPlaylists);
         (
@@ -70,7 +70,7 @@ impl PlaylistList {
     }
 }
 
-impl Renderable for PlaylistList {
+impl Renderable for LeftPanel {
     fn draw(&mut self, frame: &mut Frame, area: Rect) {
         let block = self.gen_block();
         let inner = block.inner(area);
@@ -83,7 +83,7 @@ impl Renderable for PlaylistList {
     }
 }
 
-impl HandleQuery for PlaylistList {
+impl HandleQuery for LeftPanel {
     fn handle_query(&mut self, dest: CompID, ticket: usize, res: QueryStatus) -> Option<Action> {
         if let QueryStatus::Finished(ResponseType::GetPlaylists(res)) = res {
             match res {
@@ -102,8 +102,8 @@ impl HandleQuery for PlaylistList {
                     if let Some(keyseq) = self
                         .config
                         .local
-                        .playlistlist
-                        .find_action_str(PlaylistListAction::ViewSelected)
+                        .leftpanel
+                        .find_action_str(LeftPanelAction::ViewSelected)
                     {
                         msg.push(format!("Reload with {}", keyseq));
                     }
@@ -122,7 +122,7 @@ impl HandleQuery for PlaylistList {
     }
 }
 
-impl PassKeySeq for PlaylistList {
+impl PassKeySeq for LeftPanel {
     fn get_help(&self) -> Vec<ComponentKeyHelp> {
         match &self.comp {
             Comp::Loaded(comp) => comp.get_help(),
@@ -137,7 +137,7 @@ impl PassKeySeq for PlaylistList {
     }
 }
 
-impl Focusable for PlaylistList {
+impl Focusable for LeftPanel {
     fn set_enabled(&mut self, enable: bool) {
         if self.enabled != enable {
             self.enabled = enable;

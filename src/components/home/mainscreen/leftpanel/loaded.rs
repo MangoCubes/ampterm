@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::{
     action::{
         action::{Action, QueueAction, TargetedAction},
-        localaction::PlaylistListAction,
+        localaction::LeftPanelAction,
     },
     compid::CompID,
     components::{
@@ -37,7 +37,7 @@ use tracing::error;
 pub struct Loaded {
     autofocus: bool,
     table: VisualTable,
-    keymap: KeyBindings<PlaylistListAction>,
+    keymap: KeyBindings<LeftPanelAction>,
     list: Vec<SimplePlaylist>,
     callback: HashMap<usize, (PlaylistID, QueueLocation, bool)>,
     bar: ScrollBar,
@@ -98,7 +98,7 @@ impl Loaded {
             table,
             callback: HashMap::new(),
             autofocus: config.behaviour.auto_focus,
-            keymap: config.local.playlistlist.clone(),
+            keymap: config.local.leftpanel.clone(),
             bar: ScrollBar::new(len as u32, 0),
         }
     }
@@ -155,7 +155,7 @@ impl HandleQuery for Loaded {
     }
 }
 
-impl HandleKeySeq<PlaylistListAction> for Loaded {
+impl HandleKeySeq<LeftPanelAction> for Loaded {
     fn get_name(&self) -> &str {
         "PlaylistList"
     }
@@ -165,21 +165,21 @@ impl HandleKeySeq<PlaylistListAction> for Loaded {
             .update_pos(self.table.get_current().unwrap_or(0) as u32);
         res
     }
-    fn handle_local_action(&mut self, action: PlaylistListAction) -> KeySeqResult {
+    fn handle_local_action(&mut self, action: LeftPanelAction) -> KeySeqResult {
         match action {
-            PlaylistListAction::Add(pos) => match self.add_to_queue(pos, false) {
+            LeftPanelAction::Add(pos) => match self.add_to_queue(pos, false) {
                 Some(a) => KeySeqResult::ActionNeeded(a),
                 None => KeySeqResult::NoActionNeeded,
             },
-            PlaylistListAction::ViewSelected => match self.select_playlist() {
+            LeftPanelAction::ViewSelected => match self.select_playlist() {
                 Some(a) => KeySeqResult::ActionNeeded(a),
                 None => KeySeqResult::NoActionNeeded,
             },
-            PlaylistListAction::RandomAdd(pos) => match self.add_to_queue(pos, true) {
+            LeftPanelAction::RandomAdd(pos) => match self.add_to_queue(pos, true) {
                 Some(a) => KeySeqResult::ActionNeeded(a),
                 None => KeySeqResult::NoActionNeeded,
             },
-            PlaylistListAction::ViewInfo => {
+            LeftPanelAction::ViewInfo => {
                 if let Some(pos) = self.table.get_current() {
                     KeySeqResult::ActionNeeded(Action::Targeted(TargetedAction::ViewPlaylistInfo(
                         self.list[pos].clone(),
@@ -188,13 +188,13 @@ impl HandleKeySeq<PlaylistListAction> for Loaded {
                     KeySeqResult::NoActionNeeded
                 }
             }
-            PlaylistListAction::Refresh => KeySeqResult::ActionNeeded(Action::ToQuery(
+            LeftPanelAction::Refresh => KeySeqResult::ActionNeeded(Action::ToQuery(
                 ToQueryWorker::new(HighLevelQuery::ListPlaylists),
             )),
         }
     }
 
-    fn get_keybinds(&self) -> &KeyBindings<PlaylistListAction> {
+    fn get_keybinds(&self) -> &KeyBindings<LeftPanelAction> {
         &self.keymap
     }
 }

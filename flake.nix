@@ -20,7 +20,9 @@
     // flake-utils.lib.eachDefaultSystem (
       system:
       let
-        pkgs = nixpkgs.legacyPackages.${system};
+        pkgs = import nixpkgs {
+          inherit system;
+        };
         nativeBuildInputs = [ pkgs.pkg-config ];
         buildInputs = with pkgs; [
           openssl

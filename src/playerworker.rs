@@ -4,13 +4,15 @@ mod realtime;
 mod streamerror;
 mod streamreader;
 
+use std::io::{self, Write};
 use std::sync::Arc;
 use std::time::Duration;
 
 use color_eyre::Result;
 use player::ToPlayerWorker;
 use rodio::cpal::traits::HostTrait;
-use rodio::{cpal, OutputStream, Sink};
+use rodio::cpal::Host;
+use rodio::{cpal, Device, DeviceTrait, OutputStream, OutputStreamBuilder, Sink};
 use streamerror::StreamError;
 use streamreader::StreamReader;
 use tokio::select;
@@ -340,16 +342,62 @@ impl PlayerWorker {
 }
 
 impl PlayerWorker {
+    fn select_device(host: &Host) -> Device {
+        let devices: Vec<Device> = host
+            .output_devices()
+            .expect("Failed to list all output device.")
+            .collect();
+        if devices.is_empty() {
+            panic!("No devices were found on this machine. I cannot play music here.");
+        }
+        println!("Please choose from available devices:");
+        for (i, device) in devices.iter().enumerate() {
+            let name = device
+                .name()
+                .unwrap_or_else(|_| "Unknown Device".to_string());
+            println!("{}: {}", i, name);
+        }
+        loop {
+            print!("Select device index: ");
+            let mut input = String::new();
+            let _ = io::stdout().flush();
+            let _ = io::stdin().read_line(&mut input);
+            let Ok(index) = input.trim().parse() else {
+                continue;
+            };
+            if let Some(d) = devices.iter().nth(index) {
+                return d.clone();
+            }
+        }
+    }
+    fn get_output_stream_builder() -> OutputStreamBuilder {
+        let host = cpal::default_host();
+        let mut device = match host.default_output_device() {
+            Some(d) => d,
+            None => Self::select_device(&host),
+        };
+        loop {
+            match rodio::OutputStreamBuilder::from_device(device) {
+                Ok(stream) => {
+                    return stream;
+                }
+                Err(e) => {
+                    println!(
+                        "Failed to open stream with that device: {:?}.",
+                        e.to_string()
+                    );
+                    device = Self::select_device(&host);
+                }
+            };
+        }
+    }
     pub fn new(
         playerstatus: Arc<RwLock<PlayerStatus>>,
         sender: UnboundedSender<Action>,
         config: Config,
     ) -> Self {
         let (player_tx, player_rx) = mpsc::unbounded_channel();
-        let host = cpal::default_host();
-        let device = host.default_output_device().unwrap();
-        let handle = rodio::OutputStreamBuilder::from_device(device)
-            .unwrap()
+        let handle = Self::get_output_stream_builder()
             .with_buffer_size(cpal::BufferSize::Fixed(4096))
             .open_stream()
             .unwrap();

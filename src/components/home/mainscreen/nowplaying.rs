@@ -11,6 +11,7 @@ use ratatui::{
     widgets::Block,
     Frame,
 };
+use ratatui_image::picker::Picker;
 use stopped::Stopped;
 
 use crate::{
@@ -43,6 +44,7 @@ pub struct NowPlaying {
     config: Config,
     speed: Speed,
     volume: Volume,
+    picker: Option<Picker>,
 }
 
 impl PassKeySeq for NowPlaying {
@@ -67,13 +69,14 @@ impl NowPlaying {
             Comp::Stopped(_) => None,
         }
     }
-    pub fn new(enabled: bool, config: Config) -> Self {
+    pub fn new(enabled: bool, config: Config, picker: Option<Picker>) -> Self {
         Self {
             volume: Volume::new(config.init_state.volume),
             config,
             enabled,
             comp: Comp::Stopped(Stopped::new()),
             speed: Speed::new(1.0),
+            picker,
         }
     }
     fn gen_block(&self) -> Block<'static> {
@@ -103,7 +106,7 @@ impl HandleQuery for NowPlaying {
             }
         } else {
             if let QueryStatus::Requested(HighLevelQuery::PlayMusicFromURL(m)) = res {
-                let (comp, action) = Playing::new(m, self.config.clone());
+                let (comp, action) = Playing::new(m, self.config.clone(), self.picker.take());
                 self.comp = Comp::Playing(comp);
                 action
             } else {

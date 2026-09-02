@@ -3,6 +3,7 @@ use std::sync::Arc;
 use clap::Parser;
 use cli::Cli;
 use color_eyre::{eyre::eyre, Result};
+use ratatui_image::picker::Picker;
 use tokio::{
     sync::{
         mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
@@ -77,6 +78,7 @@ pub fn start_workers(
     playerstatus: Arc<RwLock<PlayerStatus>>,
     tick_rate: f64,
     frame_rate: f64,
+    picker: Option<Picker>,
     #[cfg(test)] debug_tx: UnboundedSender<bool>,
 ) -> Result<(App, JoinSet<Result<()>>)> {
     let mut set = JoinSet::new();
@@ -87,13 +89,13 @@ pub fn start_workers(
 
     #[cfg(test)]
     let app = App::new(
-        config, action_tx, action_rx, mpris_tx, query_tx, player_tx, tick_rate, frame_rate,
+        config, action_tx, action_rx, mpris_tx, query_tx, player_tx, tick_rate, frame_rate, picker,
         debug_tx,
     )?;
 
     #[cfg(not(test))]
     let app = App::new(
-        config, action_tx, action_rx, mpris_tx, query_tx, player_tx, tick_rate, frame_rate,
+        config, action_tx, action_rx, mpris_tx, query_tx, player_tx, tick_rate, frame_rate, picker,
     )?;
 
     // Start query worker
@@ -155,6 +157,7 @@ async fn main() -> Result<()> {
                 playerstatus.clone(),
                 args.tick_rate,
                 args.frame_rate,
+                Picker::from_query_stdio().ok(),
             )?;
 
             let local = tokio::task::LocalSet::new();

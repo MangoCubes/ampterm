@@ -52,6 +52,7 @@ use ratatui::{
     widgets::{Paragraph, Wrap},
     Frame,
 };
+use ratatui_image::picker::Picker;
 
 #[derive(PartialEq, Clone)]
 enum LastSelected {
@@ -176,7 +177,7 @@ impl MainScreen {
         self.help.display(self.get_help());
         self.popup = Popup::Help;
     }
-    pub fn new(config: Config) -> (Self, Action) {
+    pub fn new(config: Config, picker: Option<Picker>) -> (Self, Action) {
         let (pl_list, action) = LeftPanel::new(config.clone(), true);
         (
             Self {
@@ -193,7 +194,7 @@ impl MainScreen {
                 pl_list,
                 pl_queue: PlaylistQueue::new(config.clone(), false),
                 playqueue: PlayQueue::new(false, config.clone()),
-                now_playing: NowPlaying::new(false, config.clone()),
+                now_playing: NowPlaying::new(false, config.clone(), picker),
                 help: Help::new(config.clone()),
                 message: (false, {
                     if let Some(s) = config.global.find_action_str(TargetedAction::OpenHelp) {

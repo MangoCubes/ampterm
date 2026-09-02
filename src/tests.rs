@@ -2,6 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use color_eyre::{eyre::eyre, Result};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use ratatui_image::picker::Picker;
 use tokio::{
     select,
     sync::{
@@ -177,6 +178,7 @@ async fn test_main() {
     let (action_tx, action_rx) = unbounded_channel();
     let (debug_tx, debug_rx) = unbounded_channel();
     let (mpris_tx, _) = unbounded_channel();
+
     let (mut app, mut set) = start_workers(
         action_tx.clone(),
         action_rx,
@@ -185,6 +187,7 @@ async fn test_main() {
         playerstatus,
         60.0,
         2.0,
+        Picker::from_query_stdio().ok(),
         debug_tx,
     )
     .unwrap();

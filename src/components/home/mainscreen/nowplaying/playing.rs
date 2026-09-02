@@ -19,7 +19,6 @@ use crate::{
     osclient::{response::getplaylist::Media, types::CoverID},
     playerworker::player::FromPlayerWorker,
     queryworker::query::QueryStatus,
-    trace_dbg,
 };
 use crossterm::event::KeyEvent;
 use ratatui::{
@@ -62,10 +61,10 @@ impl Playing {
 
         Action::Multiple(actions)
     }
-    pub fn new(music: Media, config: Config) -> (Self, Option<Action>) {
+    pub fn new(music: Media, config: Config, picker: Option<Picker>) -> (Self, Option<Action>) {
         let mut actions = vec![];
         let cover = if config.features.cover_art.enable {
-            if let Ok(picker) = trace_dbg!(Picker::from_query_stdio()) {
+            if let Some(picker) = picker {
                 let (comp, action) = ImageComp::new(music.cover_art.clone(), picker);
                 if let Some(a) = action {
                     actions.push(a);

@@ -26,6 +26,7 @@ use crate::{
         query::{setcredential::Credential, QueryStatus, ResponseType, ToQueryWorker},
     },
 };
+use ratatui_image::picker::Picker;
 
 use super::traits::handlekeyseq::{ComponentKeyHelp, KeySeqResult};
 
@@ -38,6 +39,7 @@ enum Comp {
 pub struct Home {
     component: Comp,
     config: Config,
+    picker: Option<Picker>,
 }
 
 impl OnTick for Home {
@@ -70,7 +72,8 @@ impl HandleQuery for Home {
                     match p {
                         Ok(()) => {
                             // Switch child component to MainScreen
-                            let (comp, actions) = MainScreen::new(self.config.clone());
+                            let (comp, actions) =
+                                MainScreen::new(self.config.clone(), self.picker.take());
                             self.component = Comp::Main(comp);
                             Some(actions)
                         }
@@ -91,7 +94,7 @@ impl HandleQuery for Home {
             Comp::Login(login) => {
                 if let QueryStatus::Finished(ResponseType::Login(Ok(()))) = res {
                     // Switch child component to MainScreen
-                    let (comp, actions) = MainScreen::new(self.config.clone());
+                    let (comp, actions) = MainScreen::new(self.config.clone(), self.picker.take());
                     self.component = Comp::Main(comp);
                     Some(actions)
                 } else {
@@ -128,7 +131,7 @@ impl HandleAction for Home {
 }
 
 impl Home {
-    pub fn new(config: Config) -> (Self, Action) {
+    pub fn new(config: Config, picker: Option<Picker>) -> (Self, Action) {
         let auth = config.clone().auth;
         let config_creds = if let Some(creds) = auth {
             fn run_cmd(cmd: &String) -> Result<String> {
@@ -188,6 +191,7 @@ impl Home {
             Self {
                 component: comp,
                 config,
+                picker,
             },
             actions,
         )

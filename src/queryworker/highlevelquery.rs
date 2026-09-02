@@ -6,7 +6,7 @@ use crate::{
         types::{CoverID, MediaID},
     },
     queryworker::query::{
-        getplaylist::GetPlaylistParams, setcredential::Credential,
+        getplaylist::GetPlaylistParams, search3::Search3Params, setcredential::Credential,
         updateplaylist::UpdatePlaylistParams,
     },
 };
@@ -42,6 +42,8 @@ pub enum HighLevelQuery {
     /// Sets the credential for this client, and sends a ping to ensure it is valid
     Login(Credential),
     UpdatePlaylist(UpdatePlaylistParams),
+    /// Search the server for songs/artists/albums
+    Search3(Search3Params),
 }
 
 impl HighLevelQuery {
@@ -62,6 +64,7 @@ impl HighLevelQuery {
             HighLevelQuery::GetCover(_) => vec![CompID::ImageComp],
             HighLevelQuery::ListPlaylistsPopup(_) => vec![CompID::MainScreen],
             HighLevelQuery::UpdatePlaylist(_) => vec![CompID::MainScreen],
+            HighLevelQuery::Search3(_) => vec![],
         }
     }
     pub fn show_task(&self) -> bool {
@@ -82,6 +85,7 @@ impl ToString for HighLevelQuery {
             HighLevelQuery::Login(_) => "Set login credentials and check validitiy",
             HighLevelQuery::UpdatePlaylist(_) => "Update playlist",
             HighLevelQuery::ListPlaylistsPopup(_) => "Fetching playlists for the popup",
+            HighLevelQuery::Search3(_) => "Searching the server",
         }
         .to_string()
     }

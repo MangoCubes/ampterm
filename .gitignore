@@ -9,3 +9,4 @@ demo.gif
 flamegraph.svg
 perf.data
 perf.data.old
+/.sync_*.db*

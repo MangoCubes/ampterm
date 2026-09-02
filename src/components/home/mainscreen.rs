@@ -1,10 +1,10 @@
 mod bpmtoy;
 mod filter;
 mod help;
+pub mod leftpanel;
 mod mediainfo;
 mod nowplaying;
 mod playlistinfo;
-pub mod playlistlist;
 mod playlistqueue;
 mod playqueue;
 mod search;
@@ -42,8 +42,8 @@ use crate::{
     },
 };
 use crossterm::event::KeyEvent;
+use leftpanel::LeftPanel;
 use nowplaying::NowPlaying;
-use playlistlist::PlaylistList;
 use playlistqueue::PlaylistQueue;
 use playqueue::PlayQueue;
 use ratatui::{
@@ -52,6 +52,7 @@ use ratatui::{
     widgets::{Paragraph, Wrap},
     Frame,
 };
+use ratatui_image::picker::Picker;
 
 #[derive(PartialEq, Clone)]
 enum LastSelected {
@@ -81,7 +82,7 @@ enum Popup {
 
 pub struct MainScreen {
     state: CurrentlySelected,
-    pl_list: PlaylistList,
+    pl_list: LeftPanel,
     pl_queue: PlaylistQueue,
     now_playing: NowPlaying,
     tasks: Tasks,
@@ -176,8 +177,8 @@ impl MainScreen {
         self.help.display(self.get_help());
         self.popup = Popup::Help;
     }
-    pub fn new(config: Config) -> (Self, Action) {
-        let (pl_list, action) = PlaylistList::new(config.clone(), true);
+    pub fn new(config: Config, picker: Option<Picker>) -> (Self, Action) {
+        let (pl_list, action) = LeftPanel::new(config.clone(), true);
         (
             Self {
                 search: None,
@@ -193,7 +194,7 @@ impl MainScreen {
                 pl_list,
                 pl_queue: PlaylistQueue::new(config.clone(), false),
                 playqueue: PlayQueue::new(false, config.clone()),
-                now_playing: NowPlaying::new(false, config.clone()),
+                now_playing: NowPlaying::new(false, config.clone(), picker),
                 help: Help::new(config.clone()),
                 message: (false, {
                     if let Some(s) = config.global.find_action_str(TargetedAction::OpenHelp) {

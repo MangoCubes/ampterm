@@ -4,7 +4,7 @@ use crate::{
     action::{action::Action, localaction::PlaylistListAction},
     compid::CompID,
     components::{
-        home::mainscreen::playlistlist::loaded::Loaded,
+        home::mainscreen::leftpanel::playlistlist::loaded::Loaded,
         lib::centered::Centered,
         traits::{
             focusable::Focusable,
@@ -20,13 +20,7 @@ use crate::{
     },
 };
 use crossterm::event::KeyEvent;
-use ratatui::{
-    layout::Rect,
-    style::{Modifier, Style, Stylize},
-    text::Span,
-    widgets::Block,
-    Frame,
-};
+use ratatui::{layout::Rect, Frame};
 
 enum Comp {
     Error(Centered),
@@ -52,33 +46,14 @@ impl PlaylistList {
             Action::ToQuery(query),
         )
     }
-    fn gen_block(&self) -> Block<'static> {
-        let style = if self.enabled {
-            Style::new().white()
-        } else {
-            Style::new().dark_gray()
-        };
-        let title = Span::styled(
-            "Playlist".to_string(),
-            if self.enabled {
-                Style::default().add_modifier(Modifier::BOLD)
-            } else {
-                Style::default().add_modifier(Modifier::DIM)
-            },
-        );
-        Block::bordered().title(title).border_style(style)
-    }
 }
 
 impl Renderable for PlaylistList {
     fn draw(&mut self, frame: &mut Frame, area: Rect) {
-        let block = self.gen_block();
-        let inner = block.inner(area);
-        frame.render_widget(block, area);
         match &mut self.comp {
-            Comp::Error(error) => error.draw(frame, inner),
-            Comp::Loaded(loaded) => loaded.draw(frame, inner),
-            Comp::Loading(loading) => loading.draw(frame, inner),
+            Comp::Error(error) => error.draw(frame, area),
+            Comp::Loaded(loaded) => loaded.draw(frame, area),
+            Comp::Loading(loading) => loading.draw(frame, area),
         }
     }
 }
@@ -103,7 +78,7 @@ impl HandleQuery for PlaylistList {
                         .config
                         .local
                         .playlistlist
-                        .find_action_str(PlaylistListAction::ViewSelected)
+                        .find_action_str(PlaylistListAction::Refresh)
                     {
                         msg.push(format!("Reload with {}", keyseq));
                     }

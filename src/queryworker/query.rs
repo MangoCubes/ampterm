@@ -1,4 +1,5 @@
 pub mod getplaylist;
+pub mod search3;
 pub mod setcredential;
 pub mod updateplaylist;
 
@@ -7,7 +8,7 @@ use image::DynamicImage;
 use crate::{
     compid::CompID,
     lyricsclient::getlyrics::GetLyricsResponse,
-    osclient::response::getplaylists::SimplePlaylist,
+    osclient::response::{getplaylists::SimplePlaylist, search3::SearchResult3},
     queryworker::{
         highlevelquery::HighLevelQuery, query::getplaylist::GetPlaylistResponse, QueryWorker,
     },
@@ -46,6 +47,7 @@ pub enum ResponseType {
     GetLyrics(Result<Option<GetLyricsResponse>, String>),
     GetCover(Result<DynamicImage, String>),
     Login(Result<(), String>),
+    Search3(Result<SearchResult3, String>),
 }
 
 #[derive(Debug, Clone)]

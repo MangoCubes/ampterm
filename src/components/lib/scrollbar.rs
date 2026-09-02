@@ -36,7 +36,7 @@ impl ScrollBar {
     pub fn update_max(&mut self, max: u32) {
         if max == 0 {
             self.current = 0;
-        } else if max < self.current {
+        } else if max <= self.current {
             self.current = max - 1;
         }
         self.max = max;

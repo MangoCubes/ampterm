@@ -2,8 +2,9 @@
   description = "Rust development environment";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    rust-overlay.url = "github:oxalica/rust-overlay";
   };
 
   outputs =
@@ -11,6 +12,7 @@
       self,
       nixpkgs,
       flake-utils,
+      rust-overlay,
     }:
     {
       homeManager = {
@@ -20,14 +22,23 @@
     // flake-utils.lib.eachDefaultSystem (
       system:
       let
+        overlays = [ (import rust-overlay) ];
         pkgs = import nixpkgs {
-          inherit system;
+          inherit system overlays;
+        };
+        rustToolchain = pkgs.rust-bin.stable.latest.default.override {
+          extensions = [
+            "rust-src"
+            "rust-analyzer"
+          ];
         };
         nativeBuildInputs = [ pkgs.pkg-config ];
-        buildInputs = with pkgs; [
-          openssl
-          alsa-lib
-        ];
+        buildInputs =
+          (with pkgs; [
+            openssl
+            alsa-lib
+          ])
+          ++ [ rustToolchain ];
       in
       {
         packages.default = pkgs.rustPlatform.buildRustPackage {
@@ -50,7 +61,6 @@
               lldb
               jq
               perf # For permformance checking
-              rustup
               # This is necessary for opening bash from Neovim
               bashInteractive
             ]
@@ -59,6 +69,7 @@
 
           env = {
             RUST_BACKTRACE = "full";
+            RUST_SRC_PATH = "${rustToolchain}/lib/rustlib/src/rust/library";
           };
           shellHook =
             let

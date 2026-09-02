@@ -29,6 +29,7 @@ use crate::{
     queryworker::query::{QueryStatus, ToQueryWorker},
     tui::{Event, Tui},
 };
+use ratatui_image::picker::Picker;
 
 pub struct App {
     config: Config,
@@ -58,9 +59,10 @@ impl App {
         player_tx: UnboundedSender<ToPlayerWorker>,
         tick_rate: f64,
         frame_rate: f64,
+        picker: Option<Picker>,
         #[cfg(test)] debug_tx: UnboundedSender<bool>,
     ) -> Result<Self> {
-        let (component, action) = Home::new(config.clone());
+        let (component, action) = Home::new(config.clone(), picker);
         let _ = action_tx.send(action);
         Ok(Self {
             tui: Tui::new()?.tick_rate(tick_rate).frame_rate(frame_rate),

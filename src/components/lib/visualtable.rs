@@ -9,7 +9,8 @@ use ratatui::{
 
 /// Filter applied index are indexes that are counted from the first element, skipping the ones
 /// that are hidden ([`RowState::visible`]). If there are 5 elements, and 1 and 2 has
-/// [`RowState::visible`] set to false, then the 5th element's index is 2 (4 - 2).
+/// [`RowState::visible`] set to false, then the 5th element's index is 2 (4 (index of the last
+/// element) - 2)
 #[derive(Deref, DerefMut, Clone, Copy)]
 struct FilterAppliedIndex(usize);
 

@@ -482,7 +482,11 @@ impl HandleKeySeq<PlayQueueAction> for PlayQueue {
                     CurrentItem::InQueue(idx) => {
                         if let Some((newidx, deleted)) = self.list.move_item_to(&selection, idx) {
                             self.now_playing = if deleted {
-                                CurrentItem::NotInQueue(newidx)
+                                if newidx == 0 {
+                                    CurrentItem::BeforeFirst
+                                } else {
+                                    CurrentItem::NotInQueue(newidx)
+                                }
                             } else {
                                 CurrentItem::InQueue(newidx)
                             };

@@ -9,6 +9,7 @@ use crate::{
     components::{
         lib::{scrollbar::ScrollBar, visualtable::VisualTable},
         traits::{
+            copyable::Copyable,
             handlekeyseq::{HandleKeySeq, KeySeqResult},
             handlequery::HandleQuery,
             renderable::Renderable,
@@ -196,5 +197,15 @@ impl HandleKeySeq<PlaylistListAction> for Loaded {
 
     fn get_keybinds(&self) -> &KeyBindings<PlaylistListAction> {
         &self.keymap
+    }
+}
+
+impl Copyable for Loaded {
+    fn get_copyable_item(&self) -> Option<String> {
+        if let Some(pos) = self.table.get_current() {
+            self.list.get(pos).map(|item| item.name.clone())
+        } else {
+            None
+        }
     }
 }

@@ -149,6 +149,8 @@ pub enum TargetedAction {
     PrepareAddToPlaylist(Vec<MediaID>),
 
     AddCurrentItemToPlaylist,
+
+    CopyToClipboard,
 }
 
 impl ToString for TargetedAction {
@@ -226,6 +228,7 @@ impl ToString for TargetedAction {
             TargetedAction::SearchUpdate(s, _) => format!("Search content by keyword '{}'", s),
             TargetedAction::CloseFilter => "Close filter dialog".to_string(),
             TargetedAction::ApplySearch(s) => format!("Search content by keyword '{}'", s),
+            TargetedAction::CopyToClipboard => "Copy the current item to clipboard".to_string(),
         }
     }
 }

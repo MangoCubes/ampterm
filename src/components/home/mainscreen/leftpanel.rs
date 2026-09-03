@@ -6,6 +6,7 @@ use crate::{
     components::{
         home::mainscreen::leftpanel::playlistlist::PlaylistList,
         traits::{
+            copyable::Copyable,
             focusable::Focusable,
             handlekeyseq::{ComponentKeyHelp, KeySeqResult, PassKeySeq},
             handlequery::HandleQuery,
@@ -103,5 +104,13 @@ impl Focusable for LeftPanel {
         if self.enabled != enable {
             self.enabled = enable;
         };
+    }
+}
+
+impl Copyable for LeftPanel {
+    fn get_copyable_item(&self) -> Option<String> {
+        match &self.comp {
+            Comp::PlaylistList(pl) => pl.get_copyable_item(),
+        }
     }
 }

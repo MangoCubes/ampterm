@@ -13,6 +13,7 @@ use crate::{
         localaction::PopupAction,
     },
     components::traits::{
+        copyable::Copyable,
         handlekeyseq::{HandleKeySeq, KeySeqResult},
         renderable::Renderable,
     },
@@ -25,11 +26,12 @@ pub struct PlaylistInfo {
     state: TableState,
     binds: KeyBindings<PopupAction>,
     block: Block<'static>,
+    data: Vec<[String; 2]>,
 }
 
 impl PlaylistInfo {
     pub fn new(playlist: SimplePlaylist, binds: KeyBindings<PopupAction>) -> Self {
-        let rows: Vec<Row<'static>> = [
+        let data: Vec<[String; 2]> = [
             ["Name".to_string(), playlist.name],
             ["ID".to_string(), playlist.id.to_string()],
             [
@@ -69,9 +71,9 @@ impl PlaylistInfo {
             ["Created At".to_string(), playlist.created],
             ["Last Modified".to_string(), playlist.changed],
         ]
-        .into_iter()
-        .map(Row::new)
-        .collect();
+        .to_vec();
+
+        let rows: Vec<Row<'static>> = data.clone().into_iter().map(Row::new).collect();
         Self {
             table: Table::new(rows, [Constraint::Max(13), Constraint::Fill(1)])
                 .row_highlight_style(Style::new().reversed())
@@ -86,6 +88,7 @@ impl PlaylistInfo {
                 );
                 Block::bordered().title(title).border_style(style)
             },
+            data,
         }
     }
 }
@@ -121,5 +124,15 @@ impl HandleKeySeq<PopupAction> for PlaylistInfo {
 
     fn get_keybinds(&self) -> &KeyBindings<PopupAction> {
         &self.binds
+    }
+}
+
+impl Copyable for PlaylistInfo {
+    fn get_copyable_item(&self) -> Option<String> {
+        if let Some(idx) = self.state.selected() {
+            self.data.get(idx).map(|[_, val]| val.clone())
+        } else {
+            None
+        }
     }
 }

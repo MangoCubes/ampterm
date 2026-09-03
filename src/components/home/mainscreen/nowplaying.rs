@@ -20,6 +20,7 @@ use crate::{
     components::{
         home::mainscreen::nowplaying::{speed::Speed, volume::Volume},
         traits::{
+            copyable::Copyable,
             focusable::Focusable,
             handlekeyseq::{ComponentKeyHelp, KeySeqResult, PassKeySeq},
             handleplayer::HandlePlayer,
@@ -171,5 +172,19 @@ impl Focusable for NowPlaying {
         if self.enabled != enable {
             self.enabled = enable;
         };
+    }
+}
+
+impl Copyable for NowPlaying {
+    fn get_copyable_item(&self) -> Option<String> {
+        if let Some(media) = self.get_now_playing() {
+            if let Some(artist) = &media.artist {
+                Some(format!("{} - {}", artist, media.title))
+            } else {
+                Some(media.title)
+            }
+        } else {
+            None
+        }
     }
 }

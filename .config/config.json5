@@ -38,6 +38,7 @@
 		"<?>": "ToggleHelp",
 
 		"<'>": "AddCurrentItemToPlaylist",
+		"<y>": "CopyToClipboard",
 
 		"<f>": "OpenFilter",
 		"<Ctrl-f>": "ClearFilter",

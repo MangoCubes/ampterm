@@ -13,6 +13,7 @@ use crate::{
         localaction::PopupAction,
     },
     components::traits::{
+        copyable::Copyable,
         handlekeyseq::{HandleKeySeq, KeySeqResult},
         renderable::Renderable,
     },
@@ -25,11 +26,12 @@ pub struct MediaInfo {
     state: TableState,
     binds: KeyBindings<PopupAction>,
     block: Block<'static>,
+    data: Vec<[String; 2]>,
 }
 
 impl MediaInfo {
     pub fn new(media: Media, binds: KeyBindings<PopupAction>) -> Self {
-        let rows: Vec<Row<'static>> = [
+        let data: Vec<[String; 2]> = [
             ["Title".to_string(), media.title],
             ["ID".to_string(), media.id.to_string()],
             ["Album".to_string(), media.album.unwrap_or("".to_string())],
@@ -166,9 +168,9 @@ impl MediaInfo {
                 },
             ],
         ]
-        .into_iter()
-        .map(Row::new)
-        .collect();
+        .to_vec();
+
+        let rows: Vec<Row<'static>> = data.clone().into_iter().map(Row::new).collect();
         Self {
             table: Table::new(rows, [Constraint::Max(14), Constraint::Fill(1)])
                 .row_highlight_style(Style::new().reversed())
@@ -178,11 +180,12 @@ impl MediaInfo {
             block: {
                 let style = Style::new().white();
                 let title = Span::styled(
-                    "Playlist Information",
+                    "Media Information",
                     Style::default().add_modifier(Modifier::BOLD),
                 );
                 Block::bordered().title(title).border_style(style)
             },
+            data,
         }
     }
 }
@@ -219,5 +222,15 @@ impl HandleKeySeq<PopupAction> for MediaInfo {
 
     fn get_keybinds(&self) -> &KeyBindings<PopupAction> {
         &self.binds
+    }
+}
+
+impl Copyable for MediaInfo {
+    fn get_copyable_item(&self) -> Option<String> {
+        if let Some(idx) = self.state.selected() {
+            self.data.get(idx).map(|[_, val]| val.clone())
+        } else {
+            None
+        }
     }
 }

@@ -10,6 +10,7 @@ use crate::{
     components::{
         home::mainscreen::playlistqueue::{empty::Empty, loading::Loading},
         traits::{
+            copyable::Copyable,
             focusable::Focusable,
             handlefilter::HandleFilter,
             handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult, PassKeySeq},
@@ -180,5 +181,15 @@ impl HandleFilter for PlaylistQueue {
 
     fn init_filter(&mut self) -> bool {
         matches!(&mut self.comp, Comp::Loaded(_))
+    }
+}
+
+impl Copyable for PlaylistQueue {
+    fn get_copyable_item(&self) -> Option<String> {
+        if let Comp::Loaded(loaded) = &self.comp {
+            loaded.get_copyable_item()
+        } else {
+            None
+        }
     }
 }

@@ -10,6 +10,7 @@ use crate::{
             visualtable::{VisualSelection, VisualTable},
         },
         traits::{
+            copyable::Copyable,
             focusable::Focusable,
             handlefilter::HandleFilter,
             handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult},
@@ -427,6 +428,22 @@ impl HandleFilter for Loaded {
             self.table.set_visibility(&visibility);
             self.table.bump_cursor_pos();
             self.bar.update_max(count as u32);
+        }
+    }
+}
+
+impl Copyable for Loaded {
+    fn get_copyable_item(&self) -> Option<String> {
+        if let Some(pos) = self.table.get_current() {
+            self.playlist.entry.get(pos).map(|m| {
+                if let Some(artist) = &m.artist {
+                    format!("{} - {}", artist, m.title)
+                } else {
+                    m.title.clone()
+                }
+            })
+        } else {
+            None
         }
     }
 }

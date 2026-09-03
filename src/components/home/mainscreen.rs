@@ -21,6 +21,7 @@ use crate::{
             tasks::Tasks,
         },
         traits::{
+            copyable::Copyable,
             focusable::Focusable,
             handleaction::HandleAction,
             handlefilter::HandleFilter,
@@ -35,6 +36,7 @@ use crate::{
         },
     },
     config::{keyparser::KeyParser, Config},
+    helper::clipboard::copy_to_clipboard,
     playerworker::player::FromPlayerWorker,
     queryworker::{
         highlevelquery::HighLevelQuery,
@@ -365,6 +367,29 @@ impl HandleAction for MainScreen {
     fn handle_action(&mut self, action: TargetedAction) -> Option<Action> {
         self.key_stack.drain(..);
         match action {
+            TargetedAction::CopyToClipboard => {
+                if let Some(text) = match &self.popup {
+                    Popup::MediaInfo(comp) => comp.get_copyable_item(),
+                    Popup::PlaylistInfo(comp) => comp.get_copyable_item(),
+                    Popup::None => match &self.state {
+                        CurrentlySelected::PlaylistList => self.pl_list.get_copyable_item(),
+                        CurrentlySelected::PlaylistQueue => self.pl_queue.get_copyable_item(),
+                        CurrentlySelected::PlayQueue => self.playqueue.get_copyable_item(),
+                        CurrentlySelected::NowPlaying(_) => self.now_playing.get_copyable_item(),
+                    },
+                    _ => None,
+                } {
+                    match copy_to_clipboard(&text, &self.config.behaviour.copy_command) {
+                        Ok(()) => {
+                            self.message = (false, format!("Copied '{}' to clipboard", text));
+                        }
+                        Err(err) => {
+                            self.message = (true, format!("Failed to copy to clipboard: {}", err));
+                        }
+                    }
+                }
+                None
+            }
             TargetedAction::AddCurrentItemToPlaylist => {
                 if let Some(media) = self.now_playing.get_now_playing() {
                     let (popup, action) = SelectPlaylistPopup::new(

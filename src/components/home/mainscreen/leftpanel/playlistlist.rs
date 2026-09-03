@@ -7,6 +7,7 @@ use crate::{
         home::mainscreen::leftpanel::playlistlist::loaded::Loaded,
         lib::centered::Centered,
         traits::{
+            copyable::Copyable,
             focusable::Focusable,
             handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult, PassKeySeq},
             handlequery::HandleQuery,
@@ -117,5 +118,15 @@ impl Focusable for PlaylistList {
         if self.enabled != enable {
             self.enabled = enable;
         };
+    }
+}
+
+impl Copyable for PlaylistList {
+    fn get_copyable_item(&self) -> Option<String> {
+        if let Comp::Loaded(loaded) = &self.comp {
+            loaded.get_copyable_item()
+        } else {
+            None
+        }
     }
 }

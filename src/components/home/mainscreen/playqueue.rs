@@ -20,6 +20,7 @@ use crate::{
             visualtable::{VisualSelection, VisualTable},
         },
         traits::{
+            copyable::Copyable,
             focusable::Focusable,
             handleaction::HandleAction,
             handlekeyseq::{ComponentKeyHelp, HandleKeySeq, KeySeqResult},
@@ -629,5 +630,21 @@ impl HandleQuery for PlayQueue {
             self.set_star(&media, star);
         }
         None
+    }
+}
+
+impl Copyable for PlayQueue {
+    fn get_copyable_item(&self) -> Option<String> {
+        if let Some(pos) = self.table.get_current() {
+            self.list.0.get(pos).map(|m| {
+                if let Some(artist) = &m.artist {
+                    format!("{} - {}", artist, m.title)
+                } else {
+                    m.title.clone()
+                }
+            })
+        } else {
+            None
+        }
     }
 }

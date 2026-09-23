@@ -45,7 +45,7 @@
           inherit buildInputs nativeBuildInputs;
           src = ./.;
           name = "ampterm";
-          cargoHash = "sha256-njAVC9ha6Lp8CsrlpCp635PVyMCU0kOHEnkqdZpKUhQ=";
+          cargoHash = "sha256-HwYS8e1TJltWflEyT5vvlArlElaKmRZYW8Q60dzMOfA=";
           doCheck = false;
         };
         meta = {
@@ -58,8 +58,6 @@
           packages = (
             with pkgs;
             [
-              lldb
-              jq
               perf # For permformance checking
               # This is necessary for opening bash from Neovim
               bashInteractive

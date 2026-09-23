@@ -8,6 +8,7 @@ use std::sync::Arc;
 use crate::action::action::Action;
 use crate::compid::CompID;
 use crate::config::Config;
+use crate::db::Database;
 use crate::lyricsclient::getlyrics::GetLyricsParams;
 use crate::lyricsclient::lrclib::LrcLib;
 use crate::lyricsclient::LyricsClient;
@@ -31,6 +32,7 @@ use image::{DynamicImage, ImageReader};
 use query::ToQueryWorker;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use tokio::sync::Mutex;
+use tracing::{debug, error};
 
 #[derive(Default)]
 struct Cache {
@@ -40,6 +42,7 @@ struct Cache {
 pub struct QueryWorker {
     client: Option<Arc<OSClient>>,
     lyrics: Arc<LrcLib>,
+    db: Arc<Database>,
     req_tx: UnboundedSender<ToQueryWorker>,
     req_rx: UnboundedReceiver<ToQueryWorker>,
     action_tx: UnboundedSender<Action>,
@@ -330,15 +333,41 @@ impl QueryWorker {
 
     fn get_lyrics(&mut self, dest: Vec<CompID>, ticket: usize, params: GetLyricsParams) {
         let c = self.lyrics.clone();
+        let db = self.db.clone();
         let tx = self.action_tx.clone();
         tokio::spawn(async move {
+            let search = async || match c.search(params.clone()).await {
+                Ok(Some(fetched)) => {
+                    if let Err(e) = db.save_lyrics(&params, &fetched) {
+                        error!("Error saving the lyrics: {}", e);
+                    }
+                    Ok(Some(fetched))
+                }
+                Ok(None) => Ok(None),
+                Err(failed) => Err(failed.to_string()),
+            };
+            let lyrics = match db.get_lyrics(&params) {
+                Ok(Some(lyrics)) => {
+                    debug!("Found cached lyrics for {}", params.track_name);
+                    Ok(Some(lyrics))
+                }
+                Ok(None) => {
+                    debug!(
+                        "Lyrics not cached, fetching from network for {}",
+                        params.track_name
+                    );
+                    search().await
+                }
+                Err(e) => {
+                    error!("Error reading lyrics cache: {}", e);
+                    search().await
+                }
+            };
+
             let _ = tx.send(Action::FromQuery {
-                dest: dest,
-                ticket: ticket,
-                res: QueryStatus::Finished(ResponseType::GetLyrics(match c.search(params).await {
-                    Ok(success) => Ok(success),
-                    Err(failed) => Err(failed.to_string()),
-                })),
+                dest,
+                ticket,
+                res: QueryStatus::Finished(ResponseType::GetLyrics(lyrics)),
             });
         });
     }
@@ -407,8 +436,10 @@ impl QueryWorker {
 impl QueryWorker {
     pub fn new(sender: UnboundedSender<Action>, config: Config) -> Self {
         let (req_tx, req_rx) = mpsc::unbounded_channel();
+        let db = Database::new(&config.config.data_dir).expect("Failed to initialise database");
         Self {
             lyrics: Arc::new(LrcLib::new(config.clone())),
+            db: Arc::new(db),
             client: None,
             req_tx,
             req_rx,

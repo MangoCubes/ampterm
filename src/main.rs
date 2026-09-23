@@ -31,6 +31,7 @@ mod cli;
 mod compid;
 mod components;
 mod config;
+mod db;
 mod errors;
 mod helper;
 mod logging;
